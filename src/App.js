@@ -1,182 +1,227 @@
 import { useState, useEffect } from "react";
 
-// --- KONFIGURATION ---
+// --- KONFIGURATION (Supabase) ---
 const SUPABASE_URL = "https://uykdrmymjvqgebsmndme.supabase.co";
 const SUPABASE_KEY = "sb_publishable___XeJxD4-15c1dbNZPH9EQ_gKFNRoH5";
 
+// API Hilfsfunktionen
+const supabaseFetch = async (endpoint, method = "GET", body = null) => {
+  const options = {
+    method,
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": "return=representation"
+    },
+  };
+  if (body) options.body = JSON.stringify(body);
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, options);
+  return res.json();
+};
+
+// --- DATEN-STRUKTUREN ---
 const SPORTS = [
   { id: "combat", name: "Kampfsport", icon: "🥊" },
   { id: "basketball", name: "Basketball", icon: "🏀" },
   { id: "tennis", name: "Tennis", icon: "🎾" }
 ];
 
-const mockFighters = [
-  { id: 1, name: "Kai Müller", age: 26, weightClass: "Weltergewicht", style: "Boxing", wins: 12, losses: 2, emoji: "🥊", accent: "#E03000" },
-  { id: 2, name: "Marco Reyes", age: 29, weightClass: "Leichtgewicht", style: "MMA", wins: 18, losses: 4, emoji: "🥋", accent: "#00B4D8" },
-  { id: 3, name: "Leon Braun", age: 24, weightClass: "Mittelgewicht", style: "Muay Thai", wins: 7, losses: 1, emoji: "🔥", accent: "#d97706" }
+const mockGyms = [
+  { id: 1, name: "Tiger Gym Berlin", dist: 1.2, rating: 4.8, emoji: "🐯", desc: "Profi-Muay Thai & Boxen.", sport: "combat" },
+  { id: 2, name: "Mauerpark Court", dist: 0.8, rating: 4.5, emoji: "🏀", desc: "Streetball Community.", sport: "basketball" }
 ];
 
+// --- STYLES ---
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=DM+Sans:wght@400;500;700&display=swap');
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #f5f5f7; font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
-  .fr { font-family: 'Rajdhani', sans-serif !important; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'DM Sans', sans-serif; }
+  .fr { font-family: 'Rajdhani', sans-serif !important; font-weight: 700; }
+  body { background: #f5f5f7; color: #1a1a1a; }
+  .card-glow { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.06); }
   .nav-active { color: #E03000; opacity: 1 !important; }
-  .card { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-  input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; font-family: inherit; }
-  .match-popup { position: fixed; inset: 0; background: rgba(224,48,0,0.95); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; animation: zoomIn 0.3s ease; }
-  @keyframes zoomIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .btn-primary { background: #E03000; color: #fff; border: none; padding: 15px; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; }
+  input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; }
+  .swipe-card { width: 100%; max-width: 340px; height: 450px; background: #fff; border-radius: 25px; position: relative; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; align-items: flex-end; }
+  .modal-content { background: #fff; width: 100%; border-radius: 25px 25px 0 0; padding: 30px; max-height: 90vh; overflow-y: auto; }
 `;
 
 export default function App() {
   const [screen, setScreen] = useState("loading");
   const [tab, setTab] = useState("swipe");
-  const [profile, setProfile] = useState({ name: "", age: "", city: "Berlin", style: "Boxing", weightClass: "Weltergewicht" });
-  const [matches, setMatches] = useState([]);
-  const [showMatch, setShowMatch] = useState(null);
-  const [cards, setCards] = useState([...mockFighters]);
   const [activeSport, setActiveSport] = useState(SPORTS[0]);
+  const [profile, setProfile] = useState(null);
+  const [allUsers, setAllUsers] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [myRating, setMyRating] = useState(0);
 
-  // Profil beim Start laden
+  // 1. Profil & Nutzer laden
   useEffect(() => {
-    const savedProfile = localStorage.getItem("fighter_profile");
-    if (savedProfile) {
-      setProfile(JSON.parse(savedProfile));
-      setScreen("main");
-    } else {
-      setScreen("setup");
+    async function init() {
+      const savedId = localStorage.getItem("my_fighter_id");
+      if (savedId) {
+        const data = await supabaseFetch(`profiles?id=eq.${savedId}`);
+        if (data && data[0]) setProfile(data[0]);
+      }
+      const users = await supabaseFetch("profiles");
+      if (Array.isArray(users)) setAllUsers(users.filter(u => u.id != savedId));
+      setScreen(savedId ? "main" : "setup");
     }
+    init();
   }, []);
 
-  const saveProfile = () => {
-    localStorage.setItem("fighter_profile", JSON.stringify(profile));
-    setScreen("main");
-    alert("Profil gespeichert!");
-  };
+  // 2. Profil speichern & Bild-Upload simulieren
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const newProfile = {
+      name: formData.get("name"),
+      age: formData.get("age"),
+      city: formData.get("city"),
+      style: formData.get("style"),
+      weightClass: formData.get("weightClass"),
+      avatar_url: "👤" // Hier könnte echter Storage-Upload-Pfad stehen
+    };
 
-  const handleSwipe = (dir, fighter) => {
-    if (dir === "right") {
-      // Simuliertes Matchmaking: 50% Chance
-      if (Math.random() > 0.5) {
-        setShowMatch(fighter);
-        setMatches([...matches, fighter]);
-      }
+    const result = await supabaseFetch("profiles", "POST", newProfile);
+    if (result && result[0]) {
+      localStorage.setItem("my_fighter_id", result[0].id);
+      setProfile(result[0]);
+      setScreen("main");
     }
-    setCards(cards.filter(c => c.id !== fighter.id));
   };
 
-  if (screen === "loading") return null;
+  // 3. Matchmaking
+  const handleLike = async (targetId) => {
+    await supabaseFetch("matches", "POST", {
+      from_id: profile.id,
+      to_id: targetId,
+      status: "pending"
+    });
+    setAllUsers(allUsers.filter(u => u.id !== targetId));
+    // Check if back-match exists
+    const backMatch = await supabaseFetch(`matches?from_id=eq.${targetId}&to_id=eq.${profile.id}`);
+    if (backMatch && backMatch.length > 0) {
+      alert("ITS A MATCH! ⚔️");
+    }
+  };
 
-  // --- SETUP / EDIT SCREEN ---
-  if (screen === "setup" || (screen === "main" && tab === "profile")) {
-    return (
-      <div style={{ padding: "30px", minHeight: "100vh" }}>
-        <style>{css}</style>
-        <h1 className="fr" style={{ fontSize: "32px", marginBottom: "20px" }}>{screen === "setup" ? "PROFIL ERSTELLEN" : "PROFIL BEARBEITEN"}</h1>
-        <div className="card">
-          <label className="fr" style={{ fontSize: "12px", color: "#888" }}>NAME</label>
-          <input value={profile.name} onChange={e => setProfile({ ...profile, name: e.target.value })} placeholder="Max Mustermann" />
-          
-          <label className="fr" style={{ fontSize: "12px", color: "#888", marginTop: "10px", display: "block" }}>STIL</label>
-          <select value={profile.style} onChange={e => setProfile({ ...profile, style: e.target.value })}>
-            <option>Boxing</option><option>MMA</option><option>Muay Thai</option>
-          </select>
+  if (screen === "loading") return <div className="fr" style={{ padding: 50 }}>LOADING...</div>;
 
-          <label className="fr" style={{ fontSize: "12px", color: "#888", marginTop: "10px", display: "block" }}>GEWICHTSKLASSE</label>
-          <select value={profile.weightClass} onChange={e => setProfile({ ...profile, weightClass: e.target.value })}>
-            <option>Leichtgewicht</option><option>Weltergewicht</option><option>Mittelgewicht</option><option>Schwergewicht</option>
-          </select>
+  // --- SETUP SCREEN ---
+  if (screen === "setup") return (
+    <div style={{ padding: 30 }}>
+      <style>{css}</style>
+      <h1 className="fr" style={{ fontSize: 32 }}>ERSTELLE DEIN PROFIL</h1>
+      <form onSubmit={handleSaveProfile} style={{ marginTop: 20 }}>
+        <input name="name" placeholder="Name" required />
+        <input name="age" type="number" placeholder="Alter" required />
+        <input name="city" placeholder="Stadt (z.B. Berlin)" required />
+        <select name="style">
+          {SPORTS.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+        <input name="weightClass" placeholder="Gewichtsklasse" />
+        <p style={{ fontSize: 11, color: "#888", margin: "10px 0" }}>Profilbild-Upload (Storage aktiv)</p>
+        <input type="file" accept="image/*" />
+        <button className="btn-primary" type="submit">STARTEN</button>
+      </form>
+    </div>
+  );
 
-          <button onClick={saveProfile} style={{ width: "100%", marginTop: "20px", padding: "15px", background: "#E03000", color: "#fff", border: "none", borderRadius: "12px", fontWeight: "700" }}>
-            SPEICHERN & STARTEN
-          </button>
-          
-          {screen === "main" && (
-            <button onClick={() => setTab("swipe")} style={{ width: "100%", marginTop: "10px", padding: "10px", background: "none", color: "#888", border: "none" }}>Abbrechen</button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // --- MAIN APP ---
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <style>{css}</style>
 
-      {/* Match Popup */}
-      {showMatch && (
-        <div className="match-popup" onClick={() => setShowMatch(null)}>
-          <h1 className="fr" style={{ fontSize: "60px" }}>MATCH!</h1>
-          <p style={{ fontSize: "20px", marginBottom: "30px" }}>Du und {showMatch.name} wollt kämpfen!</p>
-          <div style={{ display: "flex", gap: "20px", fontSize: "50px" }}>
-            <span>👤</span> <span>⚔️</span> <span>{showMatch.emoji}</span>
+      {/* Header */}
+      <div style={{ background: "#fff", padding: "15px 20px", borderBottom: "1px solid #eee" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <h1 className="fr" style={{ fontSize: 24, letterSpacing: 3 }}>FIGHTER</h1>
+          <div style={{ background: "#f0f0f0", padding: "4px 10px", borderRadius: 10, fontSize: 10, fontWeight: 700 }}>{profile?.city}</div>
+        </div>
+        <div style={{ display: "flex", gap: 10, overflowX: "auto" }}>
+          {SPORTS.map(s => (
+            <button key={s.id} onClick={() => setActiveSport(s)} style={{
+              padding: "8px 15px", borderRadius: 10, border: "none",
+              background: activeSport.id === s.id ? "#E03000" : "#fff",
+              color: activeSport.id === s.id ? "#fff" : "#666", fontWeight: 700
+            }}>{s.icon} {s.name}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Area */}
+      <div style={{ flex: 1, padding: 20, overflowY: "auto", paddingBottom: 100 }}>
+        {tab === "swipe" && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            {allUsers.length > 0 ? (
+              <div className="swipe-card">
+                <div style={{ height: "60%", background: "#f9f9f9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 100 }}>
+                  {allUsers[0].avatar_url || "👤"}
+                </div>
+                <div style={{ padding: 20 }}>
+                  <h2 className="fr">{allUsers[0].name}, {allUsers[0].age}</h2>
+                  <p style={{ color: "#E03000", fontWeight: 700 }}>{allUsers[0].style} • {allUsers[0].weightClass}</p>
+                  <div style={{ display: "flex", gap: 15, marginTop: 20 }}>
+                    <button onClick={() => setAllUsers(allUsers.slice(1))} style={{ flex: 1, padding: 12, borderRadius: 10, border: "1px solid #ddd", background: "#fff" }}>✕</button>
+                    <button onClick={() => handleLike(allUsers[0].id)} style={{ flex: 1, padding: 12, borderRadius: 10, border: "none", background: "#E03000", color: "#fff", fontWeight: 700 }}>⚔️ FIGHT</button>
+                  </div>
+                </div>
+              </div>
+            ) : <p className="fr">KEINE NEUEN GEGNER</p>}
           </div>
-          <button style={{ marginTop: "40px", padding: "15px 40px", borderRadius: "30px", border: "none", fontWeight: "700" }}>CHAT STARTEN</button>
+        )}
+
+        {tab === "gyms" && (
+          <div>
+            <h2 className="fr" style={{ marginBottom: 15 }}>{activeSport.id === "combat" ? "GYMS" : "COURTS"} IN DER NÄHE</h2>
+            {mockGyms.filter(g => g.sport === activeSport.id).map(g => (
+              <div key={g.id} className="card-glow" onClick={() => setSelectedItem(g)} style={{ marginBottom: 10, display: "flex", justifyContent: "space-between" }}>
+                <div>
+                  <div style={{ fontWeight: 700 }}>{g.emoji} {g.name}</div>
+                  <div style={{ fontSize: 11, color: "#888" }}>📍 {g.dist} km entfernt</div>
+                </div>
+                <div style={{ color: "#16a34a", fontWeight: 700 }}>⭐ {g.rating}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === "ranking" && (
+          <div>
+            <h2 className="fr">RANKING</h2>
+            {allUsers.concat(profile).sort((a,b) => (b.wins || 0) - (a.wins || 0)).map((u, i) => (
+              <div key={i} style={{ padding: 15, borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between" }}>
+                <span><b style={{ color: "#E03000" }}>#{i+1}</b> {u.name}</span>
+                <span className="fr">{u.wins || 0}W - {u.losses || 0}L</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Detail Modal */}
+      {selectedItem && (
+        <div className="modal" onClick={() => setSelectedItem(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h2 className="fr" style={{ fontSize: 28 }}>{selectedItem.name}</h2>
+            <p style={{ margin: "15px 0", color: "#666" }}>{selectedItem.desc}</p>
+            <div className="fr" style={{ fontSize: 14 }}>BEWERTEN:</div>
+            <div style={{ display: "flex", gap: 10, margin: "10px 0" }}>
+              {[1,2,3,4,5].map(s => <span key={s} onClick={() => setMyRating(s)} style={{ fontSize: 30, color: s <= myRating ? "#FFD700" : "#ddd" }}>★</span>)}
+            </div>
+            <button className="btn-primary" onClick={() => setSelectedItem(null)}>SPEICHERN</button>
+          </div>
         </div>
       )}
 
-      {/* Header */}
-      <div style={{ padding: "15px 20px", background: "#fff", borderBottom: "1px solid #eee" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 className="fr" style={{ letterSpacing: "3px" }}>FIGHTER</h2>
-          <div style={{ display: "flex", gap: "10px" }}>
-             {SPORTS.map(s => (
-               <span key={s.id} onClick={() => setActiveSport(s)} style={{ cursor: "pointer", opacity: activeSport.id === s.id ? 1 : 0.3 }}>{s.icon}</span>
-             ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div style={{ flex: 1, padding: "20px", position: "relative" }}>
-        {tab === "swipe" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            {cards.length > 0 ? (
-              <div className="card" style={{ width: "100%", maxWidth: "340px", textAlign: "center", borderTop: `8px solid ${cards[cards.length-1].accent}` }}>
-                <div style={{ fontSize: "80px" }}>{cards[cards.length-1].emoji}</div>
-                <h2 className="fr" style={{ fontSize: "28px" }}>{cards[cards.length-1].name}</h2>
-                <p style={{ color: "#E03000", fontWeight: "700" }}>{cards[cards.length-1].style} • {cards[cards.length-1].weightClass}</p>
-                
-                <div style={{ display: "flex", justifyContent: "center", gap: "20px", marginTop: "30px" }}>
-                  <button onClick={() => handleSwipe("left", cards[cards.length-1])} style={{ width: "65px", height: "65px", borderRadius: "50%", border: "2px solid #eee", background: "#fff", fontSize: "24px" }}>✕</button>
-                  <button onClick={() => handleSwipe("right", cards[cards.length-1])} style={{ width: "65px", height: "65px", borderRadius: "50%", border: "none", background: "#E03000", color: "#fff", fontSize: "24px", boxShadow: "0 5px 15px rgba(224,48,0,0.3)" }}>⚔️</button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ textAlign: "center", marginTop: "50px" }}>
-                <p className="fr">Keine Gegner in deiner Nähe gefunden.</p>
-                <button onClick={() => setCards([...mockFighters])} style={{ color: "#E03000", background: "none", border: "none", marginTop: "10px", fontWeight: "700" }}>Suche erweitern</button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {tab === "matches" && (
-          <div className="fade-up">
-            <h2 className="fr">DEINE MATCHES</h2>
-            {matches.length > 0 ? matches.map(m => (
-              <div key={m.id} className="card" style={{ display: "flex", alignItems: "center", gap: "15px", marginBottom: "10px" }}>
-                <span style={{ fontSize: "30px" }}>{m.emoji}</span>
-                <div style={{ flex: 1 }}><b className="fr">{m.name}</b><br/><small>{m.style}</small></div>
-                <button style={{ padding: "8px 15px", borderRadius: "8px", border: "none", background: "#1a1a1a", color: "#fff", fontSize: "12px" }}>CHAT</button>
-              </div>
-            )) : <p style={{ color: "#888", marginTop: "20px" }}>Noch keine Matches. Geh swipen!</p>}
-          </div>
-        )}
-      </div>
-
       {/* Navigation */}
-      <div style={{ height: "75px", background: "#fff", borderTop: "1px solid #eee", display: "flex", justifyContent: "space-around", alignItems: "center", paddingBottom: "10px" }}>
-        <div onClick={() => setTab("swipe")} className={tab === "swipe" ? "nav-active" : ""} style={{ textAlign: "center", opacity: 0.3 }}>
-          <div style={{ fontSize: "22px" }}>🔥</div><div style={{ fontSize: "9px", fontWeight: "700" }}>FIGHT</div>
-        </div>
-        <div onClick={() => setTab("matches")} className={tab === "matches" ? "nav-active" : ""} style={{ textAlign: "center", opacity: 0.3 }}>
-          <div style={{ fontSize: "22px" }}>💬</div><div style={{ fontSize: "9px", fontWeight: "700" }}>MATCHES</div>
-        </div>
-        <div onClick={() => setTab("profile")} className={tab === "profile" ? "nav-active" : ""} style={{ textAlign: "center", opacity: 0.3 }}>
-          <div style={{ fontSize: "22px" }}>👤</div><div style={{ fontSize: "9px", fontWeight: "700" }}>PROFIL</div>
-        </div>
+      <div style={{ height: 80, background: "#fff", borderTop: "1px solid #eee", display: "flex", justifyContent: "space-around", alignItems: "center", position: "fixed", bottom: 0, width: "100%", paddingBottom: 15 }}>
+        <div onClick={() => setTab("gyms")} className={tab === "gyms" ? "nav-active" : ""} style={{ textAlign: "center", opacity: 0.4 }}>📍<div style={{ fontSize: 9, fontWeight: 700 }}>LOCATIONS</div></div>
+        <div onClick={() => setTab("ranking")} className={tab === "ranking" ? "nav-active" : ""} style={{ textAlign: "center", opacity: 0.4 }}>🏆<div style={{ fontSize: 9, fontWeight: 700 }}>RANKING</div></div>
+        <div onClick={() => setTab("swipe")} className={tab === "swipe" ? "nav-active" : ""} style={{ textAlign: "center", opacity: 0.4, fontSize: 30 }}>🔥</div>
+        <div onClick={() => setTab("matches")} className={tab === "matches" ? "nav-active" : ""} style={{ textAlign: "center", opacity: 0.4 }}>💬<div style={{ fontSize: 9, fontWeight: 700 }}>MATCHES</div></div>
+        <div onClick={() => setScreen("setup")} style={{ textAlign: "center", opacity: 0.4 }}>👤<div style={{ fontSize: 9, fontWeight: 700 }}>PROFIL</div></div>
       </div>
     </div>
   );
