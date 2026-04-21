@@ -11,7 +11,7 @@ body: JSON.stringify(data)
 });
 return r.json();
 }
-
+ 
 async function dbUpdate(table, data, id) {
 const r = await fetch(SUPA_URL + “/rest/v1/" + table + “?id=eq." + id, {
 method: “PATCH",
