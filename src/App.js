@@ -1,112 +1,112 @@
-import { useState, useEffect } from “react";
+import { useState, useEffect } from “react”;
 
-const SUPA_URL = “https://uykdrmymjvqgebsmndme.supabase.co";
-const SUPA_KEY = “sb_publishable___XeJxD4-15c1dbNZPH9EQ_gKFNRoH5";
+const SUPA_URL = “https://uykdrmymjvqgebsmndme.supabase.co”;
+const SUPA_KEY = “sb_publishable___XeJxD4-15c1dbNZPH9EQ_gKFNRoH5”;
 
 async function dbInsert(table, data) {
-const r = await fetch(SUPA_URL + “/rest/v1/" + table, {
-method: “POST",
-headers: { “Content-Type": “application/json", “apikey": SUPA_KEY, “Authorization": “Bearer “ + SUPA_KEY, “Prefer": “return=representation" },
+const r = await fetch(SUPA_URL + “/rest/v1/” + table, {
+method: “POST”,
+headers: { “Content-Type”: “application/json”, “apikey”: SUPA_KEY, “Authorization”: “Bearer “ + SUPA_KEY, “Prefer”: “return=representation” },
 body: JSON.stringify(data)
 });
 return r.json();
 }
 
 async function dbUpdate(table, data, id) {
-const r = await fetch(SUPA_URL + “/rest/v1/" + table + “?id=eq." + id, {
-method: “PATCH",
-headers: { “Content-Type": “application/json", “apikey": SUPA_KEY, “Authorization": “Bearer “ + SUPA_KEY, “Prefer": “return=representation" },
+const r = await fetch(SUPA_URL + “/rest/v1/” + table + “?id=eq.” + id, {
+method: “PATCH”,
+headers: { “Content-Type”: “application/json”, “apikey”: SUPA_KEY, “Authorization”: “Bearer “ + SUPA_KEY, “Prefer”: “return=representation” },
 body: JSON.stringify(data)
 });
 return r.json();
 }
 
 async function dbSelect(table, id) {
-const url = id ? SUPA_URL + “/rest/v1/" + table + “?id=eq." + id : SUPA_URL + “/rest/v1/" + table;
-const r = await fetch(url, { headers: { “apikey": SUPA_KEY, “Authorization": “Bearer “ + SUPA_KEY } });
+const url = id ? SUPA_URL + “/rest/v1/” + table + “?id=eq.” + id : SUPA_URL + “/rest/v1/” + table;
+const r = await fetch(url, { headers: { “apikey”: SUPA_KEY, “Authorization”: “Bearer “ + SUPA_KEY } });
 return r.json();
 }
 
 async function uploadPhoto(file, path) {
-const r = await fetch(SUPA_URL + “/storage/v1/object/avatars/" + path, {
-method: “POST",
-headers: { “apikey": SUPA_KEY, “Authorization": “Bearer “ + SUPA_KEY, “Content-Type": file.type },
+const r = await fetch(SUPA_URL + “/storage/v1/object/avatars/” + path, {
+method: “POST”,
+headers: { “apikey”: SUPA_KEY, “Authorization”: “Bearer “ + SUPA_KEY, “Content-Type”: file.type },
 body: file
 });
 if (!r.ok) return null;
-return SUPA_URL + “/storage/v1/object/public/avatars/" + path;
+return SUPA_URL + “/storage/v1/object/public/avatars/” + path;
 }
 
 const WEIGHT_CLASSES = [
-“Strohgewicht (bis 52 kg)", “Leichtfliegengewicht (bis 54 kg)", “Fliegengewicht (bis 57 kg)",
-“Bantamgewicht (bis 61 kg)", “Federgewicht (bis 66 kg)", “Leichtgewicht (bis 70 kg)",
-“Halbweltergewicht (bis 77 kg)", “Weltergewicht (bis 83 kg)", “Halbmittelgewicht (bis 87 kg)",
-“Mittelgewicht (bis 93 kg)", “Halbschwergewicht (bis 100 kg)", “Cruisergewicht (bis 90 kg)",
-“Schwergewicht (ueber 100 kg)"
+“Strohgewicht (bis 52 kg)”, “Leichtfliegengewicht (bis 54 kg)”, “Fliegengewicht (bis 57 kg)”,
+“Bantamgewicht (bis 61 kg)”, “Federgewicht (bis 66 kg)”, “Leichtgewicht (bis 70 kg)”,
+“Halbweltergewicht (bis 77 kg)”, “Weltergewicht (bis 83 kg)”, “Halbmittelgewicht (bis 87 kg)”,
+“Mittelgewicht (bis 93 kg)”, “Halbschwergewicht (bis 100 kg)”, “Cruisergewicht (bis 90 kg)”,
+“Schwergewicht (ueber 100 kg)”
 ];
 
-const STYLES = [“Boxing", “Kickboxing", “MMA", “Muay Thai", “Grappling", “BJJ", “Wrestling"];
+const STYLES = [“Boxing”, “Kickboxing”, “MMA”, “Muay Thai”, “Grappling”, “BJJ”, “Wrestling”];
 
 const FIGHTERS = [
-{ id: 1, name: “Kai Mueller", age: 26, city: “Berlin", gym: “Tiger Gym Berlin", height: 182, weight: 77, weightClass: “Weltergewicht", style: “Boxing", wins: 12, losses: 2, draws: 1, ko: 8, emoji: “🥊", accent: “#c0392b" },
-{ id: 2, name: “Marco Reyes", age: 29, city: “Muenchen", gym: “Combat Base Munich", height: 175, weight: 70, weightClass: “Leichtgewicht", style: “MMA", wins: 18, losses: 4, draws: 0, ko: 11, emoji: “🥋", accent: “#2980b9" },
-{ id: 3, name: “Leon Braun", age: 24, city: “Hamburg", gym: “Iron Fist HH", height: 190, weight: 93, weightClass: “Mittelgewicht", style: “Muay Thai", wins: 7, losses: 1, draws: 0, ko: 5, emoji: “🔥", accent: “#d35400" },
-{ id: 4, name: “Tomas Vega", age: 31, city: “Koeln", gym: “Warriors Gym Koeln", height: 178, weight: 83, weightClass: “Halbmittelgewicht", style: “Kickboxing", wins: 22, losses: 6, draws: 2, ko: 14, emoji: “💥", accent: “#27ae60" },
-{ id: 5, name: “Sven Koch", age: 23, city: “Frankfurt", gym: “Apex Fighting Center", height: 185, weight: 100, weightClass: “Schwergewicht", style: “Wrestling", wins: 5, losses: 0, draws: 0, ko: 2, emoji: “🏅", accent: “#8e44ad" },
-{ id: 6, name: “Darius Stein", age: 27, city: “Stuttgart", gym: “Ground Zero Stuttgart", height: 172, weight: 61, weightClass: “Bantamgewicht", style: “BJJ", wins: 14, losses: 3, draws: 1, ko: 6, emoji: “⚡", accent: “#16a085" },
+{ id: 1, name: “Kai Mueller”, age: 26, city: “Berlin”, gym: “Tiger Gym Berlin”, height: 182, weight: 77, weightClass: “Weltergewicht”, style: “Boxing”, wins: 12, losses: 2, draws: 1, ko: 8, emoji: “🥊”, accent: “#c0392b” },
+{ id: 2, name: “Marco Reyes”, age: 29, city: “Muenchen”, gym: “Combat Base Munich”, height: 175, weight: 70, weightClass: “Leichtgewicht”, style: “MMA”, wins: 18, losses: 4, draws: 0, ko: 11, emoji: “🥋”, accent: “#2980b9” },
+{ id: 3, name: “Leon Braun”, age: 24, city: “Hamburg”, gym: “Iron Fist HH”, height: 190, weight: 93, weightClass: “Mittelgewicht”, style: “Muay Thai”, wins: 7, losses: 1, draws: 0, ko: 5, emoji: “🔥”, accent: “#d35400” },
+{ id: 4, name: “Tomas Vega”, age: 31, city: “Koeln”, gym: “Warriors Gym Koeln”, height: 178, weight: 83, weightClass: “Halbmittelgewicht”, style: “Kickboxing”, wins: 22, losses: 6, draws: 2, ko: 14, emoji: “💥”, accent: “#27ae60” },
+{ id: 5, name: “Sven Koch”, age: 23, city: “Frankfurt”, gym: “Apex Fighting Center”, height: 185, weight: 100, weightClass: “Schwergewicht”, style: “Wrestling”, wins: 5, losses: 0, draws: 0, ko: 2, emoji: “🏅”, accent: “#8e44ad” },
+{ id: 6, name: “Darius Stein”, age: 27, city: “Stuttgart”, gym: “Ground Zero Stuttgart”, height: 172, weight: 61, weightClass: “Bantamgewicht”, style: “BJJ”, wins: 14, losses: 3, draws: 1, ko: 6, emoji: “⚡”, accent: “#16a085” },
 ];
 
 const GYMS = {
-“Berlin": [
-{ name: “Tiger Gym Berlin", members: 142, styles: [“Boxing", “Muay Thai", “MMA"], rating: 4.8, address: “Mitte, Berlin", emoji: “🐯" },
-{ name: “Berserker Boxing Club", members: 89, styles: [“Boxing"], rating: 4.6, address: “Kreuzberg, Berlin", emoji: “👊" },
-{ name: “Berlin Fight Club", members: 210, styles: [“MMA", “BJJ", “Wrestling"], rating: 4.9, address: “Friedrichshain, Berlin", emoji: “⚔️" },
+“Berlin”: [
+{ name: “Tiger Gym Berlin”, members: 142, styles: [“Boxing”, “Muay Thai”, “MMA”], rating: 4.8, address: “Mitte, Berlin”, emoji: “🐯” },
+{ name: “Berserker Boxing Club”, members: 89, styles: [“Boxing”], rating: 4.6, address: “Kreuzberg, Berlin”, emoji: “👊” },
+{ name: “Berlin Fight Club”, members: 210, styles: [“MMA”, “BJJ”, “Wrestling”], rating: 4.9, address: “Friedrichshain, Berlin”, emoji: “⚔️” },
 ],
-“Muenchen": [
-{ name: “Combat Base Munich", members: 175, styles: [“MMA", “BJJ"], rating: 4.7, address: “Schwabing, Muenchen", emoji: “🦁" },
-{ name: “Xtreme Fight Academy", members: 130, styles: [“MMA", “Kickboxing"], rating: 4.5, address: “Maxvorstadt, Muenchen", emoji: “💪" },
+“Muenchen”: [
+{ name: “Combat Base Munich”, members: 175, styles: [“MMA”, “BJJ”], rating: 4.7, address: “Schwabing, Muenchen”, emoji: “🦁” },
+{ name: “Xtreme Fight Academy”, members: 130, styles: [“MMA”, “Kickboxing”], rating: 4.5, address: “Maxvorstadt, Muenchen”, emoji: “💪” },
 ],
-“Hamburg": [
-{ name: “Iron Fist HH", members: 95, styles: [“Muay Thai", “Boxing"], rating: 4.6, address: “Altona, Hamburg", emoji: “✊" },
-{ name: “Nordstern MMA", members: 118, styles: [“MMA", “Grappling"], rating: 4.4, address: “Barmbek, Hamburg", emoji: “⭐" },
+“Hamburg”: [
+{ name: “Iron Fist HH”, members: 95, styles: [“Muay Thai”, “Boxing”], rating: 4.6, address: “Altona, Hamburg”, emoji: “✊” },
+{ name: “Nordstern MMA”, members: 118, styles: [“MMA”, “Grappling”], rating: 4.4, address: “Barmbek, Hamburg”, emoji: “⭐” },
 ],
-“Koeln": [
-{ name: “Warriors Gym Koeln", members: 160, styles: [“Kickboxing", “Boxing"], rating: 4.7, address: “Ehrenfeld, Koeln", emoji: “⚡" },
-{ name: “Rhine Valley BJJ", members: 70, styles: [“BJJ", “Grappling"], rating: 4.8, address: “Nippes, Koeln", emoji: “🔵" },
+“Koeln”: [
+{ name: “Warriors Gym Koeln”, members: 160, styles: [“Kickboxing”, “Boxing”], rating: 4.7, address: “Ehrenfeld, Koeln”, emoji: “⚡” },
+{ name: “Rhine Valley BJJ”, members: 70, styles: [“BJJ”, “Grappling”], rating: 4.8, address: “Nippes, Koeln”, emoji: “🔵” },
 ],
-“Frankfurt": [
-{ name: “Apex Fighting Center", members: 200, styles: [“MMA", “Boxing", “Wrestling"], rating: 4.9, address: “Sachsenhausen, Frankfurt", emoji: “🔺" },
+“Frankfurt”: [
+{ name: “Apex Fighting Center”, members: 200, styles: [“MMA”, “Boxing”, “Wrestling”], rating: 4.9, address: “Sachsenhausen, Frankfurt”, emoji: “🔺” },
 ],
-“Stuttgart": [
-{ name: “Ground Zero Stuttgart", members: 88, styles: [“BJJ", “MMA"], rating: 4.5, address: “Stuttgart-Mitte", emoji: “💣" },
-{ name: “Swabia Combat Sports", members: 112, styles: [“Muay Thai", “Kickboxing"], rating: 4.3, address: “Bad Cannstatt", emoji: “🏋️" },
+“Stuttgart”: [
+{ name: “Ground Zero Stuttgart”, members: 88, styles: [“BJJ”, “MMA”], rating: 4.5, address: “Stuttgart-Mitte”, emoji: “💣” },
+{ name: “Swabia Combat Sports”, members: 112, styles: [“Muay Thai”, “Kickboxing”], rating: 4.3, address: “Bad Cannstatt”, emoji: “🏋️” },
 ],
 };
 
 const TRAINERS = [
-{ id: 1, name: “Freddie Roach", country: “USA", style: “Boxing", pupils: “Manny Pacquiao, Miguel Cotto", gym: “Wild Card Boxing Club", titles: 28, rating: 9.8, exp: 35, emoji: “🥊", accent: “#d4a017", bio: “Einer der erfolgreichsten Boxing-Trainer aller Zeiten mit 28 Weltmeistern." },
-{ id: 2, name: “Firas Zahabi", country: “Kanada", style: “MMA", pupils: “Georges St-Pierre, Rory MacDonald", gym: “Tristar Gym Montreal", titles: 12, rating: 9.7, exp: 22, emoji: “🎯", accent: “#2980b9", bio: “Revolutionierte das MMA-Training mit wissenschaftlichem Ansatz." },
-{ id: 3, name: “Rafael Cordeiro", country: “Brasilien", style: “Muay Thai / MMA", pupils: “Anderson Silva, Fabricio Werdum", gym: “Kings MMA", titles: 15, rating: 9.6, exp: 28, emoji: “🔥", accent: “#27ae60", bio: “Weltklasse-Trainer mit ueber 30 Weltmeistern in Muay Thai und MMA." },
-{ id: 4, name: “John Kavanagh", country: “Irland", style: “MMA / BJJ", pupils: “Conor McGregor, Gunnar Nelson", gym: “SBG Ireland", titles: 10, rating: 9.5, exp: 20, emoji: “☘️", accent: “#c0392b", bio: “Brachte McGregor zur Weltelite. Gilt als innovativster Trainer Europas." },
-{ id: 5, name: “Trevor Wittman", country: “USA", style: “MMA / Striking", pupils: “Justin Gaethje, Nate Diaz", gym: “ONX Sports", titles: 8, rating: 9.4, exp: 18, emoji: “⚡", accent: “#8e44ad", bio: “Bekannt fuer explosive Striking-Entwicklung und mentale Kampfvorbereitung." },
+{ id: 1, name: “Freddie Roach”, country: “USA”, style: “Boxing”, pupils: “Manny Pacquiao, Miguel Cotto”, gym: “Wild Card Boxing Club”, titles: 28, rating: 9.8, exp: 35, emoji: “🥊”, accent: “#d4a017”, bio: “Einer der erfolgreichsten Boxing-Trainer aller Zeiten mit 28 Weltmeistern.” },
+{ id: 2, name: “Firas Zahabi”, country: “Kanada”, style: “MMA”, pupils: “Georges St-Pierre, Rory MacDonald”, gym: “Tristar Gym Montreal”, titles: 12, rating: 9.7, exp: 22, emoji: “🎯”, accent: “#2980b9”, bio: “Revolutionierte das MMA-Training mit wissenschaftlichem Ansatz.” },
+{ id: 3, name: “Rafael Cordeiro”, country: “Brasilien”, style: “Muay Thai / MMA”, pupils: “Anderson Silva, Fabricio Werdum”, gym: “Kings MMA”, titles: 15, rating: 9.6, exp: 28, emoji: “🔥”, accent: “#27ae60”, bio: “Weltklasse-Trainer mit ueber 30 Weltmeistern in Muay Thai und MMA.” },
+{ id: 4, name: “John Kavanagh”, country: “Irland”, style: “MMA / BJJ”, pupils: “Conor McGregor, Gunnar Nelson”, gym: “SBG Ireland”, titles: 10, rating: 9.5, exp: 20, emoji: “☘️”, accent: “#c0392b”, bio: “Brachte McGregor zur Weltelite. Gilt als innovativster Trainer Europas.” },
+{ id: 5, name: “Trevor Wittman”, country: “USA”, style: “MMA / Striking”, pupils: “Justin Gaethje, Nate Diaz”, gym: “ONX Sports”, titles: 8, rating: 9.4, exp: 18, emoji: “⚡”, accent: “#8e44ad”, bio: “Bekannt fuer explosive Striking-Entwicklung und mentale Kampfvorbereitung.” },
 ];
 
 const SPORTS = {
-“Basketball": { color: “#e67e22", emoji: “🏀", games: [
-{ id: 1, title: “Pickup Basketball", location: “Tempelhof Courts, Berlin", time: “Sa 15:00", cur: 4, max: 10, level: “Mittel", host: “Kevin S." },
-{ id: 2, title: “3on3 Tournament", location: “Beach Courts Muenchen", time: “So 12:00", cur: 8, max: 12, level: “Anfaenger", host: “Lena M." },
+“Basketball”: { color: “#e67e22”, emoji: “🏀”, games: [
+{ id: 1, title: “Pickup Basketball”, location: “Tempelhof Courts, Berlin”, time: “Sa 15:00”, cur: 4, max: 10, level: “Mittel”, host: “Kevin S.” },
+{ id: 2, title: “3on3 Tournament”, location: “Beach Courts Muenchen”, time: “So 12:00”, cur: 8, max: 12, level: “Anfaenger”, host: “Lena M.” },
 ]},
-“Tennis": { color: “#27ae60", emoji: “🎾", games: [
-{ id: 1, title: “Casual Doubles", location: “TC Rot-Weiss Berlin", time: “So 10:00", cur: 2, max: 4, level: “Mittel", host: “Anna K." },
-{ id: 2, title: “Singles Sparring", location: “Stadtpark HH", time: “Sa 14:00", cur: 1, max: 2, level: “Fortgeschritten", host: “Felix R." },
+“Tennis”: { color: “#27ae60”, emoji: “🎾”, games: [
+{ id: 1, title: “Casual Doubles”, location: “TC Rot-Weiss Berlin”, time: “So 10:00”, cur: 2, max: 4, level: “Mittel”, host: “Anna K.” },
+{ id: 2, title: “Singles Sparring”, location: “Stadtpark HH”, time: “Sa 14:00”, cur: 1, max: 2, level: “Fortgeschritten”, host: “Felix R.” },
 ]},
-“Fussball": { color: “#2980b9", emoji: “⚽", games: [
-{ id: 1, title: “5vs5 Hallenfussball", location: “Soccerhalle Berlin", time: “Do 20:00", cur: 7, max: 10, level: “Mittel", host: “Mehmet A." },
-{ id: 2, title: “Sonntagskick", location: “Stadtpark Koeln", time: “So 11:00", cur: 12, max: 22, level: “Alle", host: “Thomas B." },
+“Fussball”: { color: “#2980b9”, emoji: “⚽”, games: [
+{ id: 1, title: “5vs5 Hallenfussball”, location: “Soccerhalle Berlin”, time: “Do 20:00”, cur: 7, max: 10, level: “Mittel”, host: “Mehmet A.” },
+{ id: 2, title: “Sonntagskick”, location: “Stadtpark Koeln”, time: “So 11:00”, cur: 12, max: 22, level: “Alle”, host: “Thomas B.” },
 ]},
-“Kampfsport": { color: “#c0392b", emoji: “🥋", games: [
-{ id: 1, title: “Open Mat BJJ", location: “Tiger Gym Berlin", time: “So 11:00", cur: 8, max: 20, level: “Alle", host: “Kai M." },
-{ id: 2, title: “Boxing Sparring", location: “Berserker BC", time: “Do 19:00", cur: 3, max: 10, level: “Mittel", host: “Felix W." },
+“Kampfsport”: { color: “#c0392b”, emoji: “🥋”, games: [
+{ id: 1, title: “Open Mat BJJ”, location: “Tiger Gym Berlin”, time: “So 11:00”, cur: 8, max: 20, level: “Alle”, host: “Kai M.” },
+{ id: 2, title: “Boxing Sparring”, location: “Berserker BC”, time: “Do 19:00”, cur: 3, max: 10, level: “Mittel”, host: “Felix W.” },
 ]},
 };
 
@@ -128,18 +128,18 @@ const css = `
   ::-webkit-scrollbar { display: none; }
   `;
 
-const RED = “#c0392b";
-const LIGHT_RED = “#e74c3c";
+const RED = “#c0392b”;
+const LIGHT_RED = “#e74c3c”;
 
 export default function App() {
-const [screen, setScreen] = useState(“setup");
-const [tab, setTab] = useState(“swipe");
+const [screen, setScreen] = useState(“setup”);
+const [tab, setTab] = useState(“swipe”);
 const [step, setStep] = useState(1);
 const [saving, setSaving] = useState(false);
-const [msg, setMsg] = useState("");
+const [msg, setMsg] = useState(””);
 const [profileId, setProfileId] = useState(null);
 
-const [profile, setProfile] = useState({ name: “", age: “", city: “", gym: “", height: “", weight: “", weightClass: “", style: “", bio: “" });
+const [profile, setProfile] = useState({ name: “”, age: “”, city: “”, gym: “”, height: “”, weight: “”, weightClass: “”, style: “”, bio: “” });
 const [stats, setStats] = useState({ wins: 0, losses: 0, draws: 0, ko: 0 });
 const [avatarUrl, setAvatarUrl] = useState(null);
 const [avatarPreview, setAvatarPreview] = useState(null);
@@ -154,25 +154,25 @@ const [matched, setMatched] = useState(null);
 const [matches, setMatches] = useState([]);
 const [swStats, setSwStats] = useState({ ch: 0, de: 0 });
 
-const [city, setCity] = useState(“Berlin");
-const [rankF, setRankF] = useState(“All");
-const [trainerF, setTrainerF] = useState(“All");
-const [sport, setSport] = useState(“Basketball");
+const [city, setCity] = useState(“Berlin”);
+const [rankF, setRankF] = useState(“All”);
+const [trainerF, setTrainerF] = useState(“All”);
+const [sport, setSport] = useState(“Basketball”);
 const [joined, setJoined] = useState({});
 
 useEffect(() => {
-const saved = localStorage.getItem(“fid");
+const saved = localStorage.getItem(“fid”);
 if (saved) { setProfileId(saved); loadProfile(saved); }
 }, []);
 
 async function loadProfile(id) {
-const data = await dbSelect(“profiles", id);
+const data = await dbSelect(“profiles”, id);
 if (data && data[0]) {
 const p = data[0];
-setProfile({ name: p.name || “", age: p.age || “", city: p.city || “", gym: p.gym || “", height: p.height || “", weight: p.weight || “", weightClass: p.weight_class || “", style: p.style || “", bio: p.bio || “" });
+setProfile({ name: p.name || “”, age: p.age || “”, city: p.city || “”, gym: p.gym || “”, height: p.height || “”, weight: p.weight || “”, weightClass: p.weight_class || “”, style: p.style || “”, bio: p.bio || “” });
 setStats({ wins: p.wins || 0, losses: p.losses || 0, draws: p.draws || 0, ko: p.ko || 0 });
 if (p.avatar_url) { setAvatarUrl(p.avatar_url); setAvatarPreview(p.avatar_url); }
-setScreen(“main");
+setScreen(“main”);
 }
 }
 
@@ -181,18 +181,18 @@ setSaving(true);
 const d = { name: profile.name, age: parseInt(profile.age) || null, city: profile.city, gym: profile.gym, height: parseInt(profile.height) || null, weight: parseInt(profile.weight) || null, weight_class: profile.weightClass, style: profile.style, bio: profile.bio, wins: stats.wins, losses: stats.losses, draws: stats.draws, ko: stats.ko, avatar_url: avatarUrl };
 try {
 if (profileId) {
-await dbUpdate(“profiles", d, profileId);
-showMsg(“Gespeichert!");
+await dbUpdate(“profiles”, d, profileId);
+showMsg(“Gespeichert!”);
 } else {
-const result = await dbInsert(“profiles", d);
+const result = await dbInsert(“profiles”, d);
 if (result && result[0] && result[0].id) {
 setProfileId(result[0].id);
-localStorage.setItem(“fid", result[0].id);
-showMsg(“Profil erstellt!");
+localStorage.setItem(“fid”, result[0].id);
+showMsg(“Profil erstellt!”);
 }
 }
 } catch (e) {
-showMsg(“Fehler beim Speichern");
+showMsg(“Fehler beim Speichern”);
 }
 setSaving(false);
 }
@@ -202,16 +202,16 @@ const file = e.target.files[0];
 if (!file) return;
 setUploading(true);
 setAvatarPreview(URL.createObjectURL(file));
-const path = “fighter_" + Date.now() + “*" + file.name.replace(/[^a-z0-9.]/gi, “*");
+const path = “fighter_” + Date.now() + “*” + file.name.replace(/[^a-z0-9.]/gi, “*”);
 const url = await uploadPhoto(file, path);
-if (url) { setAvatarUrl(url); showMsg(“Foto hochgeladen!"); }
-else showMsg(“Foto-Upload fehlgeschlagen");
+if (url) { setAvatarUrl(url); showMsg(“Foto hochgeladen!”); }
+else showMsg(“Foto-Upload fehlgeschlagen”);
 setUploading(false);
 }
 
 function showMsg(text) {
 setMsg(text);
-setTimeout(() => setMsg(""), 3000);
+setTimeout(() => setMsg(””), 3000);
 }
 
 const top = cards[cards.length - 1];
@@ -229,15 +229,15 @@ setOffset({ x: p.clientX - start.x, y: p.clientY - start.y });
 function dragEnd() {
 if (!drag) return;
 setDrag(false);
-if (offset.x > SW) doSwipe(“ch");
-else if (offset.x < -SW) doSwipe(“de");
+if (offset.x > SW) doSwipe(“ch”);
+else if (offset.x < -SW) doSwipe(“de”);
 else setOffset({ x: 0, y: 0 });
 }
 function doSwipe(dir) {
 if (!top) return;
 setLastAct(dir);
 setOffset({ x: 0, y: 0 });
-if (dir === “ch") {
+if (dir === “ch”) {
 setSwStats(s => ({ …s, ch: s.ch + 1 }));
 if (Math.random() < 0.45) setTimeout(() => { setMatched(top); setMatches(m => […m, top]); }, 300);
 } else {
@@ -250,12 +250,12 @@ const rot = (offset.x / 14).toFixed(1);
 const fop = Math.min(offset.x / SW, 1);
 const pop = Math.min(-offset.x / SW, 1);
 const cStyle = drag
-? { transform: “translateX(" + offset.x + “px) translateY(" + (offset.y * 0.25) + “px) rotate(" + rot + “deg)", transition: “none", cursor: “grabbing" }
-: lastAct === “ch"
-? { transform: “translateX(140%) rotate(18deg)", transition: “transform 0.26s ease" }
-: lastAct === “de"
-? { transform: “translateX(-140%) rotate(-18deg)", transition: “transform 0.26s ease" }
-: { transform: “translateX(0) rotate(0deg)", transition: “transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275)" };
+? { transform: “translateX(” + offset.x + “px) translateY(” + (offset.y * 0.25) + “px) rotate(” + rot + “deg)”, transition: “none”, cursor: “grabbing” }
+: lastAct === “ch”
+? { transform: “translateX(140%) rotate(18deg)”, transition: “transform 0.26s ease” }
+: lastAct === “de”
+? { transform: “translateX(-140%) rotate(-18deg)”, transition: “transform 0.26s ease” }
+: { transform: “translateX(0) rotate(0deg)”, transition: “transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275)” };
 
 function canGo() {
 if (step === 1) return profile.name && profile.age && profile.city;
@@ -269,57 +269,57 @@ const wr = tf > 0 ? Math.round((stats.wins / tf) * 100) : 0;
 const kr = stats.wins > 0 ? Math.round((stats.ko / stats.wins) * 100) : 0;
 
 const allF = profile.name
-? [{ id: 0, name: profile.name, age: profile.age, city: profile.city, gym: profile.gym, weightClass: profile.weightClass, style: profile.style, wins: stats.wins, losses: stats.losses, draws: stats.draws, ko: stats.ko, emoji: “🥊", accent: RED, isMe: true, avatarUrl }]
+? [{ id: 0, name: profile.name, age: profile.age, city: profile.city, gym: profile.gym, weightClass: profile.weightClass, style: profile.style, wins: stats.wins, losses: stats.losses, draws: stats.draws, ko: stats.ko, emoji: “🥊”, accent: RED, isMe: true, avatarUrl }]
 .concat(FIGHTERS)
 : FIGHTERS;
 
 const ranked = […allF]
-.filter(f => rankF === “All" || f.style === rankF)
+.filter(f => rankF === “All” || f.style === rankF)
 .sort((a, b) => (b.wins * 3 - b.losses * 2 + b.draws) - (a.wins * 3 - a.losses * 2 + a.draws));
 
-const trStyles = [“All", “Boxing", “MMA", “Muay Thai", “BJJ"];
-const filteredT = TRAINERS.filter(t => trainerF === “All" || t.style.includes(trainerF)).sort((a, b) => b.rating - a.rating);
+const trStyles = [“All”, “Boxing”, “MMA”, “Muay Thai”, “BJJ”];
+const filteredT = TRAINERS.filter(t => trainerF === “All” || t.style.includes(trainerF)).sort((a, b) => b.rating - a.rating);
 
 // SETUP SCREEN
-if (screen === “setup") {
+if (screen === “setup”) {
 return (
-<div style={{ minHeight: “100vh", background: “#f5f5f7", display: “flex", flexDirection: “column", alignItems: “center", padding: “0 0 40px" }}>
+<div style={{ minHeight: “100vh”, background: “#f5f5f7”, display: “flex”, flexDirection: “column”, alignItems: “center”, padding: “0 0 40px” }}>
 <style>{css}</style>
-<div style={{ width: “100%", maxWidth: 420, padding: “32px 24px 0", textAlign: “center" }}>
-<div className=“rj fadeUp" style={{ fontSize: 64, color: “#1a1a1a", letterSpacing: 6, lineHeight: 1 }}>FIGHTER</div>
+<div style={{ width: “100%”, maxWidth: 420, padding: “32px 24px 0”, textAlign: “center” }}>
+<div className=“rj fadeUp” style={{ fontSize: 64, color: “#1a1a1a”, letterSpacing: 6, lineHeight: 1 }}>FIGHTER</div>
 <div style={{ color: RED, fontSize: 11, letterSpacing: 7, marginTop: 5, fontWeight: 600 }}>FINDE DEINEN GEGNER</div>
 </div>
-<div style={{ display: “flex", gap: 8, marginTop: 22 }}>
-{[1, 2, 3].map(s => <div key={s} style={{ width: s === step ? 32 : 10, height: 8, borderRadius: 4, background: s <= step ? RED : “#ddd", transition: “all 0.3s" }} />)}
+<div style={{ display: “flex”, gap: 8, marginTop: 22 }}>
+{[1, 2, 3].map(s => <div key={s} style={{ width: s === step ? 32 : 10, height: 8, borderRadius: 4, background: s <= step ? RED : “#ddd”, transition: “all 0.3s” }} />)}
 </div>
-<div style={{ width: “100%", maxWidth: 380, padding: “22px 20px 0" }}>
+<div style={{ width: “100%”, maxWidth: 380, padding: “22px 20px 0” }}>
 {step === 1 && (
-<div style={{ display: “flex", flexDirection: “column", gap: 13 }}>
-<div style={{ display: “flex", justifyContent: “center", marginBottom: 8 }}>
-<label style={{ cursor: “pointer", textAlign: “center" }}>
-<input type=“file" accept=“image/*" onChange={handlePhoto} style={{ display: “none" }} />
-<div style={{ width: 88, height: 88, borderRadius: “50%", background: “#ececec", border: “2px dashed “ + (avatarPreview ? RED : “#ccc"), display: “flex", alignItems: “center", justifyContent: “center", overflow: “hidden", margin: “0 auto" }}>
-{uploading ? <div style={{ fontSize: 24 }} className=“spin">⏳</div>
-: avatarPreview ? <img src={avatarPreview} style={{ width: “100%", height: “100%", objectFit: “cover" }} alt=“avatar" />
-: <div style={{ textAlign: “center" }}><div style={{ fontSize: 28 }}>📸</div><div style={{ color: “#aaa", fontSize: 10, marginTop: 4 }}>Foto</div></div>}
+<div style={{ display: “flex”, flexDirection: “column”, gap: 13 }}>
+<div style={{ display: “flex”, justifyContent: “center”, marginBottom: 8 }}>
+<label style={{ cursor: “pointer”, textAlign: “center” }}>
+<input type=“file” accept=“image/*” onChange={handlePhoto} style={{ display: “none” }} />
+<div style={{ width: 88, height: 88, borderRadius: “50%”, background: “#ececec”, border: “2px dashed “ + (avatarPreview ? RED : “#ccc”), display: “flex”, alignItems: “center”, justifyContent: “center”, overflow: “hidden”, margin: “0 auto” }}>
+{uploading ? <div style={{ fontSize: 24 }} className=“spin”>⏳</div>
+: avatarPreview ? <img src={avatarPreview} style={{ width: “100%”, height: “100%”, objectFit: “cover” }} alt=“avatar” />
+: <div style={{ textAlign: “center” }}><div style={{ fontSize: 28 }}>📸</div><div style={{ color: “#aaa”, fontSize: 10, marginTop: 4 }}>Foto</div></div>}
 </div>
 <div style={{ color: RED, fontSize: 11, marginTop: 6, fontWeight: 600 }}>Profilbild hochladen</div>
 </label>
 </div>
-<Lbl>Dein Name</Lbl><Inp placeholder=“z.B. Max Mueller" value={profile.name} onChange={v => setProfile(p => ({ …p, name: v }))} />
-<Lbl>Alter</Lbl><Inp placeholder=“z.B. 25" type=“number" value={profile.age} onChange={v => setProfile(p => ({ …p, age: v }))} />
-<Lbl>Standort</Lbl><Inp placeholder=“z.B. Berlin" value={profile.city} onChange={v => setProfile(p => ({ …p, city: v }))} />
+<Lbl>Dein Name</Lbl><Inp placeholder=“z.B. Max Mueller” value={profile.name} onChange={v => setProfile(p => ({ …p, name: v }))} />
+<Lbl>Alter</Lbl><Inp placeholder=“z.B. 25” type=“number” value={profile.age} onChange={v => setProfile(p => ({ …p, age: v }))} />
+<Lbl>Standort</Lbl><Inp placeholder=“z.B. Berlin” value={profile.city} onChange={v => setProfile(p => ({ …p, city: v }))} />
 </div>
 )}
 {step === 2 && (
-<div style={{ display: “flex", flexDirection: “column", gap: 13 }}>
-<Lbl>Dein Gym</Lbl><Inp placeholder=“z.B. Tiger Gym Berlin" value={profile.gym} onChange={v => setProfile(p => ({ …p, gym: v }))} />
-<Lbl>Ueber dich</Lbl><Inp placeholder=“z.B. 5 Jahre Boxing Erfahrung…" value={profile.bio} onChange={v => setProfile(p => ({ …p, bio: v }))} />
+<div style={{ display: “flex”, flexDirection: “column”, gap: 13 }}>
+<Lbl>Dein Gym</Lbl><Inp placeholder=“z.B. Tiger Gym Berlin” value={profile.gym} onChange={v => setProfile(p => ({ …p, gym: v }))} />
+<Lbl>Ueber dich</Lbl><Inp placeholder=“z.B. 5 Jahre Boxing Erfahrung…” value={profile.bio} onChange={v => setProfile(p => ({ …p, bio: v }))} />
 <Lbl>Kampfstil</Lbl>
-<div style={{ display: “flex", flexWrap: “wrap", gap: 7 }}>
+<div style={{ display: “flex”, flexWrap: “wrap”, gap: 7 }}>
 {STYLES.map(s => (
 <button key={s} onClick={() => setProfile(p => ({ …p, style: s }))}
-style={{ padding: “7px 13px", borderRadius: 4, border: “1px solid “ + (profile.style === s ? RED : “#ddd"), background: profile.style === s ? “#fdf0ef" : “#fff", color: profile.style === s ? RED : “#666", fontFamily: “‘DM Sans’, sans-serif", fontSize: 13, fontWeight: 700, cursor: “pointer", transition: “all 0.2s" }}>
+style={{ padding: “7px 13px”, borderRadius: 4, border: “1px solid “ + (profile.style === s ? RED : “#ddd”), background: profile.style === s ? “#fdf0ef” : “#fff”, color: profile.style === s ? RED : “#666”, fontFamily: “‘DM Sans’, sans-serif”, fontSize: 13, fontWeight: 700, cursor: “pointer”, transition: “all 0.2s” }}>
 {s}
 </button>
 ))}
@@ -327,34 +327,34 @@ style={{ padding: “7px 13px", borderRadius: 4, border: “1px solid “ + (pro
 </div>
 )}
 {step === 3 && (
-<div style={{ display: “flex", flexDirection: “column", gap: 13 }}>
-<div style={{ display: “flex", gap: 11 }}>
-<div style={{ flex: 1 }}><Lbl>Groesse (cm)</Lbl><Inp placeholder=“180" type=“number" value={profile.height} onChange={v => setProfile(p => ({ …p, height: v }))} /></div>
-<div style={{ flex: 1 }}><Lbl>Kampfgewicht (kg)</Lbl><Inp placeholder=“77" type=“number" value={profile.weight} onChange={v => setProfile(p => ({ …p, weight: v }))} /></div>
+<div style={{ display: “flex”, flexDirection: “column”, gap: 13 }}>
+<div style={{ display: “flex”, gap: 11 }}>
+<div style={{ flex: 1 }}><Lbl>Groesse (cm)</Lbl><Inp placeholder=“180” type=“number” value={profile.height} onChange={v => setProfile(p => ({ …p, height: v }))} /></div>
+<div style={{ flex: 1 }}><Lbl>Kampfgewicht (kg)</Lbl><Inp placeholder=“77” type=“number” value={profile.weight} onChange={v => setProfile(p => ({ …p, weight: v }))} /></div>
 </div>
 <Lbl>Gewichtsklasse</Lbl>
 <select value={profile.weightClass} onChange={e => setProfile(p => ({ …p, weightClass: e.target.value }))}
-style={{ background: “#fff", border: “1px solid #ddd", borderRadius: 8, padding: “12px 13px", color: profile.weightClass ? “#1a1a1a" : “#aaa", fontSize: 14, width: “100%" }}>
+style={{ background: “#fff”, border: “1px solid #ddd”, borderRadius: 8, padding: “12px 13px”, color: profile.weightClass ? “#1a1a1a” : “#aaa”, fontSize: 14, width: “100%” }}>
 <option value="">Gewichtsklasse waehlen</option>
 {WEIGHT_CLASSES.map(w => <option key={w} value={w}>{w}</option>)}
 </select>
 <Lbl>Kampfrekord (optional)</Lbl>
-<div style={{ display: “flex", gap: 7 }}>
-{[[“wins", “SIEGE", “#27ae60"], [“losses", “NIEDER", RED], [“draws", “UNENTSCH", “#d4a017"], [“ko", “KOs", RED]].map(([key, label, color]) => (
-<div key={key} style={{ flex: 1, textAlign: “center" }}>
+<div style={{ display: “flex”, gap: 7 }}>
+{[[“wins”, “SIEGE”, “#27ae60”], [“losses”, “NIEDER”, RED], [“draws”, “UNENTSCH”, “#d4a017”], [“ko”, “KOs”, RED]].map(([key, label, color]) => (
+<div key={key} style={{ flex: 1, textAlign: “center” }}>
 <div style={{ color: color, fontSize: 9, letterSpacing: 1, marginBottom: 3 }}>{label}</div>
-<input type=“number" min=“0" value={stats[key]} onChange={e => setStats(s => ({ …s, [key]: parseInt(e.target.value) || 0 }))}
-style={{ width: “100%", background: “#fff", border: “1px solid #ddd", borderRadius: 6, padding: “9px 3px", color: “#1a1a1a", fontSize: 20, textAlign: “center", fontFamily: “‘Rajdhani’, sans-serif" }} />
+<input type=“number” min=“0” value={stats[key]} onChange={e => setStats(s => ({ …s, [key]: parseInt(e.target.value) || 0 }))}
+style={{ width: “100%”, background: “#fff”, border: “1px solid #ddd”, borderRadius: 6, padding: “9px 3px”, color: “#1a1a1a”, fontSize: 20, textAlign: “center”, fontFamily: “‘Rajdhani’, sans-serif” }} />
 </div>
 ))}
 </div>
 </div>
 )}
-<div style={{ display: “flex", gap: 9, marginTop: 22 }}>
-{step > 1 && <button onClick={() => setStep(s => s - 1)} style={{ flex: 1, padding: “13px", borderRadius: 8, background: “#fff", border: “1px solid #ddd", color: “#666", fontFamily: “‘DM Sans’, sans-serif", fontWeight: 700, fontSize: 14, cursor: “pointer" }}>Zurueck</button>}
-<button onClick={async () => { if (!canGo()) return; if (step < 3) { setStep(s => s + 1); } else { await saveProfile(); setScreen(“main"); } }}
-style={{ flex: 2, padding: “13px", borderRadius: 8, background: canGo() ? “linear-gradient(135deg, “ + RED + “, “ + LIGHT_RED + “)" : “#eee", border: “none", color: canGo() ? “#fff" : “#aaa", fontFamily: “‘Rajdhani’, sans-serif", fontWeight: 700, fontSize: 18, letterSpacing: 2, cursor: canGo() ? “pointer" : “not-allowed", transition: “all 0.2s" }}>
-{saving ? “Speichern…" : step === 3 ? “Lets Fight" : “Weiter"}
+<div style={{ display: “flex”, gap: 9, marginTop: 22 }}>
+{step > 1 && <button onClick={() => setStep(s => s - 1)} style={{ flex: 1, padding: “13px”, borderRadius: 8, background: “#fff”, border: “1px solid #ddd”, color: “#666”, fontFamily: “‘DM Sans’, sans-serif”, fontWeight: 700, fontSize: 14, cursor: “pointer” }}>Zurueck</button>}
+<button onClick={async () => { if (!canGo()) return; if (step < 3) { setStep(s => s + 1); } else { await saveProfile(); setScreen(“main”); } }}
+style={{ flex: 2, padding: “13px”, borderRadius: 8, background: canGo() ? “linear-gradient(135deg, “ + RED + “, “ + LIGHT_RED + “)” : “#eee”, border: “none”, color: canGo() ? “#fff” : “#aaa”, fontFamily: “‘Rajdhani’, sans-serif”, fontWeight: 700, fontSize: 18, letterSpacing: 2, cursor: canGo() ? “pointer” : “not-allowed”, transition: “all 0.2s” }}>
+{saving ? “Speichern…” : step === 3 ? “Lets Fight” : “Weiter”}
 </button>
 </div>
 </div>
@@ -363,10 +363,10 @@ style={{ flex: 2, padding: “13px", borderRadius: 8, background: canGo() ? “l
 }
 
 // MAIN APP
-const tabs = [[“swipe", “🥊", “FIGHT"], [“stats", “📊", “STATS"], [“gyms", “🏋️", “GYMS"], [“ranking", “🏆", “RANG"], [“trainer", “🎓", “TRAINER"], [“sports", “🎯", “SPORTS"]];
+const tabs = [[“swipe”, “🥊”, “FIGHT”], [“stats”, “📊”, “STATS”], [“gyms”, “🏋️”, “GYMS”], [“ranking”, “🏆”, “RANG”], [“trainer”, “🎓”, “TRAINER”], [“sports”, “🎯”, “SPORTS”]];
 
 return (
-<div style={{ minHeight: “100vh", background: “#f5f5f7", fontFamily: “‘DM Sans’, sans-serif", display: “flex", flexDirection: “column" }}
+<div style={{ minHeight: “100vh”, background: “#f5f5f7”, fontFamily: “‘DM Sans’, sans-serif”, display: “flex”, flexDirection: “column” }}
 onMouseMove={dragMove} onMouseUp={dragEnd} onTouchMove={dragMove} onTouchEnd={dragEnd}>
 <style>{css}</style>
 
@@ -793,26 +793,26 @@ onMouseMove={dragMove} onMouseUp={dragEnd} onTouchMove={dragMove} onTouchEnd={dr
 }
 
 function Lbl({ children }) {
-return <div style={{ color: “#555", fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: “uppercase" }}>{children}</div>;
+return <div style={{ color: “#555”, fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: “uppercase” }}>{children}</div>;
 }
 
-function Inp({ placeholder, value, onChange, type = “text" }) {
+function Inp({ placeholder, value, onChange, type = “text” }) {
 return (
 <input
 type={type}
 placeholder={placeholder}
 value={value}
 onChange={e => onChange(e.target.value)}
-style={{ width: “100%", background: “#fff", border: “1px solid #e0e0e0", borderRadius: 8, padding: “12px 13px", color: “#1a1a1a", fontSize: 15, fontFamily: “‘DM Sans’, sans-serif", transition: “border-color 0.2s" }}
-onFocus={e => e.target.style.borderColor = “#c0392b"}
-onBlur={e => e.target.style.borderColor = “#e0e0e0"}
+style={{ width: “100%”, background: “#fff”, border: “1px solid #e0e0e0”, borderRadius: 8, padding: “12px 13px”, color: “#1a1a1a”, fontSize: 15, fontFamily: “‘DM Sans’, sans-serif”, transition: “border-color 0.2s” }}
+onFocus={e => e.target.style.borderColor = “#c0392b”}
+onBlur={e => e.target.style.borderColor = “#e0e0e0”}
 />
 );
 }
 
 function Tag({ text, accent }) {
 return (
-<div style={{ padding: “2px 7px", borderRadius: 3, background: accent ? accent + “12" : “#f5f5f5", color: accent || “#888", fontSize: 10, fontWeight: 600, border: accent ? “1px solid “ + accent + “22" : “none" }}>
+<div style={{ padding: “2px 7px”, borderRadius: 3, background: accent ? accent + “12” : “#f5f5f5”, color: accent || “#888”, fontSize: 10, fontWeight: 600, border: accent ? “1px solid “ + accent + “22” : “none” }}>
 {text}
 </div>
 );
@@ -825,9 +825,9 @@ return (
 onClick={onClick}
 onMouseEnter={() => setH(true)}
 onMouseLeave={() => setH(false)}
-style={{ width: size, height: size, borderRadius: primary ? 11 : “50%", background: primary ? “linear-gradient(135deg, “ + color + “cc, “ + color + “)" : color + “12", border: primary ? “none" : “2px solid “ + color + “33", fontSize: primary ? 21 : 18, cursor: “pointer", display: “flex", alignItems: “center", justifyContent: “center", flexDirection: “column", gap: 1, transform: h ? “scale(1.1)" : “scale(1)", transition: “all 0.2s", boxShadow: primary ? “0 5px 16px “ + color + “44" : “none" }}>
+style={{ width: size, height: size, borderRadius: primary ? 11 : “50%”, background: primary ? “linear-gradient(135deg, “ + color + “cc, “ + color + “)” : color + “12”, border: primary ? “none” : “2px solid “ + color + “33”, fontSize: primary ? 21 : 18, cursor: “pointer”, display: “flex”, alignItems: “center”, justifyContent: “center”, flexDirection: “column”, gap: 1, transform: h ? “scale(1.1)” : “scale(1)”, transition: “all 0.2s”, boxShadow: primary ? “0 5px 16px “ + color + “44” : “none” }}>
 {icon}
-{primary && <div style={{ color: “#fff", fontFamily: “‘Rajdhani’, sans-serif", fontWeight: 700, fontSize: 9, letterSpacing: 2 }}>{label}</div>}
+{primary && <div style={{ color: “#fff”, fontFamily: “‘Rajdhani’, sans-serif”, fontWeight: 700, fontSize: 9, letterSpacing: 2 }}>{label}</div>}
 </button>
 );
 }
