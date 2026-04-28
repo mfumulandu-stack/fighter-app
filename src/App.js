@@ -260,6 +260,7 @@ export default function App(){
   const [filterCity,setFilterCity]=useState('');
 
   useEffect(()=>{
+    localStorage.removeItem('fid');
     const saved=localStorage.getItem('fighter_sess');
     if(saved){try{const s=JSON.parse(saved);setSession(s);initProfile(s);}catch{setAuthReady(true);}}
     else setAuthReady(true);
