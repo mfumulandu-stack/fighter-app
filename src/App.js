@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 
-const SUPA_URL = process.env.REACT_APP_SUPA_URL;
-const SUPA_KEY = process.env.REACT_APP_SUPA_KEY;
+const SUPA_URL = 'https://uykdrmymjvqgebsmndme.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk';
 
 async function authSignUp(email, password) {
   const r = await fetch(SUPA_URL + '/auth/v1/signup', {
