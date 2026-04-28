@@ -261,7 +261,7 @@ export default function App(){
 
   useEffect(()=>{
     localStorage.removeItem('fid');
-    const saved=localStorage.getItem('fighter_sess');
+    const saved=localStorage.getItem('fighter_v2');
     if(saved){try{const s=JSON.parse(saved);setSession(s);initProfile(s);}catch{setAuthReady(true);}}
     else setAuthReady(true);
   },[]);
@@ -303,7 +303,7 @@ export default function App(){
     }catch{}
   }
 
-  function handleSession(s){setSession(s);localStorage.setItem('fighter_sess',JSON.stringify(s));initProfile(s);}
+  function handleSession(s){setSession(s);localStorage.setItem('fighter_v2',JSON.stringify(s));initProfile(s);}
 
   async function refreshSession(s){
     try{
@@ -314,14 +314,14 @@ export default function App(){
       const data=await r.json();
       if(data.access_token){
         const newS={...s,token:data.access_token,refresh_token:data.refresh_token};
-        setSession(newS);localStorage.setItem('fighter_sess',JSON.stringify(newS));
+        setSession(newS);localStorage.setItem('fighter_v2',JSON.stringify(newS));
       }
     }catch{}
   }
 
   async function handleLogout(){
     if(session)await authSignOut(session.token);
-    localStorage.removeItem('fighter_sess');
+    localStorage.removeItem('fighter_v2');
     setSession(null);setMyProfile(null);setScreen('setup');setAuthReady(true);
   }
 
