@@ -122,7 +122,7 @@ function AuthScreen({ onSession }) {
     }else{
       const r=await authSignIn(email,password);
       if(r.error)setErr(r.error.message||'Login fehlgeschlagen');
-      else if(r.access_token)onSession({token:r.access_token,userId:r.user.id});
+      else if(r.access_token)onSession({token:r.access_token,userId:r.user.id,refresh_token:r.refresh_token});
     }
     setLoading(false);
   }
@@ -255,6 +255,9 @@ export default function App(){
   const [trainerF,setTrainerF]=useState('All');
   const [sport,setSport]=useState('Basketball');
   const [joined,setJoined]=useState({});
+  const [darkMode,setDarkMode]=useState(false);
+  const [filterStyle,setFilterStyle]=useState('Alle');
+  const [filterCity,setFilterCity]=useState('');
 
   useEffect(()=>{
     const saved=localStorage.getItem('fighter_sess');
@@ -301,6 +304,20 @@ export default function App(){
 
   function handleSession(s){setSession(s);localStorage.setItem('fighter_sess',JSON.stringify(s));initProfile(s);}
 
+  async function refreshSession(s){
+    try{
+      const r=await fetch(SUPA_URL+'/auth/v1/token?grant_type=refresh_token',{
+        method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
+        body:JSON.stringify({refresh_token:s.refresh_token})
+      });
+      const data=await r.json();
+      if(data.access_token){
+        const newS={...s,token:data.access_token,refresh_token:data.refresh_token};
+        setSession(newS);localStorage.setItem('fighter_sess',JSON.stringify(newS));
+      }
+    }catch{}
+  }
+
   async function handleLogout(){
     if(session)await authSignOut(session.token);
     localStorage.removeItem('fighter_sess');
@@ -334,7 +351,8 @@ export default function App(){
     setUploading(false);
   }
 
-  const top=cards[cards.length-1];
+  const filteredCards=cards.filter(f=>filterStyle==='Alle'||f.style===filterStyle).filter(f=>!filterCity||(f.city||'').toLowerCase().includes(filterCity.toLowerCase()));
+  const top=filteredCards[filteredCards.length-1];
   function dragStart(e){const p=e.touches?e.touches[0]:e;setStart({x:p.clientX,y:p.clientY});setDrag(true);}
   function dragMove(e){if(!drag)return;const p=e.touches?e.touches[0]:e;setOffset({x:p.clientX-start.x,y:p.clientY-start.y});}
   function dragEnd(){if(!drag)return;setDrag(false);if(offset.x>SW)doSwipe('ch');else if(offset.x<-SW)doSwipe('de');else setOffset({x:0,y:0});}
@@ -459,13 +477,13 @@ export default function App(){
   const tabs=[['swipe','🥊','FIGHT'],['chat','💬','CHAT'],['stats','📊','PROFIL'],['gyms','🏋️','GYMS'],['ranking','🏆','RANG'],['trainer','🎓','TRAINER'],['sports','🎯','SPORTS']];
 
   return(
-    <div style={{minHeight:'100vh',background:'#f5f5f7',fontFamily:'DM Sans,sans-serif',display:'flex',flexDirection:'column'}} onMouseMove={dragMove} onMouseUp={dragEnd} onTouchMove={dragMove} onTouchEnd={dragEnd}>
+    <div style={{minHeight:'100vh',background:darkMode?'#1a1a1a':'#f5f5f7',fontFamily:'DM Sans,sans-serif',display:'flex',flexDirection:'column'}} onMouseMove={dragMove} onMouseUp={dragEnd} onTouchMove={dragMove} onTouchEnd={dragEnd}>
       <style>{css}</style>
       {msg&&<div style={{position:'fixed',top:60,left:'50%',transform:'translateX(-50%)',background:'#fff',border:'1px solid '+RED,borderRadius:20,padding:'8px 20px',color:'#1a1a1a',fontSize:13,zIndex:200,fontWeight:600,boxShadow:'0 4px 20px rgba(0,0,0,0.1)',whiteSpace:'nowrap'}}>{msg}</div>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 18px 8px',flexShrink:0,borderBottom:'1px solid #e8e8e8',background:'#fff'}}>
         <div style={{color:'#999',fontSize:11,fontWeight:600}}>Abgelehnt: {swStats.de}</div>
         <div className='rj' style={{fontSize:28,color:'#1a1a1a',letterSpacing:5}}>FIGHTER</div>
-        <button onClick={handleLogout} style={{color:'#aaa',fontSize:11,fontWeight:600,background:'none',border:'none',cursor:'pointer'}}>Logout</button>
+        <button onClick={()=>setDarkMode(d=>!d)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,marginRight:8}}>{darkMode?'☀️':'🌙'}</button><button onClick={()=>setDarkMode(d=>!d)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,marginRight:8}}>{darkMode?'sun':'moon'}</button><button onClick={handleLogout} style={{color:'#aaa',fontSize:11,fontWeight:600,background:'none',border:'none',cursor:'pointer'}}>Logout</button>
       </div>
 
       <div style={{flex:1,overflowY:'auto',paddingBottom:65}}>
