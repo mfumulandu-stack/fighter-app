@@ -298,9 +298,18 @@ export default function App(){
 
   async function loadMatches(s,myP){
     try{
-      const m=await dbSelect('matches','or=(profile_a_id.eq.'+myP.id+',profile_b_id.eq.'+myP.id+')&select=*,profile_a:profiles!matches_profile_a_id_fkey(*),profile_b:profiles!matches_profile_b_id_fkey(*)',s.token);
-      if(Array.isArray(m))setDbMatches(m);
-    }catch{}
+      const m=await dbSelect('matches','or=(profile_a_id.eq.'+myP.id+',profile_b_id.eq.'+myP.id+')',s.token);
+      if(!Array.isArray(m)||m.length===0)return;
+      const allProfiles=await dbSelect('profiles','',s.token);
+      const profileMap={};
+      if(Array.isArray(allProfiles))allProfiles.forEach(p=>{profileMap[p.id]=p;});
+      const enriched=m.map(match=>({
+        ...match,
+        profile_a:profileMap[match.profile_a_id]||null,
+        profile_b:profileMap[match.profile_b_id]||null
+      }));
+      setDbMatches(enriched);
+    }catch(e){console.error('loadMatches error',e);}
   }
 
   function handleSession(s){setSession(s);localStorage.setItem('fighter_v2',JSON.stringify(s));initProfile(s);}
