@@ -336,7 +336,7 @@ export default function App(){
       }else{
         const res=await dbInsert('profiles',d,session.token);
         if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg('Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);}
-        else showMsg('Fehler – SQL Script ausgeführt?');
+        else showMsg('Fehler: '+(JSON.stringify(res)||'unbekannt'));
       }
     }catch{showMsg('Netzwerkfehler');}
     setSaving(false);
