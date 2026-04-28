@@ -402,7 +402,7 @@ export default function App(){
 
   if(!authReady)return(<div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',alignItems:'center',justifyContent:'center'}}><style>{css}</style><div className='rj' style={{fontSize:32,color:'#1a1a1a',letterSpacing:4}}>FIGHTER</div></div>);
   if(!session)return <AuthScreen onSession={handleSession}/>;
-  if(activeChat)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile?.id} token={session.token} onClose={()=>setActiveChat(null)}/></>);
+  if(activeChat&&myProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} token={session.token} onClose={()=>setActiveChat(null)}/></>);
 
   if(screen==='setup')return(
     <div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'0 0 40px'}}>
@@ -518,7 +518,7 @@ export default function App(){
                       <div style={{position:'absolute',top:18,right:16,border:'3px solid '+RED,borderRadius:5,padding:'2px 8px',color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,letterSpacing:3,transform:'rotate(18deg)',opacity:pop,transition:drag?'none':'opacity 0.12s'}}>PASS</div>
                     </>)}
                     <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:`radial-gradient(circle at 50% 50%,${fA}0a,transparent 65%)`}}>
-                      {f.avatar_url?<img src={f.avatar_url} style={{width:100,height:100,borderRadius:'50%',objectFit:'cover',border:'3px solid '+fA+'44'}} alt={f.name}/>:<div style={{fontSize:72}}>{f.emoji||'🥊'}</div>}
+                      {f.avatar_url?<img src={f.avatar_url} style={{width:180,height:180,borderRadius:16,objectFit:'cover',border:'3px solid '+fA+'44',marginBottom:8}} alt={f.name}/>:<div style={{fontSize:72}}>{f.emoji||'🥊'}</div>}
                       <div style={{marginTop:9,display:'flex',gap:11}}>
                         {[{v:f.wins||0,l:'SIEGE',c:'#27ae60'},{v:f.losses||0,l:'NIEDER',c:RED},{v:f.draws||0,l:'UNENTSCH',c:'#d4a017'}].map(({v,l,c})=>(
                           <div key={l} style={{textAlign:'center'}}><div className='rj' style={{color:c,fontSize:20}}>{v}</div><div style={{color:'#bbb',fontSize:8,letterSpacing:1}}>{l}</div></div>
