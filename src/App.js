@@ -791,7 +791,7 @@ export default function App(){
           <div className='rj' style={{color:'#fff',fontSize:24,letterSpacing:2}}>{matched.name}</div>
           <div style={{color:matched.accent||RED,fontSize:12,fontWeight:700}}>{matched.style} - {matched.weight_class||matched.weightClass}</div>
           <div style={{color:'#aaa',fontSize:11}}>{matched.gym}, {matched.city}</div>
-          <button onClick={()=>{setMatched(null);setTab('chat');}} style={{marginTop:5,padding:'11px 26px',borderRadius:6,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>💬 Zum Chat</button>
+          <button onClick={()=>{setMatched(null);setTab('chat');}} style={{marginTop:5,padding:'11px 26px',borderRadius:6,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>💬 Chat öffnen</button>
           <div style={{color:'#555',fontSize:10}}>Tippen zum Schliessen</div>
         </div>
       )}
