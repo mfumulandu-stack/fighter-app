@@ -292,7 +292,7 @@ export default function App(){
       const swiped=await dbSelect('swipes','swiper_id=eq.'+myP.id,s.token);
       const swipedIds=Array.isArray(swiped)?swiped.map(x=>x.target_id):[];
       const fresh=all.filter(f=>!swipedIds.includes(f.id));
-      if(fresh.length>0)setCards(prev=>[...prev,...fresh]);
+      if(fresh.length>0)setCards([...fresh,...FIGHTERS]);
     }catch{}
   }
 
