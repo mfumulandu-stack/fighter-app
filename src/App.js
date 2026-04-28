@@ -205,7 +205,7 @@ function ChatOverlay({match,myProfileId,token,onClose}){
               <div style={{maxWidth:'74%',padding:'9px 13px',borderRadius:isMe?'14px 14px 3px 14px':'14px 14px 14px 3px',background:isMe?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#fff',color:isMe?'#fff':'#1a1a1a',fontSize:14,boxShadow:'0 1px 4px rgba(0,0,0,0.08)'}}>
                 {m.content}
                 <div style={{color:isMe?'rgba(255,255,255,0.55)':'#ccc',fontSize:9,marginTop:3,textAlign:'right'}}>
-                  {new Date(m.created_at).toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'})}
+                  {new Date(m.created_at).toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'})} {isMe&&<span style={{marginLeft:3}}>{m.id.startsWith('tmp_')?'✓':'✓✓'}</span>}
                 </div>
               </div>
             </div>
@@ -600,7 +600,7 @@ export default function App(){
                     <div key={m.id} onClick={()=>setActiveChat(m)} style={{background:'#fff',borderRadius:13,border:'1px solid '+ac+'33',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.06)',cursor:'pointer'}}>
                       <div style={{height:3,background:'linear-gradient(90deg,'+ac+',transparent)'}}/>
                       <div style={{padding:'13px',display:'flex',alignItems:'center',gap:12}}>
-                        {other.avatar_url?<img src={other.avatar_url} style={{width:52,height:52,borderRadius:'50%',objectFit:'cover',border:'2px solid '+ac+'44'}} alt={other.name}/>
+                        {other.avatar_url?<img src={other.avatar_url} style={{width:64,height:64,borderRadius:'50%',objectFit:'cover',border:'2px solid '+ac+'44'}} alt={other.name}/>
                           :<div style={{width:52,height:52,borderRadius:'50%',background:ac+'18',border:'2px solid '+ac+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>🥊</div>}
                         <div style={{flex:1}}>
                           <div className='rj' style={{color:'#1a1a1a',fontSize:18,letterSpacing:1}}>{other.name}</div>
