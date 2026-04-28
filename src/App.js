@@ -109,7 +109,7 @@ function AuthScreen({ onSession }) {
   const [password,setPassword]=useState('');
   const [loading,setLoading]=useState(false);
   const [err,setErr]=useState('');
-  const [info,setInfo]=useState('');
+  const [info,setInfo]=useState('');const [privacy,setPrivacy]=useState(false);
 
   async function submit() {
     if(!email||!password){setErr('E-Mail und Passwort eingeben');return;}
@@ -558,7 +558,7 @@ export default function App(){
               <div style={{position:'relative',display:'inline-block',marginBottom:10}}>
                 <label style={{cursor:'pointer'}}>
                   <input type='file' accept='image/*' onChange={handlePhoto} style={{display:'none'}}/>
-                  <div style={{width:80,height:80,borderRadius:'50%',background:'#f0f0f0',border:'3px solid '+(avatarPreview?RED:'#ddd'),overflow:'hidden',margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <div style={{width:160,height:160,borderRadius:16,background:'#f0f0f0',border:'3px solid '+(avatarPreview?RED:'#ddd'),overflow:'hidden',margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'center'}}>
                     {uploading?<div style={{fontSize:24}} className='spin'>⏳</div>:avatarPreview?<img src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='avatar'/>:<div style={{fontSize:32}}>👤</div>}
                   </div>
                   <div style={{position:'absolute',bottom:0,right:0,background:RED,borderRadius:'50%',width:24,height:24,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12}}>📷</div>
@@ -768,7 +768,7 @@ export default function App(){
         <div onClick={()=>setMatched(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',zIndex:100,gap:12}}>
           <div className='rj' style={{color:RED,fontSize:12,letterSpacing:8}}>FIGHT ACCEPTED</div>
           <div className='rj' style={{fontSize:46,color:'#fff',letterSpacing:4,textAlign:'center',lineHeight:1,animation:'pulse 1.2s infinite'}}>IT'S ON!</div>
-          {matched.avatar_url?<img src={matched.avatar_url} style={{width:80,height:80,borderRadius:'50%',objectFit:'cover',border:'3px solid '+RED}} alt=''/>:<div style={{fontSize:52}}>{matched.emoji||'🥊'}</div>}
+          {matched.avatar_url?<img src={matched.avatar_url} style={{width:160,height:160,borderRadius:16,objectFit:'cover',border:'3px solid '+RED}} alt=''/>:<div style={{fontSize:52}}>{matched.emoji||'🥊'}</div>}
           <div className='rj' style={{color:'#fff',fontSize:24,letterSpacing:2}}>{matched.name}</div>
           <div style={{color:matched.accent||RED,fontSize:12,fontWeight:700}}>{matched.style} - {matched.weight_class||matched.weightClass}</div>
           <div style={{color:'#aaa',fontSize:11}}>{matched.gym}, {matched.city}</div>
