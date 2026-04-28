@@ -169,8 +169,17 @@ function ChatOverlay({match,myProfileId,token,onClose}){
   const other=match.profile_a_id===myProfileId?match.profile_b:match.profile_a;
   const accent=other?.style==='Boxing'?'#c0392b':other?.style==='MMA'?'#2980b9':other?.style==='Muay Thai'?'#d35400':'#27ae60';
 
+  async function markAsRead(){
+    try{
+      await fetch(SUPA_URL+'/rest/v1/messages?match_id=eq.'+match.id+'&sender_id=neq.'+myProfileId+'&read_at=is.null',{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=minimal'},
+        body:JSON.stringify({read_at:new Date().toISOString()})
+      });
+    }catch{}
+  }
   async function loadMsgs(){
-    try{const msgs=await dbSelect('messages','match_id=eq.'+match.id+'&order=created_at.asc',token);if(Array.isArray(msgs))setMessages(msgs);}catch{}
+    try{const msgs=await dbSelect('messages','match_id=eq.'+match.id+'&order=created_at.asc',token);if(Array.isArray(msgs)){setMessages(msgs);markAsRead();}}catch{}
     setLoading(false);
   }
   useEffect(()=>{loadMsgs();pollRef.current=setInterval(loadMsgs,3000);return()=>clearInterval(pollRef.current);},[match.id]);
@@ -205,7 +214,7 @@ function ChatOverlay({match,myProfileId,token,onClose}){
               <div style={{maxWidth:'74%',padding:'9px 13px',borderRadius:isMe?'14px 14px 3px 14px':'14px 14px 14px 3px',background:isMe?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#fff',color:isMe?'#fff':'#1a1a1a',fontSize:14,boxShadow:'0 1px 4px rgba(0,0,0,0.08)'}}>
                 {m.content}
                 <div style={{color:isMe?'rgba(255,255,255,0.55)':'#ccc',fontSize:9,marginTop:3,textAlign:'right'}}>
-                  {new Date(m.created_at).toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'})} {isMe&&<span style={{marginLeft:3}}>{m.id.startsWith('tmp_')?'✓':'✓✓'}</span>}
+                  {new Date(m.created_at).toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'})} {isMe&&<span style={{marginLeft:3,color:m.read_at?'#4fc3f7':'rgba(255,255,255,0.7)'}}>{m.id.startsWith('tmp_')?'✓':'✓✓'}</span>}
                 </div>
               </div>
             </div>
