@@ -571,6 +571,41 @@ export default function App(){
           </div>
         )}
 
+
+        {tab==='chat'&&(
+          <div style={{padding:'14px',maxWidth:420,margin:'0 auto'}}>
+            <div className='rj' style={{color:'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:14}}>NACHRICHTEN</div>
+            {dbMatches.length===0?(
+              <div style={{textAlign:'center',padding:'40px 20px',color:'#bbb'}}>
+                <div style={{fontSize:48,marginBottom:12}}>💬</div>
+                <div style={{fontWeight:700,fontSize:15}}>Noch keine Matches</div>
+                <div style={{fontSize:12,marginTop:6}}>Swipe rechts um Fighter zu matchen!</div>
+              </div>
+            ):(
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                {dbMatches.map(m=>{
+                  const other=m.profile_a_id===myProfile?.id?m.profile_b:m.profile_a;
+                  if(!other)return null;
+                  const ac=other.style==='Boxing'?'#c0392b':other.style==='MMA'?'#2980b9':'#d35400';
+                  return(
+                    <div key={m.id} onClick={()=>setActiveChat(m)} style={{background:'#fff',borderRadius:13,border:'1px solid '+ac+'33',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.06)',cursor:'pointer'}}>
+                      <div style={{height:3,background:'linear-gradient(90deg,'+ac+',transparent)'}}/>
+                      <div style={{padding:'13px',display:'flex',alignItems:'center',gap:12}}>
+                        {other.avatar_url?<img src={other.avatar_url} style={{width:52,height:52,borderRadius:'50%',objectFit:'cover',border:'2px solid '+ac+'44'}} alt={other.name}/>
+                          :<div style={{width:52,height:52,borderRadius:'50%',background:ac+'18',border:'2px solid '+ac+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>🥊</div>}
+                        <div style={{flex:1}}>
+                          <div className='rj' style={{color:'#1a1a1a',fontSize:18,letterSpacing:1}}>{other.name}</div>
+                          <div style={{color:ac,fontSize:11,fontWeight:700}}>{other.style} · {other.city}</div>
+                        </div>
+                        <div style={{padding:'9px 16px',borderRadius:8,background:'linear-gradient(135deg,#c0392b,#e74c3c)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14}}>CHAT →</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
         {tab==='stats'&&(
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
             <div style={{background:'#fff',borderRadius:14,padding:'16px',border:'1px solid #eee',marginBottom:11,textAlign:'center',boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
