@@ -511,8 +511,8 @@ export default function App(){
       {msg&&<div style={{position:'fixed',top:60,left:'50%',transform:'translateX(-50%)',background:'#fff',border:'1px solid '+RED,borderRadius:20,padding:'8px 20px',color:'#1a1a1a',fontSize:13,zIndex:200,fontWeight:600,boxShadow:'0 4px 20px rgba(0,0,0,0.1)',whiteSpace:'nowrap'}}>{msg}</div>}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 18px 8px',flexShrink:0,borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),background:darkMode?'#1a1a1a':'#fff'}}>
         <div style={{color:'#999',fontSize:11,fontWeight:600}}>Abgelehnt: {swStats.de}</div>
-        <div className='rj' style={{fontSize:28,color:darkMode?'#ffffff':'#1a1a1a',letterSpacing:5}}>FIGHTER</div>
-        <button onClick={()=>setDarkMode(d=>!d)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,marginRight:8}}>{darkMode?'☀️':'🌙'}</button><button onClick={()=>setDarkMode(d=>!d)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,marginRight:8}}>{darkMode?'☀️':'🌙'}</button><button onClick={handleLogout} style={{color:'#aaa',fontSize:11,fontWeight:600,background:'none',border:'none',cursor:'pointer'}}>Logout</button>
+        <div className='rj' style={{fontSize:28,color:darkMode?'#ff4500':'#1a1a1a',letterSpacing:5}}>FIGHTER</div>
+        <button onClick={()=>setDarkMode(d=>!d)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,marginRight:8}}>{darkMode?'☀️':'🌙'}</button><button onClick={()=>setDarkMode(d=>!d)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,marginRight:8}}>{darkMode?'☀️':'🌙'}</button><button onClick={()=>setDarkMode(d=>!d)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,marginRight:4}}>{darkMode?'☀️':'🌙'}</button><button onClick={handleLogout} style={{color:darkMode?'#666':'#aaa',fontSize:11,fontWeight:600,background:'none',border:'none',cursor:'pointer'}}>Logout</button>
       </div>
 
       <div style={{flex:1,overflowY:'auto',paddingBottom:65}}>
@@ -523,7 +523,7 @@ export default function App(){
               {avatarPreview?<img src={avatarPreview} style={{width:36,height:36,borderRadius:'50%',objectFit:'cover',border:'2px solid '+RED}} alt='me'/>
                 :<div style={{fontSize:20,width:36,height:36,borderRadius:'50%',background:'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center'}}>🥊</div>}
               <div style={{flex:1}}>
-                <div style={{color:'#1a1a1a',fontWeight:700,fontSize:13}}>{profile.name}, {profile.age} - {profile.city}</div>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{profile.name}, {profile.age} - {profile.city}</div>
                 <div style={{color:RED,fontSize:11,marginTop:1}}>{profile.style} - {profile.weightClass?profile.weightClass.split(' (')[0]:''}</div>
               </div>
               <div style={{color:'#aaa',fontSize:10,textAlign:'right'}}>{profile.height}cm<br/>{profile.weight}kg</div>
@@ -556,7 +556,7 @@ export default function App(){
                     <div style={{padding:'10px 14px 14px',background:darkMode?'#222':'#fafafa',borderTop:'1px solid '+(darkMode?'#333':'#f0f0f0')}}>
                       <div style={{display:'flex',justifyContent:'space-between'}}>
                         <div>
-                          <div className='rj' style={{color:'#1a1a1a',fontSize:24,letterSpacing:1.5,lineHeight:1}}>{f.name}</div>
+                          <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:1.5,lineHeight:1}}>{f.name}</div>
                           <div style={{color:fA,fontSize:11,fontWeight:700,marginTop:1}}>{(f.style||'').toUpperCase()}</div>
                         </div>
                         <div style={{textAlign:'right'}}><div style={{color:'#aaa',fontSize:11}}>{f.height} cm</div><div style={{color:'#aaa',fontSize:11}}>{f.weight} kg</div></div>
@@ -602,7 +602,7 @@ export default function App(){
 
         {tab==='chat'&&(
           <div style={{padding:'14px',maxWidth:420,margin:'0 auto'}}>
-            <div className='rj' style={{color:'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:14}}>NACHRICHTEN</div>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:14}}>NACHRICHTEN</div>
             {dbMatches.length===0?(
               <div style={{textAlign:'center',padding:'40px 20px',color:'#bbb'}}>
                 <div style={{fontSize:48,marginBottom:12}}>💬</div>
@@ -646,9 +646,9 @@ export default function App(){
                   <div style={{position:'absolute',bottom:0,right:0,background:RED,borderRadius:'50%',width:24,height:24,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12}}>📷</div>
                 </label>
               </div>
-              <div className='rj' style={{color:'#1a1a1a',fontSize:24,letterSpacing:2}}>{profile.name}</div>
+              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:2}}>{profile.name}</div>
               <div style={{color:RED,fontSize:13,fontWeight:600,marginTop:2}}>{profile.style} - {profile.weightClass?profile.weightClass.split(' (')[0]:''}</div>
-              <div style={{color:'#999',fontSize:11,marginTop:3}}>📍 {profile.city} - 🏋️ {profile.gym}</div>
+              <div style={{color:darkMode?'#666':'#999',fontSize:11,marginTop:3}}>📍 {profile.city} - 🏋️ {profile.gym}</div>
               {profile.bio&&<div style={{color:'#aaa',fontSize:12,marginTop:6,fontStyle:'italic'}}>'{profile.bio}'</div>}
             </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:7,marginBottom:9}}>
@@ -704,7 +704,7 @@ export default function App(){
 
         {tab==='gyms'&&(
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
-            <div className='rj' style={{color:'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:11}}>GYMS FINDEN</div>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:11}}>GYMS FINDEN</div>
             <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
               {Object.keys(GYMS).map(c=>(<button key={c} onClick={()=>setCity(c)} style={{flexShrink:0,padding:'6px 13px',borderRadius:20,background:city===c?RED:'#fff',border:'1px solid '+(city===c?RED:'#e0e0e0'),color:city===c?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{c}</button>))}
             </div>
@@ -714,8 +714,8 @@ export default function App(){
                   <div style={{display:'flex',gap:11,alignItems:'flex-start'}}>
                     <div style={{width:46,height:46,borderRadius:9,background:'#f0f0f0',border:'1px solid #e0e0e0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>{gym.emoji}</div>
                     <div style={{flex:1}}>
-                      <div style={{color:'#1a1a1a',fontWeight:700,fontSize:15}}>{gym.name}</div>
-                      <div style={{color:'#888',fontSize:11,marginTop:1}}>📍 {gym.address}</div>
+                      <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15}}>{gym.name}</div>
+                      <div style={{color:darkMode?'#aaa':'#888',fontSize:11,marginTop:1}}>📍 {gym.address}</div>
                       <div style={{display:'flex',gap:4,marginTop:6,flexWrap:'wrap'}}>{gym.styles.map(s=><Tag key={s} text={s} accent={RED}/>)}</div>
                     </div>
                   </div>
@@ -732,7 +732,7 @@ export default function App(){
 
         {tab==='ranking'&&(
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
-            <div className='rj' style={{color:'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:11}}>WELTRANGLISTE</div>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:11}}>WELTRANGLISTE</div>
             <div style={{display:'flex',gap:5,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
               {['All',...STYLES].map(s=>(<button key={s} onClick={()=>setRankF(s)} style={{flexShrink:0,padding:'5px 11px',borderRadius:16,background:rankF===s?RED:'#fff',border:'1px solid '+(rankF===s?RED:'#e0e0e0'),color:rankF===s?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:12,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{s==='All'?'Alle':s}</button>))}
             </div>
@@ -761,7 +761,7 @@ export default function App(){
                       <div style={{color:f.isMe?RED:'#1a1a1a',fontWeight:700,fontSize:13}}>{f.name}</div>
                       {f.isMe&&<div style={{background:'#fdf0ef',border:'1px solid '+RED+'44',borderRadius:3,padding:'1px 4px',color:RED,fontSize:8,fontWeight:700}}>ICH</div>}
                     </div>
-                    <div style={{color:'#aaa',fontSize:10,marginTop:1}}>{f.style} - {f.city}</div>
+                    <div style={{color:darkMode?'#666':'#aaa',fontSize:10,marginTop:1}}>{f.style} - {f.city}</div>
                   </div>
                   <div style={{textAlign:'right'}}>
                     <div style={{display:'flex',gap:4,fontSize:11,justifyContent:'flex-end',fontWeight:700}}><span style={{color:'#27ae60'}}>{f.wins}W</span><span style={{color:RED}}>{f.losses}L</span><span style={{color:'#d4a017'}}>{f.draws}D</span></div>
@@ -776,7 +776,7 @@ export default function App(){
 
         {tab==='trainer'&&(
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
-            <div className='rj' style={{color:'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:4}}>TOP TRAINER</div>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:4}}>TOP TRAINER</div>
             <div style={{color:'#888',fontSize:12,marginBottom:11}}>Die besten Coaches der Welt</div>
             <div style={{display:'flex',gap:5,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
               {trStyles.map(s=>(<button key={s} onClick={()=>setTrainerF(s)} style={{flexShrink:0,padding:'5px 11px',borderRadius:16,background:trainerF===s?'#d4a017':'#fff',border:'1px solid '+(trainerF===s?'#d4a017':'#e0e0e0'),color:trainerF===s?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:12,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{s==='All'?'Alle':s}</button>))}
@@ -793,13 +793,13 @@ export default function App(){
                       </div>
                       <div style={{flex:1}}>
                         <div style={{display:'flex',justifyContent:'space-between'}}>
-                          <div><div style={{color:'#1a1a1a',fontWeight:700,fontSize:15}}>{t.name}</div><div style={{color:t.accent,fontSize:11,fontWeight:700,marginTop:1}}>{t.style.toUpperCase()}</div></div>
+                          <div><div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15}}>{t.name}</div><div style={{color:t.accent,fontSize:11,fontWeight:700,marginTop:1}}>{t.style.toUpperCase()}</div></div>
                           <div style={{textAlign:'right'}}><div style={{display:'flex',alignItems:'center',gap:2}}><span style={{color:'#d4a017'}}>★</span><span style={{color:'#1a1a1a',fontWeight:700,fontSize:14}}>{t.rating}</span></div><div style={{color:'#aaa',fontSize:10}}>{t.exp} Jahre</div></div>
                         </div>
                         <div style={{color:'#888',fontSize:11,marginTop:2}}>{t.country} - {t.gym}</div>
                       </div>
                     </div>
-                    <div style={{marginTop:9,color:'#666',fontSize:12,borderTop:'1px solid #eee',paddingTop:8}}>{t.bio}</div>
+                    <div style={{marginTop:9,color:darkMode?'#aaa':'#666',fontSize:12,borderTop:'1px solid #eee',paddingTop:8}}>{t.bio}</div>
                     <div style={{marginTop:8,background:'#f8f8f8',borderRadius:7,padding:'7px 10px'}}><div style={{color:'#aaa',fontSize:9,letterSpacing:1,marginBottom:3}}>BEKANNTE SCHUELER</div><div style={{color:'#666',fontSize:12,fontWeight:600}}>{t.pupils}</div></div>
                     <div style={{marginTop:8,height:3,background:'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:(t.rating/10*100)+'%',background:`linear-gradient(90deg,${t.accent},${t.accent}66)`,borderRadius:2}}/></div>
                   </div>
@@ -811,10 +811,10 @@ export default function App(){
 
         {tab==='sports'&&(
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
-            <div className='rj' style={{color:'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:4}}>SPORTARTEN</div>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:4}}>SPORTARTEN</div>
             <div style={{color:'#888',fontSize:12,marginBottom:11}}>Finde Events in deiner Stadt</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7,marginBottom:14}}>
-              {Object.keys(SPORTS).map(s=>{const{color,emoji}=SPORTS[s];const sel=sport===s;return(<button key={s} onClick={()=>setSport(s)} style={{padding:'12px 10px',borderRadius:11,background:sel?color+'25':(darkMode?'#1a1a1a':'#fff'),border:'1px solid '+(sel?color:(darkMode?'#2a2a2a':'#eee')),cursor:'pointer',transition:'all 0.2s',textAlign:'left',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}><div style={{fontSize:22,marginBottom:4}}>{emoji}</div><div style={{color:sel?color:'#555',fontWeight:700,fontSize:13}}>{s}</div><div style={{color:'#bbb',fontSize:10,marginTop:2}}>{SPORTS[s].games.length} Events</div></button>);})}
+              {Object.keys(SPORTS).map(s=>{const{color,emoji}=SPORTS[s];const sel=sport===s;return(<button key={s} onClick={()=>setSport(s)} style={{padding:'12px 10px',borderRadius:11,background:sel?color+'25':(darkMode?'#1a1a1a':'#fff'),border:'1px solid '+(sel?color:(darkMode?'#2a2a2a':'#eee')),cursor:'pointer',transition:'all 0.2s',textAlign:'left',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}><div style={{fontSize:22,marginBottom:4}}>{emoji}</div><div style={{color:sel?color:'#555',fontWeight:700,fontSize:13}}>{s}</div><div style={{color:darkMode?'#666':'#bbb',fontSize:10,marginTop:2}}>{SPORTS[s].games.length} Events</div></button>);})}
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:9}}>
               {SPORTS[sport].games.map(game=>{
@@ -823,7 +823,7 @@ export default function App(){
                   <div style={{height:2,background:`linear-gradient(90deg,${color},transparent)`}}/>
                   <div style={{padding:'13px'}}>
                     <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
-                      <div><div style={{color:'#1a1a1a',fontWeight:700,fontSize:14}}>{game.title}</div><div style={{color:'#888',fontSize:11}}>📍 {game.location}</div></div>
+                      <div><div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14}}>{game.title}</div><div style={{color:'#888',fontSize:11}}>📍 {game.location}</div></div>
                       <div style={{background:color+'18',border:'1px solid '+color+'33',borderRadius:6,padding:'3px 8px',height:'fit-content'}}><div style={{color:color,fontSize:11,fontWeight:700}}>{game.level}</div></div>
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
