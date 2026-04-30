@@ -326,7 +326,12 @@ export default function App(){
     }catch(e){console.error('loadMatches error',e);}
   }
 
-  function handleSession(s){setSession(s);localStorage.setItem('fighter_v4',JSON.stringify(s));initProfile(s);}
+  function handleSession(s){
+    const sessionData={token:s.token,userId:s.userId,refresh_token:s.refresh_token,expires_at:Date.now()+(3600*1000)};
+    setSession(sessionData);
+    localStorage.setItem('fighter_v4',JSON.stringify(sessionData));
+    initProfile(sessionData);
+  }
 
   async function refreshSession(s){
     try{
