@@ -302,6 +302,7 @@ export default function App(){
   const [sport,setSport]=useState('Basketball');
   const [joined,setJoined]=useState({});
   const [darkMode,setDarkMode]=useState(false);
+  const [rankMode,setRankMode]=useState('user');
   const [filterStyle,setFilterStyle]=useState('Alle');
   const [filterCity,setFilterCity]=useState('');
 
