@@ -269,13 +269,13 @@ export default function App(){
   const [filterCity,setFilterCity]=useState('');
 
   useEffect(()=>{
-    localStorage.removeItem('fid');
+    ['fid','fighter_sess','fighter_v2','fighter_v3'].forEach(k=>localStorage.removeItem(k));
     localStorage.removeItem('fighter_v2');
     localStorage.removeItem('fighter_sess');
-    localStorage.removeItem('fighter_v3');
+    localStorage.removeItem('fighter_v4');
     localStorage.removeItem('fighter_sess');
     localStorage.removeItem('fighter_sess');
-    const saved=localStorage.getItem('fighter_v3');
+    const saved=localStorage.getItem('fighter_v4');
     if(saved){try{const s=JSON.parse(saved);setSession(s);initProfile(s);}catch{setAuthReady(true);}}
     else setAuthReady(true);
   },[]);
@@ -326,7 +326,7 @@ export default function App(){
     }catch(e){console.error('loadMatches error',e);}
   }
 
-  function handleSession(s){setSession(s);localStorage.setItem('fighter_v3',JSON.stringify(s));initProfile(s);}
+  function handleSession(s){setSession(s);localStorage.setItem('fighter_v4',JSON.stringify(s));initProfile(s);}
 
   async function refreshSession(s){
     try{
@@ -337,14 +337,14 @@ export default function App(){
       const data=await r.json();
       if(data.access_token){
         const newS={...s,token:data.access_token,refresh_token:data.refresh_token};
-        setSession(newS);localStorage.setItem('fighter_v3',JSON.stringify(newS));
+        setSession(newS);localStorage.setItem('fighter_v4',JSON.stringify(newS));
       }
     }catch{}
   }
 
   async function handleLogout(){
     if(session)await authSignOut(session.token);
-    localStorage.removeItem('fighter_v3');
+    localStorage.removeItem('fighter_v4');
     setSession(null);setMyProfile(null);setScreen('setup');setAuthReady(true);
   }
 
