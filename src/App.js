@@ -272,6 +272,8 @@ export default function App(){
     localStorage.removeItem('fid');
     localStorage.removeItem('fighter_v2');
     localStorage.removeItem('fighter_sess');
+    localStorage.removeItem('fighter_v3');
+    localStorage.removeItem('fighter_sess');
     localStorage.removeItem('fighter_sess');
     const saved=localStorage.getItem('fighter_v3');
     if(saved){try{const s=JSON.parse(saved);setSession(s);initProfile(s);}catch{setAuthReady(true);}}
