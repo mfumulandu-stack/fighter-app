@@ -396,6 +396,128 @@ function AGBScreen({onClose,darkMode}){
   );
 }
 
+
+function ImpressumScreen({onClose,darkMode}){
+  const bg=darkMode?'#0d0d0d':'#f5f5f7';
+  const card=darkMode?'#1a1a1a':'#fff';
+  const text=darkMode?'#fff':'#1a1a1a';
+  const sub=darkMode?'#aaa':'#666';
+  return(
+    <div style={{position:'fixed',inset:0,background:bg,zIndex:300,overflowY:'auto',padding:'20px 16px 40px'}}>
+      <div style={{maxWidth:480,margin:'0 auto'}}>
+        <button onClick={onClose} style={{background:'none',border:'none',color:'#c0392b',fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>← Zurück</button>
+        <div style={{background:card,borderRadius:14,padding:'20px',marginBottom:12}}>
+          <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,color:text,letterSpacing:2,marginBottom:16}}>IMPRESSUM</div>
+          <div style={{color:sub,fontSize:12,lineHeight:1.8}}>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>Angaben gemäß § 5 TMG</div>
+            <div>Junior Landu Mfumu</div>
+            <div>Ottostraße 43</div>
+            <div>52070 Aachen</div>
+            <div>Deutschland</div>
+            <br/>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>Kontakt</div>
+            <div>E-Mail: mfumulandu@gmail.com</div>
+            <br/>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>Verantwortlich für den Inhalt</div>
+            <div>Junior Landu Mfumu</div>
+            <div>Ottostraße 43, 52070 Aachen</div>
+            <br/>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>Haftungsausschluss</div>
+            <div>Die Inhalte dieser App wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte können wir jedoch keine Gewähr übernehmen. Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DatenschutzScreen({onClose,darkMode}){
+  const bg=darkMode?'#0d0d0d':'#f5f5f7';
+  const card=darkMode?'#1a1a1a':'#fff';
+  const text=darkMode?'#fff':'#1a1a1a';
+  const sub=darkMode?'#aaa':'#666';
+  return(
+    <div style={{position:'fixed',inset:0,background:bg,zIndex:300,overflowY:'auto',padding:'20px 16px 40px'}}>
+      <div style={{maxWidth:480,margin:'0 auto'}}>
+        <button onClick={onClose} style={{background:'none',border:'none',color:'#c0392b',fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>← Zurück</button>
+        <div style={{background:card,borderRadius:14,padding:'20px',marginBottom:12}}>
+          <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,color:text,letterSpacing:2,marginBottom:16}}>DATENSCHUTZ</div>
+          <div style={{color:sub,fontSize:12,lineHeight:1.8}}>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>1. Verantwortlicher</div>
+            <div>Junior Landu Mfumu, Ottostraße 43, 52070 Aachen</div>
+            <div>E-Mail: mfumulandu@gmail.com</div>
+            <br/>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>2. Welche Daten wir speichern</div>
+            <div>• Name, Alter, Wohnort</div>
+            <div>• Kampfstil, Gym, Gewichtsklasse</div>
+            <div>• Profilbild (optional)</div>
+            <div>• E-Mail-Adresse (für Login)</div>
+            <div>• Chat-Nachrichten mit anderen Nutzern</div>
+            <br/>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>3. Zweck der Datenverarbeitung</div>
+            <div>Deine Daten werden ausschließlich für die Nutzung der Fighter-App verwendet: Profildarstellung, Matching mit anderen Kämpfern und Kommunikation via Chat.</div>
+            <br/>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>4. Rechtsgrundlage</div>
+            <div>Die Verarbeitung erfolgt auf Basis deiner Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die du beim Registrieren erteilst.</div>
+            <br/>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>5. Datenspeicherung</div>
+            <div>Deine Daten werden auf Servern von Supabase (Supabase Inc., USA) gespeichert. Supabase ist nach dem EU-US Data Privacy Framework zertifiziert.</div>
+            <br/>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>6. Deine Rechte</div>
+            <div>Du hast das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung deiner Daten. Kontaktiere uns unter mfumulandu@gmail.com.</div>
+            <br/>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>7. Löschung</div>
+            <div>Du kannst jederzeit die Löschung deines Accounts und aller gespeicherten Daten per E-Mail beantragen.</div>
+            <br/>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>8. Cookies</div>
+            <div>Diese App verwendet keine Tracking-Cookies. Es wird lediglich ein technisch notwendiges Session-Token im lokalen Speicher gespeichert.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AGBScreen({onClose,darkMode}){
+  const bg=darkMode?'#0d0d0d':'#f5f5f7';
+  const card=darkMode?'#1a1a1a':'#fff';
+  const text=darkMode?'#fff':'#1a1a1a';
+  const sub=darkMode?'#aaa':'#666';
+  return(
+    <div style={{position:'fixed',inset:0,background:bg,zIndex:300,overflowY:'auto',padding:'20px 16px 40px'}}>
+      <div style={{maxWidth:480,margin:'0 auto'}}>
+        <button onClick={onClose} style={{background:'none',border:'none',color:'#c0392b',fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>← Zurück</button>
+        <div style={{background:card,borderRadius:14,padding:'20px',marginBottom:12}}>
+          <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,color:text,letterSpacing:2,marginBottom:16}}>AGB</div>
+          <div style={{color:sub,fontSize:12,lineHeight:1.8}}>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>1. Geltungsbereich</div>
+            <div>Diese AGB gelten für die Nutzung der Fighter-App, betrieben von Junior Landu Mfumu, Ottostraße 43, 52070 Aachen.</div>
+            <br/>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>2. Nutzungsbedingungen</div>
+            <div>• Die Nutzung der App ist ab 18 Jahren erlaubt</div>
+            <div>• Jeder Nutzer darf nur ein Konto erstellen</div>
+            <div>• Falsche Angaben im Profil sind untersagt</div>
+            <div>• Beleidigungen und Hassrede sind verboten</div>
+            <div>• Die App darf nicht für illegale Zwecke genutzt werden</div>
+            <br/>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>3. Haftung</div>
+            <div>Der Betreiber haftet nicht für Inhalte, die von Nutzern erstellt werden. Für Verabredungen zu Kämpfen, die über die App entstehen, sind ausschließlich die beteiligten Nutzer verantwortlich.</div>
+            <br/>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>4. Sperrung</div>
+            <div>Der Betreiber behält sich vor, Nutzer bei Verstößen gegen diese AGB zu sperren.</div>
+            <br/>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>5. Änderungen</div>
+            <div>Der Betreiber behält sich vor, diese AGB jederzeit zu ändern. Nutzer werden über wesentliche Änderungen informiert.</div>
+            <br/>
+            <div style={{fontWeight:700,color:text,marginBottom:4}}>6. Anwendbares Recht</div>
+            <div>Es gilt deutsches Recht. Gerichtsstand ist Aachen.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App(){
   const [session,setSession]=useState(null);
   const [authReady,setAuthReady]=useState(false);
@@ -425,6 +547,9 @@ export default function App(){
   const [sport,setSport]=useState('Basketball');
   const [joined,setJoined]=useState({});
   const [darkMode,setDarkMode]=useState(false);
+  const [showImpressum,setShowImpressum]=useState(false);
+  const [showDatenschutz,setShowDatenschutz]=useState(false);
+  const [showAGB,setShowAGB]=useState(false);
   const [showImpressum,setShowImpressum]=useState(false);
   const [showDatenschutz,setShowDatenschutz]=useState(false);
   const [showAGB,setShowAGB]=useState(false);
@@ -595,6 +720,9 @@ export default function App(){
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
   const filteredT=TRAINERS.filter(t=>trainerF==='All'||t.style.includes(trainerF)).sort((a,b)=>b.rating-a.rating);
 
+  if(showImpressum)return(<><style>{css}</style><ImpressumScreen onClose={()=>setShowImpressum(false)} darkMode={darkMode}/></>);
+  if(showDatenschutz)return(<><style>{css}</style><DatenschutzScreen onClose={()=>setShowDatenschutz(false)} darkMode={darkMode}/></>);
+  if(showAGB)return(<><style>{css}</style><AGBScreen onClose={()=>setShowAGB(false)} darkMode={darkMode}/></>);
   if(showImpressum)return(<><style>{css}</style><ImpressumScreen onClose={()=>setShowImpressum(false)} darkMode={darkMode}/></>);
   if(showDatenschutz)return(<><style>{css}</style><DatenschutzScreen onClose={()=>setShowDatenschutz(false)} darkMode={darkMode}/></>);
   if(showAGB)return(<><style>{css}</style><AGBScreen onClose={()=>setShowAGB(false)} darkMode={darkMode}/></>);
