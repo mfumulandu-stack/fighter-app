@@ -56,6 +56,29 @@ const WEIGHT_CLASSES = [
   'Mittelgewicht (bis 93 kg)','Halbschwergewicht (bis 100 kg)','Cruisergewicht (bis 90 kg)','Schwergewicht (ueber 100 kg)'
 ];
 const STYLES = ['Boxing','Kickboxing','MMA','Muay Thai','Grappling','BJJ','Wrestling'];
+const PRO_FIGHTERS = [
+  {id:"p1",name:"Islam Makhachev",age:33,city:"Dagestan",gym:"AKA",style:"MMA",wins:26,losses:1,draws:0,ko:11,emoji:"🦅",accent:"#c0392b",isPro:true},
+  {id:"p2",name:"Ilia Topuria",age:27,city:"Tiflis",gym:"Sanford MMA",style:"MMA",wins:16,losses:0,draws:0,ko:13,emoji:"🔥",accent:"#e67e22",isPro:true},
+  {id:"p3",name:"Alex Pereira",age:37,city:"Sao Paulo",gym:"Glory Kickboxing",style:"Kickboxing",wins:12,losses:2,draws:0,ko:10,emoji:"💥",accent:"#27ae60",isPro:true},
+  {id:"p4",name:"Jon Jones",age:37,city:"New York",gym:"Jackson-Wink MMA",style:"MMA",wins:27,losses:1,draws:0,ko:11,emoji:"👑",accent:"#8e44ad",isPro:true},
+  {id:"p5",name:"Khamzat Chimaev",age:30,city:"Grozny",gym:"Allstars Training",style:"MMA",wins:14,losses:0,draws:0,ko:10,emoji:"🐺",accent:"#2980b9",isPro:true},
+  {id:"p6",name:"Tom Aspinall",age:31,city:"Manchester",gym:"Next Generation MMA",style:"MMA",wins:15,losses:3,draws:0,ko:11,emoji:"🦁",accent:"#c0392b",isPro:true},
+  {id:"p7",name:"Merab Dvalishvili",age:33,city:"Tiflis",gym:"Serra-Longo MMA",style:"MMA",wins:17,losses:4,draws:0,ko:3,emoji:"⚡",accent:"#16a085",isPro:true},
+  {id:"p8",name:"Canelo Alvarez",age:34,city:"Guadalajara",gym:"Reynoso Boxing",style:"Boxing",wins:62,losses:2,draws:2,ko:39,emoji:"🌹",accent:"#e74c3c",isPro:true},
+  {id:"p9",name:"Tyson Fury",age:36,city:"Manchester",gym:"MTK Global",style:"Boxing",wins:34,losses:1,draws:1,ko:24,emoji:"🥊",accent:"#c0392b",isPro:true},
+  {id:"p10",name:"Oleksandr Usyk",age:37,city:"Simferopol",gym:"Klitschko Gym",style:"Boxing",wins:22,losses:0,draws:0,ko:14,emoji:"🏆",accent:"#2980b9",isPro:true},
+  {id:"p11",name:"Gervonta Davis",age:30,city:"Baltimore",gym:"Mayweather Promotions",style:"Boxing",wins:30,losses:0,draws:0,ko:28,emoji:"💎",accent:"#8e44ad",isPro:true},
+  {id:"p12",name:"Terence Crawford",age:37,city:"Omaha",gym:"Top Rank",style:"Boxing",wins:41,losses:0,draws:0,ko:31,emoji:"👊",accent:"#d4a017",isPro:true},
+  {id:"p13",name:"Charles Oliveira",age:35,city:"Sao Paulo",gym:"Chute Boxe",style:"MMA",wins:35,losses:10,draws:0,ko:21,emoji:"🕊️",accent:"#27ae60",isPro:true},
+  {id:"p14",name:"Alexander Volkanovski",age:36,city:"Wollongong",gym:"City Kickboxing",style:"MMA",wins:26,losses:3,draws:0,ko:12,emoji:"🦈",accent:"#2980b9",isPro:true},
+  {id:"p15",name:"Dricus Du Plessis",age:30,city:"Pretoria",gym:"EFC Worldwide",style:"MMA",wins:22,losses:2,draws:0,ko:14,emoji:"🦓",accent:"#e67e22",isPro:true},
+  {id:"p16",name:"Max Holloway",age:33,city:"Hawaii",gym:"Hawaii Hilo",style:"MMA",wins:26,losses:7,draws:0,ko:13,emoji:"🌺",accent:"#27ae60",isPro:true},
+  {id:"p17",name:"Dustin Poirier",age:35,city:"Louisiana",gym:"American Top Team",style:"MMA",wins:30,losses:9,draws:0,ko:16,emoji:"💰",accent:"#e67e22",isPro:true},
+  {id:"p18",name:"Sean O'Malley",age:30,city:"Montana",gym:"MMA Lab",style:"MMA",wins:18,losses:1,draws:0,ko:13,emoji:"🍭",accent:"#9b59b6",isPro:true},
+  {id:"p19",name:"Israel Adesanya",age:35,city:"Auckland",gym:"City Kickboxing",style:"MMA",wins:24,losses:4,draws:0,ko:16,emoji:"🥷",accent:"#2c3e50",isPro:true},
+  {id:"p20",name:"Leon Edwards",age:32,city:"Birmingham",gym:"Wolfslair MMA",style:"MMA",wins:22,losses:4,draws:1,ko:8,emoji:"🐉",accent:"#c0392b",isPro:true},
+];
+
 const FIGHTERS=[
   {id:1,name:"Islam Makhachev",age:33,city:"Dagestan",gym:"AKA",height:171,weight:70,weightClass:"Leichtgewicht",style:"MMA",wins:26,losses:1,draws:0,ko:11,emoji:"🦅",accent:"#c0392b"},
   {id:2,name:"Ilia Topuria",age:27,city:"Tiflis",gym:"Sanford MMA",height:170,weight:66,weightClass:"Federgewicht",style:"MMA",wins:16,losses:0,draws:0,ko:13,emoji:"🔥",accent:"#e67e22"},
@@ -290,6 +313,7 @@ export default function App(){
     localStorage.removeItem('fighter_sess');
     localStorage.removeItem('fighter_sess');
     const saved=localStorage.getItem('fighter_v4');
+    if(!saved){setAuthReady(true);return;}
     if(saved){try{const s=JSON.parse(saved);setSession(s);initProfile(s);}catch{setAuthReady(true);}}
     else setAuthReady(true);
   },[]);
@@ -438,7 +462,8 @@ export default function App(){
   const wr=tf>0?Math.round((stats.wins/tf)*100):0;
   const kr=stats.wins>0?Math.round((stats.ko/stats.wins)*100):0;
   const allF=profile.name?[{id:0,name:profile.name,age:profile.age,city:profile.city,gym:profile.gym,weight_class:profile.weightClass,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'🥊',accent:RED,isMe:true,avatar_url:avatarUrl}].concat(FIGHTERS):FIGHTERS;
-  const ranked=[...allF].filter(f=>rankF==='All'||f.style===rankF).sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
+  const proRanked=[...PRO_FIGHTERS].filter(f=>rankF==='All'||f.style===rankF).sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
+  const ranked=rankMode==='pro'?proRanked:[...allF].filter(f=>rankF==='All'||f.style===rankF).sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
   const filteredT=TRAINERS.filter(t=>trainerF==='All'||t.style.includes(trainerF)).sort((a,b)=>b.rating-a.rating);
 
@@ -746,7 +771,11 @@ export default function App(){
 
         {tab==='ranking'&&(
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
-            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:11}}>WELTRANGLISTE</div>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:8}}>WELTRANGLISTE</div>
+            <div style={{display:'flex',gap:6,marginBottom:11}}>
+              <button onClick={()=>setRankMode('user')} style={{flex:1,padding:'7px',borderRadius:8,background:rankMode==='user'?RED:'transparent',border:'1px solid '+(rankMode==='user'?RED:(darkMode?'#333':'#ddd')),color:rankMode==='user'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>🏅 AMATEURE</button>
+              <button onClick={()=>setRankMode('pro')} style={{flex:1,padding:'7px',borderRadius:8,background:rankMode==='pro'?'#d4a017':'transparent',border:'1px solid '+(rankMode==='pro'?'#d4a017':(darkMode?'#333':'#ddd')),color:rankMode==='pro'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>🌍 PROFIS</button>
+            </div>
             <div style={{display:'flex',gap:5,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
               {['All',...STYLES].map(s=>(<button key={s} onClick={()=>setRankF(s)} style={{flexShrink:0,padding:'5px 11px',borderRadius:16,background:rankF===s?RED:'#fff',border:'1px solid '+(rankF===s?RED:'#e0e0e0'),color:rankF===s?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:12,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{s==='All'?'Alle':s}</button>))}
             </div>
