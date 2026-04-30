@@ -270,6 +270,7 @@ export default function App(){
 
   useEffect(()=>{
     localStorage.removeItem('fid');
+    localStorage.removeItem('fighter_sess');
     const saved=localStorage.getItem('fighter_v2');
     if(saved){try{const s=JSON.parse(saved);setSession(s);initProfile(s);}catch{setAuthReady(true);}}
     else setAuthReady(true);
