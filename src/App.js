@@ -509,17 +509,17 @@ export default function App(){
     <div style={{minHeight:'100vh',background:darkMode?'#1a1a1a':'#f5f5f7',fontFamily:'DM Sans,sans-serif',display:'flex',flexDirection:'column'}} onMouseMove={dragMove} onMouseUp={dragEnd} onTouchMove={dragMove} onTouchEnd={dragEnd}>
       <style>{css}</style>
       {msg&&<div style={{position:'fixed',top:60,left:'50%',transform:'translateX(-50%)',background:'#fff',border:'1px solid '+RED,borderRadius:20,padding:'8px 20px',color:'#1a1a1a',fontSize:13,zIndex:200,fontWeight:600,boxShadow:'0 4px 20px rgba(0,0,0,0.1)',whiteSpace:'nowrap'}}>{msg}</div>}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 18px 8px',flexShrink:0,borderBottom:'1px solid #e8e8e8',background:'#fff'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 18px 8px',flexShrink:0,borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),background:darkMode?'#1a1a1a':'#fff'}}>
         <div style={{color:'#999',fontSize:11,fontWeight:600}}>Abgelehnt: {swStats.de}</div>
-        <div className='rj' style={{fontSize:28,color:'#1a1a1a',letterSpacing:5}}>FIGHTER</div>
-        <button onClick={()=>setDarkMode(d=>!d)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,marginRight:8}}>{darkMode?'☀️':'🌙'}</button><button onClick={()=>setDarkMode(d=>!d)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,marginRight:8}}>{darkMode?'sun':'moon'}</button><button onClick={handleLogout} style={{color:'#aaa',fontSize:11,fontWeight:600,background:'none',border:'none',cursor:'pointer'}}>Logout</button>
+        <div className='rj' style={{fontSize:28,color:darkMode?'#ffffff':'#1a1a1a',letterSpacing:5}}>FIGHTER</div>
+        <button onClick={()=>setDarkMode(d=>!d)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,marginRight:8}}>{darkMode?'☀️':'🌙'}</button><button onClick={()=>setDarkMode(d=>!d)} style={{background:'none',border:'none',cursor:'pointer',fontSize:18,marginRight:8}}>{darkMode?'☀️':'🌙'}</button><button onClick={handleLogout} style={{color:'#aaa',fontSize:11,fontWeight:600,background:'none',border:'none',cursor:'pointer'}}>Logout</button>
       </div>
 
       <div style={{flex:1,overflowY:'auto',paddingBottom:65}}>
 
         {tab==='swipe'&&(
           <div style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:8}}>
-            <div style={{width:'calc(100% - 24px)',maxWidth:380,margin:'0 0 8px',background:'#fff',borderRadius:10,padding:'9px 12px',border:'1px solid #eee',display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
+            <div style={{width:'calc(100% - 24px)',maxWidth:380,margin:'0 0 8px',background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'9px 12px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
               {avatarPreview?<img src={avatarPreview} style={{width:36,height:36,borderRadius:'50%',objectFit:'cover',border:'2px solid '+RED}} alt='me'/>
                 :<div style={{fontSize:20,width:36,height:36,borderRadius:'50%',background:'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center'}}>🥊</div>}
               <div style={{flex:1}}>
@@ -539,7 +539,7 @@ export default function App(){
                 const isTop=idx===cards.length-1;const isSec=idx===cards.length-2;const fA=f.accent||'#c0392b';
                 return(
                   <div key={f.id} onMouseDown={isTop?dragStart:undefined} onTouchStart={isTop?dragStart:undefined}
-                    style={{position:'absolute',inset:0,borderRadius:16,background:'#fff',border:'1px solid '+fA+'33',boxShadow:isTop?'0 8px 32px rgba(0,0,0,0.12)':'none',cursor:isTop?'grab':'default',zIndex:isTop?10:isSec?5:1,transform:isTop?cStyle.transform:isSec?'scale(0.96) translateY(10px)':'scale(0.92) translateY(20px)',transition:isTop?cStyle.transition:'none',overflow:'hidden',display:'flex',flexDirection:'column',userSelect:'none'}}>
+                    style={{position:'absolute',inset:0,borderRadius:16,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#333':fA+'33'),boxShadow:isTop?'0 8px 32px rgba(0,0,0,0.12)':'none',cursor:isTop?'grab':'default',zIndex:isTop?10:isSec?5:1,transform:isTop?cStyle.transform:isSec?'scale(0.96) translateY(10px)':'scale(0.92) translateY(20px)',transition:isTop?cStyle.transition:'none',overflow:'hidden',display:'flex',flexDirection:'column',userSelect:'none'}}>
                     <div style={{height:3,background:`linear-gradient(90deg,${fA},transparent)`}}/>
                     {isTop&&(<>
                       <div style={{position:'absolute',top:18,left:16,border:'3px solid #27ae60',borderRadius:5,padding:'2px 8px',color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,letterSpacing:3,transform:'rotate(-18deg)',opacity:fop,transition:drag?'none':'opacity 0.12s'}}>FIGHT</div>
@@ -553,7 +553,7 @@ export default function App(){
                         ))}
                       </div>
                     </div>
-                    <div style={{padding:'10px 14px 14px',background:'#fafafa',borderTop:'1px solid #f0f0f0'}}>
+                    <div style={{padding:'10px 14px 14px',background:darkMode?'#222':'#fafafa',borderTop:'1px solid '+(darkMode?'#333':'#f0f0f0')}}>
                       <div style={{display:'flex',justifyContent:'space-between'}}>
                         <div>
                           <div className='rj' style={{color:'#1a1a1a',fontSize:24,letterSpacing:1.5,lineHeight:1}}>{f.name}</div>
@@ -653,7 +653,7 @@ export default function App(){
             </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:7,marginBottom:9}}>
               {[['SIEGE',stats.wins,'#27ae60'],['NIEDERLAGEN',stats.losses,RED],['UNENTSCHIEDEN',stats.draws,'#d4a017']].map(([label,val,color])=>(
-                <div key={label} style={{background:'#fff',borderRadius:11,padding:'13px 5px',textAlign:'center',border:'1px solid '+color+'22',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
+                <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:11,padding:'13px 5px',textAlign:'center',border:'1px solid '+color+'33',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
                   <div className='rj' style={{color:color,fontSize:36,lineHeight:1}}>{val}</div>
                   <div style={{color:'#bbb',fontSize:8,letterSpacing:1,marginTop:3}}>{label}</div>
                 </div>
@@ -710,7 +710,7 @@ export default function App(){
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:8}}>
               {GYMS[city].map((gym,i)=>(
-                <div key={i} style={{background:'#fff',borderRadius:12,padding:'13px',border:'1px solid #eee',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
+                <div key={i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'13px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
                   <div style={{display:'flex',gap:11,alignItems:'flex-start'}}>
                     <div style={{width:46,height:46,borderRadius:9,background:'#f0f0f0',border:'1px solid #e0e0e0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>{gym.emoji}</div>
                     <div style={{flex:1}}>
@@ -753,7 +753,7 @@ export default function App(){
             <div style={{display:'flex',flexDirection:'column',gap:5}}>
               {ranked.map((f,i)=>{
                 const score=f.wins*3-f.losses*2+f.draws;const rc=['#d4a017','#95a5a6','#cd7f32'];
-                return(<div key={f.id} style={{background:f.isMe?'#fdf0ef':'#fff',borderRadius:9,padding:'10px 12px',border:'1px solid '+(f.isMe?RED+'33':i<3?rc[i]+'33':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.04)'}}>
+                return(<div key={f.id} style={{background:f.isMe?(darkMode?'#2a1510':'#fdf0ef'):(darkMode?'#1a1a1a':'#fff'),borderRadius:9,padding:'10px 12px',border:'1px solid '+(f.isMe?RED+'33':i<3?rc[i]+'33':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.04)'}}>
                   <div className='rj' style={{color:i<3?rc[i]:'#bbb',fontSize:18,width:24,textAlign:'center'}}>#{i+1}</div>
                   {f.avatar_url?<img src={f.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover'}} alt={f.name}/>:<div style={{fontSize:22}}>{f.emoji||'🥊'}</div>}
                   <div style={{flex:1}}>
@@ -783,7 +783,7 @@ export default function App(){
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:10}}>
               {filteredT.map((t,i)=>(
-                <div key={t.id} style={{background:'#fff',borderRadius:13,border:'1px solid '+t.accent+'33',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.06)'}}>
+                <div key={t.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:13,border:'1px solid '+t.accent+(darkMode?'55':'33'),overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.06)'}}>
                   <div style={{height:3,background:`linear-gradient(90deg,${t.accent},transparent)`}}/>
                   <div style={{padding:'14px'}}>
                     <div style={{display:'flex',gap:12,alignItems:'flex-start'}}>
@@ -814,7 +814,7 @@ export default function App(){
             <div className='rj' style={{color:'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:4}}>SPORTARTEN</div>
             <div style={{color:'#888',fontSize:12,marginBottom:11}}>Finde Events in deiner Stadt</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7,marginBottom:14}}>
-              {Object.keys(SPORTS).map(s=>{const{color,emoji}=SPORTS[s];const sel=sport===s;return(<button key={s} onClick={()=>setSport(s)} style={{padding:'12px 10px',borderRadius:11,background:sel?color+'15':'#fff',border:'1px solid '+(sel?color:'#eee'),cursor:'pointer',transition:'all 0.2s',textAlign:'left',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}><div style={{fontSize:22,marginBottom:4}}>{emoji}</div><div style={{color:sel?color:'#555',fontWeight:700,fontSize:13}}>{s}</div><div style={{color:'#bbb',fontSize:10,marginTop:2}}>{SPORTS[s].games.length} Events</div></button>);})}
+              {Object.keys(SPORTS).map(s=>{const{color,emoji}=SPORTS[s];const sel=sport===s;return(<button key={s} onClick={()=>setSport(s)} style={{padding:'12px 10px',borderRadius:11,background:sel?color+'25':(darkMode?'#1a1a1a':'#fff'),border:'1px solid '+(sel?color:(darkMode?'#2a2a2a':'#eee')),cursor:'pointer',transition:'all 0.2s',textAlign:'left',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}><div style={{fontSize:22,marginBottom:4}}>{emoji}</div><div style={{color:sel?color:'#555',fontWeight:700,fontSize:13}}>{s}</div><div style={{color:'#bbb',fontSize:10,marginTop:2}}>{SPORTS[s].games.length} Events</div></button>);})}
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:9}}>
               {SPORTS[sport].games.map(game=>{
@@ -842,8 +842,8 @@ export default function App(){
         )}
       </div>
 
-      <div style={{position:'fixed',bottom:0,left:0,right:0,background:'#fff',borderTop:'1px solid #e8e8e8',display:'flex',height:60,zIndex:50,boxShadow:'0 -2px 12px rgba(0,0,0,0.06)'}}>
-        {tabs.map(([id,icon,label])=>(<button key={id} onClick={()=>setTab(id)} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer',gap:2,borderTop:tab===id?'2px solid '+RED:'2px solid transparent',transition:'all 0.2s'}}><div style={{fontSize:15,opacity:tab===id?1:0.4}}>{icon}</div><div style={{color:tab===id?RED:'#aaa',fontSize:9,fontFamily:'DM Sans,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:0.5}}>{label}</div></button>))}
+      <div style={{position:'fixed',bottom:0,left:0,right:0,background:darkMode?'#1a1a1a':'#fff',borderTop:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),display:'flex',height:60,zIndex:50,boxShadow:'0 -2px 12px rgba(0,0,0,0.06)'}}>
+        {tabs.map(([id,icon,label])=>(<button key={id} onClick={()=>setTab(id)} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer',gap:2,borderTop:tab===id?'2px solid '+RED:'2px solid transparent',transition:'all 0.2s'}}><div style={{fontSize:15,opacity:tab===id?1:0.4}}>{icon}</div><div style={{color:tab===id?RED:(darkMode?'#666':'#aaa'),fontSize:9,fontFamily:'DM Sans,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:0.5}}>{label}</div></button>))}
       </div>
 
       {matched&&(
