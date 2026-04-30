@@ -147,6 +147,7 @@ function AuthScreen({ onSession }) {
   const [loading,setLoading]=useState(false);
   const [err,setErr]=useState('');
   const [info,setInfo]=useState('');const [privacy,setPrivacy]=useState(false);
+  const [agbAccepted,setAgbAccepted]=useState(false);
 
   async function submit() {
     if(!email||!password){setErr('E-Mail und Passwort eingeben');return;}
