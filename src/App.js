@@ -437,14 +437,14 @@ export default function App(){
     ['fid','fighter_sess','fighter_v2','fighter_v3'].forEach(k=>localStorage.removeItem(k));
     localStorage.removeItem('fighter_v2');
     localStorage.removeItem('fighter_sess');
-    localStorage.removeItem('fighter_v4');
+    localStorage.removeItem('fighter_v5');
     localStorage.removeItem('fighter_sess');
     localStorage.removeItem('fighter_sess');
-    const saved=localStorage.getItem('fighter_v4');
+    const saved=localStorage.getItem('fighter_v5');
     if(!saved){setAuthReady(true);return;}
     try{
       const s=JSON.parse(saved);
-      if(!s||!s.token||!s.userId){localStorage.removeItem('fighter_v4');setAuthReady(true);return;}
+      if(!s||!s.token||!s.userId){localStorage.removeItem('fighter_v5');setAuthReady(true);return;}
       if(s.refresh_token){
         try{
           const r=await fetch(SUPA_URL+'/auth/v1/token?grant_type=refresh_token',{
@@ -454,7 +454,7 @@ export default function App(){
           const data=await r.json();
           if(data.access_token){
             const newS={...s,token:data.access_token,refresh_token:data.refresh_token,expires_at:Date.now()+(3600*1000)};
-            localStorage.setItem('fighter_v4',JSON.stringify(newS));
+            localStorage.setItem('fighter_v5',JSON.stringify(newS));
             setSession(newS);
             await initProfile(newS);
             return;
@@ -463,7 +463,7 @@ export default function App(){
       }
       setSession(s);
       await initProfile(s);
-    }catch{localStorage.removeItem('fighter_v4');setAuthReady(true);}
+    }catch{localStorage.removeItem('fighter_v5');setAuthReady(true);}
   },[]);
 
   function showMsg(text){setMsg(text);setTimeout(()=>setMsg(''),3000);}
@@ -515,7 +515,7 @@ export default function App(){
   function handleSession(s){
     const sessionData={token:s.token,userId:s.userId,refresh_token:s.refresh_token,expires_at:Date.now()+(3600*1000)};
     setSession(sessionData);
-    localStorage.setItem('fighter_v4',JSON.stringify(sessionData));
+    localStorage.setItem('fighter_v5',JSON.stringify(sessionData));
     initProfile(sessionData);
   }
 
@@ -528,14 +528,14 @@ export default function App(){
       const data=await r.json();
       if(data.access_token){
         const newS={...s,token:data.access_token,refresh_token:data.refresh_token};
-        setSession(newS);localStorage.setItem('fighter_v4',JSON.stringify(newS));
+        setSession(newS);localStorage.setItem('fighter_v5',JSON.stringify(newS));
       }
     }catch{}
   }
 
   async function handleLogout(){
     if(session)await authSignOut(session.token);
-    localStorage.removeItem('fighter_v4');
+    localStorage.removeItem('fighter_v5');
     setSession(null);setMyProfile(null);setScreen('setup');setAuthReady(true);
   }
 
