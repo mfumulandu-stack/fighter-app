@@ -566,8 +566,28 @@ export default function App(){
     localStorage.removeItem('fighter_sess');
     const saved=localStorage.getItem('fighter_v4');
     if(!saved){setAuthReady(true);return;}
-    if(saved){try{const s=JSON.parse(saved);setSession(s);initProfile(s);}catch{setAuthReady(true);}}
-    else setAuthReady(true);
+    try{
+      const s=JSON.parse(saved);
+      if(!s||!s.token||!s.userId){localStorage.removeItem('fighter_v4');setAuthReady(true);return;}
+      if(s.refresh_token){
+        try{
+          const r=await fetch(SUPA_URL+'/auth/v1/token?grant_type=refresh_token',{
+            method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
+            body:JSON.stringify({refresh_token:s.refresh_token})
+          });
+          const data=await r.json();
+          if(data.access_token){
+            const newS={...s,token:data.access_token,refresh_token:data.refresh_token,expires_at:Date.now()+(3600*1000)};
+            localStorage.setItem('fighter_v4',JSON.stringify(newS));
+            setSession(newS);
+            await initProfile(newS);
+            return;
+          }
+        }catch{}
+      }
+      setSession(s);
+      await initProfile(s);
+    }catch{localStorage.removeItem('fighter_v4');setAuthReady(true);}
   },[]);
 
   function showMsg(text){setMsg(text);setTimeout(()=>setMsg(''),3000);}
