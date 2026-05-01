@@ -429,9 +429,6 @@ export default function App(){
   const [showImpressum,setShowImpressum]=useState(false);
   const [showDatenschutz,setShowDatenschutz]=useState(false);
   const [showAGB,setShowAGB]=useState(false);
-  const [showImpressum,setShowImpressum]=useState(false);
-  const [showDatenschutz,setShowDatenschutz]=useState(false);
-  const [showAGB,setShowAGB]=useState(false);
   const [rankMode,setRankMode]=useState('user');
   const [filterStyle,setFilterStyle]=useState('Alle');
   const [filterCity,setFilterCity]=useState('');
@@ -619,9 +616,6 @@ export default function App(){
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
   const filteredT=TRAINERS.filter(t=>trainerF==='All'||t.style.includes(trainerF)).sort((a,b)=>b.rating-a.rating);
 
-  if(showImpressum)return(<><style>{css}</style><ImpressumScreen onClose={()=>setShowImpressum(false)} darkMode={darkMode}/></>);
-  if(showDatenschutz)return(<><style>{css}</style><DatenschutzScreen onClose={()=>setShowDatenschutz(false)} darkMode={darkMode}/></>);
-  if(showAGB)return(<><style>{css}</style><AGBScreen onClose={()=>setShowAGB(false)} darkMode={darkMode}/></>);
   if(showImpressum)return(<><style>{css}</style><ImpressumScreen onClose={()=>setShowImpressum(false)} darkMode={darkMode}/></>);
   if(showDatenschutz)return(<><style>{css}</style><DatenschutzScreen onClose={()=>setShowDatenschutz(false)} darkMode={darkMode}/></>);
   if(showAGB)return(<><style>{css}</style><AGBScreen onClose={()=>setShowAGB(false)} darkMode={darkMode}/></>);
