@@ -151,6 +151,8 @@ function AuthScreen({ onSession }) {
 
   async function submit() {
     if(!email||!password){setErr('E-Mail und Passwort eingeben');return;}
+    if(mode==='register'&&!privacy){setErr('Bitte Datenschutz akzeptieren');return;}
+    if(mode==='register'&&!agbAccepted){setErr('Bitte AGB akzeptieren');return;}
     setLoading(true);setErr('');setInfo('');
     if(mode==='register'){
       const r=await authSignUp(email,password);
@@ -187,6 +189,18 @@ function AuthScreen({ onSession }) {
             <Inp placeholder='Passwort (min. 6 Zeichen)' value={password} onChange={setPassword} type='password' onKeyDown={e=>e.key==='Enter'&&submit()}/>
           </div>
           {err&&<div style={{color:RED,fontSize:12,marginTop:10,textAlign:'center'}}>{err}</div>}
+          {mode==='register'&&(
+            <div style={{display:'flex',flexDirection:'column',gap:8,marginTop:12}}>
+              <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
+                <input type='checkbox' id='privacy' checked={privacy} onChange={e=>setPrivacy(e.target.checked)} style={{marginTop:2,accentColor:RED,width:16,height:16,cursor:'pointer',flexShrink:0}}/>
+                <label htmlFor='privacy' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich stimme der <span style={{color:RED,textDecoration:'underline'}} onClick={()=>setShowDatenschutz&&setShowDatenschutz(true)}>Datenschutzerklärung</span> zu</label>
+              </div>
+              <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
+                <input type='checkbox' id='agb' checked={agbAccepted} onChange={e=>setAgbAccepted(e.target.checked)} style={{marginTop:2,accentColor:RED,width:16,height:16,cursor:'pointer',flexShrink:0}}/>
+                <label htmlFor='agb' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich akzeptiere die <span style={{color:RED,textDecoration:'underline'}} onClick={()=>setShowAGB&&setShowAGB(true)}>AGB</span></label>
+              </div>
+            </div>
+          )}
           {info&&<div style={{color:'#27ae60',fontSize:12,marginTop:10,textAlign:'center'}}>{info}</div>}
           <button onClick={submit} disabled={loading}
             style={{width:'100%',marginTop:16,padding:'13px',borderRadius:8,background:loading?'#eee':`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:loading?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:loading?'not-allowed':'pointer'}}>
