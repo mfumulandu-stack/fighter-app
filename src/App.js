@@ -198,7 +198,7 @@ function AuthScreen({ onSession }) {
   );
 }
 
-function ChatOverlay({match,myProfileId,token,onClose}){
+function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
   const [messages,setMessages]=useState([]);
   const [input,setInput]=useState('');
   const [loading,setLoading]=useState(true);
@@ -672,7 +672,7 @@ export default function App(){
 
   if(!authReady)return(<div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',alignItems:'center',justifyContent:'center'}}><style>{css}</style><div className='rj' style={{fontSize:32,color:'#1a1a1a',letterSpacing:4}}>FIGHTER</div></div>);
   if(!session)return <AuthScreen onSession={handleSession}/>;
-  if(activeChat&&myProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} token={session.token} onClose={()=>setActiveChat(null)}/></>);
+  if(activeChat&&myProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>setViewProfile(p)}/></>);
 
   if(screen==='setup')return(
     <div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'0 0 40px'}}>
