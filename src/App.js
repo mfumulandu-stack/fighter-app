@@ -235,11 +235,13 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
     <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:200,display:'flex',flexDirection:'column'}}>
       <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',background:'#fff',borderBottom:'1px solid #eee',boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
         <button onClick={onClose} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',padding:'0 6px 0 0',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
-        {other?.avatar_url?<img src={other.avatar_url} style={{width:38,height:38,borderRadius:'50%',objectFit:'cover',border:'2px solid '+accent+'55'}} alt=''/>
-          :<div style={{width:38,height:38,borderRadius:'50%',background:accent+'18',border:'2px solid '+accent+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🥊</div>}
-        <div onClick={()=>onViewProfile&&onViewProfile(other)} style={{cursor:'pointer'}}>
-          <div className='rj' style={{color:'#1a1a1a',fontSize:17,letterSpacing:1}}>{other?.name}</div>
-          <div style={{color:accent,fontSize:10,fontWeight:700}}>{other?.style} · {other?.city}</div>
+        <div onClick={()=>{if(onViewProfile)onViewProfile(other);}} style={{display:'flex',alignItems:'center',gap:10,flex:1,cursor:'pointer'}}>
+          {other?.avatar_url?<img src={other.avatar_url} style={{width:38,height:38,borderRadius:'50%',objectFit:'cover',border:'2px solid '+accent+'55'}} alt=''/>
+            :<div style={{width:38,height:38,borderRadius:'50%',background:accent+'18',border:'2px solid '+accent+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🥊</div>}
+          <div>
+            <div className='rj' style={{color:'#1a1a1a',fontSize:17,letterSpacing:1}}>{other?.name}</div>
+            <div style={{color:accent,fontSize:10,fontWeight:700}}>{other?.style} · {other?.city} · Profil ansehen →</div>
+          </div>
         </div>
       </div>
       <div style={{flex:1,overflowY:'auto',padding:'14px',display:'flex',flexDirection:'column',gap:8}}>
