@@ -636,33 +636,34 @@ export default function App(){
   if(showDatenschutz)return(<><style>{css}</style><DatenschutzScreen onClose={()=>setShowDatenschutz(false)} darkMode={darkMode}/></>);
   if(showAGB)return(<><style>{css}</style><AGBScreen onClose={()=>setShowAGB(false)} darkMode={darkMode}/></>);
   if(viewProfile)return(
-    <div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',flexDirection:'column'}}>
+    <div style={{minHeight:'100vh',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column'}}>
       <style>{css}</style>
-      <div style={{display:'flex',alignItems:'center',gap:10,padding:'14px 16px',background:'#fff',borderBottom:'1px solid #eee'}}>
-        <button onClick={()=>setViewProfile(null)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
-        <div className='rj' style={{color:'#1a1a1a',fontSize:20,letterSpacing:2}}>PROFIL</div>
-      </div>
-      <div style={{padding:'16px',maxWidth:420,margin:'0 auto',width:'100%'}}>
-        <div style={{background:'#fff',borderRadius:14,padding:'20px',textAlign:'center',border:'1px solid #eee',marginBottom:12}}>
-          {viewProfile.avatar_url?<img src={viewProfile.avatar_url} style={{width:120,height:120,borderRadius:16,objectFit:'cover',border:'3px solid '+RED,marginBottom:10}} alt=''/>:<div style={{fontSize:56,marginBottom:10}}>🥊</div>}
-          <div className='rj' style={{color:'#1a1a1a',fontSize:26,letterSpacing:2}}>{viewProfile.name}</div>
-          <div style={{color:RED,fontSize:13,fontWeight:700,marginTop:3}}>{viewProfile.style}</div>
-          <div style={{color:'#888',fontSize:12,marginTop:2}}>📍 {viewProfile.city} · 🏋️ {viewProfile.gym}</div>
-          {viewProfile.bio&&<div style={{color:'#aaa',fontSize:12,marginTop:8,fontStyle:'italic'}}>'{viewProfile.bio}'</div>}
+      <div style={{position:'relative',width:'100%',height:340,overflow:'hidden',flexShrink:0}}>
+        {viewProfile.avatar_url
+          ?<img src={viewProfile.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>
+          :<div style={{width:'100%',height:'100%',background:'#222',display:'flex',alignItems:'center',justifyContent:'center',fontSize:80}}>🥊</div>}
+        <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0.2) 0%,rgba(0,0,0,0.75) 100%)'}}/>
+        <button onClick={()=>setViewProfile(null)} style={{position:'absolute',top:14,left:14,background:'rgba(0,0,0,0.45)',border:'none',color:'#fff',fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700,borderRadius:8,padding:'4px 12px'}}>←</button>
+        <div style={{position:'absolute',bottom:16,left:16,right:16}}>
+          <div className='rj' style={{color:'#fff',fontSize:28,letterSpacing:2,lineHeight:1}}>{viewProfile.name}</div>
+          <div style={{color:'#ff6b6b',fontSize:12,fontWeight:700,marginTop:4}}>{viewProfile.style} · {viewProfile.city}</div>
+          {viewProfile.bio&&<div style={{color:'rgba(255,255,255,0.55)',fontSize:11,marginTop:4,fontStyle:'italic'}}>'{viewProfile.bio}'</div>}
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:12}}>
-          {[['SIEGE',viewProfile.wins||0,'#27ae60'],['NIEDERLAGEN',viewProfile.losses||0,RED],['UNENTSCHIEDEN',viewProfile.draws||0,'#d4a017']].map(([label,val,color])=>(
-            <div key={label} style={{background:'#fff',borderRadius:11,padding:'13px 5px',textAlign:'center',border:'1px solid '+color+'33'}}>
-              <div className='rj' style={{color:color,fontSize:32}}>{val}</div>
+      </div>
+      <div style={{padding:'12px',maxWidth:420,margin:'0 auto',width:'100%'}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginBottom:10}}>
+          {[['SIEGE',viewProfile.wins||0,'#27ae60'],['NIEDER',viewProfile.losses||0,RED],['UNENTSCH',viewProfile.draws||0,'#d4a017'],['KOs',viewProfile.ko||0,RED]].map(([label,val,color])=>(
+            <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 4px',textAlign:'center',border:'1px solid '+color+'33'}}>
+              <div className='rj' style={{color:color,fontSize:22}}>{val}</div>
               <div style={{color:'#bbb',fontSize:8,letterSpacing:1,marginTop:2}}>{label}</div>
             </div>
           ))}
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-          {[['GEWICHT',viewProfile.weight_class||'-','#2980b9'],['GYM',viewProfile.gym||'-','#8e44ad']].map(([label,val,color])=>(
-            <div key={label} style={{background:'#fff',borderRadius:11,padding:'13px',border:'1px solid '+color+'22'}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+          {[['GEWICHTSKLASSE',viewProfile.weight_class||'-','#2980b9'],['GYM',viewProfile.gym||'-','#8e44ad'],['GRÖSSE',viewProfile.height?(viewProfile.height+'cm'):'-','#27ae60'],['GEWICHT',viewProfile.weight?(viewProfile.weight+'kg'):'-','#e67e22']].map(([label,val,color])=>(
+            <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 12px',border:'1px solid '+color+'22'}}>
               <div style={{color:'#bbb',fontSize:9,letterSpacing:1}}>{label}</div>
-              <div style={{color:color,fontWeight:700,fontSize:13,marginTop:4}}>{val}</div>
+              <div style={{color:color,fontWeight:700,fontSize:12,marginTop:3}}>{val}</div>
             </div>
           ))}
         </div>
