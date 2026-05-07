@@ -437,7 +437,6 @@ export default function App(){
   const [dbMatches,setDbMatches]=useState([]);
   const [activeChat,setActiveChat]=useState(null);
   const [viewProfile,setViewProfile]=useState(null);
-  const [viewProfile,setViewProfile]=useState(null);
   const [city,setCity]=useState('Berlin');
   const [rankF,setRankF]=useState('All');
   const [trainerF,setTrainerF]=useState('All');
