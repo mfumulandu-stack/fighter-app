@@ -237,7 +237,7 @@ function ChatOverlay({match,myProfileId,token,onClose}){
         <button onClick={onClose} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',padding:'0 6px 0 0',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
         {other?.avatar_url?<img src={other.avatar_url} style={{width:38,height:38,borderRadius:'50%',objectFit:'cover',border:'2px solid '+accent+'55'}} alt=''/>
           :<div style={{width:38,height:38,borderRadius:'50%',background:accent+'18',border:'2px solid '+accent+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🥊</div>}
-        <div>
+        <div onClick={()=>setViewProfile&&setViewProfile(other)} style={{cursor:'pointer'}}>
           <div className='rj' style={{color:'#1a1a1a',fontSize:17,letterSpacing:1}}>{other?.name}</div>
           <div style={{color:accent,fontSize:10,fontWeight:700}}>{other?.style} · {other?.city}</div>
         </div>
@@ -420,6 +420,8 @@ export default function App(){
   const [swStats,setSwStats]=useState({ch:0,de:0});
   const [dbMatches,setDbMatches]=useState([]);
   const [activeChat,setActiveChat]=useState(null);
+  const [viewProfile,setViewProfile]=useState(null);
+  const [viewProfile,setViewProfile]=useState(null);
   const [city,setCity]=useState('Berlin');
   const [rankF,setRankF]=useState('All');
   const [trainerF,setTrainerF]=useState('All');
@@ -633,6 +635,41 @@ export default function App(){
   if(showImpressum)return(<><style>{css}</style><ImpressumScreen onClose={()=>setShowImpressum(false)} darkMode={darkMode}/></>);
   if(showDatenschutz)return(<><style>{css}</style><DatenschutzScreen onClose={()=>setShowDatenschutz(false)} darkMode={darkMode}/></>);
   if(showAGB)return(<><style>{css}</style><AGBScreen onClose={()=>setShowAGB(false)} darkMode={darkMode}/></>);
+  if(viewProfile)return(
+    <div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',flexDirection:'column'}}>
+      <style>{css}</style>
+      <div style={{display:'flex',alignItems:'center',gap:10,padding:'14px 16px',background:'#fff',borderBottom:'1px solid #eee'}}>
+        <button onClick={()=>setViewProfile(null)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
+        <div className='rj' style={{color:'#1a1a1a',fontSize:20,letterSpacing:2}}>PROFIL</div>
+      </div>
+      <div style={{padding:'16px',maxWidth:420,margin:'0 auto',width:'100%'}}>
+        <div style={{background:'#fff',borderRadius:14,padding:'20px',textAlign:'center',border:'1px solid #eee',marginBottom:12}}>
+          {viewProfile.avatar_url?<img src={viewProfile.avatar_url} style={{width:120,height:120,borderRadius:16,objectFit:'cover',border:'3px solid '+RED,marginBottom:10}} alt=''/>:<div style={{fontSize:56,marginBottom:10}}>🥊</div>}
+          <div className='rj' style={{color:'#1a1a1a',fontSize:26,letterSpacing:2}}>{viewProfile.name}</div>
+          <div style={{color:RED,fontSize:13,fontWeight:700,marginTop:3}}>{viewProfile.style}</div>
+          <div style={{color:'#888',fontSize:12,marginTop:2}}>📍 {viewProfile.city} · 🏋️ {viewProfile.gym}</div>
+          {viewProfile.bio&&<div style={{color:'#aaa',fontSize:12,marginTop:8,fontStyle:'italic'}}>'{viewProfile.bio}'</div>}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:12}}>
+          {[['SIEGE',viewProfile.wins||0,'#27ae60'],['NIEDERLAGEN',viewProfile.losses||0,RED],['UNENTSCHIEDEN',viewProfile.draws||0,'#d4a017']].map(([label,val,color])=>(
+            <div key={label} style={{background:'#fff',borderRadius:11,padding:'13px 5px',textAlign:'center',border:'1px solid '+color+'33'}}>
+              <div className='rj' style={{color:color,fontSize:32}}>{val}</div>
+              <div style={{color:'#bbb',fontSize:8,letterSpacing:1,marginTop:2}}>{label}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          {[['GEWICHT',viewProfile.weight_class||'-','#2980b9'],['GYM',viewProfile.gym||'-','#8e44ad']].map(([label,val,color])=>(
+            <div key={label} style={{background:'#fff',borderRadius:11,padding:'13px',border:'1px solid '+color+'22'}}>
+              <div style={{color:'#bbb',fontSize:9,letterSpacing:1}}>{label}</div>
+              <div style={{color:color,fontWeight:700,fontSize:13,marginTop:4}}>{val}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   if(!authReady)return(<div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',alignItems:'center',justifyContent:'center'}}><style>{css}</style><div className='rj' style={{fontSize:32,color:'#1a1a1a',letterSpacing:4}}>FIGHTER</div></div>);
   if(!session)return <AuthScreen onSession={handleSession}/>;
   if(activeChat&&myProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} token={session.token} onClose={()=>setActiveChat(null)}/></>);
