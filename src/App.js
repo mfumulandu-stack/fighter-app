@@ -509,6 +509,23 @@ export default function App(){
     }catch(e){console.error('loadMatches error',e);}
   }
 
+  useEffect(()=>{
+    if(!session||!myProfile)return;
+    const interval=setInterval(async()=>{
+      try{
+        const allProfiles=await dbSelect('profiles','',session.token);
+        const profileMap={};
+        if(Array.isArray(allProfiles))allProfiles.forEach(p=>{profileMap[p.id]=p;});
+        setDbMatches(prev=>prev.map(match=>({
+          ...match,
+          profile_a:profileMap[match.profile_a_id]||match.profile_a,
+          profile_b:profileMap[match.profile_b_id]||match.profile_b
+        })));
+      }catch{}
+    },10000);
+    return()=>clearInterval(interval);
+  },[session,myProfile]);
+
   function handleSession(s){
     const sessionData={token:s.token,userId:s.userId,refresh_token:s.refresh_token,expires_at:Date.now()+(3600*1000)};
     setSession(sessionData);
