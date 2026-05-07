@@ -237,7 +237,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
         <button onClick={onClose} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',padding:'0 6px 0 0',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
         {other?.avatar_url?<img src={other.avatar_url} style={{width:38,height:38,borderRadius:'50%',objectFit:'cover',border:'2px solid '+accent+'55'}} alt=''/>
           :<div style={{width:38,height:38,borderRadius:'50%',background:accent+'18',border:'2px solid '+accent+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🥊</div>}
-        <div onClick={()=>setViewProfile&&setViewProfile(other)} style={{cursor:'pointer'}}>
+        <div onClick={()=>onViewProfile&&onViewProfile(other)} style={{cursor:'pointer'}}>
           <div className='rj' style={{color:'#1a1a1a',fontSize:17,letterSpacing:1}}>{other?.name}</div>
           <div style={{color:accent,fontSize:10,fontWeight:700}}>{other?.style} · {other?.city}</div>
         </div>
