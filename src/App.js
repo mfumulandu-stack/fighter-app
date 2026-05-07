@@ -434,36 +434,33 @@ export default function App(){
   const [filterCity,setFilterCity]=useState('');
 
   useEffect(()=>{
-    ['fid','fighter_sess','fighter_v2','fighter_v3'].forEach(k=>localStorage.removeItem(k));
-    localStorage.removeItem('fighter_v2');
-    localStorage.removeItem('fighter_sess');
-    localStorage.removeItem('fighter_v5');
-    localStorage.removeItem('fighter_sess');
-    localStorage.removeItem('fighter_sess');
-    const saved=localStorage.getItem('fighter_v5');
-    if(!saved){setAuthReady(true);return;}
-    try{
-      const s=JSON.parse(saved);
-      if(!s||!s.token||!s.userId){localStorage.removeItem('fighter_v5');setAuthReady(true);return;}
-      if(s.refresh_token){
-        try{
-          const r=await fetch(SUPA_URL+'/auth/v1/token?grant_type=refresh_token',{
-            method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
-            body:JSON.stringify({refresh_token:s.refresh_token})
-          });
-          const data=await r.json();
-          if(data.access_token){
-            const newS={...s,token:data.access_token,refresh_token:data.refresh_token,expires_at:Date.now()+(3600*1000)};
-            localStorage.setItem('fighter_v5',JSON.stringify(newS));
-            setSession(newS);
-            await initProfile(newS);
-            return;
-          }
-        }catch{}
-      }
-      setSession(s);
-      await initProfile(s);
-    }catch{localStorage.removeItem('fighter_v5');setAuthReady(true);}
+    async function restoreSession(){
+      const saved=localStorage.getItem('fighter_v5');
+      if(!saved){setAuthReady(true);return;}
+      try{
+        const s=JSON.parse(saved);
+        if(!s||!s.token||!s.userId){localStorage.removeItem('fighter_v5');setAuthReady(true);return;}
+        if(s.refresh_token){
+          try{
+            const r=await fetch(SUPA_URL+'/auth/v1/token?grant_type=refresh_token',{
+              method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
+              body:JSON.stringify({refresh_token:s.refresh_token})
+            });
+            const data=await r.json();
+            if(data.access_token){
+              const newS={...s,token:data.access_token,refresh_token:data.refresh_token,expires_at:Date.now()+(3600*1000)};
+              localStorage.setItem('fighter_v5',JSON.stringify(newS));
+              setSession(newS);
+              await initProfile(newS);
+              return;
+            }
+          }catch{}
+        }
+        setSession(s);
+        await initProfile(s);
+      }catch{localStorage.removeItem('fighter_v5');setAuthReady(true);}
+    }
+    restoreSession();
   },[]);
 
   function showMsg(text){setMsg(text);setTimeout(()=>setMsg(''),3000);}
