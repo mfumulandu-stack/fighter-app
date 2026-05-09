@@ -444,8 +444,6 @@ export default function App(){
   const [joined,setJoined]=useState({});
   const [gymRatings,setGymRatings]=useState(()=>{try{return JSON.parse(localStorage.getItem('gymRatings')||'{}')}catch{return {}}});
   const [gymRatingInput,setGymRatingInput]=useState({});
-  const [gymRatings,setGymRatings]=useState(()=>{try{return JSON.parse(localStorage.getItem('gymRatings')||'{}')}catch{return {}}});
-  const [gymRatingInput,setGymRatingInput]=useState({});
   const [darkMode,setDarkMode]=useState(false);
   const [showImpressum,setShowImpressum]=useState(false);
   const [showDatenschutz,setShowDatenschutz]=useState(false);
@@ -483,19 +481,6 @@ export default function App(){
     }
     restoreSession();
   },[]);
-
-  function rateGym(gymKey, stars){
-    const newRatings={...gymRatings};
-    if(!newRatings[gymKey])newRatings[gymKey]={total:0,count:0,userRating:0};
-    const old=newRatings[gymKey].userRating||0;
-    if(old>0){newRatings[gymKey].total-=old;newRatings[gymKey].count-=1;}
-    newRatings[gymKey].total+=stars;
-    newRatings[gymKey].count+=1;
-    newRatings[gymKey].userRating=stars;
-    setGymRatings(newRatings);
-    localStorage.setItem('gymRatings',JSON.stringify(newRatings));
-    showMsg('Bewertung gespeichert! '+('⭐'.repeat(stars)));
-  }
 
   function rateGym(gymKey, stars){
     const newRatings={...gymRatings};
@@ -1011,7 +996,7 @@ export default function App(){
                   if(!other)return null;
                   return(<div key={m.id} onClick={()=>setActiveChat(m)} style={{background:'#fff',borderRadius:10,padding:'11px 13px',border:'1px solid #eee',marginBottom:7,display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}>
                     {other.avatar_url?<img src={other.avatar_url} style={{width:38,height:38,borderRadius:'50%',objectFit:'cover'}} alt=''/>:<div style={{width:38,height:38,borderRadius:'50%',background:'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🥊</div>}
-                    <div style={{flex:1}}><div style={{color:'#1a1a1a',fontWeight:700,fontSize:13}}>{other.name}</div><div style={{color:'#aaa',fontSize:11}}>{other.style} · {other.city}</div></div>
+                    <div style={{flex:1}}><div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{other.name}</div><div style={{color:'#aaa',fontSize:11}}>{other.style} · {other.city}</div></div>
                     <div style={{color:RED,fontSize:11,fontWeight:700}}>💬 Chat →</div>
                   </div>);
                 })}
@@ -1070,15 +1055,15 @@ export default function App(){
                   </div>
                   <div style={{marginTop:9,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                     <div style={{color:'#888',fontSize:12}}>👥 {gym.members} Mitglieder</div>
-                    <div style={{display:'flex',alignItems:'center',gap:3}}><span style={{color:'#d4a017'}}>★</span><span style={{color:'#1a1a1a',fontWeight:700,fontSize:14}}>{gym.rating}</span></div>
+                    <div style={{display:'flex',alignItems:'center',gap:3}}><span style={{color:'#d4a017'}}>★</span><span style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14}}>{gym.rating}</span></div>
                   </div>
-                  <div style={{marginTop:6,height:3,background:'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:((gym.rating-4)/1*100)+'%',background:`linear-gradient(90deg,${RED},#e67e22)`,borderRadius:2}}/>
+                  <div style={{marginTop:6,height:3,background:'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:((gym.rating-4)/1*100)+'%',background:`linear-gradient(90deg,${RED},#e67e22)`,borderRadius:2}}/></div>
                   <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
                     <div style={{color:darkMode?'#666':'#aaa',fontSize:10,marginBottom:4}}>Gym bewerten:</div>
                     <div style={{display:'flex',gap:2,alignItems:'center'}}>
                       {[1,2,3,4,5].map(star=>{
                         const k=city+'-'+gym.name;
-                        const mine=gymRatings[k]?.mine||0;
+                        const mine=gymRatings[k]?.userRating||0;
                         return <button key={star} onClick={()=>rateGym(k,star)} style={{background:'none',border:'none',cursor:'pointer',fontSize:24,color:star<=mine?'#d4a017':'#ddd',padding:'0 1px'}}>{star<=mine?'★':'☆'}</button>;
                       })}
                       {gymRatings[city+'-'+gym.name]?.count>0&&<span style={{color:'#aaa',fontSize:10,marginLeft:4}}>{gymRatings[city+'-'+gym.name].count} Bew.</span>}
@@ -1163,8 +1148,8 @@ export default function App(){
                         <div style={{color:'#888',fontSize:11,marginTop:2}}>{t.country} - {t.gym}</div>
                       </div>
                     </div>
-                    <div style={{marginTop:9,color:darkMode?'#aaa':'#666',fontSize:12,borderTop:'1px solid #eee',paddingTop:8}}>{t.bio}</div>
-                    <div style={{marginTop:8,background:'#f8f8f8',borderRadius:7,padding:'7px 10px'}}><div style={{color:'#aaa',fontSize:9,letterSpacing:1,marginBottom:3}}>BEKANNTE SCHUELER</div><div style={{color:'#666',fontSize:12,fontWeight:600}}>{t.pupils}</div></div>
+                    <div style={{marginTop:9,color:darkMode?'#ccc':'#666',fontSize:12,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee'),paddingTop:8}}>{t.bio}</div>
+                    <div style={{marginTop:8,background:darkMode?'#2a2a2a':'#f8f8f8',borderRadius:7,padding:'7px 10px'}}><div style={{color:'#aaa',fontSize:9,letterSpacing:1,marginBottom:3}}>BEKANNTE SCHUELER</div><div style={{color:darkMode?'#ccc':'#666',fontSize:12,fontWeight:600}}>{t.pupils}</div></div>
                     <div style={{marginTop:8,height:3,background:'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:(t.rating/10*100)+'%',background:`linear-gradient(90deg,${t.accent},${t.accent}66)`,borderRadius:2}}/></div>
                   </div>
                 </div>
