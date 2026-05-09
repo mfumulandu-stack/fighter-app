@@ -1010,7 +1010,7 @@ export default function App(){
     :{transform:'translateX(0) rotate(0deg)',transition:'transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275)'};
 
   function canGo(){
-    if(step===1)return profile.name&&profile.age&&profile.city;
+    if(step===1)return profile.name&&profile.age&&profile.city&&avatarUrl;
     if(step===2)return profile.gym&&profile.style;
     if(step===3)return profile.height&&profile.weight&&profile.weightClass;
     return true;
@@ -1102,15 +1102,20 @@ export default function App(){
       <div style={{width:'100%',maxWidth:380,padding:'22px 20px 0'}}>
         {step===1&&(
           <div style={{display:'flex',flexDirection:'column',gap:13}}>
-            <div style={{display:'flex',justifyContent:'center',marginBottom:8}}>
+            <div style={{display:'flex',justifyContent:'center',marginBottom:8}}> 
               <label style={{cursor:'pointer',textAlign:'center'}}>
                 <input type='file' accept='image/*' onChange={handlePhoto} style={{display:'none'}}/>
-                <div style={{width:88,height:88,borderRadius:'50%',background:'#ececec',border:'2px dashed '+(avatarPreview?RED:'#ccc'),display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',margin:'0 auto'}}>
-                  {uploading?<div style={{fontSize:24}} className='spin'>⏳</div>
-                    :avatarPreview?<img src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='avatar'/>
-                    :<div style={{textAlign:'center'}}><div style={{fontSize:28}}>📸</div><div style={{color:'#aaa',fontSize:10,marginTop:4}}>Foto</div></div>}
+                <div style={{position:'relative',display:'inline-block'}}>
+                  <div style={{width:110,height:110,borderRadius:'50%',background:avatarPreview?'#000':'#fdf0ef',border:'3px solid '+(avatarPreview?RED:'#e74c3c'),display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',margin:'0 auto',animation:avatarPreview?'none':'pulse 1.8s infinite',boxShadow:avatarPreview?'0 4px 16px rgba(192,57,43,0.3)':'0 0 0 6px rgba(231,76,60,0.15)'}}>
+                    {uploading?<div style={{fontSize:28}} className='spin'>⏳</div>
+                      :avatarPreview?<img src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='avatar'/>
+                      :<div style={{textAlign:'center'}}><div style={{fontSize:36}}>📸</div><div style={{color:RED,fontSize:10,marginTop:4,fontWeight:700}}>FOTO</div></div>}
+                  </div>
+                  {!avatarPreview&&<div style={{position:'absolute',top:-4,right:-4,background:RED,borderRadius:10,padding:'2px 6px',fontSize:9,color:'#fff',fontWeight:700,fontFamily:'Rajdhani,sans-serif',letterSpacing:1}}>PFLICHT</div>}
+                  {avatarPreview&&<div style={{position:'absolute',bottom:4,right:4,background:'#27ae60',borderRadius:'50%',width:24,height:24,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,border:'2px solid #fff'}}>✓</div>}
                 </div>
-                <div style={{color:RED,fontSize:11,marginTop:6,fontWeight:600}}>Profilbild hochladen</div>
+                <div style={{color:avatarPreview?'#27ae60':RED,fontSize:12,marginTop:8,fontWeight:700}}>{avatarPreview?'Foto hochgeladen ✓':'Profilbild hochladen (Pflicht)'}</div>
+                {!avatarPreview&&<div style={{color:'#bbb',fontSize:10,marginTop:2}}>Ohne Foto kannst du nicht weitermachen</div>}
               </label>
             </div>
             <Lbl>Dein Name</Lbl><Inp placeholder='z.B. Max Mueller' value={profile.name} onChange={v=>setProfile(p=>({...p,name:v}))}/>
@@ -1152,9 +1157,12 @@ export default function App(){
         )}
         <div style={{display:'flex',gap:9,marginTop:22}}>
           {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{flex:1,padding:'13px',borderRadius:8,background:'#fff',border:'1px solid #ddd',color:'#666',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>Zurueck</button>}
-          <button onClick={async()=>{if(!canGo())return;if(step<3)setStep(s=>s+1);else await saveProfile();}} style={{flex:2,padding:'13px',borderRadius:8,background:canGo()?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#eee',border:'none',color:canGo()?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:canGo()?'pointer':'not-allowed',transition:'all 0.2s'}}>
-            {saving?'Speichern…':step===3?'Lets Fight':'Weiter'}
-          </button>
+          <div style={{flex:2,display:'flex',flexDirection:'column',gap:4}}>
+            <button onClick={async()=>{if(!canGo())return;if(step<3)setStep(s=>s+1);else await saveProfile();}} style={{width:'100%',padding:'13px',borderRadius:8,background:canGo()?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#eee',border:'none',color:canGo()?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:canGo()?'pointer':'not-allowed',transition:'all 0.2s'}}>
+              {saving?'Speichern…':step===3?'Lets Fight':'Weiter'}
+            </button>
+            {step===1&&!avatarUrl&&<div style={{color:RED,fontSize:10,textAlign:'center',fontWeight:600}}>⬆ Profilbild hochladen um fortzufahren</div>}
+          </div>
         </div>
       </div>
     </div>
