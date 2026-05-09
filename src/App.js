@@ -366,6 +366,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
   const [messages,setMessages]=useState([]);
   const [input,setInput]=useState('');
   const [loading,setLoading]=useState(true);
+  const [showProfilePanel,setShowProfilePanel]=useState(false);
   const endRef=useRef(null);
   const pollRef=useRef(null);
   const other=match.profile_a_id===myProfileId?match.profile_b:match.profile_a;
@@ -395,27 +396,124 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
     try{await dbInsert('messages',{match_id:match.id,sender_id:myProfileId,content:text},token);}catch{}
   }
 
+  const wins=other?.wins||0;const losses=other?.losses||0;const draws=other?.draws||0;const ko=other?.ko||0;
+  const totalFights=wins+losses+draws;const winRate=totalFights>0?Math.round((wins/totalFights)*100):0;
   return(
     <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:200,display:'flex',flexDirection:'column'}}>
-      <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',background:'#fff',borderBottom:'1px solid #eee',boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
-        <button onClick={onClose} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',padding:'0 6px 0 0',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
-        <div onClick={()=>{if(onViewProfile)onViewProfile(other);}} style={{display:'flex',alignItems:'center',gap:10,flex:1,cursor:'pointer'}}>
-          {other?.avatar_url?<img src={other.avatar_url} style={{width:38,height:38,borderRadius:'50%',objectFit:'cover',border:'2px solid '+accent+'55'}} alt=''/>
-            :<div style={{width:38,height:38,borderRadius:'50%',background:accent+'18',border:'2px solid '+accent+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🥊</div>}
-          <div>
-            <div className='rj' style={{color:'#1a1a1a',fontSize:17,letterSpacing:1}}>{other?.name}</div>
-            <div style={{color:accent,fontSize:10,fontWeight:700}}>{other?.style} · {other?.city} · Profil ansehen →</div>
+
+      {/* PROFIL-PANEL — slide in von oben */}
+      {showProfilePanel&&(
+        <div style={{position:'absolute',inset:0,zIndex:10,background:'#f5f5f7',overflowY:'auto',display:'flex',flexDirection:'column'}}>
+          {/* Hero-Bild */}
+          <div style={{position:'relative',height:280,flexShrink:0,background:'#111'}}>
+            {other?.avatar_url
+              ?<img src={other.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover',opacity:0.85}} alt=''/>
+              :<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:90}}>🥊</div>}
+            <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0.15) 0%,rgba(0,0,0,0.8) 100%)'}}/>
+            <button onClick={()=>setShowProfilePanel(false)}
+              style={{position:'absolute',top:14,left:14,background:'rgba(0,0,0,0.5)',border:'none',color:'#fff',fontSize:18,cursor:'pointer',borderRadius:8,padding:'5px 12px',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>
+              ← Chat
+            </button>
+            <div style={{position:'absolute',bottom:16,left:16,right:16}}>
+              <div className='rj' style={{color:'#fff',fontSize:30,letterSpacing:2,lineHeight:1}}>{other?.name}</div>
+              <div style={{display:'flex',gap:8,marginTop:6,flexWrap:'wrap'}}>
+                {other?.style&&<div style={{background:accent+'33',border:'1px solid '+accent+'66',borderRadius:20,padding:'3px 10px',color:accent,fontSize:11,fontWeight:700}}>{other.style}</div>}
+                {other?.city&&<div style={{background:'rgba(255,255,255,0.12)',borderRadius:20,padding:'3px 10px',color:'rgba(255,255,255,0.8)',fontSize:11}}>📍 {other.city}</div>}
+                {other?.gym&&<div style={{background:'rgba(255,255,255,0.12)',borderRadius:20,padding:'3px 10px',color:'rgba(255,255,255,0.8)',fontSize:11}}>🏋️ {other.gym}</div>}
+              </div>
+            </div>
+          </div>
+
+          <div style={{padding:'14px 14px 40px',maxWidth:480,margin:'0 auto',width:'100%'}}>
+
+            {/* Kampfrekord */}
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginBottom:10}}>
+              {[['SIEGE',wins,'#27ae60'],['NIEDER',losses,RED],['UNENTSCH',draws,'#d4a017'],['KOs',ko,RED]].map(([label,val,color])=>(
+                <div key={label} style={{background:'#fff',borderRadius:11,padding:'11px 4px',textAlign:'center',border:'1px solid '+color+'33',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
+                  <div className='rj' style={{color:color,fontSize:26,lineHeight:1}}>{val}</div>
+                  <div style={{color:'#bbb',fontSize:8,letterSpacing:1,marginTop:3}}>{label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Win-Rate Bar */}
+            <div style={{background:'#fff',borderRadius:11,padding:'13px',border:'1px solid #eee',marginBottom:10,boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:7}}>
+                <div style={{color:'#888',fontSize:11,fontWeight:600}}>SIEGRATE</div>
+                <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15}}>{winRate}%</div>
+              </div>
+              <div style={{height:6,background:'#f0f0f0',borderRadius:3}}>
+                <div style={{height:'100%',width:winRate+'%',background:'linear-gradient(90deg,#27ae60,#2ecc71)',borderRadius:3,transition:'width 0.6s ease'}}/>
+              </div>
+              <div style={{color:'#ccc',fontSize:10,marginTop:5}}>{totalFights} Kämpfe gesamt · {ko} KO/TKO Siege</div>
+            </div>
+
+            {/* Infos */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:10}}>
+              {[
+                ['GEWICHTSKLASSE',other?.weight_class||'-','#2980b9'],
+                ['GYM',other?.gym||'-','#8e44ad'],
+                ['GRÖSSE',other?.height?(other.height+'cm'):'-','#27ae60'],
+                ['GEWICHT',other?.weight?(other.weight+'kg'):'-','#e67e22'],
+              ].map(([label,val,color])=>(
+                <div key={label} style={{background:'#fff',borderRadius:10,padding:'11px 12px',border:'1px solid '+color+'22',boxShadow:'0 1px 4px rgba(0,0,0,0.04)'}}>
+                  <div style={{color:'#ccc',fontSize:9,letterSpacing:1}}>{label}</div>
+                  <div style={{color:color,fontWeight:700,fontSize:13,marginTop:3}}>{val}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Bio */}
+            {other?.bio&&(
+              <div style={{background:'#fff',borderRadius:11,padding:'13px',border:'1px solid #eee',marginBottom:10}}>
+                <div style={{color:'#ccc',fontSize:9,letterSpacing:1,marginBottom:6}}>ÜBER MICH</div>
+                <div style={{color:'#555',fontSize:13,fontStyle:'italic',lineHeight:1.6}}>"{other.bio}"</div>
+              </div>
+            )}
+
+            {/* Zurück zum Chat Button */}
+            <button onClick={()=>setShowProfilePanel(false)}
+              style={{width:'100%',padding:'13px',borderRadius:10,background:`linear-gradient(135deg,${accent},${accent}cc)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:17,letterSpacing:2,cursor:'pointer'}}>
+              💬 ZURÜCK ZUM CHAT
+            </button>
           </div>
         </div>
+      )}
+
+      {/* CHAT HEADER — klickbar für Profil */}
+      <div onClick={()=>setShowProfilePanel(true)} style={{display:'flex',alignItems:'center',gap:11,padding:'10px 14px',background:'#fff',borderBottom:'1px solid #eee',boxShadow:'0 1px 4px rgba(0,0,0,0.06)',cursor:'pointer',userSelect:'none'}}>
+        <button onClick={e=>{e.stopPropagation();onClose();}} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',padding:'0 4px 0 0',fontFamily:'Rajdhani,sans-serif',fontWeight:700,flexShrink:0}}>←</button>
+        <div style={{position:'relative',flexShrink:0}}>
+          {other?.avatar_url
+            ?<img src={other.avatar_url} style={{width:42,height:42,borderRadius:'50%',objectFit:'cover',border:'2px solid '+accent}} alt=''/>
+            :<div style={{width:42,height:42,borderRadius:'50%',background:accent+'22',border:'2px solid '+accent,display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>🥊</div>}
+          <div style={{position:'absolute',bottom:0,right:0,width:10,height:10,borderRadius:'50%',background:'#27ae60',border:'2px solid #fff'}}/>
+        </div>
+        <div style={{flex:1,minWidth:0}}>
+          <div className='rj' style={{color:'#1a1a1a',fontSize:18,letterSpacing:1,lineHeight:1}}>{other?.name}</div>
+          <div style={{color:accent,fontSize:10,fontWeight:700,marginTop:2}}>{other?.style} · {other?.city}</div>
+        </div>
+        <div style={{background:accent+'15',border:'1px solid '+accent+'33',borderRadius:8,padding:'5px 10px',flexShrink:0}}>
+          <div style={{color:accent,fontSize:10,fontWeight:700}}>Profil</div>
+          <div style={{color:accent,fontSize:10,textAlign:'center'}}>ansehen</div>
+        </div>
       </div>
+
       <div style={{flex:1,overflowY:'auto',padding:'14px',display:'flex',flexDirection:'column',gap:8}}>
         {loading?<div style={{textAlign:'center',color:'#bbb',marginTop:30}}>Laden…</div>
         :messages.length===0?<div style={{textAlign:'center',color:'#bbb',marginTop:40}}><div style={{fontSize:36,marginBottom:10}}>⚔️</div><div style={{fontWeight:700,fontSize:14}}>Match bestätigt!</div><div style={{fontSize:12,marginTop:4}}>Schreib die erste Nachricht</div></div>
         :messages.map(m=>{
           const isMe=m.sender_id===myProfileId;
           return(
-            <div key={m.id} style={{display:'flex',justifyContent:isMe?'flex-end':'flex-start'}}>
-              <div style={{maxWidth:'74%',padding:'9px 13px',borderRadius:isMe?'14px 14px 3px 14px':'14px 14px 14px 3px',background:isMe?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#fff',color:isMe?'#fff':'#1a1a1a',fontSize:14,boxShadow:'0 1px 4px rgba(0,0,0,0.08)'}}>
+            <div key={m.id} style={{display:'flex',justifyContent:isMe?'flex-end':'flex-start',alignItems:'flex-end',gap:6}}>
+              {!isMe&&(
+                <div onClick={()=>setShowProfilePanel(true)} style={{cursor:'pointer',flexShrink:0}}>
+                  {other?.avatar_url
+                    ?<img src={other.avatar_url} style={{width:26,height:26,borderRadius:'50%',objectFit:'cover',border:'1px solid '+accent+'44'}} alt=''/>
+                    :<div style={{width:26,height:26,borderRadius:'50%',background:accent+'22',border:'1px solid '+accent+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12}}>🥊</div>}
+                </div>
+              )}
+              <div style={{maxWidth:'72%',padding:'9px 13px',borderRadius:isMe?'14px 14px 3px 14px':'14px 14px 14px 3px',background:isMe?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#fff',color:isMe?'#fff':'#1a1a1a',fontSize:14,boxShadow:'0 1px 4px rgba(0,0,0,0.08)'}}>
                 {m.content}
                 <div style={{color:isMe?'rgba(255,255,255,0.55)':'#ccc',fontSize:9,marginTop:3,textAlign:'right'}}>
                   {new Date(m.created_at).toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'})} {isMe&&<span style={{marginLeft:3,color:m.read_at?'#4fc3f7':'rgba(255,255,255,0.7)'}}>{m.id.startsWith('tmp_')?'✓':'✓✓'}</span>}
