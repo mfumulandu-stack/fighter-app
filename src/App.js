@@ -304,6 +304,21 @@ function AuthScreen({ onSession }) {
   const [err,setErr]=useState('');
   const [info,setInfo]=useState('');const [privacy,setPrivacy]=useState(false);
   const [agbAccepted,setAgbAccepted]=useState(false);
+  const [showForgot,setShowForgot]=useState(false);
+
+  async function sendPasswordReset(){
+    if(!email){setErr('Bitte E-Mail eingeben');return;}
+    setLoading(true);setErr('');
+    try{
+      const r=await fetch(SUPA_URL+'/auth/v1/recover',{
+        method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
+        body:JSON.stringify({email})
+      });
+      if(r.ok){setInfo('Reset-Link wurde an '+email+' gesendet!');setShowForgot(false);}
+      else setErr('Fehler beim Senden');
+    }catch{setErr('Netzwerkfehler');}
+    setLoading(false);
+  }
 
   async function submit() {
     if(!email||!password){setErr('E-Mail und Passwort eingeben');return;}
@@ -362,8 +377,28 @@ function AuthScreen({ onSession }) {
             style={{width:'100%',marginTop:16,padding:'13px',borderRadius:8,background:loading?'#eee':`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:loading?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:loading?'not-allowed':'pointer'}}>
             {loading?'...':mode==='login'?'LOGIN':'REGISTRIEREN'}
           </button>
+          {mode==='login'&&<div onClick={()=>{setShowForgot(true);setErr('');setInfo('');}} style={{textAlign:'center',marginTop:12,color:'#aaa',fontSize:12,cursor:'pointer',textDecoration:'underline'}}>Passwort vergessen?</div>}
         </div>
       </div>
+      {showForgot&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:500,padding:'20px'}}>
+          <div style={{background:'#fff',borderRadius:16,padding:'24px 20px',width:'100%',maxWidth:340,boxShadow:'0 8px 40px rgba(0,0,0,0.2)'}}>
+            <div className='rj' style={{color:'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:6}}>PASSWORT RESET</div>
+            <div style={{color:'#888',fontSize:12,marginBottom:16}}>Wir senden dir einen Reset-Link per E-Mail.</div>
+            <Inp placeholder='Deine E-Mail' value={email} onChange={setEmail} type='email'/>
+            {err&&<div style={{color:RED,fontSize:12,marginTop:8,textAlign:'center'}}>{err}</div>}
+            {info&&<div style={{color:'#27ae60',fontSize:12,marginTop:8,textAlign:'center'}}>{info}</div>}
+            <button onClick={sendPasswordReset} disabled={loading}
+              style={{width:'100%',marginTop:14,padding:'12px',borderRadius:8,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
+              {loading?'Senden...':'LINK SENDEN'}
+            </button>
+            <button onClick={()=>{setShowForgot(false);setErr('');}}
+              style={{width:'100%',marginTop:8,padding:'10px',borderRadius:8,background:'transparent',border:'1px solid #eee',color:'#aaa',fontFamily:'DM Sans,sans-serif',fontSize:13,cursor:'pointer'}}>
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -373,6 +408,11 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
   const [input,setInput]=useState('');
   const [loading,setLoading]=useState(true);
   const [showProfilePanel,setShowProfilePanel]=useState(false);
+  const [showFightRequest,setShowFightRequest]=useState(false);
+  const [fightDate,setFightDate]=useState('');
+  const [fightLocation,setFightLocation]=useState('');
+  const [fightType,setFightType]=useState('Sparring');
+  const [fightSent,setFightSent]=useState(false);
   const endRef=useRef(null);
   const pollRef=useRef(null);
   const other=match.profile_a_id===myProfileId?match.profile_b:match.profile_a;
@@ -486,6 +526,74 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
         </div>
       )}
 
+      {/* FIGHT REQUEST PANEL */}
+      {showFightRequest&&(
+        <div style={{position:'absolute',inset:0,zIndex:11,background:'#f5f5f7',overflowY:'auto',display:'flex',flexDirection:'column'}}>
+          <div style={{background:'linear-gradient(135deg,#1a1a1a,#c0392b)',padding:'14px 16px',flexShrink:0,display:'flex',alignItems:'center',gap:10}}>
+            <button onClick={()=>setShowFightRequest(false)} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',fontSize:18,cursor:'pointer',borderRadius:8,padding:'5px 12px',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
+            <div className='rj' style={{color:'#fff',fontSize:20,letterSpacing:2,flex:1}}>FIGHT REQUEST</div>
+            <div style={{fontSize:22}}>⚔️</div>
+          </div>
+          <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%',display:'flex',flexDirection:'column',gap:12}}>
+            <div style={{background:'#fff',borderRadius:12,padding:'14px',border:'1px solid #eee',textAlign:'center'}}>
+              <div style={{fontSize:40,marginBottom:6}}>{other?.emoji||'🥊'}</div>
+              <div className='rj' style={{color:'#1a1a1a',fontSize:18,letterSpacing:1}}>{other?.name}</div>
+              <div style={{color:'#888',fontSize:12,marginTop:2}}>{other?.style} · {other?.weight_class||other?.weightClass||''}</div>
+            </div>
+            <div style={{background:'#fff',borderRadius:12,padding:'14px',border:'1px solid #eee'}}>
+              <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:10}}>FIGHT TYP</div>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                {['Sparring','Amateur Wettkampf','Profi Wettkampf','Freundschaftskampf'].map(t=>(
+                  <button key={t} onClick={()=>setFightType(t)} style={{padding:'7px 12px',borderRadius:20,background:fightType===t?'#c0392b':'#f5f5f5',border:'1px solid '+(fightType===t?'#c0392b':'#ddd'),color:fightType===t?'#fff':'#666',fontSize:12,fontWeight:700,cursor:'pointer'}}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{background:'#fff',borderRadius:12,padding:'14px',border:'1px solid #eee'}}>
+              <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>DATUM</div>
+              <input type='date' value={fightDate} onChange={e=>setFightDate(e.target.value)}
+                style={{width:'100%',background:'#f5f5f7',border:'1px solid #e0e0e0',borderRadius:8,padding:'10px 12px',fontSize:14,color:'#1a1a1a',fontFamily:'DM Sans,sans-serif'}}/>
+            </div>
+            <div style={{background:'#fff',borderRadius:12,padding:'14px',border:'1px solid #eee'}}>
+              <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>ORT / GYM</div>
+              <input type='text' value={fightLocation} onChange={e=>setFightLocation(e.target.value)} placeholder='z.B. Tiger Gym Berlin, Mitte'
+                style={{width:'100%',background:'#f5f5f7',border:'1px solid #e0e0e0',borderRadius:8,padding:'10px 12px',fontSize:14,color:'#1a1a1a',fontFamily:'DM Sans,sans-serif'}}/>
+            </div>
+            {fightSent?(
+              <div style={{background:'#f0faf0',border:'1px solid #27ae6044',borderRadius:12,padding:'16px',textAlign:'center'}}>
+                <div style={{fontSize:32,marginBottom:6}}>✅</div>
+                <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18}}>FIGHT REQUEST GESENDET!</div>
+                <div style={{color:'#888',fontSize:12,marginTop:4}}>Warte auf Antwort von {other?.name}</div>
+              </div>
+            ):(
+              <button onClick={async()=>{
+                if(!fightDate||!fightLocation){return;}
+                const msg=`⚔️ FIGHT REQUEST
+
+Typ: ${fightType}
+Datum: ${new Date(fightDate).toLocaleDateString('de')}
+Ort: ${fightLocation}
+
+Bist du dabei?`;
+                try{
+                  await fetch(SUPA_URL+'/rest/v1/messages',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=minimal'},
+                    body:JSON.stringify({match_id:match.id,sender_id:myProfileId,content:msg})
+                  });
+                  setFightSent(true);
+                  setTimeout(()=>{setShowFightRequest(false);setFightSent(false);},2000);
+                }catch{}
+              }} disabled={!fightDate||!fightLocation}
+                style={{width:'100%',padding:'14px',borderRadius:10,background:fightDate&&fightLocation?'linear-gradient(135deg,#c0392b,#e74c3c)':'#eee',border:'none',color:fightDate&&fightLocation?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:fightDate&&fightLocation?'pointer':'not-allowed'}}>
+                ⚔️ FIGHT REQUEST SENDEN
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* CHAT HEADER — klickbar für Profil */}
       <div onClick={()=>setShowProfilePanel(true)} style={{display:'flex',alignItems:'center',gap:11,padding:'10px 14px',background:'#fff',borderBottom:'1px solid #eee',boxShadow:'0 1px 4px rgba(0,0,0,0.06)',cursor:'pointer',userSelect:'none'}}>
         <button onClick={e=>{e.stopPropagation();onClose();}} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',padding:'0 4px 0 0',fontFamily:'Rajdhani,sans-serif',fontWeight:700,flexShrink:0}}>←</button>
@@ -530,7 +638,12 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
         })}
         <div ref={endRef}/>
       </div>
-      <div style={{padding:'10px 12px',background:'#fff',borderTop:'1px solid #eee',display:'flex',gap:8,alignItems:'flex-end'}}>
+      <div style={{padding:'6px 12px 0',background:'#fff',borderTop:'1px solid #eee'}}> 
+        <button onClick={()=>setShowFightRequest(true)} style={{width:'100%',padding:'7px',borderRadius:8,background:'linear-gradient(135deg,#1a1a1a,#c0392b)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,letterSpacing:1.5,cursor:'pointer',marginBottom:6}}>
+          ⚔️ FIGHT REQUEST SENDEN
+        </button>
+      </div>
+      <div style={{padding:'6px 12px 10px',background:'#fff',display:'flex',gap:8,alignItems:'flex-end'}}>
         <textarea value={input} onChange={e=>setInput(e.target.value)}
           onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}}
           placeholder='Nachricht…' rows={1}
@@ -685,6 +798,8 @@ export default function App(){
   const [activeChat,setActiveChat]=useState(null);
   const [viewProfile,setViewProfile]=useState(null);
   const [viewGym,setViewGym]=useState(null);
+  const [blockedUsers,setBlockedUsers]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_blocked')||'[]')}catch{return []}});
+  const [reportSent,setReportSent]=useState({});
   const [city,setCity]=useState('Berlin');
   const [rankF,setRankF]=useState('All');
   const [trainerF,setTrainerF]=useState('All');
@@ -860,7 +975,7 @@ export default function App(){
     setUploading(false);
   }
 
-  const filteredCards=cards.filter(f=>filterStyle==='Alle'||f.style===filterStyle).filter(f=>!filterCity||(f.city||'').toLowerCase().includes(filterCity.toLowerCase()));
+  const filteredCards=cards.filter(f=>!blockedUsers.includes(f.id)).filter(f=>filterStyle==='Alle'||f.style===filterStyle).filter(f=>!filterCity||(f.city||'').toLowerCase().includes(filterCity.toLowerCase()));
   const top=filteredCards[filteredCards.length-1];
   function dragStart(e){const p=e.touches?e.touches[0]:e;setStart({x:p.clientX,y:p.clientY});setDrag(true);}
   function dragMove(e){if(!drag)return;const p=e.touches?e.touches[0]:e;setOffset({x:p.clientX-start.x,y:p.clientY-start.y});}
@@ -945,6 +1060,26 @@ export default function App(){
               <div style={{color:color,fontWeight:700,fontSize:12,marginTop:3}}>{val}</div>
             </div>
           ))}
+        </div>
+        {/* BLOCK / MELDEN */}
+        <div style={{display:'flex',gap:8,marginTop:14,padding:'0 12px'}}>
+          <button onClick={()=>{
+            const isBlocked=blockedUsers.includes(viewProfile.id);
+            const updated=isBlocked?blockedUsers.filter(id=>id!==viewProfile.id):[...blockedUsers,viewProfile.id];
+            setBlockedUsers(updated);
+            localStorage.setItem('fighter_blocked',JSON.stringify(updated));
+            showMsg(isBlocked?'Nutzer entsperrt':'Nutzer blockiert 🚫');
+            setViewProfile(null);
+          }} style={{flex:1,padding:'11px',borderRadius:10,background:darkMode?'#2a1a1a':'#fff5f5',border:'1px solid #c0392b44',color:'#c0392b',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+            🚫 {blockedUsers.includes(viewProfile.id)?'Entsperren':'Blockieren'}
+          </button>
+          <button onClick={()=>{
+            if(reportSent[viewProfile.id]){showMsg('Bereits gemeldet');return;}
+            setReportSent(r=>({...r,[viewProfile.id]:true}));
+            showMsg('Profil wurde gemeldet ✓');
+          }} style={{flex:1,padding:'11px',borderRadius:10,background:darkMode?'#1a1a2a':'#f5f5ff',border:'1px solid #2980b944',color:'#2980b9',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+            {reportSent[viewProfile.id]?'✓ Gemeldet':'⚠️ Melden'}
+          </button>
         </div>
       </div>
     </div>
