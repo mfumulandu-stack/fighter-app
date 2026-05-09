@@ -1204,32 +1204,42 @@ export default function App(){
                 const isTop=idx===cards.length-1;const isSec=idx===cards.length-2;const fA=f.accent||'#c0392b';
                 return(
                   <div key={f.id} onMouseDown={isTop?dragStart:undefined} onTouchStart={isTop?dragStart:undefined}
-                    style={{position:'absolute',inset:0,borderRadius:16,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#333':fA+'33'),boxShadow:isTop?'0 8px 32px rgba(0,0,0,0.12)':'none',cursor:isTop?'grab':'default',zIndex:isTop?10:isSec?5:1,transform:isTop?cStyle.transform:isSec?'scale(0.96) translateY(10px)':'scale(0.92) translateY(20px)',transition:isTop?cStyle.transition:'none',overflow:'hidden',display:'flex',flexDirection:'column',userSelect:'none'}}>
-                    <div style={{height:3,background:`linear-gradient(90deg,${fA},transparent)`}}/>
+                    style={{position:'absolute',inset:0,borderRadius:16,background:'#111',boxShadow:isTop?'0 8px 32px rgba(0,0,0,0.2)':'none',cursor:isTop?'grab':'default',zIndex:isTop?10:isSec?5:1,transform:isTop?cStyle.transform:isSec?'scale(0.96) translateY(10px)':'scale(0.92) translateY(20px)',transition:isTop?cStyle.transition:'none',overflow:'hidden',userSelect:'none'}}>
+                    {f.avatar_url
+                      ?<img src={f.avatar_url} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} alt={f.name}/>
+                      :<div style={{position:'absolute',inset:0,background:`linear-gradient(160deg,${fA}55 0%,#111 100%)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:120}}>{f.emoji||'🥊'}</div>
+                    }
+                    <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0) 30%,rgba(0,0,0,0.95) 100%)'}}/>
                     {isTop&&(<>
-                      <div style={{position:'absolute',top:18,left:16,border:'3px solid #27ae60',borderRadius:5,padding:'2px 8px',color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,letterSpacing:3,transform:'rotate(-18deg)',opacity:fop,transition:drag?'none':'opacity 0.12s'}}>FIGHT</div>
-                      <div style={{position:'absolute',top:18,right:16,border:'3px solid '+RED,borderRadius:5,padding:'2px 8px',color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,letterSpacing:3,transform:'rotate(18deg)',opacity:pop,transition:drag?'none':'opacity 0.12s'}}>PASS</div>
+                      <div style={{position:'absolute',top:22,left:18,border:'3px solid #27ae60',borderRadius:6,padding:'3px 12px',color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:26,letterSpacing:3,transform:'rotate(-18deg)',opacity:fop,transition:drag?'none':'opacity 0.12s'}}>FIGHT</div>
+                      <div style={{position:'absolute',top:22,right:18,border:'3px solid '+RED,borderRadius:6,padding:'3px 12px',color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:26,letterSpacing:3,transform:'rotate(18deg)',opacity:pop,transition:drag?'none':'opacity 0.12s'}}>PASS</div>
                     </>)}
-                    <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:`radial-gradient(circle at 50% 50%,${fA}0a,transparent 65%)`}}>
-                      {f.avatar_url?<img src={f.avatar_url} style={{width:180,height:180,borderRadius:16,objectFit:'cover',border:'3px solid '+fA+'44',marginBottom:8}} alt={f.name}/>:<div style={{fontSize:72}}>{f.emoji||'🥊'}</div>}
-                      <div style={{marginTop:9,display:'flex',gap:11}}>
-                        {[{v:f.wins||0,l:'SIEGE',c:'#27ae60'},{v:f.losses||0,l:'NIEDER',c:RED},{v:f.draws||0,l:'UNENTSCH',c:'#d4a017'}].map(({v,l,c})=>(
-                          <div key={l} style={{textAlign:'center'}}><div className='rj' style={{color:c,fontSize:20}}>{v}</div><div style={{color:'#bbb',fontSize:8,letterSpacing:1}}>{l}</div></div>
+                    <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'12px 16px 16px'}}> 
+                      <div style={{display:'flex',gap:8,marginBottom:8}}>
+                        {[{v:f.wins||0,l:'SIEGE',c:'#27ae60'},{v:f.losses||0,l:'NIEDER',c:'#e74c3c'},{v:f.draws||0,l:'UNENTSCH',c:'#d4a017'},{v:f.ko||0,l:'KOs',c:'#e74c3c'}].map(({v,l,c})=>(
+                          <div key={l} style={{textAlign:'center',background:'rgba(0,0,0,0.5)',borderRadius:8,padding:'4px 8px'}}>
+                            <div className='rj' style={{color:c,fontSize:18,lineHeight:1}}>{v}</div>
+                            <div style={{color:'rgba(255,255,255,0.55)',fontSize:7,letterSpacing:1}}>{l}</div>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                    <div style={{padding:'10px 14px 14px',background:darkMode?'#222':'#fafafa',borderTop:'1px solid '+(darkMode?'#333':'#f0f0f0')}}>
-                      <div style={{display:'flex',justifyContent:'space-between'}}>
-                        <div>
-                          <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:1.5,lineHeight:1}}>{f.name}</div>
-                          <div style={{color:fA,fontSize:11,fontWeight:700,marginTop:1}}>{(f.style||'').toUpperCase()}</div>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div className='rj' style={{color:'#fff',fontSize:26,letterSpacing:1.5,lineHeight:1}}>
+                            {f.name}{f.age?<span style={{fontSize:19,opacity:0.75}}>, {f.age}</span>:null}
+                          </div>
+                          <div style={{display:'flex',gap:5,marginTop:6,flexWrap:'wrap'}}>
+                            {f.style&&<div style={{background:fA,borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{f.style}</div>}
+                            {(f.weight_class||f.weightClass)&&<div style={{background:'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>{(f.weight_class||f.weightClass||'').split(' (')[0]}</div>}
+                            {f.city&&<div style={{background:'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>📍 {f.city}</div>}
+                          </div>
+                          {f.bio&&<div style={{color:'rgba(255,255,255,0.5)',fontSize:10,marginTop:5,fontStyle:'italic'}}>"{f.bio}"</div>}
                         </div>
-                        <div style={{textAlign:'right'}}><div style={{color:'#aaa',fontSize:11}}>{f.height} cm</div><div style={{color:'#aaa',fontSize:11}}>{f.weight} kg</div></div>
+                        <div style={{textAlign:'right',flexShrink:0,marginLeft:10}}>
+                          {f.height&&<div style={{color:'rgba(255,255,255,0.6)',fontSize:12}}>{f.height} cm</div>}
+                          {f.weight&&<div style={{color:'rgba(255,255,255,0.6)',fontSize:12}}>{f.weight} kg</div>}
+                        </div>
                       </div>
-                      <div style={{marginTop:6,display:'flex',gap:4,flexWrap:'wrap'}}>
-                        <Tag text={'📍 '+(f.city||'')}/><Tag text={'🏋️ '+(f.gym||'')}/><Tag text={f.weight_class||f.weightClass||''} accent={fA}/>
-                      </div>
-                      {f.bio&&<div style={{color:'#888',fontSize:11,marginTop:5,fontStyle:'italic'}}>'{f.bio}'</div>}
                     </div>
                   </div>
                 );
