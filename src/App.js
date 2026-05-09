@@ -442,6 +442,8 @@ export default function App(){
   const [trainerF,setTrainerF]=useState('All');
   const [sport,setSport]=useState('Basketball');
   const [joined,setJoined]=useState({});
+  const [gymRatings,setGymRatings]=useState(()=>{try{return JSON.parse(localStorage.getItem('gymRatings')||'{}')}catch{return {}}});
+  const [gymRatingInput,setGymRatingInput]=useState({});
   const [darkMode,setDarkMode]=useState(false);
   const [showImpressum,setShowImpressum]=useState(false);
   const [showDatenschutz,setShowDatenschutz]=useState(false);
@@ -479,6 +481,19 @@ export default function App(){
     }
     restoreSession();
   },[]);
+
+  function rateGym(gymKey, stars){
+    const newRatings={...gymRatings};
+    if(!newRatings[gymKey])newRatings[gymKey]={total:0,count:0,userRating:0};
+    const old=newRatings[gymKey].userRating||0;
+    if(old>0){newRatings[gymKey].total-=old;newRatings[gymKey].count-=1;}
+    newRatings[gymKey].total+=stars;
+    newRatings[gymKey].count+=1;
+    newRatings[gymKey].userRating=stars;
+    setGymRatings(newRatings);
+    localStorage.setItem('gymRatings',JSON.stringify(newRatings));
+    showMsg('Bewertung gespeichert! '+('⭐'.repeat(stars)));
+  }
 
   function showMsg(text){setMsg(text);setTimeout(()=>setMsg(''),3000);}
 
