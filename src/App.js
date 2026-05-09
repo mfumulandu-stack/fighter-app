@@ -1347,7 +1347,7 @@ export default function App(){
                       })}
                       {gymRatings[city+'-'+gym.name]?.count>0&&<span style={{color:'#aaa',fontSize:10,marginLeft:4}}>{gymRatings[city+'-'+gym.name].count} Bew.</span>}
                     </div>
-                  </div></div>
+                  </div>
                 </div>
               ))}
             </div>
