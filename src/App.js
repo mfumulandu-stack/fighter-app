@@ -1014,40 +1014,59 @@ export default function App(){
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:11}}>GYMS FINDEN</div>
             {/* TOP GYMS */}
-            <div style={{marginBottom:14}}>
-              <div className='rj' style={{color:'#d4a017',fontSize:13,letterSpacing:2,marginBottom:8}}>🏆 TOP GYMS RANKING</div>
-              {(()=>{
-                const all=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct})));
-                return[...all].map(g=>{
-                  const k=g.ct+'-'+g.name;
-                  const r=gymRatings[k];
-                  const avg=r&&r.count>0?r.total/r.count:g.rating;
-                  const cnt=r?r.count:0;
-                  return{...g,k,avg,cnt};
-                }).sort((a,b)=>b.avg-a.avg||b.cnt-a.cnt).slice(0,5).map((g,i)=>{
-                  const cols=['#d4a017','#95a5a6','#cd7f32','#aaa','#aaa'];
-                  return(
-                    <div key={g.k} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:darkMode?'#1a1a1a':'#fff',borderRadius:10,marginBottom:6,border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
-                      <div className='rj' style={{color:cols[i],fontSize:20,width:28}}>#{i+1}</div>
-                      <div style={{fontSize:20}}>{g.emoji}</div>
-                      <div style={{flex:1}}>
-                        <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{g.name}</div>
-                        <div style={{color:'#888',fontSize:10}}>📍 {g.ct} · {g.cnt>0?g.cnt+' Bewertungen':'Basis-Rating'}</div>
-                      </div>
-                      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:2}}>
-                        <div style={{display:'flex',alignItems:'center',gap:2}}>
-                          <span style={{color:'#d4a017'}}>★</span>
-                          <span style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14}}>{g.avg.toFixed(1)}</span>
+            {(()=>{
+              const all=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct})));
+              const ranked=all.map(g=>{
+                const k=g.ct+'-'+g.name;
+                const r=gymRatings[k];
+                const userAvg=r&&r.count>0?r.total/r.count:0;
+                const avg=userAvg>0?userAvg:g.rating;
+                const cnt=r?r.count:0;
+                return{...g,k,avg,cnt,userAvg};
+              }).sort((a,b)=>{
+                if(b.cnt!==a.cnt)return b.cnt-a.cnt;
+                return b.avg-a.avg;
+              });
+              const medal=['🥇','🥈','🥉'];
+              const medalColor=['#d4a017','#95a5a6','#cd7f32'];
+              return(
+                <div style={{marginBottom:16}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                    <div className='rj' style={{color:'#d4a017',fontSize:15,letterSpacing:2}}>🏆 GYM RANKING</div>
+                    <div style={{color:'#aaa',fontSize:10}}>Nach Bewertungen sortiert</div>
+                  </div>
+                  {ranked.slice(0,5).map((g,i)=>{
+                    const isTop3=i<3;
+                    return(
+                      <div key={g.k} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:12,marginBottom:6,border:'1px solid '+(isTop3?'#d4a01744':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.12)':'none'}}>
+                        <div style={{fontSize:isTop3?26:18,width:32,textAlign:'center',flexShrink:0}}>{isTop3?medal[i]:<span className='rj' style={{color:'#bbb'}}>#{i+1}</span>}</div>
+                        <div style={{fontSize:18,flexShrink:0}}>{g.emoji}</div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{color:isTop3?(darkMode?'#ffd700':'#b8860b'):(darkMode?'#fff':'#1a1a1a'),fontWeight:700,fontSize:13,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{g.name}</div>
+                          <div style={{color:'#888',fontSize:10,marginTop:1}}>📍 {g.ct}</div>
+                          <div style={{display:'flex',gap:1,marginTop:3}}>
+                            {[1,2,3,4,5].map(s=>(
+                              <button key={s} onClick={()=>rateGym(g.k,s)} style={{background:'none',border:'none',cursor:'pointer',padding:'0 1px',fontSize:14,color:s<=Math.round(g.avg)?'#d4a017':'#ddd',lineHeight:1}}>
+                                {s<=Math.round(g.avg)?'★':'☆'}
+                              </button>
+                            ))}
+                            <span style={{color:'#aaa',fontSize:10,marginLeft:3,alignSelf:'center'}}>{g.cnt>0?g.cnt+' Bew.':'bewerten →'}</span>
+                          </div>
                         </div>
-                        <div style={{display:'flex',gap:1}}>
-                          {[1,2,3,4,5].map(s=><span key={s} style={{color:s<=Math.round(g.avg)?'#d4a017':'#ddd',fontSize:10}}>{s<=Math.round(g.avg)?'★':'☆'}</span>)}
+                        <div style={{textAlign:'right',flexShrink:0}}>
+                          <div style={{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}}>
+                            <span style={{color:'#d4a017',fontSize:14}}>★</span>
+                            <span style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontWeight:700,fontSize:16}}>{g.avg.toFixed(1)}</span>
+                          </div>
+                          <div style={{color:'#bbb',fontSize:9,marginTop:2}}>{g.cnt>0?'User-Rating':'Basis'}</div>
                         </div>
                       </div>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
+                    );
+                  })}
+                  <div style={{color:'#bbb',fontSize:10,textAlign:'center',marginTop:4}}>Bewerte Gyms unten → Ranking aktualisiert sich sofort</div>
+                </div>
+              );
+            })()}
 
             <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
               {Object.keys(GYMS).map(c=>(<button key={c} onClick={()=>setCity(c)} style={{flexShrink:0,padding:'6px 13px',borderRadius:20,background:city===c?RED:'#fff',border:'1px solid '+(city===c?RED:'#e0e0e0'),color:city===c?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{c}</button>))}
