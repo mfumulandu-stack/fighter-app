@@ -673,7 +673,7 @@ export default function App(){
           ?<img src={viewProfile.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>
           :<div style={{width:'100%',height:'100%',background:'#222',display:'flex',alignItems:'center',justifyContent:'center',fontSize:80}}>🥊</div>}
         <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0.2) 0%,rgba(0,0,0,0.75) 100%)'}}/>
-        <button onClick={()=>setViewProfile(null)} style={{position:'absolute',top:14,left:14,background:'rgba(0,0,0,0.45)',border:'none',color:'#fff',fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700,borderRadius:8,padding:'4px 12px'}}>←</button>
+        <button onClick={()=>{setViewProfile(null);}} style={{position:'absolute',top:14,left:14,background:'rgba(0,0,0,0.45)',border:'none',color:'#fff',fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700,borderRadius:8,padding:'4px 12px'}}>← Zurück</button>
         <div style={{position:'absolute',bottom:16,left:16,right:16}}>
           <div className='rj' style={{color:'#fff',fontSize:28,letterSpacing:2,lineHeight:1}}>{viewProfile.name}</div>
           <div style={{color:'#ff6b6b',fontSize:12,fontWeight:700,marginTop:4}}>{viewProfile.style} · {viewProfile.city}</div>
@@ -703,7 +703,7 @@ export default function App(){
 
   if(!authReady)return(<div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',alignItems:'center',justifyContent:'center'}}><style>{css}</style><div className='rj' style={{fontSize:32,color:'#1a1a1a',letterSpacing:4}}>FIGHTER</div></div>);
   if(!session)return <AuthScreen onSession={handleSession}/>;
-  if(activeChat&&myProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>{setActiveChat(null);setViewProfile(p);}}/></>);
+  if(activeChat&&myProfile&&!viewProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>{setViewProfile(p);}}/></>);
 
   if(screen==='setup')return(
     <div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'0 0 40px'}}>
@@ -859,10 +859,12 @@ export default function App(){
                     if(!other)return null;
                     const ac=other.accent||'#c0392b';
                     return(
-                      <div key={m.id} onClick={()=>setActiveChat(m)} style={{textAlign:'center',flexShrink:0,cursor:'pointer'}}>
-                        {other.avatar_url?<img src={other.avatar_url} style={{width:42,height:42,borderRadius:6,border:'2px solid '+ac,objectFit:'cover'}} alt={other.name}/>
+                      <div key={m.id} style={{textAlign:'center',flexShrink:0}}>
+                        <div onClick={()=>setActiveChat(m)} style={{cursor:'pointer'}}>
+                          {other.avatar_url?<img src={other.avatar_url} style={{width:42,height:42,borderRadius:6,border:'2px solid '+ac,objectFit:'cover'}} alt={other.name}/>
                           :<div style={{width:42,height:42,borderRadius:6,background:'#fff',border:'2px solid '+ac,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🥊</div>}
-                        <div style={{color:'#999',fontSize:9,marginTop:2}}>{other.name?.split(' ')[0]}</div>
+                        </div>
+                        <div onClick={()=>setViewProfile(other)} style={{color:ac,fontSize:9,marginTop:2,cursor:'pointer',fontWeight:700}}>{other.name?.split(' ')[0]}</div>
                       </div>
                     );
                   })}
@@ -889,16 +891,19 @@ export default function App(){
                   if(!other)return null;
                   const ac=other.style==='Boxing'?'#c0392b':other.style==='MMA'?'#2980b9':'#d35400';
                   return(
-                    <div key={m.id} onClick={()=>setActiveChat(m)} style={{background:'#fff',borderRadius:13,border:'1px solid '+ac+'33',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.06)',cursor:'pointer'}}>
+                    <div key={m.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:13,border:'1px solid '+ac+'33',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.06)'}}>
                       <div style={{height:3,background:'linear-gradient(90deg,'+ac+',transparent)'}}/>
                       <div style={{padding:'13px',display:'flex',alignItems:'center',gap:12}}>
-                        {other.avatar_url?<img src={other.avatar_url} style={{width:64,height:64,borderRadius:'50%',objectFit:'cover',border:'2px solid '+ac+'44'}} alt={other.name}/>
-                          :<div style={{width:52,height:52,borderRadius:'50%',background:ac+'18',border:'2px solid '+ac+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>🥊</div>}
-                        <div style={{flex:1}}>
-                          <div className='rj' style={{color:'#1a1a1a',fontSize:18,letterSpacing:1}}>{other.name}</div>
-                          <div style={{color:ac,fontSize:11,fontWeight:700}}>{other.style} · {other.city}</div>
+                        <div onClick={()=>setViewProfile(other)} style={{cursor:'pointer',flexShrink:0}}>
+                          {other.avatar_url?<img src={other.avatar_url} style={{width:54,height:54,borderRadius:'50%',objectFit:'cover',border:'2px solid '+ac+'44'}} alt={other.name}/>
+                          :<div style={{width:54,height:54,borderRadius:'50%',background:ac+'18',border:'2px solid '+ac+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>🥊</div>}
                         </div>
-                        <div style={{padding:'9px 16px',borderRadius:8,background:'linear-gradient(135deg,#c0392b,#e74c3c)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14}}>CHAT →</div>
+                        <div style={{flex:1}} onClick={()=>setViewProfile(other)} >
+                          <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:1}}>{other.name}</div>
+                          <div style={{color:ac,fontSize:11,fontWeight:700}}>{other.style} · {other.city}</div>
+                          <div style={{color:'#aaa',fontSize:10,marginTop:2}}>👁 Profil ansehen</div>
+                        </div>
+                        <div onClick={()=>setActiveChat(m)} style={{padding:'9px 16px',borderRadius:8,background:'linear-gradient(135deg,#c0392b,#e74c3c)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>CHAT →</div>
                       </div>
                     </div>
                   );
@@ -1027,11 +1032,16 @@ export default function App(){
                       <div style={{fontSize:20}}>{g.emoji}</div>
                       <div style={{flex:1}}>
                         <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{g.name}</div>
-                        <div style={{color:'#888',fontSize:10}}>📍 {g.ct} · {g.cnt} Bewertungen</div>
+                        <div style={{color:'#888',fontSize:10}}>📍 {g.ct} · {g.cnt>0?g.cnt+' Bewertungen':'Basis-Rating'}</div>
                       </div>
-                      <div style={{display:'flex',alignItems:'center',gap:2}}>
-                        <span style={{color:'#d4a017'}}>★</span>
-                        <span style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14}}>{g.avg.toFixed(1)}</span>
+                      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:2}}>
+                        <div style={{display:'flex',alignItems:'center',gap:2}}>
+                          <span style={{color:'#d4a017'}}>★</span>
+                          <span style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14}}>{g.avg.toFixed(1)}</span>
+                        </div>
+                        <div style={{display:'flex',gap:1}}>
+                          {[1,2,3,4,5].map(s=><span key={s} style={{color:s<=Math.round(g.avg)?'#d4a017':'#ddd',fontSize:10}}>{s<=Math.round(g.avg)?'★':'☆'}</span>)}
+                        </div>
                       </div>
                     </div>
                   );
