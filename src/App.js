@@ -549,123 +549,116 @@ function ImpressumScreen({onClose,darkMode}){
   const bg=darkMode?'#0d0d0d':'#f5f5f7';
   const card=darkMode?'#1a1a1a':'#fff';
   const text=darkMode?'#fff':'#1a1a1a';
-  const sub=darkMode?'#aaa':'#666';
+  const sub=darkMode?'#aaa':'#555';
+  const border=darkMode?'#2a2a2a':'#eee';
   return(
     <div style={{position:'fixed',inset:0,background:bg,zIndex:300,overflowY:'auto',padding:'20px 16px 40px'}}>
       <div style={{maxWidth:480,margin:'0 auto'}}>
         <button onClick={onClose} style={{background:'none',border:'none',color:'#c0392b',fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>← Zurück</button>
-        <div style={{background:card,borderRadius:14,padding:'20px',marginBottom:12}}>
-          <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,color:text,letterSpacing:2,marginBottom:16}}>IMPRESSUM</div>
-          <div style={{color:sub,fontSize:12,lineHeight:1.8}}>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>Angaben gemäß § 5 TMG</div>
-            <div>Junior Landu Mfumu</div>
-            <div>Ottostraße 43</div>
-            <div>52070 Aachen</div>
-            <div>Deutschland</div>
-            <br/>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>Kontakt</div>
-            <div>E-Mail: mfumulandu@gmail.com</div>
-            <br/>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>Verantwortlich für den Inhalt</div>
-            <div>Junior Landu Mfumu</div>
-            <div>Ottostraße 43, 52070 Aachen</div>
-            <br/>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>Haftungsausschluss</div>
-            <div>Die Inhalte dieser App wurden mit größter Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte können wir jedoch keine Gewähr übernehmen. Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich.</div>
+        <div style={{background:card,borderRadius:14,padding:'20px',marginBottom:12,border:'1px solid '+border}}>
+          <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,color:text,letterSpacing:2,marginBottom:4}}>IMPRESSUM</div>
+          <div style={{color:'#c0392b',fontSize:10,letterSpacing:2,marginBottom:20}}>Angaben gemäß § 5 TMG</div>
+          <div style={{color:sub,fontSize:12,lineHeight:1.9}}>
+            {[
+              ['Betreiber',<><div>Junior Landu Mfumu</div><div>Ottostraße 43</div><div>52070 Aachen</div><div>Deutschland</div></>],
+              ['Kontakt',<><div>E-Mail: mfumulandu@gmail.com</div><div style={{color:'#aaa',fontSize:11,marginTop:2}}>Antwortzeit: innerhalb von 5 Werktagen</div></>],
+              ['Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV',<><div>Junior Landu Mfumu, Ottostraße 43, 52070 Aachen</div></>],
+              ['Haftungsausschluss',<><div>Die Inhalte dieser App wurden mit größter Sorgfalt erstellt. Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte verantwortlich. Nach §§ 8–10 TMG sind wir nicht verpflichtet, übermittelte fremde Informationen zu überwachen.</div></>],
+              ['Haftung für Links',<><div>Unser Angebot enthält Links zu externen Websites Dritter. Für deren Inhalte übernehmen wir keine Haftung, da wir keinen Einfluss darauf haben.</div></>],
+              ['Urheberrecht',<><div>Die durch den Betreiber erstellten Inhalte unterliegen dem deutschen Urheberrecht. Vervielfältigung oder Verbreitung bedarf der schriftlichen Zustimmung des Autors.</div></>],
+              ['Online-Streitbeilegung (OS)',<><div>EU-Plattform: https://ec.europa.eu/consumers/odr</div><div style={{marginTop:4}}>Wir nehmen nicht an Verbraucherstreitbeilegungsverfahren teil.</div></>],
+            ].map(([title,content],i)=>(
+              <div key={i} style={{marginBottom:14}}>
+                <div style={{fontWeight:700,color:text,fontSize:13,marginBottom:5,borderLeft:'3px solid #c0392b',paddingLeft:8}}>{title}</div>
+                <div>{content}</div>
+              </div>
+            ))}
+            <div style={{color:'#aaa',fontSize:10,textAlign:'center',marginTop:8}}>Stand: Mai 2026</div>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
 function DatenschutzScreen({onClose,darkMode}){
   const bg=darkMode?'#0d0d0d':'#f5f5f7';
   const card=darkMode?'#1a1a1a':'#fff';
   const text=darkMode?'#fff':'#1a1a1a';
-  const sub=darkMode?'#aaa':'#666';
+  const sub=darkMode?'#aaa':'#555';
+  const border=darkMode?'#2a2a2a':'#eee';
+  const sections=[
+    ['1. Verantwortlicher (Art. 13 DSGVO)','Junior Landu Mfumu · Ottostraße 43, 52070 Aachen · E-Mail: mfumulandu@gmail.com'],
+    ['2. Erhobene Daten','Pflichtangaben: E-Mail (Login), Passwort (verschlüsselt). Profilangaben: Name, Alter, Wohnort, Kampfstil, Gym, Gewichtsklasse, Profilbild (freiwillig), Kampfrekord (freiwillig), Bio (freiwillig). Nutzungsdaten: Swipe-Aktionen, Chat-Nachrichten, Session-Token.'],
+    ['3. Rechtsgrundlagen','Art. 6 Abs. 1 lit. a DSGVO — Einwilligung beim Registrieren. Art. 6 Abs. 1 lit. b DSGVO — Vertragserfüllung (App-Nutzung). Art. 6 Abs. 1 lit. f DSGVO — berechtigte Interessen (Sicherheit).'],
+    ['4. Datenübermittlung USA (Supabase)','Deine Daten werden bei Supabase Inc. (San Francisco, USA) gespeichert. Rechtsgrundlage: Standardvertragsklauseln (SCC) nach Art. 46 Abs. 2 lit. c DSGVO + EU-US Data Privacy Framework. Auftragsverarbeitungsvertrag (AVV) nach Art. 28 DSGVO liegt vor. Details: supabase.com/privacy'],
+    ['5. Speicherdauer','Solange dein Account aktiv ist. Nach Löschungsantrag: vollständige Datenlöschung innerhalb von 30 Tagen. Inaktive Accounts (24+ Monate): Löschanfrage per E-Mail.'],
+    ['6. Keine Datenweitergabe','Wir verkaufen, vermieten oder tauschen deine Daten nicht. Weitergabe nur an Supabase (technischer Betrieb, AVV liegt vor) und bei gesetzlicher Verpflichtung.'],
+    ['7. Deine Rechte (Art. 15–22 DSGVO)','Auskunft · Berichtigung · Löschung (Recht auf Vergessenwerden) · Einschränkung der Verarbeitung · Datenübertragbarkeit · Widerspruch · Widerruf der Einwilligung. Anfragen an: mfumulandu@gmail.com (Antwort innerhalb 30 Tage)'],
+    ['8. Beschwerderecht','Landesbeauftragte für Datenschutz NRW · Postfach 20 04 44, 40102 Düsseldorf · poststelle@ldi.nrw.de · www.ldi.nrw.de'],
+    ['9. Technische Sicherheit','SSL/TLS-Verschlüsselung (HTTPS) · Passwörter mit bcrypt gehasht · Session-Tokens nach 1h erneuert · Keine Tracking-Cookies · Kein Google Analytics oder Facebook Pixel.'],
+    ['10. Lokaler Speicher','Nur technisch notwendige Daten: Session-Token (Login-Status) + Gym-Bewertungen (nur lokal, nicht auf dem Server). Kein Tracking.'],
+  ];
   return(
     <div style={{position:'fixed',inset:0,background:bg,zIndex:300,overflowY:'auto',padding:'20px 16px 40px'}}>
       <div style={{maxWidth:480,margin:'0 auto'}}>
         <button onClick={onClose} style={{background:'none',border:'none',color:'#c0392b',fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>← Zurück</button>
-        <div style={{background:card,borderRadius:14,padding:'20px',marginBottom:12}}>
-          <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,color:text,letterSpacing:2,marginBottom:16}}>DATENSCHUTZ</div>
-          <div style={{color:sub,fontSize:12,lineHeight:1.8}}>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>1. Verantwortlicher</div>
-            <div>Junior Landu Mfumu, Ottostraße 43, 52070 Aachen</div>
-            <div>E-Mail: mfumulandu@gmail.com</div>
-            <br/>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>2. Welche Daten wir speichern</div>
-            <div>• Name, Alter, Wohnort</div>
-            <div>• Kampfstil, Gym, Gewichtsklasse</div>
-            <div>• Profilbild (optional)</div>
-            <div>• E-Mail-Adresse (für Login)</div>
-            <div>• Chat-Nachrichten mit anderen Nutzern</div>
-            <br/>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>3. Zweck der Datenverarbeitung</div>
-            <div>Deine Daten werden ausschließlich für die Nutzung der Fighter-App verwendet: Profildarstellung, Matching mit anderen Kämpfern und Kommunikation via Chat.</div>
-            <br/>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>4. Rechtsgrundlage</div>
-            <div>Die Verarbeitung erfolgt auf Basis deiner Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die du beim Registrieren erteilst.</div>
-            <br/>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>5. Datenspeicherung</div>
-            <div>Deine Daten werden auf Servern von Supabase (Supabase Inc., USA) gespeichert. Supabase ist nach dem EU-US Data Privacy Framework zertifiziert.</div>
-            <br/>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>6. Deine Rechte</div>
-            <div>Du hast das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung deiner Daten. Kontaktiere uns unter mfumulandu@gmail.com.</div>
-            <br/>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>7. Löschung</div>
-            <div>Du kannst jederzeit die Löschung deines Accounts und aller gespeicherten Daten per E-Mail beantragen.</div>
-            <br/>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>8. Cookies</div>
-            <div>Diese App verwendet keine Tracking-Cookies. Es wird lediglich ein technisch notwendiges Session-Token im lokalen Speicher gespeichert.</div>
+        <div style={{background:card,borderRadius:14,padding:'20px',marginBottom:12,border:'1px solid '+border}}>
+          <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,color:text,letterSpacing:2,marginBottom:4}}>DATENSCHUTZ</div>
+          <div style={{color:'#c0392b',fontSize:10,letterSpacing:2,marginBottom:20}}>Datenschutzerklärung gemäß DSGVO</div>
+          <div style={{color:sub,fontSize:12,lineHeight:1.9}}>
+            {sections.map(([title,content],i)=>(
+              <div key={i} style={{marginBottom:14}}>
+                <div style={{fontWeight:700,color:text,fontSize:13,marginBottom:5,borderLeft:'3px solid #c0392b',paddingLeft:8}}>{title}</div>
+                <div>{content}</div>
+              </div>
+            ))}
+            <div style={{color:'#aaa',fontSize:10,textAlign:'center',marginTop:16,paddingTop:12,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>Stand: Mai 2026 · mfumulandu@gmail.com</div>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
 function AGBScreen({onClose,darkMode}){
   const bg=darkMode?'#0d0d0d':'#f5f5f7';
   const card=darkMode?'#1a1a1a':'#fff';
   const text=darkMode?'#fff':'#1a1a1a';
-  const sub=darkMode?'#aaa':'#666';
+  const sub=darkMode?'#aaa':'#555';
+  const border=darkMode?'#2a2a2a':'#eee';
+  const sections=[
+    ['1. Geltungsbereich','Diese AGB gelten für die Nutzung der Fighter-App, betrieben von Junior Landu Mfumu, Ottostraße 43, 52070 Aachen (mfumulandu@gmail.com). Mit der Registrierung erkennst du diese AGB verbindlich an.'],
+    ['2. Mindestalter 18 Jahre','⚠️ Die Nutzung ist ausschließlich Personen ab 18 Jahren gestattet. Mit Registrierung bestätigst du: Mindestalter 18 Jahre erreicht · Angaben sind wahrheitsgemäß · Nur ein Konto pro Person · Registrierung im eigenen Namen. Bei Verdacht auf Minderjährigkeit: sofortige Sperrung ohne Vorankündigung.'],
+    ['3. Leistungsumfang','Die App bietet: Kampfsport-Profil · Matching (Swipe-System) · Chat zwischen Matches · Gym-Suche und Bewertungen · Ranglisten und Trainer-Übersichten. Kein Anspruch auf dauerhaften Betrieb. Änderungen und Einstellungen von Funktionen vorbehalten.'],
+    ['4. Nutzerpflichten','Nur eigene, aktuelle Profilbilder verwenden · Keine falschen Kampfrekorde oder Angaben · Respektvoller Umgang mit anderen Nutzern · Keine Beleidigungen, Drohungen oder Hassrede · Keine rechtswidrigen Inhalte · Keine kommerzielle Nutzung ohne Genehmigung · Keine automatisierten Skripte oder Bots.'],
+    ['5. Haftungsausschluss für Kämpfe ⚠️','WICHTIG: Die Fighter-App ist eine Kommunikationsplattform und vermittelt nur Kontakte. Der Betreiber übernimmt keinerlei Haftung für: Kämpfe oder Sparrings die über die App vereinbart werden · Körperliche Verletzungen bei solchen Treffen · Sachschäden · Verhalten von Nutzern außerhalb der App · Richtigkeit von Profilangaben anderer Nutzer. Für alle Aktivitäten außerhalb der App sind ausschließlich die beteiligten Nutzer selbst verantwortlich. Kämpfe sollten stets mit Schutzausrüstung und unter Aufsicht erfahrener Trainer stattfinden.'],
+    ['6. Sperrung und Kündigung','Sofortige Sperrung bei: Verstoß gegen AGB · Falsche Angaben/Identitätsbetrug · Belästigung anderer Nutzer · Rechtswidrige Inhalte · Minderjährigkeitsverdacht · Missbrauch der Plattform. Bei leichten Verstößen zunächst Verwarnung. Kündigung jederzeit per E-Mail möglich → Datenlöschung gemäß Datenschutzerklärung.'],
+    ['7. Verfügbarkeit','Kein Anspruch auf unterbrechungsfreien Betrieb (Wartung vorbehalten). Keine Garantie für Fehlerfreiheit oder Eignung für bestimmte Zwecke.'],
+    ['8. Haftungsbeschränkung','Haftung beschränkt auf Vorsatz und grobe Fahrlässigkeit. Keine Haftung für leichte Fahrlässigkeit, mittelbare Schäden oder entgangenen Gewinn, sofern keine wesentlichen Vertragspflichten verletzt und kein Personenschaden vorliegt.'],
+    ['9. Urheberrecht','Mit Hochladen von Inhalten (Bilder, Texte) räumst du dem Betreiber ein nicht-exklusives Nutzungsrecht zur Darstellung in der App ein. Du versicherst, alle notwendigen Rechte an hochgeladenen Inhalten zu besitzen.'],
+    ['10. AGB-Änderungen','Wesentliche Änderungen werden mindestens 14 Tage vor Inkrafttreten per E-Mail mitgeteilt. Kein Widerspruch innerhalb von 14 Tagen = Zustimmung zu neuen AGB.'],
+    ['11. Schlussbestimmungen','Deutsches Recht gilt (ohne UN-Kaufrecht) · Gerichtsstand: Aachen · Salvatorische Klausel (unwirksame Teile berühren Rest nicht) · EU-Streitbeilegung: ec.europa.eu/consumers/odr'],
+  ];
   return(
     <div style={{position:'fixed',inset:0,background:bg,zIndex:300,overflowY:'auto',padding:'20px 16px 40px'}}>
       <div style={{maxWidth:480,margin:'0 auto'}}>
         <button onClick={onClose} style={{background:'none',border:'none',color:'#c0392b',fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>← Zurück</button>
-        <div style={{background:card,borderRadius:14,padding:'20px',marginBottom:12}}>
-          <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,color:text,letterSpacing:2,marginBottom:16}}>AGB</div>
-          <div style={{color:sub,fontSize:12,lineHeight:1.8}}>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>1. Geltungsbereich</div>
-            <div>Diese AGB gelten für die Nutzung der Fighter-App, betrieben von Junior Landu Mfumu, Ottostraße 43, 52070 Aachen.</div>
-            <br/>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>2. Nutzungsbedingungen</div>
-            <div>• Die Nutzung der App ist ab 18 Jahren erlaubt</div>
-            <div>• Jeder Nutzer darf nur ein Konto erstellen</div>
-            <div>• Falsche Angaben im Profil sind untersagt</div>
-            <div>• Beleidigungen und Hassrede sind verboten</div>
-            <div>• Die App darf nicht für illegale Zwecke genutzt werden</div>
-            <br/>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>3. Haftung</div>
-            <div>Der Betreiber haftet nicht für Inhalte, die von Nutzern erstellt werden. Für Verabredungen zu Kämpfen, die über die App entstehen, sind ausschließlich die beteiligten Nutzer verantwortlich.</div>
-            <br/>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>4. Sperrung</div>
-            <div>Der Betreiber behält sich vor, Nutzer bei Verstößen gegen diese AGB zu sperren.</div>
-            <br/>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>5. Änderungen</div>
-            <div>Der Betreiber behält sich vor, diese AGB jederzeit zu ändern. Nutzer werden über wesentliche Änderungen informiert.</div>
-            <br/>
-            <div style={{fontWeight:700,color:text,marginBottom:4}}>6. Anwendbares Recht</div>
-            <div>Es gilt deutsches Recht. Gerichtsstand ist Aachen.</div>
+        <div style={{background:card,borderRadius:14,padding:'20px',marginBottom:12,border:'1px solid '+border}}>
+          <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,color:text,letterSpacing:2,marginBottom:4}}>AGB</div>
+          <div style={{color:'#c0392b',fontSize:10,letterSpacing:2,marginBottom:20}}>Allgemeine Geschäftsbedingungen</div>
+          <div style={{color:sub,fontSize:12,lineHeight:1.9}}>
+            {sections.map(([title,content],i)=>(
+              <div key={i} style={{marginBottom:14}}>
+                <div style={{fontWeight:700,color:text,fontSize:13,marginBottom:5,borderLeft:'3px solid #c0392b',paddingLeft:8}}>{title}</div>
+                <div style={{whiteSpace:'pre-line'}}>{content}</div>
+              </div>
+            ))}
+            <div style={{color:'#aaa',fontSize:10,textAlign:'center',marginTop:16,paddingTop:12,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>Stand: Mai 2026 · Gerichtsstand: Aachen</div>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
 
 export default function App(){
   const [session,setSession]=useState(null);
