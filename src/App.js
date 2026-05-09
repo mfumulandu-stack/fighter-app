@@ -1023,6 +1023,37 @@ export default function App(){
         {tab==='gyms'&&(
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:11}}>GYMS FINDEN</div>
+            {/* TOP GYMS */}
+            <div style={{marginBottom:14}}>
+              <div className='rj' style={{color:'#d4a017',fontSize:13,letterSpacing:2,marginBottom:8}}>🏆 TOP GYMS RANKING</div>
+              {(()=>{
+                const all=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct})));
+                return[...all].map(g=>{
+                  const k=g.ct+'-'+g.name;
+                  const r=gymRatings[k];
+                  const avg=r&&r.count>0?r.total/r.count:g.rating;
+                  const cnt=r?r.count:0;
+                  return{...g,k,avg,cnt};
+                }).sort((a,b)=>b.avg-a.avg||b.cnt-a.cnt).slice(0,5).map((g,i)=>{
+                  const cols=['#d4a017','#95a5a6','#cd7f32','#aaa','#aaa'];
+                  return(
+                    <div key={g.k} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:darkMode?'#1a1a1a':'#fff',borderRadius:10,marginBottom:6,border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                      <div className='rj' style={{color:cols[i],fontSize:20,width:28}}>#{i+1}</div>
+                      <div style={{fontSize:20}}>{g.emoji}</div>
+                      <div style={{flex:1}}>
+                        <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{g.name}</div>
+                        <div style={{color:'#888',fontSize:10}}>📍 {g.ct} · {g.cnt} Bewertungen</div>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:2}}>
+                        <span style={{color:'#d4a017'}}>★</span>
+                        <span style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14}}>{g.avg.toFixed(1)}</span>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
             <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
               {Object.keys(GYMS).map(c=>(<button key={c} onClick={()=>setCity(c)} style={{flexShrink:0,padding:'6px 13px',borderRadius:20,background:city===c?RED:'#fff',border:'1px solid '+(city===c?RED:'#e0e0e0'),color:city===c?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{c}</button>))}
             </div>
@@ -1041,7 +1072,18 @@ export default function App(){
                     <div style={{color:'#888',fontSize:12}}>👥 {gym.members} Mitglieder</div>
                     <div style={{display:'flex',alignItems:'center',gap:3}}><span style={{color:'#d4a017'}}>★</span><span style={{color:'#1a1a1a',fontWeight:700,fontSize:14}}>{gym.rating}</span></div>
                   </div>
-                  <div style={{marginTop:6,height:3,background:'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:((gym.rating-4)/1*100)+'%',background:`linear-gradient(90deg,${RED},#e67e22)`,borderRadius:2}}/></div>
+                  <div style={{marginTop:6,height:3,background:'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:((gym.rating-4)/1*100)+'%',background:`linear-gradient(90deg,${RED},#e67e22)`,borderRadius:2}}/>
+                  <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
+                    <div style={{color:darkMode?'#666':'#aaa',fontSize:10,marginBottom:4}}>Gym bewerten:</div>
+                    <div style={{display:'flex',gap:2,alignItems:'center'}}>
+                      {[1,2,3,4,5].map(star=>{
+                        const k=city+'-'+gym.name;
+                        const mine=gymRatings[k]?.mine||0;
+                        return <button key={star} onClick={()=>rateGym(k,star)} style={{background:'none',border:'none',cursor:'pointer',fontSize:24,color:star<=mine?'#d4a017':'#ddd',padding:'0 1px'}}>{star<=mine?'★':'☆'}</button>;
+                      })}
+                      {gymRatings[city+'-'+gym.name]?.count>0&&<span style={{color:'#aaa',fontSize:10,marginLeft:4}}>{gymRatings[city+'-'+gym.name].count} Bew.</span>}
+                    </div>
+                  </div></div>
                 </div>
               ))}
             </div>
