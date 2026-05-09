@@ -6,7 +6,7 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 async function authSignUp(email, password) {
   const r = await fetch(SUPA_URL + '/auth/v1/signup', {
     method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, options: { emailRedirectTo: 'https://fighter-app-pi.vercel.app' } }),
   });
   return r.json();
 }
@@ -329,7 +329,8 @@ function AuthScreen({ onSession }) {
       const r=await authSignUp(email,password);
       if(r.error)setErr(r.error.message||'Fehler');
       else if(r.session)onSession({token:r.session.access_token,userId:r.user.id});
-      else setInfo('Bestätigungs-Email gesendet!');
+      else if(r.user&&!r.session){setInfo('✅ Bestätigungsmail gesendet! Bitte prüfe dein Postfach und klicke den Bestätigungslink.');setMode('login');}
+      else setErr(r.msg||'Registrierung fehlgeschlagen');
     }else{
       const r=await authSignIn(email,password);
       if(r.error)setErr(r.error.message||'Login fehlgeschlagen');
@@ -569,7 +570,9 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
             ):(
               <button onClick={async()=>{
                 if(!fightDate||!fightLocation){return;}
-                const msg=`⚔️ FIGHT REQUEST
+                const hasIncoming=messages.some(m=>m.content?.startsWith('⚔️ FIGHT REQUEST')&&m.sender_id!==myProfileId);
+                const prefix=hasIncoming?'🔄 ALTERNATIVTERMIN':'⚔️ FIGHT REQUEST';
+                const msg=`${prefix}
 
 Typ: ${fightType}
 Datum: ${new Date(fightDate).toLocaleDateString('de')}
@@ -618,6 +621,89 @@ Bist du dabei?`;
         :messages.length===0?<div style={{textAlign:'center',color:'#bbb',marginTop:40}}><div style={{fontSize:36,marginBottom:10}}>⚔️</div><div style={{fontWeight:700,fontSize:14}}>Match bestätigt!</div><div style={{fontSize:12,marginTop:4}}>Schreib die erste Nachricht</div></div>
         :messages.map(m=>{
           const isMe=m.sender_id===myProfileId;
+          const isFightReq=m.content&&m.content.startsWith('⚔️ FIGHT REQUEST');
+          const isAccepted=m.content&&m.content.startsWith('✅ FIGHT ANGENOMMEN');
+          const isDeclined=m.content&&m.content.startsWith('❌ FIGHT ABGELEHNT');
+          const isCounter=m.content&&m.content.startsWith('🔄 ALTERNATIVTERMIN');
+
+          if(isFightReq){
+            const lines=m.content.split('\n').filter(Boolean);
+            const typ=lines.find(l=>l.startsWith('Typ:'))?.replace('Typ: ','');
+            const datum=lines.find(l=>l.startsWith('Datum:'))?.replace('Datum: ','');
+            const ort=lines.find(l=>l.startsWith('Ort:'))?.replace('Ort: ','');
+            return(
+              <div key={m.id} style={{display:'flex',justifyContent:'center',margin:'6px 0'}}>
+                <div style={{width:'90%',maxWidth:320,background:'#fff',borderRadius:14,border:'2px solid #c0392b33',boxShadow:'0 2px 12px rgba(192,57,43,0.1)',overflow:'hidden'}}>
+                  <div style={{background:'linear-gradient(135deg,#1a1a1a,#c0392b)',padding:'10px 14px',display:'flex',alignItems:'center',gap:8}}>
+                    <span style={{fontSize:20}}>⚔️</span>
+                    <div className='rj' style={{color:'#fff',fontSize:16,letterSpacing:2,flex:1}}>FIGHT REQUEST</div>
+                    <div style={{color:'rgba(255,255,255,0.6)',fontSize:10}}>{isMe?'Von dir':'Von '+other?.name?.split(' ')[0]}</div>
+                  </div>
+                  <div style={{padding:'12px 14px'}}>
+                    {[['🥊 Typ',typ],['📅 Datum',datum],['📍 Ort',ort]].map(([label,val])=>val&&(
+                      <div key={label} style={{display:'flex',gap:8,marginBottom:6,alignItems:'center'}}>
+                        <div style={{color:'#aaa',fontSize:11,width:60,flexShrink:0}}>{label}</div>
+                        <div style={{color:'#1a1a1a',fontSize:13,fontWeight:600}}>{val}</div>
+                      </div>
+                    ))}
+                    {!isMe&&(
+                      <div style={{display:'flex',gap:6,marginTop:10}}>
+                        <button onClick={async()=>{
+                          const reply=`✅ FIGHT ANGENOMMEN
+
+Typ: ${typ}
+Datum: ${datum}
+Ort: ${ort}
+
+Bis dann! 🥊`;
+                          await fetch(SUPA_URL+'/rest/v1/messages',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=minimal'},body:JSON.stringify({match_id:match.id,sender_id:myProfileId,content:reply})});
+                        }} style={{flex:1,padding:'9px',borderRadius:9,background:'linear-gradient(135deg,#27ae60,#2ecc71)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+                          ✅ ANNEHMEN
+                        </button>
+                        <button onClick={async()=>{
+                          const reply=`❌ FIGHT ABGELEHNT
+
+Leider kann ich diesen Termin nicht wahrnehmen.`;
+                          await fetch(SUPA_URL+'/rest/v1/messages',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=minimal'},body:JSON.stringify({match_id:match.id,sender_id:myProfileId,content:reply})});
+                        }} style={{flex:1,padding:'9px',borderRadius:9,background:'#fff',border:'1px solid #e74c3c',color:'#e74c3c',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+                          ❌ ABLEHNEN
+                        </button>
+                        <button onClick={()=>{setShowFightRequest(true);}} style={{flex:1,padding:'9px',borderRadius:9,background:'#fff',border:'1px solid #2980b9',color:'#2980b9',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>
+                          🔄 GEGEN-TERMIN
+                        </button>
+                      </div>
+                    )}
+                    {isMe&&<div style={{color:'#aaa',fontSize:11,textAlign:'center',marginTop:6}}>Warte auf Antwort…</div>}
+                  </div>
+                  <div style={{padding:'4px 14px 8px',textAlign:'right'}}>
+                    <span style={{color:'#ccc',fontSize:9}}>{new Date(m.created_at).toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'})}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if(isAccepted||isDeclined||isCounter){
+            const isGreen=isAccepted;
+            const isBlue=isCounter;
+            const bg=isGreen?'#f0faf0':isBlue?'#f0f4ff':'#fff5f5';
+            const border=isGreen?'#27ae60':isBlue?'#2980b9':'#e74c3c';
+            const icon=isAccepted?'✅':isDeclined?'❌':'🔄';
+            const title=isAccepted?'FIGHT ANGENOMMEN':isDeclined?'FIGHT ABGELEHNT':'ALTERNATIVTERMIN';
+            return(
+              <div key={m.id} style={{display:'flex',justifyContent:'center',margin:'6px 0'}}>
+                <div style={{width:'85%',maxWidth:300,background:bg,borderRadius:12,border:'1px solid '+border+'44',padding:'12px 14px'}}>
+                  <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:6}}>
+                    <span style={{fontSize:18}}>{icon}</span>
+                    <div className='rj' style={{color:border,fontSize:14,letterSpacing:1}}>{title}</div>
+                  </div>
+                  <div style={{color:'#555',fontSize:12,lineHeight:1.5}}>{m.content.split('\n').slice(1).filter(Boolean).join(' · ')}</div>
+                  <div style={{color:'#bbb',fontSize:9,marginTop:6,textAlign:'right'}}>{new Date(m.created_at).toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'})}</div>
+                </div>
+              </div>
+            );
+          }
+
           return(
             <div key={m.id} style={{display:'flex',justifyContent:isMe?'flex-end':'flex-start',alignItems:'flex-end',gap:6}}>
               {!isMe&&(
@@ -1010,7 +1096,7 @@ export default function App(){
     :{transform:'translateX(0) rotate(0deg)',transition:'transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275)'};
 
   function canGo(){
-    if(step===1)return profile.name&&profile.age&&profile.city&&avatarUrl;
+    if(step===1)return profile.name&&profile.age&&profile.city&&(avatarPreview||avatarUrl);
     if(step===2)return profile.gym&&profile.style;
     if(step===3)return profile.height&&profile.weight&&profile.weightClass;
     return true;
@@ -1161,7 +1247,7 @@ export default function App(){
             <button onClick={async()=>{if(!canGo())return;if(step<3)setStep(s=>s+1);else await saveProfile();}} style={{width:'100%',padding:'13px',borderRadius:8,background:canGo()?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#eee',border:'none',color:canGo()?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:canGo()?'pointer':'not-allowed',transition:'all 0.2s'}}>
               {saving?'Speichern…':step===3?'Lets Fight':'Weiter'}
             </button>
-            {step===1&&!avatarUrl&&<div style={{color:RED,fontSize:10,textAlign:'center',fontWeight:600}}>⬆ Profilbild hochladen um fortzufahren</div>}
+            {step===1&&!(avatarPreview||avatarUrl)&&<div style={{color:RED,fontSize:10,textAlign:'center',fontWeight:600}}>⬆ Profilbild hochladen um fortzufahren</div>}
           </div>
         </div>
       </div>
