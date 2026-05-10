@@ -124,6 +124,13 @@ const CITY_COORDS={
   'Wiesbaden':{lat:50.082,lon:8.243},
   'Münster':{lat:51.962,lon:7.626},
   'Bonn':{lat:50.735,lon:7.1},
+  'Wien':{lat:48.208,lon:16.373},
+  'Graz':{lat:47.07,lon:15.44},
+  'Salzburg':{lat:47.8,lon:13.045},
+  'Zürich':{lat:47.377,lon:8.541},
+  'Basel':{lat:47.559,lon:7.588},
+  'Bern':{lat:46.948,lon:7.447},
+  'Genf':{lat:46.204,lon:6.143},
   'Karlsruhe':{lat:49.006,lon:8.404},
   'Freiburg':{lat:47.997,lon:7.842},
   'Kiel':{lat:54.323,lon:10.133},
@@ -161,6 +168,8 @@ const CITY_BUNDESLAND={
   'Potsdam':'Brandenburg','Brandenburg':'Brandenburg',
   'Mainz':'Rheinland-Pfalz','Koblenz':'Rheinland-Pfalz','Trier':'Rheinland-Pfalz',
   'Saarbrücken':'Saarland',
+  'Wien':'Wien','Graz':'Steiermark','Linz':'Oberösterreich','Salzburg':'Salzburg','Innsbruck':'Tirol',
+  'Zürich':'Zürich','Basel':'Basel','Bern':'Bern','Genf':'Genf','Lausanne':'Waadt',
 };
 function getBundesland(city){
   if(!city)return null;
@@ -199,6 +208,26 @@ const GYMS = {
   ],
   'Krefeld':[
     {name:'NFT Gymnasium Krefeld',members:130,styles:['MMA','Grappling','BJJ'],rating:4.6,address:'Uerdinger Str. 55, 47799 Krefeld',street:'Uerdinger Str. 55',zip:'47799',city:'Krefeld',emoji:'⚔️',code:'NFT-8830',phone:'+49 2151 44556677',hours:'Mo-Fr 17:00-22:00, Sa 10:00-15:00',desc:'Das NFT Gymnasium Krefeld ist die erste Adresse für Kampfsport am Niederrhein. Spezialisiert auf MMA, Grappling und BJJ bringt das NFT regelmäßig Athleten zu regionalen und nationalen Meisterschaften.',founded:2011,website:'nft-krefeld.de'},
+  ],
+  'Wien':[
+    {name:'Vienna Fight Club',members:190,styles:['MMA','Boxing','BJJ'],rating:4.8,address:'Mariahilfer Str. 88, 1070 Wien',street:'Mariahilfer Str. 88',zip:'1070',city:'Wien',emoji:'🦅',code:'VFC-3311',phone:'+43 1 5234567',hours:'Mo-Fr 08:00-22:00, Sa-So 10:00-18:00',desc:'Österreichs führendes MMA-Gym in der Hauptstadt. State-of-the-art Ausstattung auf 800qm, internationale Toptrainer und eine wachsende Community von über 190 Mitgliedern.',founded:2012,website:'vienna-fightclub.at'},
+    {name:'Kick & Box Austria',members:145,styles:['Kickboxing','Muay Thai'],rating:4.6,address:'Ottakringer Str. 120, 1160 Wien',street:'Ottakringer Str. 120',zip:'1160',city:'Wien',emoji:'🥊',code:'KBA-7792',phone:'+43 1 4567890',hours:'Mo-Fr 09:00-21:00, Sa 10:00-15:00',desc:'Das älteste Kickboxing-Gym Wiens mit Tradition seit 1998. Heimat zahlreicher österreichischer Meister und internationaler Nachwuchstalente.',founded:1998,website:'kickbox-austria.at'},
+  ],
+  'Graz':[
+    {name:'Steiermark Combat Center',members:110,styles:['MMA','Grappling','Wrestling'],rating:4.5,address:'Annenstraße 45, 8020 Graz',street:'Annenstraße 45',zip:'8020',city:'Graz',emoji:'🐆',code:'SCC-4481',phone:'+43 316 789012',hours:'Mo-Fr 17:00-22:00, Sa 10:00-14:00',desc:'Das Steiermark Combat Center ist die Kampfsport-Heimat der steirischen Metropole. Regionale Meister in MMA, Grappling und Wrestling trainieren hier täglich.',founded:2015,website:'scc-graz.at'},
+  ],
+  'Zürich':[
+    {name:'Swiss Fighting Academy',members:220,styles:['MMA','Boxing','BJJ','Muay Thai'],rating:4.9,address:'Langstrasse 180, 8004 Zürich',street:'Langstrasse 180',zip:'8004',city:'Zürich',emoji:'🇨🇭',code:'SFA-6621',phone:'+41 44 2345678',hours:'Mo-Fr 07:00-22:00, Sa-So 09:00-17:00',desc:'Die Swiss Fighting Academy ist die erste Adresse für Kampfsport in der Schweiz. Auf 1.000qm bieten wir alle Disziplinen an — von Anfänger bis Profi, mit direkten Verbindungen zur UFC Europe.',founded:2009,website:'swiss-fighting.ch'},
+    {name:'Zürich Boxing Club',members:95,styles:['Boxing'],rating:4.7,address:'Hardstrasse 219, 8005 Zürich',street:'Hardstrasse 219',zip:'8005',city:'Zürich',emoji:'👊',code:'ZBC-1155',phone:'+41 44 3456789',hours:'Mo-Fr 18:00-22:00, Sa 10:00-13:00',desc:'Traditionelles Boxing-Gym mit 30-jähriger Geschichte. Mehrere Schweizer Meister wurden hier geformt.',founded:1994,website:'zurich-boxing.ch'},
+  ],
+  'Basel':[
+    {name:'Basel Martial Arts Center',members:160,styles:['MMA','Kickboxing','BJJ'],rating:4.6,address:'Gundeldingerstraße 210, 4053 Basel',street:'Gundeldingerstraße 210',zip:'4053',city:'Basel',emoji:'🔴',code:'BMC-9934',phone:'+41 61 4567890',hours:'Mo-Fr 17:00-21:30, Sa 10:00-14:00',desc:'Das BMAC verbindet schweizerische Präzision mit internationaler Kampfsport-Kultur. Dreisprachiges Gym (DE/FR/EN) an der Grenze zu Deutschland und Frankreich.',founded:2014,website:'basel-martialarts.ch'},
+  ],
+  'Leipzig':[
+    {name:'East Side Fight Club',members:135,styles:['MMA','Boxing','Kickboxing'],rating:4.6,address:'Karl-Liebknecht-Str. 93, 04107 Leipzig',street:'Karl-Liebknecht-Str. 93',zip:'04107',city:'Leipzig',emoji:'⭐',code:'ESF-2244',phone:'+49 341 2345678',hours:'Mo-Fr 08:00-22:00, Sa 10:00-17:00',desc:'Der East Side Fight Club ist Sachsens bekanntestes Kampfsport-Gym. Mehrfacher sächsischer Meister in MMA und Boxing.',founded:2007,website:'eastside-fightclub.de'},
+  ],
+  'Dresden':[
+    {name:'Elbe Warriors Gym',members:100,styles:['MMA','Grappling','BJJ'],rating:4.5,address:'Königsbrücker Str. 68, 01099 Dresden',street:'Königsbrücker Str. 68',zip:'01099',city:'Dresden',emoji:'🏰',code:'EWG-5567',phone:'+49 351 3456789',hours:'Mo-Fr 17:00-22:00, Sa 10:00-15:00',desc:'Die Elbe Warriors stehen für technisch hochwertiges MMA-Training in der Barockstadt. Enge Gemeinschaft mit starkem Fokus auf Grappling und Submission Wrestling.',founded:2013,website:'elbe-warriors.de'},
   ],
 };
 const TRAINERS = [
@@ -1098,6 +1127,7 @@ export default function App(){
   const [swStats,setSwStats]=useState({ch:0,de:0});
   const [dbMatches,setDbMatches]=useState([]);
   const [matchesLoading,setMatchesLoading]=useState(false);
+  const [unreadCount,setUnreadCount]=useState(0);
   const [activeChat,setActiveChat]=useState(null);
   const [viewProfile,setViewProfile]=useState(null);
   const [viewGym,setViewGym]=useState(null);
@@ -1325,6 +1355,9 @@ export default function App(){
       // Nach neuester Nachricht sortieren
       const sorted=withMessages.sort((a,b)=>new Date(b.last_message_at)-new Date(a.last_message_at));
       setDbMatches(sorted);
+      // Ungelesene zählen
+      const unread=sorted.filter(m=>m.last_message_at&&m.last_message_at>( localStorage.getItem('fighter_last_read_'+m.id)||'2000-01-01')).length;
+      setUnreadCount(unread);
     }catch(e){console.error('loadMatches error',e);}
     finally{setMatchesLoading(false);}
   }
@@ -1824,7 +1857,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
     </div>
   );
 
-  const tabs=[['swipe','🥊','FIGHT'],['chat','💬','CHAT'],['ranking','🏆','RANG'],['gyms','🏋️','GYMS'],['stats','📊','PROFIL']];
+  const tabs=[['swipe','🥊','FIGHT'],['chat','unread','CHAT'],['ranking','🏆','RANG'],['gyms','🏋️','GYMS'],['stats','📊','PROFIL']];
 
   return(
     <div style={{minHeight:'100vh',background:darkMode?'#1a1a1a':'#f5f5f7',fontFamily:'DM Sans,sans-serif',display:'flex',flexDirection:'column'}} onMouseMove={dragMove} onMouseUp={dragEnd} onTouchMove={dragMove} onTouchEnd={dragEnd}>
@@ -2113,9 +2146,18 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               </div>
             )}
             <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:11,textAlign:'center',boxShadow:'0 1px 4px rgba(0,0,0,0.06)',position:'relative'}}>
-              <button onClick={()=>{setEditProfile({});setEditMode(true);}} style={{position:'absolute',top:12,right:12,background:'none',border:'none',color:darkMode?'#666':'#aaa',fontSize:20,cursor:'pointer',padding:'4px 8px',letterSpacing:2}}>
-                ···
-              </button>
+              <div style={{position:'absolute',top:12,right:12,display:'flex',gap:6,alignItems:'center'}}>
+                <button onClick={()=>{
+                  const shareText=`⚔️ ${profile.name} auf Fighter\n${profile.style} · ${profile.weightClass?profile.weightClass.split(' (')[0]:''}\n📍 ${profile.city}\n\nSchau dir mein Profil an: https://fighter-app-pi.vercel.app`;
+                  if(navigator.share){navigator.share({title:'Fighter — '+profile.name,text:shareText,url:'https://fighter-app-pi.vercel.app'});}
+                  else{navigator.clipboard?.writeText(shareText);showMsg('Profil-Link kopiert! 📋');}
+                }} style={{background:'none',border:'none',color:darkMode?'#666':'#aaa',fontSize:16,cursor:'pointer',padding:'4px'}}>
+                  🔗
+                </button>
+                <button onClick={()=>{setEditProfile({});setEditMode(true);}} style={{background:'none',border:'none',color:darkMode?'#666':'#aaa',fontSize:20,cursor:'pointer',padding:'4px 4px',letterSpacing:2}}>
+                  ···
+                </button>
+              </div>
               <div style={{position:'relative',display:'inline-block',marginBottom:10}}>
                 <label style={{cursor:'pointer'}}>
                   <input type='file' accept='image/*' onChange={handlePhoto} style={{display:'none'}}/>
@@ -2170,6 +2212,37 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <button onClick={saveProfile} disabled={saving} style={{width:'100%',padding:'14px',borderRadius:10,background:saving?'#eee':`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:saving?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:17,letterSpacing:2,cursor:saving?'not-allowed':'pointer',transition:'all 0.2s'}}>
               {saving?'Speichern...':'Profil speichern'}
             </button>
+            {/* VERIFIZIERTER KAMPFREKORD */}
+            <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginTop:8,marginBottom:8}}>
+              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,letterSpacing:2,marginBottom:10}}>🏅 KAMPFREKORD VERIFIZIEREN</div>
+              <div style={{color:'#aaa',fontSize:11,marginBottom:10,lineHeight:1.6}}>Lade ein Foto deiner Urkunde, Medaille oder eines offiziellen Kampfergebnisses hoch. Dein Rekord bekommt dann ein ✅ Verifiziert-Badge.</div>
+              <label style={{cursor:'pointer',display:'block'}}>
+                <input type='file' accept='image/*' style={{display:'none'}} onChange={async(e)=>{
+                  const file=e.target.files[0];if(!file||!session)return;
+                  showMsg('Wird hochgeladen...');
+                  const compressed=await compressImage(file,1200,0.85);
+                  const path='record_'+session.userId+'_'+Date.now()+'.jpg';
+                  const url=await uploadPhoto(compressed,path,session.token);
+                  if(url){
+                    await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{
+                      method:'PATCH',
+                      headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+                      body:JSON.stringify({record_proof_url:url,record_verified:'pending'})
+                    });
+                    showMsg('✅ Nachweis hochgeladen! Wird innerhalb 48h geprüft.');
+                  }else showMsg('Upload fehlgeschlagen');
+                }}/>
+                <div style={{background:darkMode?'#111':'#f5f5f5',border:'1.5px dashed '+(myProfile?.record_verified==='verified'?'#27ae60':myProfile?.record_verified==='pending'?'#d4a017':'#ccc'),borderRadius:10,padding:'14px',textAlign:'center'}}>
+                  {myProfile?.record_verified==='verified'?(
+                    <div><div style={{fontSize:24}}>✅</div><div style={{color:'#27ae60',fontWeight:700,fontSize:12,marginTop:4}}>REKORD VERIFIZIERT</div></div>
+                  ):myProfile?.record_verified==='pending'?(
+                    <div><div style={{fontSize:24}}>⏳</div><div style={{color:'#d4a017',fontWeight:700,fontSize:12,marginTop:4}}>WIRD GEPRÜFT</div><div style={{color:'#aaa',fontSize:10,marginTop:2}}>Bis zu 48 Stunden</div></div>
+                  ):(
+                    <div><div style={{fontSize:24}}>📄</div><div style={{color:darkMode?'#aaa':'#888',fontSize:12,marginTop:4}}>Urkunde / Medaille hochladen</div><div style={{color:'#ccc',fontSize:10,marginTop:2}}>JPG, PNG · max 5MB</div></div>
+                  )}
+                </div>
+              </label>
+            </div>
             {/* GYM VERIFIZIERUNG */}
             <div onClick={()=>setShowGymVerify(true)} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',border:'1px solid '+(gymVerified?'#27ae6044':(darkMode?'#2a2a2a':'#eee')),marginTop:10,cursor:'pointer',display:'flex',alignItems:'center',gap:12}}>
               <div style={{width:40,height:40,borderRadius:10,background:gymVerified?'#27ae6018':'#f5f5f5',border:'1px solid '+(gymVerified?'#27ae6044':'#eee'),display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>
@@ -2535,7 +2608,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
       </div>
 
       <div style={{position:'fixed',bottom:0,left:0,right:0,background:darkMode?'#1a1a1a':'#fff',borderTop:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),display:'flex',height:60,zIndex:50,boxShadow:'0 -2px 12px rgba(0,0,0,0.06)'}}>
-        {tabs.map(([id,icon,label])=>(<button key={id} onClick={()=>setTab(id)} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer',gap:2,borderTop:tab===id?'2px solid '+RED:'2px solid transparent',transition:'all 0.2s'}}><div style={{fontSize:15,opacity:tab===id?1:0.4}}>{icon}</div><div style={{color:tab===id?RED:(darkMode?'#666':'#aaa'),fontSize:9,fontFamily:'DM Sans,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:0.5}}>{label}</div></button>))}
+        {tabs.map(([id,iconOrKey,label])=>{const icon=iconOrKey==='unread'?'💬':iconOrKey;const showBadge=iconOrKey==='unread'&&unreadCount>0&&tab!=='chat';return(<button key={id} onClick={()=>{setTab(id);if(id==='chat'){dbMatches.forEach(m=>localStorage.setItem('fighter_last_read_'+m.id,new Date().toISOString()));setUnreadCount(0);}}} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer',gap:2,borderTop:tab===id?'2px solid '+RED:'2px solid transparent',transition:'all 0.2s',position:'relative'}}><div style={{position:'relative',display:'inline-block'}}><div style={{fontSize:15,opacity:tab===id?1:0.4}}>{icon}</div>{showBadge&&<div style={{position:'absolute',top:-3,right:-5,width:14,height:14,borderRadius:'50%',background:RED,border:'1.5px solid '+(darkMode?'#0d0d0d':'#f5f5f7'),display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{color:'#fff',fontSize:7,fontWeight:700}}>{unreadCount>9?'9+':unreadCount}</span></div>}</div><div style={{color:tab===id?RED:(darkMode?'#666':'#aaa'),fontSize:9,fontFamily:'DM Sans,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:0.5}}>{label}</div></button>);})}
       </div>
 
       {matched&&(
