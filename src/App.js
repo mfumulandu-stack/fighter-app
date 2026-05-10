@@ -1375,7 +1375,7 @@ export default function App(){
     </div>
   );
 
-  const tabs=[['swipe','🥊','FIGHT'],['chat','💬','CHAT'],['stats','📊','PROFIL'],['gyms','🏋️','GYMS'],['ranking','🏆','RANG'],['trainer','🎓','TRAINER'],['sports','🎯','SPORTS']];
+  const tabs=[['swipe','🥊','FIGHT'],['chat','💬','CHAT'],['gyms','🏋️','GYMS'],['ranking','🏆','RANG'],['sports','🎯','SPORTS'],['stats','📊','PROFIL']];
 
   return(
     <div style={{minHeight:'100vh',background:darkMode?'#1a1a1a':'#f5f5f7',fontFamily:'DM Sans,sans-serif',display:'flex',flexDirection:'column'}} onMouseMove={dragMove} onMouseUp={dragEnd} onTouchMove={dragMove} onTouchEnd={dragEnd}>
