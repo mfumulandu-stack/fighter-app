@@ -98,34 +98,34 @@ const FIGHTERS=[
 ];
 const GYMS = {
   'Berlin':[
-    {name:'Tiger Gym Berlin',members:142,styles:['Boxing','Muay Thai','MMA'],rating:4.8,address:'Müllerstraße 12, 13353 Berlin-Mitte',street:'Müllerstraße 12',zip:'13353',city:'Berlin',emoji:'🐯',phone:'+49 30 12345678',hours:'Mo-Fr 07:00-22:00, Sa-So 09:00-18:00',desc:'Eines der ältesten und renommiertesten Kampfsportgyms Berlins. Professionelle Trainer, modernste Ausstattung und eine starke Community. Hier trainieren Anfänger und Profis Seite an Seite.',founded:2003,website:'tigergym-berlin.de'},
-    {name:'Berserker Boxing Club',members:89,styles:['Boxing'],rating:4.6,address:'Oranienstraße 44, 10969 Berlin-Kreuzberg',street:'Oranienstraße 44',zip:'10969',city:'Berlin',emoji:'👊',phone:'+49 30 98765432',hours:'Mo-Fr 08:00-21:00, Sa 10:00-16:00',desc:'Der Berserker Boxing Club steht für traditionelles Boxen auf höchstem Niveau. Kleine Gruppen, persönliche Betreuung und ein unschlagbares Gemeinschaftsgefühl im Herzen Kreuzbergs.',founded:2008,website:'berserker-boxing.de'},
-    {name:'Berlin Fight Club',members:210,styles:['MMA','BJJ','Wrestling'],rating:4.9,address:'Warschauer Str. 78, 10243 Berlin-Friedrichshain',street:'Warschauer Str. 78',zip:'10243',city:'Berlin',emoji:'⚔️',phone:'+49 30 55544433',hours:'Mo-So 06:00-23:00',desc:'Berlins größtes MMA-Gym mit über 200 aktiven Mitgliedern. State-of-the-art Octagon, zwei vollausgestattete Trainingsräume und ein Team aus ehemaligen Profis als Coaches.',founded:2011,website:'berlinfightclub.de'},
+    {name:'Tiger Gym Berlin',members:142,styles:['Boxing','Muay Thai','MMA'],rating:4.8,address:'Müllerstraße 12, 13353 Berlin-Mitte',street:'Müllerstraße 12',zip:'13353',city:'Berlin',emoji:'🐯',code:'TGB-2847',phone:'+49 30 12345678',hours:'Mo-Fr 07:00-22:00, Sa-So 09:00-18:00',desc:'Eines der ältesten und renommiertesten Kampfsportgyms Berlins. Professionelle Trainer, modernste Ausstattung und eine starke Community. Hier trainieren Anfänger und Profis Seite an Seite.',founded:2003,website:'tigergym-berlin.de'},
+    {name:'Berserker Boxing Club',members:89,styles:['Boxing'],rating:4.6,address:'Oranienstraße 44, 10969 Berlin-Kreuzberg',street:'Oranienstraße 44',zip:'10969',city:'Berlin',emoji:'👊',code:'BBC-5391',phone:'+49 30 98765432',hours:'Mo-Fr 08:00-21:00, Sa 10:00-16:00',desc:'Der Berserker Boxing Club steht für traditionelles Boxen auf höchstem Niveau. Kleine Gruppen, persönliche Betreuung und ein unschlagbares Gemeinschaftsgefühl im Herzen Kreuzbergs.',founded:2008,website:'berserker-boxing.de'},
+    {name:'Berlin Fight Club',members:210,styles:['MMA','BJJ','Wrestling'],rating:4.9,address:'Warschauer Str. 78, 10243 Berlin-Friedrichshain',street:'Warschauer Str. 78',zip:'10243',city:'Berlin',emoji:'⚔️',code:'BFC-1204',phone:'+49 30 55544433',hours:'Mo-So 06:00-23:00',desc:'Berlins größtes MMA-Gym mit über 200 aktiven Mitgliedern. State-of-the-art Octagon, zwei vollausgestattete Trainingsräume und ein Team aus ehemaligen Profis als Coaches.',founded:2011,website:'berlinfightclub.de'},
   ],
   'Muenchen':[
-    {name:'Combat Base Munich',members:175,styles:['MMA','BJJ'],rating:4.7,address:'Leopoldstraße 91, 80802 München-Schwabing',street:'Leopoldstraße 91',zip:'80802',city:'München',emoji:'🦁',phone:'+49 89 22334455',hours:'Mo-Fr 07:00-22:00, Sa-So 09:00-17:00',desc:'Münchens führendes BJJ- und MMA-Gym. Enge Partnerschaft mit internationalen Spitzenteams und regelmäßige Gastseminare von Weltklasse-Athleten. Mehrfacher Bayerischer Meister.',founded:2009,website:'combatbase-munich.de'},
-    {name:'Xtreme Fight Academy',members:130,styles:['MMA','Kickboxing'],rating:4.5,address:'Maximilianstraße 22, 80333 München-Maxvorstadt',street:'Maximilianstraße 22',zip:'80333',city:'München',emoji:'💪',phone:'+49 89 66778899',hours:'Mo-Fr 09:00-21:00, Sa 10:00-15:00',desc:'Die Xtreme Fight Academy verbindet Kickboxen und MMA auf einem modernen Campus. Intensives Wettkampftraining für Fortgeschrittene, aber auch strukturierte Anfängerkurse.',founded:2014,website:'xtreme-fight-munich.de'},
+    {name:'Combat Base Munich',members:175,styles:['MMA','BJJ'],rating:4.7,address:'Leopoldstraße 91, 80802 München-Schwabing',street:'Leopoldstraße 91',zip:'80802',city:'München',emoji:'🦁',code:'CBM-7730',phone:'+49 89 22334455',hours:'Mo-Fr 07:00-22:00, Sa-So 09:00-17:00',desc:'Münchens führendes BJJ- und MMA-Gym. Enge Partnerschaft mit internationalen Spitzenteams und regelmäßige Gastseminare von Weltklasse-Athleten. Mehrfacher Bayerischer Meister.',founded:2009,website:'combatbase-munich.de'},
+    {name:'Xtreme Fight Academy',members:130,styles:['MMA','Kickboxing'],rating:4.5,address:'Maximilianstraße 22, 80333 München-Maxvorstadt',street:'Maximilianstraße 22',zip:'80333',city:'München',emoji:'💪',code:'XFA-4462',phone:'+49 89 66778899',hours:'Mo-Fr 09:00-21:00, Sa 10:00-15:00',desc:'Die Xtreme Fight Academy verbindet Kickboxen und MMA auf einem modernen Campus. Intensives Wettkampftraining für Fortgeschrittene, aber auch strukturierte Anfängerkurse.',founded:2014,website:'xtreme-fight-munich.de'},
   ],
   'Hamburg':[
-    {name:'Iron Fist HH',members:95,styles:['Muay Thai','Boxing'],rating:4.6,address:'Große Bergstraße 210, 22767 Hamburg-Altona',street:'Große Bergstraße 210',zip:'22767',city:'Hamburg',emoji:'✊',phone:'+49 40 33221100',hours:'Mo-Fr 08:00-21:30, Sa-So 10:00-16:00',desc:'Iron Fist ist Hamburgs bekanntestes Muay Thai Gym. Mit direkten Verbindungen nach Thailand und regelmäßigen Trainingslagern in Bangkok bieten wir authentisches Thai-Boxing auf höchstem Niveau.',founded:2007,website:'ironfist-hamburg.de'},
-    {name:'Nordstern MMA',members:118,styles:['MMA','Grappling'],rating:4.4,address:'Barmbeker Straße 65, 22303 Hamburg-Barmbek',street:'Barmbeker Straße 65',zip:'22303',city:'Hamburg',emoji:'⭐',phone:'+49 40 99887766',hours:'Mo-Fr 07:30-22:00, Sa 09:00-14:00',desc:'Nordstern MMA ist die Heimat der Hamburger Grappling-Szene. Tägliche Open Mat Sessions, Wettkampfvorbereitung und eine familiäre Atmosphäre machen dieses Gym einzigartig.',founded:2012,website:'nordstern-mma.de'},
+    {name:'Iron Fist HH',members:95,styles:['Muay Thai','Boxing'],rating:4.6,address:'Große Bergstraße 210, 22767 Hamburg-Altona',street:'Große Bergstraße 210',zip:'22767',city:'Hamburg',emoji:'✊',code:'IFH-8819',phone:'+49 40 33221100',hours:'Mo-Fr 08:00-21:30, Sa-So 10:00-16:00',desc:'Iron Fist ist Hamburgs bekanntestes Muay Thai Gym. Mit direkten Verbindungen nach Thailand und regelmäßigen Trainingslagern in Bangkok bieten wir authentisches Thai-Boxing auf höchstem Niveau.',founded:2007,website:'ironfist-hamburg.de'},
+    {name:'Nordstern MMA',members:118,styles:['MMA','Grappling'],rating:4.4,address:'Barmbeker Straße 65, 22303 Hamburg-Barmbek',street:'Barmbeker Straße 65',zip:'22303',city:'Hamburg',emoji:'⭐',code:'NMM-3375',phone:'+49 40 99887766',hours:'Mo-Fr 07:30-22:00, Sa 09:00-14:00',desc:'Nordstern MMA ist die Heimat der Hamburger Grappling-Szene. Tägliche Open Mat Sessions, Wettkampfvorbereitung und eine familiäre Atmosphäre machen dieses Gym einzigartig.',founded:2012,website:'nordstern-mma.de'},
   ],
   'Koeln':[
-    {name:'Warriors Gym Koeln',members:160,styles:['Kickboxing','Boxing'],rating:4.7,address:'Venloer Straße 419, 50825 Köln-Ehrenfeld',street:'Venloer Straße 419',zip:'50825',city:'Köln',emoji:'⚡',phone:'+49 221 44556677',hours:'Mo-Fr 07:00-22:00, Sa-So 09:00-17:00',desc:'Das Warriors Gym ist das Epizentrum des Kölner Kampfsports. Über 160 aktive Mitglieder, 15 erfahrene Trainer und eine Erfolgsgeschichte von mehr als 30 Deutschen Meistern.',founded:2005,website:'warriors-gym-koeln.de'},
-    {name:'Rhine Valley BJJ',members:70,styles:['BJJ','Grappling'],rating:4.8,address:'Niehler Straße 90, 50733 Köln-Nippes',street:'Niehler Straße 90',zip:'50733',city:'Köln',emoji:'🔵',phone:'+49 221 11223344',hours:'Mo-Fr 18:00-21:30, Sa 10:00-13:00',desc:'Spezialisiertes BJJ-Gym mit IBJJF-zertifizierten Schwarzgurten. Fokus auf technische Perfektion, Wettkampf-Grappling und Selbstverteidigung. Mehrere Mitglieder in der Deutschen Top 10.',founded:2016,website:'rhinevalley-bjj.de'},
+    {name:'Warriors Gym Koeln',members:160,styles:['Kickboxing','Boxing'],rating:4.7,address:'Venloer Straße 419, 50825 Köln-Ehrenfeld',street:'Venloer Straße 419',zip:'50825',city:'Köln',emoji:'⚡',code:'WGK-6641',phone:'+49 221 44556677',hours:'Mo-Fr 07:00-22:00, Sa-So 09:00-17:00',desc:'Das Warriors Gym ist das Epizentrum des Kölner Kampfsports. Über 160 aktive Mitglieder, 15 erfahrene Trainer und eine Erfolgsgeschichte von mehr als 30 Deutschen Meistern.',founded:2005,website:'warriors-gym-koeln.de'},
+    {name:'Rhine Valley BJJ',members:70,styles:['BJJ','Grappling'],rating:4.8,address:'Niehler Straße 90, 50733 Köln-Nippes',street:'Niehler Straße 90',zip:'50733',city:'Köln',emoji:'🔵',code:'RVB-9923',phone:'+49 221 11223344',hours:'Mo-Fr 18:00-21:30, Sa 10:00-13:00',desc:'Spezialisiertes BJJ-Gym mit IBJJF-zertifizierten Schwarzgurten. Fokus auf technische Perfektion, Wettkampf-Grappling und Selbstverteidigung. Mehrere Mitglieder in der Deutschen Top 10.',founded:2016,website:'rhinevalley-bjj.de'},
   ],
   'Frankfurt':[
-    {name:'Apex Fighting Center',members:200,styles:['MMA','Boxing','Wrestling'],rating:4.9,address:'Darmstädter Landstraße 125, 60598 Frankfurt-Sachsenhausen',street:'Darmstädter Landstraße 125',zip:'60598',city:'Frankfurt',emoji:'🔺',phone:'+49 69 55443322',hours:'Mo-So 06:30-23:00',desc:'Das Apex Fighting Center ist Frankfurts absolute Nummer 1 im Kampfsport. Auf 1.200 qm bieten wir MMA, Boxing, Wrestling und Konditionstraining — ausgestattet auf internationalem Profiniveau. Heimat mehrerer UFC-Fighter.',founded:2010,website:'apex-frankfurt.de'},
+    {name:'Apex Fighting Center',members:200,styles:['MMA','Boxing','Wrestling'],rating:4.9,address:'Darmstädter Landstraße 125, 60598 Frankfurt-Sachsenhausen',street:'Darmstädter Landstraße 125',zip:'60598',city:'Frankfurt',emoji:'🔺',code:'AFC-1188',phone:'+49 69 55443322',hours:'Mo-So 06:30-23:00',desc:'Das Apex Fighting Center ist Frankfurts absolute Nummer 1 im Kampfsport. Auf 1.200 qm bieten wir MMA, Boxing, Wrestling und Konditionstraining — ausgestattet auf internationalem Profiniveau. Heimat mehrerer UFC-Fighter.',founded:2010,website:'apex-frankfurt.de'},
   ],
   'Stuttgart':[
-    {name:'Ground Zero Stuttgart',members:88,styles:['BJJ','MMA'],rating:4.5,address:'Hauptstätter Str. 65, 70178 Stuttgart-Mitte',street:'Hauptstätter Str. 65',zip:'70178',city:'Stuttgart',emoji:'💣',phone:'+49 711 22334455',hours:'Mo-Fr 18:00-22:00, Sa 10:00-14:00',desc:'Ground Zero ist Stuttgarts führendes BJJ und MMA Gym. Gegründet von Ex-Profi Rafael Santos bringt das Team regelmäßig Athleten zu deutschen und europäischen Meisterschaften.',founded:2013,website:'groundzero-stuttgart.de'},
-    {name:'Swabia Combat Sports',members:112,styles:['Muay Thai','Kickboxing'],rating:4.3,address:'Cannstatter Str. 88, 70190 Stuttgart-Bad Cannstatt',street:'Cannstatter Str. 88',zip:'70190',city:'Stuttgart',emoji:'🏋️',phone:'+49 711 66778899',hours:'Mo-Fr 08:00-21:00, Sa 10:00-16:00',desc:'Swabia Combat Sports verbindet schwäbische Disziplin mit asiatischen Kampfkünsten. Eines der wenigen Gyms in der Region mit echtem Muay Thai Camp-Feeling und regelmäßigen Thailand-Trips.',founded:2010,website:'swabia-combat.de'},
+    {name:'Ground Zero Stuttgart',members:88,styles:['BJJ','MMA'],rating:4.5,address:'Hauptstätter Str. 65, 70178 Stuttgart-Mitte',street:'Hauptstätter Str. 65',zip:'70178',city:'Stuttgart',emoji:'💣',code:'GZS-5547',phone:'+49 711 22334455',hours:'Mo-Fr 18:00-22:00, Sa 10:00-14:00',desc:'Ground Zero ist Stuttgarts führendes BJJ und MMA Gym. Gegründet von Ex-Profi Rafael Santos bringt das Team regelmäßig Athleten zu deutschen und europäischen Meisterschaften.',founded:2013,website:'groundzero-stuttgart.de'},
+    {name:'Swabia Combat Sports',members:112,styles:['Muay Thai','Kickboxing'],rating:4.3,address:'Cannstatter Str. 88, 70190 Stuttgart-Bad Cannstatt',street:'Cannstatter Str. 88',zip:'70190',city:'Stuttgart',emoji:'🏋️',code:'SCS-2203',phone:'+49 711 66778899',hours:'Mo-Fr 08:00-21:00, Sa 10:00-16:00',desc:'Swabia Combat Sports verbindet schwäbische Disziplin mit asiatischen Kampfkünsten. Eines der wenigen Gyms in der Region mit echtem Muay Thai Camp-Feeling und regelmäßigen Thailand-Trips.',founded:2010,website:'swabia-combat.de'},
   ],
   'Duesseldorf':[
-    {name:'UFD Düsseldorf',members:165,styles:['MMA','Boxing','Kickboxing'],rating:4.7,address:'Fichtenstraße 12, 40233 Düsseldorf',street:'Fichtenstraße 12',zip:'40233',city:'Düsseldorf',emoji:'🔥',phone:'+49 211 33445566',hours:'Mo-Fr 07:00-22:00, Sa-So 09:00-17:00',desc:'UFD Düsseldorf ist eines der bekanntesten Kampfsportgyms der Rheinmetropole. Mit einem starken Fokus auf MMA, Boxing und Kickboxing bietet UFD Trainingseinheiten für alle Levels — vom Anfänger bis zum Profi.',founded:2008,website:'ufd-duesseldorf.de'},
+    {name:'UFD Düsseldorf',members:165,styles:['MMA','Boxing','Kickboxing'],rating:4.7,address:'Fichtenstraße 12, 40233 Düsseldorf',street:'Fichtenstraße 12',zip:'40233',city:'Düsseldorf',emoji:'🔥',code:'UFD-7714',phone:'+49 211 33445566',hours:'Mo-Fr 07:00-22:00, Sa-So 09:00-17:00',desc:'UFD Düsseldorf ist eines der bekanntesten Kampfsportgyms der Rheinmetropole. Mit einem starken Fokus auf MMA, Boxing und Kickboxing bietet UFD Trainingseinheiten für alle Levels — vom Anfänger bis zum Profi.',founded:2008,website:'ufd-duesseldorf.de'},
   ],
   'Krefeld':[
-    {name:'NFT Gymnasium Krefeld',members:130,styles:['MMA','Grappling','BJJ'],rating:4.6,address:'Uerdinger Str. 55, 47799 Krefeld',street:'Uerdinger Str. 55',zip:'47799',city:'Krefeld',emoji:'⚔️',phone:'+49 2151 44556677',hours:'Mo-Fr 17:00-22:00, Sa 10:00-15:00',desc:'Das NFT Gymnasium Krefeld ist die erste Adresse für Kampfsport am Niederrhein. Spezialisiert auf MMA, Grappling und BJJ bringt das NFT regelmäßig Athleten zu regionalen und nationalen Meisterschaften.',founded:2011,website:'nft-krefeld.de'},
+    {name:'NFT Gymnasium Krefeld',members:130,styles:['MMA','Grappling','BJJ'],rating:4.6,address:'Uerdinger Str. 55, 47799 Krefeld',street:'Uerdinger Str. 55',zip:'47799',city:'Krefeld',emoji:'⚔️',code:'NFT-8830',phone:'+49 2151 44556677',hours:'Mo-Fr 17:00-22:00, Sa 10:00-15:00',desc:'Das NFT Gymnasium Krefeld ist die erste Adresse für Kampfsport am Niederrhein. Spezialisiert auf MMA, Grappling und BJJ bringt das NFT regelmäßig Athleten zu regionalen und nationalen Meisterschaften.',founded:2011,website:'nft-krefeld.de'},
   ],
 };
 const TRAINERS = [
@@ -271,6 +271,16 @@ function GymDetailScreen({gym,gymKey,gymRatings,rateGym,onClose,darkMode}){
                 <div style={{color:'#2980b9',fontSize:13,fontWeight:600}}>{gym.website}</div>
               </div>
             </div>
+            {gym.code&&(
+              <div style={{display:'flex',alignItems:'center',gap:12,background:darkMode?'#1f1f10':'#fffbf0',borderRadius:10,padding:'10px 12px',border:'1px solid #d4a01733'}}>
+                <div style={{width:34,height:34,borderRadius:8,background:'#d4a01718',border:'1px solid #d4a01733',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0}}>🔑</div>
+                <div style={{flex:1}}>
+                  <div style={{color:sub,fontSize:10,letterSpacing:1,marginBottom:2}}>FIGHTER-APP CODE</div>
+                  <div style={{color:'#d4a017',fontSize:18,fontWeight:700,fontFamily:'Rajdhani,sans-serif',letterSpacing:3}}>{gym.code}</div>
+                  <div style={{color:'#bbb',fontSize:10,marginTop:1}}>Diesen Code beim Gym erfragen → Profil verifizieren</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -290,6 +300,105 @@ function GymDetailScreen({gym,gymKey,gymRatings,rateGym,onClose,darkMode}){
               </div>
             );
           })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,setGymVerifyError,gymVerified,setGymVerified,gymCodes,darkMode,showMsg}){
+  const bg=darkMode?'rgba(0,0,0,0.85)':'rgba(0,0,0,0.6)';
+  const card=darkMode?'#1a1a1a':'#fff';
+  const text=darkMode?'#fff':'#1a1a1a';
+  const sub=darkMode?'#aaa':'#666';
+
+  function verify(){
+    const code=gymCodeInput.trim().toUpperCase();
+    const found=gymCodes.find(g=>g.code===code);
+    if(found){
+      const verified={gymName:found.name,gymCity:found.ct,gymEmoji:found.emoji,code,verifiedAt:new Date().toISOString()};
+      setGymVerified(verified);
+      localStorage.setItem('fighter_gym_verified',JSON.stringify(verified));
+      showMsg('✅ Gym verifiziert! Du bist jetzt '+found.emoji+' '+found.name+' Mitglied');
+      onClose();
+    }else{
+      setGymVerifyError('Ungültiger Code. Bitte frage dein Gym nach dem Fighter-Code.');
+    }
+  }
+
+  function removeVerification(){
+    setGymVerified(null);
+    localStorage.removeItem('fighter_gym_verified');
+    showMsg('Gym-Verifizierung entfernt');
+    onClose();
+  }
+
+  return(
+    <div style={{position:'fixed',inset:0,background:bg,zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
+      <div style={{background:card,borderRadius:20,width:'100%',maxWidth:360,overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+        {/* Header */}
+        <div style={{background:'linear-gradient(135deg,#1a1a1a,#c0392b)',padding:'20px 20px 18px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div>
+              <div className='rj' style={{color:'#fff',fontSize:20,letterSpacing:2}}>GYM VERIFIZIEREN</div>
+              <div style={{color:'rgba(255,255,255,0.6)',fontSize:11,marginTop:2}}>Bestätige deine Gym-Mitgliedschaft</div>
+            </div>
+            <div style={{fontSize:32}}>🏅</div>
+          </div>
+        </div>
+
+        <div style={{padding:'20px'}}>
+          {gymVerified?(
+            /* Bereits verifiziert */
+            <div>
+              <div style={{background:darkMode?'#0a1f0a':'#f0faf0',borderRadius:12,padding:'16px',border:'1px solid #27ae6044',textAlign:'center',marginBottom:16}}>
+                <div style={{fontSize:40,marginBottom:8}}>{gymVerified.gymEmoji}</div>
+                <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:1}}>✅ VERIFIZIERTES MITGLIED</div>
+                <div style={{color:text,fontWeight:700,fontSize:14,marginTop:4}}>{gymVerified.gymName}</div>
+                <div style={{color:sub,fontSize:12,marginTop:2}}>📍 {gymVerified.gymCity}</div>
+                <div style={{color:'#bbb',fontSize:10,marginTop:6}}>Seit: {new Date(gymVerified.verifiedAt).toLocaleDateString('de')}</div>
+              </div>
+              <div style={{color:sub,fontSize:12,textAlign:'center',marginBottom:14}}>Dein Profil zeigt jetzt das ✅ Verifiziert-Badge</div>
+              <button onClick={removeVerification} style={{width:'100%',padding:'11px',borderRadius:10,background:'transparent',border:'1px solid #e74c3c',color:'#e74c3c',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:8}}>
+                Verifizierung entfernen
+              </button>
+              <button onClick={onClose} style={{width:'100%',padding:'11px',borderRadius:10,background:`linear-gradient(135deg,#c0392b,#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer'}}>
+                SCHLIESSEN
+              </button>
+            </div>
+          ):(
+            /* Code eingeben */
+            <div>
+              <div style={{background:darkMode?'#1f1f1f':'#f8f8f8',borderRadius:10,padding:'12px',marginBottom:16,border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                <div style={{color:'#d4a017',fontSize:12,fontWeight:700,marginBottom:6}}>💡 WIE BEKOMME ICH DEN CODE?</div>
+                <div style={{color:sub,fontSize:12,lineHeight:1.6}}>
+                  Frage an der Rezeption deines Gyms nach dem <strong>Fighter-App Code</strong>. Der 8-stellige Code (z.B. TGB-2847) wird dir direkt mitgeteilt.
+                </div>
+              </div>
+
+              <div style={{marginBottom:12}}>
+                <div style={{color:sub,fontSize:10,letterSpacing:1,marginBottom:6}}>GYM-CODE EINGEBEN</div>
+                <input
+                  value={gymCodeInput}
+                  onChange={e=>{setGymCodeInput(e.target.value.toUpperCase());setGymVerifyError('');}}
+                  onKeyDown={e=>e.key==='Enter'&&verify()}
+                  placeholder='z.B. TGB-2847'
+                  maxLength={8}
+                  style={{width:'100%',padding:'12px 14px',borderRadius:10,border:'2px solid '+(gymVerifyError?'#e74c3c':darkMode?'#333':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:text,fontSize:18,fontFamily:'Rajdhani,sans-serif',fontWeight:700,letterSpacing:3,textAlign:'center',boxSizing:'border-box'}}
+                />
+                {gymVerifyError&&<div style={{color:'#e74c3c',fontSize:11,marginTop:6,textAlign:'center'}}>{gymVerifyError}</div>}
+              </div>
+
+              <button onClick={verify} disabled={gymCodeInput.length<6}
+                style={{width:'100%',padding:'13px',borderRadius:10,background:gymCodeInput.length>=6?'linear-gradient(135deg,#27ae60,#2ecc71)':'#eee',border:'none',color:gymCodeInput.length>=6?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:gymCodeInput.length>=6?'pointer':'not-allowed',marginBottom:8}}>
+                ✅ VERIFIZIEREN
+              </button>
+              <button onClick={onClose} style={{width:'100%',padding:'10px',borderRadius:10,background:'transparent',border:'1px solid '+(darkMode?'#333':'#eee'),color:'#aaa',fontFamily:'DM Sans,sans-serif',fontSize:13,cursor:'pointer'}}>
+                Abbrechen
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -463,6 +572,11 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
             </button>
             <div style={{position:'absolute',bottom:16,left:16,right:16}}>
               <div className='rj' style={{color:'#fff',fontSize:30,letterSpacing:2,lineHeight:1}}>{other?.name}</div>
+              {other?.gym_verified&&(
+                <div style={{display:'inline-flex',alignItems:'center',gap:4,background:'rgba(39,174,96,0.2)',border:'1px solid rgba(39,174,96,0.4)',borderRadius:20,padding:'3px 10px',marginTop:4}}>
+                  <span style={{color:'#27ae60',fontSize:11,fontWeight:700}}>✅ Verifiziertes Mitglied</span>
+                </div>
+              )}
               <div style={{display:'flex',gap:8,marginTop:6,flexWrap:'wrap'}}>
                 {other?.style&&<div style={{background:accent+'33',border:'1px solid '+accent+'66',borderRadius:20,padding:'3px 10px',color:accent,fontSize:11,fontWeight:700}}>{other.style}</div>}
                 {other?.city&&<div style={{background:'rgba(255,255,255,0.12)',borderRadius:20,padding:'3px 10px',color:'rgba(255,255,255,0.8)',fontSize:11}}>📍 {other.city}</div>}
@@ -885,6 +999,11 @@ export default function App(){
   const [viewProfile,setViewProfile]=useState(null);
   const [viewGym,setViewGym]=useState(null);
   const [blockedUsers,setBlockedUsers]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_blocked')||'[]')}catch{return []}});
+  const [gymVerified,setGymVerified]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_gym_verified')||'null')}catch{return null}});
+  const [showGymVerify,setShowGymVerify]=useState(false);
+  const [gymCodeInput,setGymCodeInput]=useState('');
+  const [gymVerifyError,setGymVerifyError]=useState('');
+  const GYM_CODES=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct,key:ct+'-'+g.name})));
   const [reportSent,setReportSent]=useState({});
   const [city,setCity]=useState('Berlin');
   const [rankF,setRankF]=useState('All');
@@ -1115,6 +1234,7 @@ export default function App(){
   if(showImpressum)return(<><style>{css}</style><ImpressumScreen onClose={()=>setShowImpressum(false)} darkMode={darkMode}/></>);
   if(showDatenschutz)return(<><style>{css}</style><DatenschutzScreen onClose={()=>setShowDatenschutz(false)} darkMode={darkMode}/></>);
   if(showAGB)return(<><style>{css}</style><AGBScreen onClose={()=>setShowAGB(false)} darkMode={darkMode}/></>);
+  if(showGymVerify)return(<><style>{css}</style><GymVerifyModal onClose={()=>{setShowGymVerify(false);setGymCodeInput('');setGymVerifyError('');}} gymCodeInput={gymCodeInput} setGymCodeInput={setGymCodeInput} gymVerifyError={gymVerifyError} setGymVerifyError={setGymVerifyError} gymVerified={gymVerified} setGymVerified={setGymVerified} gymCodes={GYM_CODES} darkMode={darkMode} showMsg={showMsg}/></>);
   if(viewGym)return(<><style>{css}</style><GymDetailScreen gym={viewGym.gym} gymKey={viewGym.key} gymRatings={gymRatings} rateGym={(k,s)=>{rateGym(k,s);}} onClose={()=>setViewGym(null)} darkMode={darkMode}/></>);
   if(viewProfile)return(
     <div style={{minHeight:'100vh',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column'}}>
@@ -1440,6 +1560,12 @@ export default function App(){
               <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:2}}>{profile.name}</div>
               <div style={{color:RED,fontSize:13,fontWeight:600,marginTop:2}}>{profile.style} - {profile.weightClass?profile.weightClass.split(' (')[0]:''}</div>
               <div style={{color:darkMode?'#666':'#999',fontSize:11,marginTop:3}}>📍 {profile.city} - 🏋️ {profile.gym}</div>
+              {gymVerified&&(
+                <div style={{display:'inline-flex',alignItems:'center',gap:5,background:'#27ae6018',border:'1px solid #27ae6044',borderRadius:20,padding:'3px 10px',marginTop:6}}>
+                  <span style={{fontSize:13}}>{gymVerified.gymEmoji}</span>
+                  <span style={{color:'#27ae60',fontSize:11,fontWeight:700}}>✅ Verifiziertes Mitglied · {gymVerified.gymName}</span>
+                </div>
+              )}
               {profile.bio&&<div style={{color:'#aaa',fontSize:12,marginTop:6,fontStyle:'italic'}}>'{profile.bio}'</div>}
             </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:7,marginBottom:9}}>
@@ -1476,8 +1602,19 @@ export default function App(){
             <button onClick={saveProfile} disabled={saving} style={{width:'100%',padding:'14px',borderRadius:10,background:saving?'#eee':`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:saving?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:17,letterSpacing:2,cursor:saving?'not-allowed':'pointer',transition:'all 0.2s'}}>
               {saving?'Speichern...':'Profil speichern'}
             </button>
+            {/* GYM VERIFIZIERUNG */}
+            <div onClick={()=>setShowGymVerify(true)} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',border:'1px solid '+(gymVerified?'#27ae6044':(darkMode?'#2a2a2a':'#eee')),marginTop:10,cursor:'pointer',display:'flex',alignItems:'center',gap:12}}>
+              <div style={{width:40,height:40,borderRadius:10,background:gymVerified?'#27ae6018':'#f5f5f5',border:'1px solid '+(gymVerified?'#27ae6044':'#eee'),display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>
+                {gymVerified?gymVerified.gymEmoji:'🏅'}
+              </div>
+              <div style={{flex:1}}>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{gymVerified?'Gym verifiziert ✅':'Gym-Mitgliedschaft verifizieren'}</div>
+                <div style={{color:gymVerified?'#27ae60':'#aaa',fontSize:11,marginTop:1}}>{gymVerified?gymVerified.gymName+' · '+gymVerified.gymCity:'Gym-Code eingeben → Badge erhalten'}</div>
+              </div>
+              <div style={{color:'#bbb',fontSize:18}}>›</div>
+            </div>
             {/* EINSTELLUNGEN */}
-            <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginTop:12}}>
+            <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginTop:10}}>
               <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:2,marginBottom:12}}>EINSTELLUNGEN</div>
               <div onClick={()=>setDarkMode(d=>!d)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
                 <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>🌙 Dark Mode</div>
