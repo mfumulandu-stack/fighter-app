@@ -1108,12 +1108,27 @@ export default function App(){
       const allProfiles=await dbSelect('profiles','',s.token);
       const profileMap={};
       if(Array.isArray(allProfiles))allProfiles.forEach(p=>{profileMap[p.id]=p;});
-      const enriched=m.map(match=>({
+      // Letzte Nachricht pro Match laden
+      const enrichedRaw=m.map(match=>({
         ...match,
         profile_a:profileMap[match.profile_a_id]||null,
-        profile_b:profileMap[match.profile_b_id]||null
+        profile_b:profileMap[match.profile_b_id]||null,
+        last_message_at:match.created_at,
+        last_message_text:''
       }));
-      setDbMatches(enriched);
+      // Letzte Nachrichten parallel laden
+      const withMessages=await Promise.all(enrichedRaw.map(async match=>{
+        try{
+          const msgs=await dbSelect('messages','match_id=eq.'+match.id+'&order=created_at.desc&limit=1',s.token);
+          if(Array.isArray(msgs)&&msgs.length>0){
+            return{...match,last_message_at:msgs[0].created_at,last_message_text:msgs[0].content||''};
+          }
+        }catch{}
+        return match;
+      }));
+      // Nach neuester Nachricht sortieren
+      const sorted=withMessages.sort((a,b)=>new Date(b.last_message_at)-new Date(a.last_message_at));
+      setDbMatches(sorted);
     }catch(e){console.error('loadMatches error',e);}
     finally{setMatchesLoading(false);}
   }
@@ -1653,9 +1668,20 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                           :<div style={{width:54,height:54,borderRadius:'50%',background:ac+'18',border:'2px solid '+ac+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>🥊</div>}
                         </div>
                         <div style={{flex:1}} onClick={()=>setViewProfile(other)} >
-                          <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:1}}>{other.name}</div>
+                          <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:1}}>{other.name}</div>
+                          </div>
                           <div style={{color:ac,fontSize:11,fontWeight:700}}>{other.style} · {other.city}</div>
-                          <div style={{color:'#aaa',fontSize:10,marginTop:2}}>👁 Profil ansehen</div>
+                          {m.last_message_text?(
+                            <div style={{color:darkMode?'#555':'#aaa',fontSize:11,marginTop:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:160}}>
+                              {m.last_message_text.startsWith('⚔️')?'⚔️ Fight Request':m.last_message_text.startsWith('✅')?'✅ Angenommen':m.last_message_text.startsWith('❌')?'❌ Abgelehnt':m.last_message_text}
+                            </div>
+                          ):(
+                            <div style={{color:'#ccc',fontSize:11,marginTop:2,fontStyle:'italic'}}>Noch keine Nachrichten</div>
+                          )}
+                        </div>
+                        <div style={{textAlign:'right',flexShrink:0}}>
+                          <div style={{color:'#ccc',fontSize:10}}>{m.last_message_at?new Date(m.last_message_at).toLocaleDateString('de',{day:'2-digit',month:'2-digit'}):''}</div>
                         </div>
                         <div onClick={()=>setActiveChat(m)} style={{padding:'9px 16px',borderRadius:8,background:'linear-gradient(135deg,#c0392b,#e74c3c)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>CHAT →</div>
                       </div>
