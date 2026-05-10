@@ -1527,16 +1527,7 @@ export default function App(){
     </div>
   );
 
-  if(!authReady)return(
-    <div style={{minHeight:'100vh',background:'#0d0d0d',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16}}>
-      <style>{css}</style>
-      <svg width="120" height="50" viewBox="0 0 120 50" xmlns="http://www.w3.org/2000/svg">
-        <defs><linearGradient id="tl" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#d35400"/><stop offset="100%" stopColor="#f0a070"/></linearGradient></defs>
-        <text x="60" y="36" textAnchor="middle" fontFamily="Arial Black,sans-serif" fontWeight="900" fontSize="32" letterSpacing="4" fill="url(#tl)">FIGHTER</text>
-      </svg>
-      <div style={{width:40,height:3,background:'#d35400',borderRadius:2,opacity:0.6}}/>
-    </div>
-  );
+  if(!authReady)return(<div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',alignItems:'center',justifyContent:'center'}}><style>{css}</style><div className='rj' style={{fontSize:32,color:'#1a1a1a',letterSpacing:4}}>FIGHTER</div></div>);
   if(!session)return <AuthScreen onSession={handleSession}/>;
   if(activeChat&&myProfile&&!viewProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>{setViewProfile(p);}}/></>);
 
