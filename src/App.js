@@ -1105,6 +1105,9 @@ export default function App(){
   const [gymVerified,setGymVerified]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_gym_verified')||'null')}catch{return null}});
   const [fightHistory,setFightHistory]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_history')||'[]')}catch{return []}});
   const [historyPublic,setHistoryPublic]=useState(()=>{try{return localStorage.getItem('fighter_history_public')==='true'}catch{return false}});
+  const [editMode,setEditMode]=useState(false);
+  const [editProfile,setEditProfile]=useState({});
+  const [savingEdit,setSavingEdit]=useState(false);
   const [showGymVerify,setShowGymVerify]=useState(false);
   const [gymCodeInput,setGymCodeInput]=useState('');
   const [gymVerifyError,setGymVerifyError]=useState('');
@@ -1350,6 +1353,37 @@ export default function App(){
     if(session)await authSignOut(session.token);
     localStorage.removeItem('fighter_v5');
     setSession(null);setMyProfile(null);setProfile({name:'',age:'',city:'',gym:'',height:'',weight:'',weightClass:'',style:'',bio:''});setStats({wins:0,losses:0,draws:0,ko:0});setAvatarUrl('');setAvatarPreview('');setScreen('auth');setAuthReady(true);
+  }
+
+  async function saveEditProfile(){
+    if(!session||!myProfile)return;
+    setSavingEdit(true);
+    try{
+      await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+        body:JSON.stringify({
+          name:editProfile.name||profile.name,
+          city:editProfile.city||profile.city,
+          gym:editProfile.gym||profile.gym,
+          bio:editProfile.bio!==undefined?editProfile.bio:profile.bio,
+          style:editProfile.style||profile.style,
+          weight_class:editProfile.weightClass||profile.weightClass,
+          height:editProfile.height||profile.height,
+          weight:editProfile.weight||profile.weight,
+        })
+      });
+      setProfile(p=>({...p,...editProfile}));
+      setMyProfile(mp=>({...mp,...editProfile,
+        name:editProfile.name||mp.name,
+        city:editProfile.city||mp.city,
+        gym:editProfile.gym||mp.gym,
+        bio:editProfile.bio!==undefined?editProfile.bio:mp.bio,
+      }));
+      setEditMode(false);
+      showMsg('Profil gespeichert ✓');
+    }catch(e){showMsg('Fehler beim Speichern');}
+    setSavingEdit(false);
   }
 
   async function saveProfile(){
@@ -2002,7 +2036,53 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         )}
         {tab==='stats'&&(
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
-            <div style={{background:'#fff',borderRadius:14,padding:'16px',border:'1px solid #eee',marginBottom:11,textAlign:'center',boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
+            {/* EDIT MODAL */}
+            {editMode&&(
+              <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.65)',zIndex:500,display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
+                <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:'20px 20px 0 0',width:'100%',maxWidth:480,padding:'20px 20px 40px',maxHeight:'85vh',overflowY:'auto'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:18}}>
+                    <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:2}}>PROFIL BEARBEITEN</div>
+                    <button onClick={()=>setEditMode(false)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#aaa'}}>✕</button>
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                    {[['NAME *','name','text',profile.name],['STADT *','city','text',profile.city],['GYM','gym','text',profile.gym],['GRÖSSE (cm)','height','number',profile.height],['GEWICHT (kg)','weight','number',profile.weight],['BIO','bio','text',profile.bio]].map(([label,key,type,current])=>(
+                      <div key={key}>
+                        <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{label}</div>
+                        <input type={type} defaultValue={current||''} onChange={e=>setEditProfile(p=>({...p,[key]:e.target.value}))}
+                          style={{width:'100%',padding:'11px 13px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontFamily:'DM Sans,sans-serif',boxSizing:'border-box'}}/>
+                      </div>
+                    ))}
+                    <div>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>KAMPFSTIL</div>
+                      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                        {STYLES.map(s=>(
+                          <button key={s} onClick={()=>setEditProfile(p=>({...p,style:s}))}
+                            style={{padding:'7px 13px',borderRadius:20,background:(editProfile.style||profile.style)===s?RED:'transparent',border:'1px solid '+((editProfile.style||profile.style)===s?RED:(darkMode?'#333':'#ddd')),color:(editProfile.style||profile.style)===s?'#fff':(darkMode?'#aaa':'#666'),fontSize:12,fontWeight:700,cursor:'pointer'}}>
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>GEWICHTSKLASSE</div>
+                      <select defaultValue={profile.weightClass||''} onChange={e=>setEditProfile(p=>({...p,weightClass:e.target.value}))}
+                        style={{width:'100%',padding:'11px 13px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontFamily:'DM Sans,sans-serif'}}>
+                        <option value=''>Bitte wählen</option>
+                        {WEIGHT_CLASSES.map(w=><option key={w} value={w}>{w}</option>)}
+                      </select>
+                    </div>
+                    <button onClick={saveEditProfile} disabled={savingEdit}
+                      style={{width:'100%',marginTop:6,padding:'14px',borderRadius:12,background:savingEdit?'#eee':`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:savingEdit?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:savingEdit?'not-allowed':'pointer'}}>
+                      {savingEdit?'Speichern...':'SPEICHERN'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:11,textAlign:'center',boxShadow:'0 1px 4px rgba(0,0,0,0.06)',position:'relative'}}>
+              <button onClick={()=>{setEditProfile({});setEditMode(true);}} style={{position:'absolute',top:12,right:12,background:darkMode?'#2a2a2a':'#f5f5f5',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),borderRadius:8,padding:'5px 10px',color:darkMode?'#fff':'#555',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>
+                ✏️ Bearbeiten
+              </button>
               <div style={{position:'relative',display:'inline-block',marginBottom:10}}>
                 <label style={{cursor:'pointer'}}>
                   <input type='file' accept='image/*' onChange={handlePhoto} style={{display:'none'}}/>
