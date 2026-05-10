@@ -96,6 +96,48 @@ const FIGHTERS=[
   {id:14,name:"Alexander Volkanovski",age:36,city:"Wollongong",gym:"City Kickboxing",height:168,weight:66,weightClass:"Federgewicht",style:"MMA",wins:26,losses:3,draws:0,ko:12,emoji:"🦈",accent:"#2980b9"},
   {id:15,name:"Dricus Du Plessis",age:30,city:"Pretoria",gym:"EFC Worldwide",height:185,weight:84,weightClass:"Mittelgewicht",style:"MMA",wins:22,losses:2,draws:0,ko:14,emoji:"🦓",accent:"#e67e22"},
 ];
+
+const CITY_COORDS={
+  'Berlin':{lat:52.52,lon:13.405},
+  'Hamburg':{lat:53.55,lon:9.993},
+  'München':{lat:48.137,lon:11.576},
+  'Muenchen':{lat:48.137,lon:11.576},
+  'Köln':{lat:50.938,lon:6.96},
+  'Koeln':{lat:50.938,lon:6.96},
+  'Frankfurt':{lat:50.11,lon:8.682},
+  'Stuttgart':{lat:48.775,lon:9.182},
+  'Düsseldorf':{lat:51.227,lon:6.773},
+  'Duesseldorf':{lat:51.227,lon:6.773},
+  'Krefeld':{lat:51.333,lon:6.562},
+  'Dortmund':{lat:51.514,lon:7.468},
+  'Aachen':{lat:50.776,lon:6.084},
+  'Leipzig':{lat:51.34,lon:12.374},
+  'Dresden':{lat:51.05,lon:13.738},
+  'Hannover':{lat:52.374,lon:9.738},
+  'Nürnberg':{lat:49.452,lon:11.077},
+  'Bremen':{lat:53.079,lon:8.801},
+  'Bochum':{lat:51.481,lon:7.216},
+  'Essen':{lat:51.456,lon:7.012},
+  'Duisburg':{lat:51.435,lon:6.762},
+  'Mannheim':{lat:49.487,lon:8.466},
+  'Augsburg':{lat:48.371,lon:10.898},
+  'Wiesbaden':{lat:50.082,lon:8.243},
+  'Münster':{lat:51.962,lon:7.626},
+  'Bonn':{lat:50.735,lon:7.1},
+  'Karlsruhe':{lat:49.006,lon:8.404},
+  'Freiburg':{lat:47.997,lon:7.842},
+  'Kiel':{lat:54.323,lon:10.133},
+  'Rostock':{lat:54.093,lon:12.099},
+};
+function getDistanceKm(city1,city2){
+  const c1=CITY_COORDS[city1];const c2=CITY_COORDS[city2];
+  if(!c1||!c2)return 9999;
+  const R=6371;
+  const dLat=(c2.lat-c1.lat)*Math.PI/180;
+  const dLon=(c2.lon-c1.lon)*Math.PI/180;
+  const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(c1.lat*Math.PI/180)*Math.cos(c2.lat*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
 const GYMS = {
   'Berlin':[
     {name:'Tiger Gym Berlin',members:142,styles:['Boxing','Muay Thai','MMA'],rating:4.8,address:'Müllerstraße 12, 13353 Berlin-Mitte',street:'Müllerstraße 12',zip:'13353',city:'Berlin',emoji:'🐯',code:'TGB-2847',phone:'+49 30 12345678',hours:'Mo-Fr 07:00-22:00, Sa-So 09:00-18:00',desc:'Eines der ältesten und renommiertesten Kampfsportgyms Berlins. Professionelle Trainer, modernste Ausstattung und eine starke Community. Hier trainieren Anfänger und Profis Seite an Seite.',founded:2003,website:'tigergym-berlin.de'},
@@ -1039,6 +1081,8 @@ export default function App(){
   const [filterStyle,setFilterStyle]=useState('Alle');
   const [filterCity,setFilterCity]=useState('');
   const [filterWeightClass,setFilterWeightClass]=useState(true);
+  const [filterRadius,setFilterRadius]=useState(0);
+  const [chatSearch,setChatSearch]=useState('');
 
   useEffect(()=>{
     async function restoreSession(){
@@ -1304,11 +1348,25 @@ export default function App(){
   }
 
   const myWeightClass=myProfile?.weight_class||profile?.weightClass||'';
+  const myCity=myProfile?.city||profile?.city||'';
   const filteredCards=cards
     .filter(f=>!blockedUsers.includes(f.id))
     .filter(f=>!filterWeightClass||!myWeightClass||(f.weight_class||f.weightClass||'')===(myWeightClass))
     .filter(f=>filterStyle==='Alle'||f.style===filterStyle)
-    .filter(f=>!filterCity||(f.city||'').toLowerCase().includes(filterCity.toLowerCase()));
+    .filter(f=>!filterCity||(f.city||'').toLowerCase().includes(filterCity.toLowerCase()))
+    .filter(f=>{
+      if(!filterRadius||!myCity)return true;
+      const fCity=f.city||'';
+      if(fCity.toLowerCase()===myCity.toLowerCase())return true;
+      const dist=getDistanceKm(myCity,fCity);
+      return dist<=filterRadius;
+    })
+    .sort((a,b)=>{
+      if(!filterRadius||!myCity)return 0;
+      const da=getDistanceKm(myCity,a.city||'');
+      const db=getDistanceKm(myCity,b.city||'');
+      return da-db;
+    });
   const top=filteredCards[filteredCards.length-1];
   const lastTapRef=useRef(0);
   function dragStart(e){const p=e.touches?e.touches[0]:e;setStart({x:p.clientX,y:p.clientY});setDrag(true);}
@@ -1628,19 +1686,40 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               </div>
               <div style={{color:'#aaa',fontSize:10,textAlign:'right'}}>{profile.height}cm<br/>{profile.weight}kg</div>
             </div>
-            {/* GEWICHTSKLASSEN TOGGLE */}
-            {myWeightClass&&(
-              <div style={{width:'calc(100% - 24px)',maxWidth:380,margin:'0 0 8px',display:'flex',alignItems:'center',gap:9,background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'8px 12px',border:'1px solid '+(filterWeightClass?'#d35400':(darkMode?'#2a2a2a':'#eee'))}}>
-                <div style={{fontSize:16}}>⚖️</div>
-                <div style={{flex:1}}>
-                  <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700}}>{myWeightClass}</div>
-                  <div style={{color:'#aaa',fontSize:10}}>{filterWeightClass?'Nur meine Gewichtsklasse anzeigen':'Alle Gewichtsklassen anzeigen'}</div>
+            {/* FILTER LEISTE */}
+            <div style={{width:'calc(100% - 24px)',maxWidth:380,margin:'0 0 8px',display:'flex',flexDirection:'column',gap:6}}>
+              {/* GEWICHTSKLASSEN TOGGLE */}
+              {myWeightClass&&(
+                <div style={{display:'flex',alignItems:'center',gap:9,background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'8px 12px',border:'1px solid '+(filterWeightClass?'#d35400':(darkMode?'#2a2a2a':'#eee'))}}>
+                  <div style={{fontSize:16}}>⚖️</div>
+                  <div style={{flex:1}}>
+                    <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700}}>{myWeightClass}</div>
+                    <div style={{color:'#aaa',fontSize:10}}>{filterWeightClass?'Nur meine Gewichtsklasse':'Alle Klassen'}</div>
+                  </div>
+                  <div onClick={()=>setFilterWeightClass(v=>!v)} style={{width:42,height:24,borderRadius:12,background:filterWeightClass?'#d35400':'#ccc',position:'relative',cursor:'pointer',flexShrink:0}}>
+                    <div style={{position:'absolute',top:3,left:filterWeightClass?21:3,width:18,height:18,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 3px rgba(0,0,0,0.25)'}}/>
+                  </div>
                 </div>
-                <div onClick={()=>setFilterWeightClass(v=>!v)} style={{width:42,height:24,borderRadius:12,background:filterWeightClass?'#d35400':'#ccc',position:'relative',cursor:'pointer',flexShrink:0}}>
-                  <div style={{position:'absolute',top:3,left:filterWeightClass?21:3,width:18,height:18,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 3px rgba(0,0,0,0.25)'}}/>
+              )}
+              {/* UMKREIS FILTER */}
+              <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'9px 12px',border:'1px solid '+(filterRadius>0?'#2980b9':(darkMode?'#2a2a2a':'#eee'))}}>
+                <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:filterRadius>0?6:0}}>
+                  <div style={{fontSize:16}}>📍</div>
+                  <div style={{flex:1}}>
+                    <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700}}>Umkreis {filterRadius>0?filterRadius+'km':'— Alle'}</div>
+                    <div style={{color:'#aaa',fontSize:10}}>{myCity?'von '+myCity:'Stadt im Profil eintragen'}</div>
+                  </div>
+                  {filterRadius>0&&<div onClick={()=>setFilterRadius(0)} style={{color:'#2980b9',fontSize:10,fontWeight:700,cursor:'pointer'}}>Alle</div>}
+                </div>
+                <div style={{display:'flex',gap:5}}>
+                  {[0,50,100,200,500].map(r=>(
+                    <button key={r} onClick={()=>setFilterRadius(r)} style={{flex:1,padding:'5px 2px',borderRadius:7,background:filterRadius===r?'#2980b9':(darkMode?'#111':'#f5f5f5'),border:'1px solid '+(filterRadius===r?'#2980b9':(darkMode?'#2a2a2a':'#e0e0e0')),color:filterRadius===r?'#fff':(darkMode?'#888':'#666'),fontSize:10,fontWeight:700,cursor:'pointer'}}>
+                      {r===0?'Alle':r+'km'}
+                    </button>
+                  ))}
                 </div>
               </div>
-            )}
+            </div>
             <div style={{position:'relative',width:330,height:430,flexShrink:0}}>
               {cards.length===0?(
                 <div style={{width:'100%',height:'100%',borderRadius:20,background:'linear-gradient(160deg,#1a1a1a 0%,#2d1a1a 100%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:'30px 24px',textAlign:'center'}}>
@@ -1699,7 +1778,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                           <div style={{display:'flex',gap:5,marginTop:6,flexWrap:'wrap'}}>
                             {f.style&&<div style={{background:fA,borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{f.style}</div>}
                             {(f.weight_class||f.weightClass)&&<div style={{background:(f.weight_class||f.weightClass)===myWeightClass?'rgba(211,84,0,0.7)':'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:(f.weight_class||f.weightClass)===myWeightClass?700:400}}>⚖️ {(f.weight_class||f.weightClass||'').split(' (')[0]}{(f.weight_class||f.weightClass)===myWeightClass?' ✓':''}</div>}
-                            {f.city&&<div style={{background:'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>📍 {f.city}</div>}
+                            {f.city&&<div style={{background:'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>📍 {f.city}{myCity&&f.city!==myCity&&getDistanceKm(myCity,f.city)<999?' · '+getDistanceKm(myCity,f.city)+'km':''}</div>}
                           </div>
                           {f.bio&&<div style={{color:'rgba(255,255,255,0.5)',fontSize:10,marginTop:5,fontStyle:'italic'}}>"{f.bio}"</div>}
                         </div>
@@ -1739,6 +1818,18 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     );
                   })}
                 </div>
+                {chatSearch&&dbMatches.filter(m=>{
+                  const other=m.profile_a_id===myProfile?.id?m.profile_b:m.profile_a;
+                  if(!other)return false;
+                  const q=chatSearch.toLowerCase();
+                  return (other.name||'').toLowerCase().includes(q)||(other.city||'').toLowerCase().includes(q)||(other.style||'').toLowerCase().includes(q);
+                }).length===0&&(
+                  <div style={{textAlign:'center',padding:'32px 0',color:'#aaa'}}>
+                    <div style={{fontSize:36,marginBottom:8}}>🔍</div>
+                    <div style={{fontSize:14,fontWeight:700,color:darkMode?'#fff':'#1a1a1a'}}>Kein Fighter gefunden</div>
+                    <div style={{fontSize:12,marginTop:4}}>Keine Matches für "{chatSearch}"</div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1747,7 +1838,22 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
 
         {tab==='chat'&&(
           <div style={{padding:'14px',maxWidth:420,margin:'0 auto'}}>
-            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:14}}>NACHRICHTEN</div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3}}>NACHRICHTEN</div>
+              {dbMatches.length>0&&<div style={{color:'#aaa',fontSize:11}}>{dbMatches.length} Match{dbMatches.length!==1?'es':''}</div>}
+            </div>
+            {dbMatches.length>3&&(
+              <div style={{position:'relative',marginBottom:10}}>
+                <input
+                  value={chatSearch}
+                  onChange={e=>setChatSearch(e.target.value)}
+                  placeholder='Fighter suchen...'
+                  style={{width:'100%',padding:'9px 12px 9px 36px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#1a1a1a':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontFamily:'DM Sans,sans-serif',boxSizing:'border-box'}}
+                />
+                <div style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'#aaa',fontSize:14}}>🔍</div>
+                {chatSearch&&<div onClick={()=>setChatSearch('')} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',color:'#aaa',cursor:'pointer',fontSize:14}}>✕</div>}
+              </div>
+            )}
             {matchesLoading&&dbMatches.length===0?(
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {[1,2,3].map(i=>(
@@ -1772,7 +1878,13 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               </div>
             ):(
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {dbMatches.map(m=>{
+                {dbMatches.filter(m=>{
+                  if(!chatSearch)return true;
+                  const other=m.profile_a_id===myProfile?.id?m.profile_b:m.profile_a;
+                  if(!other)return false;
+                  const q=chatSearch.toLowerCase();
+                  return (other.name||'').toLowerCase().includes(q)||(other.city||'').toLowerCase().includes(q)||(other.style||'').toLowerCase().includes(q);
+                }).map(m=>{
                   const other=m.profile_a_id===myProfile?.id?m.profile_b:m.profile_a;
                   if(!other)return null;
                   const ac=other.style==='Boxing'?'#c0392b':other.style==='MMA'?'#2980b9':'#d35400';
