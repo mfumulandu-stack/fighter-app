@@ -995,7 +995,7 @@ export default function App(){
   const [matched,setMatched]=useState(null);
   const [swStats,setSwStats]=useState({ch:0,de:0});
   const [dbMatches,setDbMatches]=useState([]);
-  const [matchesLoading,setMatchesLoading]=useState(true);
+  const [matchesLoading,setMatchesLoading]=useState(false);
   const [activeChat,setActiveChat]=useState(null);
   const [viewProfile,setViewProfile]=useState(null);
   const [viewGym,setViewGym]=useState(null);
@@ -1631,7 +1631,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         {tab==='chat'&&(
           <div style={{padding:'14px',maxWidth:420,margin:'0 auto'}}>
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:14}}>NACHRICHTEN</div>
-            {matchesLoading?(
+            {matchesLoading&&dbMatches.length===0?(
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {[1,2,3].map(i=>(
                   <div key={i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:13,padding:'13px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:12,opacity:1-i*0.2}}>
