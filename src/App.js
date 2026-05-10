@@ -995,6 +995,7 @@ export default function App(){
   const [matched,setMatched]=useState(null);
   const [swStats,setSwStats]=useState({ch:0,de:0});
   const [dbMatches,setDbMatches]=useState([]);
+  const [matchesLoading,setMatchesLoading]=useState(true);
   const [activeChat,setActiveChat]=useState(null);
   const [viewProfile,setViewProfile]=useState(null);
   const [viewGym,setViewGym]=useState(null);
@@ -1100,6 +1101,7 @@ export default function App(){
   }
 
   async function loadMatches(s,myP){
+    setMatchesLoading(true);
     try{
       const m=await dbSelect('matches','or=(profile_a_id.eq.'+myP.id+',profile_b_id.eq.'+myP.id+')',s.token);
       if(!Array.isArray(m)||m.length===0)return;
@@ -1113,6 +1115,7 @@ export default function App(){
       }));
       setDbMatches(enriched);
     }catch(e){console.error('loadMatches error',e);}
+    finally{setMatchesLoading(false);}
   }
 
   useEffect(()=>{
@@ -1613,15 +1616,27 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         {tab==='chat'&&(
           <div style={{padding:'14px',maxWidth:420,margin:'0 auto'}}>
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:14}}>NACHRICHTEN</div>
-            {dbMatches.length===0?(
+            {matchesLoading?(
+              <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                {[1,2,3].map(i=>(
+                  <div key={i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:13,padding:'13px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:12,opacity:1-i*0.2}}>
+                    <div style={{width:54,height:54,borderRadius:'50%',background:darkMode?'#2a2a2a':'#f0f0f0',flexShrink:0,animation:'pulse 1.5s infinite'}}/>
+                    <div style={{flex:1,display:'flex',flexDirection:'column',gap:7}}>
+                      <div style={{height:14,borderRadius:7,background:darkMode?'#2a2a2a':'#f0f0f0',width:'60%',animation:'pulse 1.5s infinite'}}/>
+                      <div style={{height:10,borderRadius:5,background:darkMode?'#222':'#f5f5f5',width:'40%',animation:'pulse 1.5s infinite'}}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ):dbMatches.length===0?(
               <div style={{textAlign:'center',padding:'48px 24px',display:'flex',flexDirection:'column',alignItems:'center',gap:10}}>
-                <div style={{width:80,height:80,borderRadius:20,background:'linear-gradient(135deg,#c0392b22,#c0392b11)',border:'2px solid #c0392b33',display:'flex',alignItems:'center',justifyContent:'center',fontSize:36,marginBottom:4}}>💬</div>
-                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:2}}>KEINE MATCHES</div>
-                <div style={{color:'#aaa',fontSize:13,lineHeight:1.6,maxWidth:280}}>Du hast noch keine Matches. Swipe rechts auf Fighter die du herausfordern möchtest!</div>
-                <button onClick={()=>setTab('fight')} style={{marginTop:8,padding:'12px 28px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
+                <div style={{fontSize:70,marginBottom:4}}>🥊</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:2}}>NOCH KEINE MATCHES</div>
+                <div style={{color:'#aaa',fontSize:13,lineHeight:1.8,maxWidth:260,textAlign:'center'}}>Swipe rechts auf Fighter die du herausfordern möchtest — bei gegenseitigem Match könnt ihr direkt chatten!</div>
+                <button onClick={()=>setTab('swipe')} style={{marginTop:10,padding:'14px 32px',borderRadius:12,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:17,letterSpacing:2,cursor:'pointer',boxShadow:'0 4px 16px rgba(192,57,43,0.3)'}}>
                   ⚔️ JETZT SWIPEN
                 </button>
-                <div style={{color:'#ccc',fontSize:11,marginTop:4}}>Neue Fighter kommen täglich hinzu</div>
+                <div style={{color:'#ddd',fontSize:11,marginTop:2}}>Neue Fighter kommen täglich hinzu</div>
               </div>
             ):(
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
