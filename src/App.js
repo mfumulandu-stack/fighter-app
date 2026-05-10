@@ -1104,7 +1104,7 @@ export default function App(){
     setMatchesLoading(true);
     try{
       const m=await dbSelect('matches','or=(profile_a_id.eq.'+myP.id+',profile_b_id.eq.'+myP.id+')',s.token);
-      if(!Array.isArray(m)||m.length===0)return;
+      if(!Array.isArray(m)||m.length===0){setDbMatches([]);return;}
       const allProfiles=await dbSelect('profiles','',s.token);
       const profileMap={};
       if(Array.isArray(allProfiles))allProfiles.forEach(p=>{profileMap[p.id]=p;});
