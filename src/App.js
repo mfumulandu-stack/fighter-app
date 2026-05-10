@@ -1063,6 +1063,7 @@ export default function App(){
 
   const filteredCards=cards.filter(f=>!blockedUsers.includes(f.id)).filter(f=>filterStyle==='Alle'||f.style===filterStyle).filter(f=>!filterCity||(f.city||'').toLowerCase().includes(filterCity.toLowerCase()));
   const top=filteredCards[filteredCards.length-1];
+  const lastTapRef=useRef(0);
   function dragStart(e){const p=e.touches?e.touches[0]:e;setStart({x:p.clientX,y:p.clientY});setDrag(true);}
   function dragMove(e){if(!drag)return;const p=e.touches?e.touches[0]:e;setOffset({x:p.clientX-start.x,y:p.clientY-start.y});}
   function dragEnd(){if(!drag)return;setDrag(false);if(offset.x>SW)doSwipe('ch');else if(offset.x<-SW)doSwipe('de');else setOffset({x:0,y:0});}
@@ -1281,15 +1282,31 @@ export default function App(){
             </div>
             <div style={{position:'relative',width:330,height:430,flexShrink:0}}>
               {cards.length===0?(
-                <div style={{width:'100%',height:'100%',borderRadius:16,background:'#fff',border:'2px dashed #ddd',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:11}}>
-                  <div style={{fontSize:46}}>🏆</div>
-                  <div className='rj' style={{color:'#1a1a1a',fontSize:24,letterSpacing:2}}>ALLE GESEHEN</div>
-                  <button onClick={()=>{setCards([...FIGHTERS]);setSwStats({ch:0,de:0});}} style={{marginTop:6,padding:'9px 22px',borderRadius:6,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer'}}>Nochmal</button>
+                <div style={{width:'100%',height:'100%',borderRadius:20,background:'linear-gradient(160deg,#1a1a1a 0%,#2d1a1a 100%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:'30px 24px',textAlign:'center'}}>
+                  <div style={{fontSize:64,marginBottom:4}}>🏆</div>
+                  <div className='rj' style={{color:'#fff',fontSize:26,letterSpacing:3,lineHeight:1}}>ALLE FIGHTER</div>
+                  <div className='rj' style={{color:RED,fontSize:26,letterSpacing:3,lineHeight:1}}>GESEHEN</div>
+                  <div style={{color:'rgba(255,255,255,0.5)',fontSize:13,marginTop:6,lineHeight:1.6}}>Du hast alle verfügbaren Fighter durchgesehen. Neue Kämpfer kommen täglich hinzu!</div>
+                  <div style={{display:'flex',gap:12,marginTop:8,width:'100%'}}>
+                    <button onClick={()=>{setCards([...FIGHTERS]);setSwStats({ch:0,de:0});}} style={{flex:1,padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1,cursor:'pointer'}}>
+                      🔄 NOCHMAL
+                    </button>
+                    <button onClick={()=>setTab('chat')} style={{flex:1,padding:'12px',borderRadius:10,background:'rgba(255,255,255,0.1)',color:'#fff',border:'1px solid rgba(255,255,255,0.2)',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1,cursor:'pointer'}}>
+                      💬 CHATS
+                    </button>
+                  </div>
+                  <div style={{color:'rgba(255,255,255,0.3)',fontSize:11,marginTop:4}}>Tipp: Doppel-Tap auf eine Karte = Profil ansehen</div>
                 </div>
               ):cards.map((f,idx)=>{
                 const isTop=idx===cards.length-1;const isSec=idx===cards.length-2;const fA=f.accent||'#c0392b';
                 return(
-                  <div key={f.id} onMouseDown={isTop?dragStart:undefined} onTouchStart={isTop?dragStart:undefined}
+                  <div key={f.id} onMouseDown={isTop?dragStart:undefined} onTouchStart={e=>{
+                      if(isTop){
+                        const now=Date.now();
+                        if(now-lastTapRef.current<300){setViewProfile(f);lastTapRef.current=0;}
+                        else{lastTapRef.current=now;dragStart(e);}
+                      }
+                    }}
                     style={{position:'absolute',inset:0,borderRadius:16,background:'#111',boxShadow:isTop?'0 8px 32px rgba(0,0,0,0.2)':'none',cursor:isTop?'grab':'default',zIndex:isTop?10:isSec?5:1,transform:isTop?cStyle.transform:isSec?'scale(0.96) translateY(10px)':'scale(0.92) translateY(20px)',transition:isTop?cStyle.transition:'none',overflow:'hidden',userSelect:'none'}}>
                     {f.avatar_url
                       ?<img src={f.avatar_url} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}} alt={f.name}/>
@@ -1299,6 +1316,10 @@ export default function App(){
                     {isTop&&(<>
                       <div style={{position:'absolute',top:22,left:18,border:'3px solid #27ae60',borderRadius:6,padding:'3px 12px',color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:26,letterSpacing:3,transform:'rotate(-18deg)',opacity:fop,transition:drag?'none':'opacity 0.12s'}}>FIGHT</div>
                       <div style={{position:'absolute',top:22,right:18,border:'3px solid '+RED,borderRadius:6,padding:'3px 12px',color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:26,letterSpacing:3,transform:'rotate(18deg)',opacity:pop,transition:drag?'none':'opacity 0.12s'}}>PASS</div>
+                      <div onClick={e=>{e.stopPropagation();setViewProfile(f);}} style={{position:'absolute',top:14,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.45)',borderRadius:20,padding:'4px 12px',display:'flex',alignItems:'center',gap:5,cursor:'pointer',backdropFilter:'blur(4px)'}}>
+                        <span style={{fontSize:12}}>👁</span>
+                        <span style={{color:'rgba(255,255,255,0.85)',fontSize:10,fontWeight:600,letterSpacing:0.5}}>Profil ansehen</span>
+                      </div>
                     </>)}
                     <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'12px 16px 16px'}}> 
                       <div style={{display:'flex',gap:8,marginBottom:8}}>
@@ -1367,10 +1388,14 @@ export default function App(){
           <div style={{padding:'14px',maxWidth:420,margin:'0 auto'}}>
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:14}}>NACHRICHTEN</div>
             {dbMatches.length===0?(
-              <div style={{textAlign:'center',padding:'40px 20px',color:'#bbb'}}>
-                <div style={{fontSize:48,marginBottom:12}}>💬</div>
-                <div style={{fontWeight:700,fontSize:15}}>Noch keine Matches</div>
-                <div style={{fontSize:12,marginTop:6}}>Swipe rechts um Fighter zu matchen!</div>
+              <div style={{textAlign:'center',padding:'48px 24px',display:'flex',flexDirection:'column',alignItems:'center',gap:10}}>
+                <div style={{width:80,height:80,borderRadius:20,background:'linear-gradient(135deg,#c0392b22,#c0392b11)',border:'2px solid #c0392b33',display:'flex',alignItems:'center',justifyContent:'center',fontSize:36,marginBottom:4}}>💬</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:2}}>KEINE MATCHES</div>
+                <div style={{color:'#aaa',fontSize:13,lineHeight:1.6,maxWidth:280}}>Du hast noch keine Matches. Swipe rechts auf Fighter die du herausfordern möchtest!</div>
+                <button onClick={()=>setTab('fight')} style={{marginTop:8,padding:'12px 28px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
+                  ⚔️ JETZT SWIPEN
+                </button>
+                <div style={{color:'#ccc',fontSize:11,marginTop:4}}>Neue Fighter kommen täglich hinzu</div>
               </div>
             ):(
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
