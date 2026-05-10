@@ -2080,8 +2080,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               </div>
             )}
             <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:11,textAlign:'center',boxShadow:'0 1px 4px rgba(0,0,0,0.06)',position:'relative'}}>
-              <button onClick={()=>{setEditProfile({});setEditMode(true);}} style={{position:'absolute',top:12,right:12,background:darkMode?'#2a2a2a':'#f5f5f5',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),borderRadius:8,padding:'5px 10px',color:darkMode?'#fff':'#555',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'DM Sans,sans-serif'}}>
-                ✏️ Bearbeiten
+              <button onClick={()=>{setEditProfile({});setEditMode(true);}} style={{position:'absolute',top:12,right:12,background:'none',border:'none',color:darkMode?'#666':'#aaa',fontSize:20,cursor:'pointer',padding:'4px 8px',letterSpacing:2}}>
+                ···
               </button>
               <div style={{position:'relative',display:'inline-block',marginBottom:10}}>
                 <label style={{cursor:'pointer'}}>
