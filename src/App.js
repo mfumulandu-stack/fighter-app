@@ -436,10 +436,22 @@ function AuthScreen({ onSession }) {
     setLoading(true);setErr('');setInfo('');
     if(mode==='register'){
       const r=await authSignUp(email,password);
-      if(r.error)setErr(r.error.message||'Fehler');
-      else if(r.session)onSession({token:r.session.access_token,userId:r.user.id});
-      else if(r.user&&!r.session){setInfo('✅ Bestätigungsmail gesendet! Bitte prüfe dein Postfach und klicke den Bestätigungslink.');setMode('login');}
-      else setErr(r.msg||'Registrierung fehlgeschlagen');
+      if(r.error){
+        if(r.error.message?.includes('already registered')||r.error.message?.includes('already been registered')){
+          setErr('Diese E-Mail ist bereits registriert. Bitte einloggen.');setMode('login');
+        }else{
+          setErr(r.error.message||'Registrierung fehlgeschlagen');
+        }
+      }else if(r.session&&r.session.access_token){
+        onSession({token:r.session.access_token,userId:r.user.id});
+      }else if(r.user&&!r.session){
+        setInfo('✅ Bestätigungsmail gesendet an '+email+'! Bitte E-Mail öffnen und Link klicken, dann hier einloggen.');
+        setMode('login');
+      }else if(r.access_token){
+        onSession({token:r.access_token,userId:r.user?.id});
+      }else{
+        setErr('Unbekannter Fehler bei der Registrierung');
+      }
     }else{
       const r=await authSignIn(email,password);
       if(r.error)setErr(r.error.message||'Login fehlgeschlagen');
@@ -976,7 +988,7 @@ function AGBScreen({onClose,darkMode}){
 export default function App(){
   const [session,setSession]=useState(null);
   const [authReady,setAuthReady]=useState(false);
-  const [screen,setScreen]=useState('setup');
+  const [screen,setScreen]=useState('auth');
   const [tab,setTab]=useState('swipe');
   const [step,setStep]=useState(1);
   const [saving,setSaving]=useState(false);
@@ -1030,7 +1042,7 @@ export default function App(){
   useEffect(()=>{
     async function restoreSession(){
       const saved=localStorage.getItem('fighter_v5');
-      if(!saved){setAuthReady(true);return;}
+      if(!saved){setScreen('auth');setAuthReady(true);return;}
       try{
         const s=JSON.parse(saved);
         if(!s||!s.token||!s.userId){localStorage.removeItem('fighter_v5');setAuthReady(true);return;}
@@ -1174,7 +1186,7 @@ export default function App(){
   async function handleLogout(){
     if(session)await authSignOut(session.token);
     localStorage.removeItem('fighter_v5');
-    setSession(null);setMyProfile(null);setScreen('setup');setAuthReady(true);
+    setSession(null);setMyProfile(null);setProfile({name:'',age:'',city:'',gym:'',height:'',weight:'',weightClass:'',style:'',bio:''});setStats({wins:0,losses:0,draws:0,ko:0});setAvatarUrl('');setAvatarPreview('');setScreen('auth');setAuthReady(true);
   }
 
   async function saveProfile(){
