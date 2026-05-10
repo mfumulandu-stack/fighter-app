@@ -1012,6 +1012,12 @@ export default function App(){
   const [joined,setJoined]=useState({});
   const [gymRatings,setGymRatings]=useState(()=>{try{return JSON.parse(localStorage.getItem('gymRatings')||'{}')}catch{return {}}});
   const [gymRatingInput,setGymRatingInput]=useState({});
+  const [gymSuggestions,setGymSuggestions]=useState([]);
+  const [showGymSuggestions,setShowGymSuggestions]=useState(false);
+  const [showRegisterGym,setShowRegisterGym]=useState(false);
+  const [newGymData,setNewGymData]=useState({name:'',city:'',address:'',style:''});
+  const [gymRegSent,setGymRegSent]=useState(false);
+  const ALL_GYMS_FLAT=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct})));
   const [darkMode,setDarkMode]=useState(false);
   const [showImpressum,setShowImpressum]=useState(false);
   const [showDatenschutz,setShowDatenschutz]=useState(false);
@@ -1332,8 +1338,108 @@ export default function App(){
         )}
         {step===2&&(
           <div style={{display:'flex',flexDirection:'column',gap:13}}>
-            <Lbl>Dein Gym</Lbl><Inp placeholder='z.B. Tiger Gym Berlin' value={profile.gym} onChange={v=>setProfile(p=>({...p,gym:v}))}/>
-            <Lbl>Ueber dich</Lbl><Inp placeholder='z.B. 5 Jahre Boxing Erfahrung…' value={profile.bio} onChange={v=>setProfile(p=>({...p,bio:v}))}/>
+            <Lbl>Dein Gym</Lbl>
+            <div style={{position:'relative'}}>
+              <Inp placeholder='Gym suchen…' value={profile.gym} onChange={v=>{
+                setProfile(p=>({...p,gym:v}));
+                if(v.length>=2){
+                  const q=v.toLowerCase();
+                  const matches=ALL_GYMS_FLAT.filter(g=>g.name.toLowerCase().includes(q)||g.ct.toLowerCase().includes(q));
+                  setGymSuggestions(matches.slice(0,6));
+                  setShowGymSuggestions(true);
+                }else{
+                  setShowGymSuggestions(false);
+                }
+              }}/>
+              {showGymSuggestions&&gymSuggestions.length>0&&(
+                <div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',borderRadius:10,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',border:'1px solid #eee',zIndex:100,overflow:'hidden',marginTop:4}}>
+                  {gymSuggestions.map((g,i)=>(
+                    <div key={i} onClick={()=>{setProfile(p=>({...p,gym:g.name}));setShowGymSuggestions(false);}} style={{padding:'10px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',borderBottom:i<gymSuggestions.length-1?'1px solid #f5f5f5':'none'}} onMouseEnter={e=>e.currentTarget.style.background='#fdf0ef'} onMouseLeave={e=>e.currentTarget.style.background='#fff'}>
+                      <div style={{fontSize:22,flexShrink:0}}>{g.emoji}</div>
+                      <div style={{flex:1}}>
+                        <div style={{color:'#1a1a1a',fontWeight:700,fontSize:13}}>{g.name}</div>
+                        <div style={{color:'#aaa',fontSize:11}}>📍 {g.ct} · {g.styles?.join(', ')}</div>
+                      </div>
+                      {g.code&&<div style={{color:'#27ae60',fontSize:10,fontWeight:700}}>✅ Verifizierbar</div>}
+                    </div>
+                  ))}
+                  <div onClick={()=>{setShowGymSuggestions(false);setShowRegisterGym(true);setNewGymData(d=>({...d,name:profile.gym}));}} style={{padding:'10px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',background:'#fdf8ff',borderTop:'1px solid #f0e8ff'}} onMouseEnter={e=>e.currentTarget.style.background='#f0e8ff'} onMouseLeave={e=>e.currentTarget.style.background='#fdf8ff'}>
+                    <div style={{fontSize:20}}>➕</div>
+                    <div style={{color:'#8e44ad',fontWeight:700,fontSize:13}}>Mein Gym ist nicht dabei → anmelden</div>
+                  </div>
+                </div>
+              )}
+              {showGymSuggestions&&gymSuggestions.length===0&&profile.gym.length>=2&&(
+                <div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',borderRadius:10,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',border:'1px solid #eee',zIndex:100,marginTop:4}}>
+                  <div style={{padding:'12px 14px',color:'#aaa',fontSize:13,textAlign:'center'}}>Kein Gym gefunden</div>
+                  <div onClick={()=>{setShowGymSuggestions(false);setShowRegisterGym(true);setNewGymData(d=>({...d,name:profile.gym}));}} style={{padding:'10px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',background:'#fdf8ff',borderTop:'1px solid #f0e8ff'}}>
+                    <div style={{fontSize:20}}>➕</div>
+                    <div style={{color:'#8e44ad',fontWeight:700,fontSize:13}}>"{profile.gym}" zur App anmelden</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* GYM ANMELDE-MODAL */}
+            {showRegisterGym&&(
+              <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
+                <div style={{background:'#fff',borderRadius:20,width:'100%',maxWidth:360,overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,0.25)'}}>
+                  <div style={{background:'linear-gradient(135deg,#6c3483,#8e44ad)',padding:'18px 20px'}}>
+                    <div className='rj' style={{color:'#fff',fontSize:20,letterSpacing:2}}>GYM ANMELDEN</div>
+                    <div style={{color:'rgba(255,255,255,0.65)',fontSize:11,marginTop:2}}>Dein Gym wird geprüft und hinzugefügt</div>
+                  </div>
+                  <div style={{padding:'18px 20px',display:'flex',flexDirection:'column',gap:10}}>
+                    {gymRegSent?(
+                      <div style={{textAlign:'center',padding:'20px 0'}}>
+                        <div style={{fontSize:48,marginBottom:10}}>✅</div>
+                        <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18}}>ANMELDUNG GESENDET!</div>
+                        <div style={{color:'#888',fontSize:12,marginTop:6,lineHeight:1.6}}>Wir prüfen dein Gym und fügen es innerhalb von 48h hinzu. Du bekommst eine E-Mail sobald es live ist.</div>
+                        <button onClick={()=>{setShowRegisterGym(false);setGymRegSent(false);}} style={{marginTop:16,padding:'11px 28px',borderRadius:10,background:'linear-gradient(135deg,#8e44ad,#9b59b6)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer'}}>SCHLIESSEN</button>
+                      </div>
+                    ):(
+                      <>
+                        {[
+                          ['GYM NAME *',newGymData.name,'name','z.B. Tiger Gym Berlin'],
+                          ['STADT *',newGymData.city,'city','z.B. Berlin'],
+                          ['ADRESSE',newGymData.address,'address','z.B. Müllerstraße 12'],
+                          ['KAMPFSTIL',newGymData.style,'style','z.B. Boxing, MMA'],
+                        ].map(([label,val,key,ph])=>(
+                          <div key={key}>
+                            <div style={{color:'#aaa',fontSize:9,letterSpacing:1,marginBottom:4}}>{label}</div>
+                            <input value={val} onChange={e=>setNewGymData(d=>({...d,[key]:e.target.value}))} placeholder={ph}
+                              style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #e0e0e0',background:'#f5f5f7',color:'#1a1a1a',fontSize:13,fontFamily:'DM Sans,sans-serif'}}/>
+                          </div>
+                        ))}
+                        <div style={{background:'#fdf8ff',borderRadius:8,padding:'10px',border:'1px solid #e8d5f5',marginTop:2}}>
+                          <div style={{color:'#8e44ad',fontSize:11,lineHeight:1.6}}>💡 Nach der Prüfung erscheint dein Gym in der App und du kannst dich als Mitglied verifizieren.</div>
+                        </div>
+                        <div style={{display:'flex',gap:8,marginTop:4}}>
+                          <button onClick={()=>{setShowRegisterGym(false);setGymRegSent(false);}} style={{flex:1,padding:'11px',borderRadius:10,background:'transparent',border:'1px solid #eee',color:'#aaa',fontFamily:'DM Sans,sans-serif',fontSize:13,cursor:'pointer'}}>Abbrechen</button>
+                          <button onClick={()=>{
+                            if(!newGymData.name||!newGymData.city)return;
+                            const body=`GYM ANMELDUNG
+
+Name: ${newGymData.name}
+Stadt: ${newGymData.city}
+Adresse: ${newGymData.address||'-'}
+Stil: ${newGymData.style||'-'}
+
+Angemeldet von: ${profile.name||'Unbekannt'}`;
+                            fetch('https://api.emailjs.com/api/v1.0/email/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service_id:'default_service',template_id:'template_default',user_id:'user_default',template_params:{message:body,to_email:'mfumulandu@gmail.com'}})}).catch(()=>{});
+                            setProfile(p=>({...p,gym:newGymData.name}));
+                            setGymRegSent(true);
+                          }} disabled={!newGymData.name||!newGymData.city}
+                            style={{flex:2,padding:'11px',borderRadius:10,background:newGymData.name&&newGymData.city?'linear-gradient(135deg,#8e44ad,#9b59b6)':'#eee',border:'none',color:newGymData.name&&newGymData.city?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:newGymData.name&&newGymData.city?'pointer':'not-allowed'}}>
+                            ➕ ANMELDEN
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            <Lbl>Ueber dich</Lbl><Inp placeholder='z.B. 5 Jahre Boxing Erfahrung…' value={profile.bio} onChange={v=>{setShowGymSuggestions(false);setProfile(p=>({...p,bio:v}));}} onFocus={()=>setShowGymSuggestions(false)}/>
             <Lbl>Kampfstil</Lbl>
             <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
               {STYLES.map(s=>(<button key={s} onClick={()=>setProfile(p=>({...p,style:s}))} style={{padding:'7px 13px',borderRadius:4,border:'1px solid '+(profile.style===s?RED:'#ddd'),background:profile.style===s?'#fdf0ef':'#fff',color:profile.style===s?RED:'#666',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:700,cursor:'pointer',transition:'all 0.2s'}}>{s}</button>))}
