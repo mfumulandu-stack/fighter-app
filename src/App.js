@@ -1138,11 +1138,18 @@ export default function App(){
 
   useEffect(()=>{
     async function restoreSession(){
-      const saved=localStorage.getItem('fighter_v5');
+      let saved=null;
+      try{saved=localStorage.getItem('fighter_v5');}catch{
+        // localStorage geblockt (Mac Safari Private / ITP)
+        setScreen('auth');setAuthReady(true);return;
+      }
       if(!saved){setScreen('auth');setAuthReady(true);return;}
       try{
         const s=JSON.parse(saved);
-        if(!s||!s.token||!s.userId){localStorage.removeItem('fighter_v5');setAuthReady(true);return;}
+        if(!s||!s.token||!s.userId){
+          try{localStorage.removeItem('fighter_v5');}catch{}
+          setScreen('auth');setAuthReady(true);return;
+        }
         if(s.refresh_token){
           try{
             const r=await fetch(SUPA_URL+'/auth/v1/token?grant_type=refresh_token',{
@@ -1152,7 +1159,7 @@ export default function App(){
             const data=await r.json();
             if(data.access_token){
               const newS={...s,token:data.access_token,refresh_token:data.refresh_token,expires_at:Date.now()+(3600*1000)};
-              localStorage.setItem('fighter_v5',JSON.stringify(newS));
+              try{localStorage.setItem('fighter_v5',JSON.stringify(newS));}catch{}
               setSession(newS);
               await initProfile(newS);
               return;
@@ -1161,9 +1168,12 @@ export default function App(){
         }
         setSession(s);
         await initProfile(s);
-      }catch{localStorage.removeItem('fighter_v5');setAuthReady(true);}
+      }catch{
+        try{localStorage.removeItem('fighter_v5');}catch{}
+        setScreen('auth');setAuthReady(true);
+      }
     }
-    const timeout=setTimeout(()=>{setScreen('auth');setAuthReady(true);},5000);
+    const timeout=setTimeout(()=>{setScreen('auth');setAuthReady(true);},3000);
     restoreSession().finally(()=>clearTimeout(timeout));
   },[]);
 
@@ -1217,7 +1227,7 @@ export default function App(){
         loadGymRatings(s);
         loadFightHistory(s);
       }else setScreen('setup');
-    }catch{setScreen('auth');setAuthReady(true);}
+    }catch{setScreen('auth');}
     setAuthReady(true);
   }
 
@@ -1331,7 +1341,7 @@ export default function App(){
   function handleSession(s){
     const sessionData={token:s.token,userId:s.userId,refresh_token:s.refresh_token,expires_at:Date.now()+(3600*1000)};
     setSession(sessionData);
-    localStorage.setItem('fighter_v5',JSON.stringify(sessionData));
+    try{localStorage.setItem('fighter_v5',JSON.stringify(sessionData));}catch{}
     initProfile(sessionData);
   }
 
