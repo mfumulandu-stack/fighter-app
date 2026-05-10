@@ -138,6 +138,37 @@ function getDistanceKm(city1,city2){
   const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(c1.lat*Math.PI/180)*Math.cos(c2.lat*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
   return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
 }
+const CITY_BUNDESLAND={
+  'Berlin':'Berlin','Hamburg':'Hamburg','Bremen':'Bremen',
+  'München':'Bayern','Muenchen':'Bayern','Augsburg':'Bayern','Nürnberg':'Bayern','Würzburg':'Bayern',
+  'Hamburg':'Hamburg',
+  'Köln':'Nordrhein-Westfalen','Koeln':'Nordrhein-Westfalen',
+  'Düsseldorf':'Nordrhein-Westfalen','Duesseldorf':'Nordrhein-Westfalen',
+  'Dortmund':'Nordrhein-Westfalen','Essen':'Nordrhein-Westfalen',
+  'Bochum':'Nordrhein-Westfalen','Duisburg':'Nordrhein-Westfalen',
+  'Krefeld':'Nordrhein-Westfalen','Aachen':'Nordrhein-Westfalen',
+  'Münster':'Nordrhein-Westfalen','Bonn':'Nordrhein-Westfalen',
+  'Wuppertal':'Nordrhein-Westfalen','Bielefeld':'Nordrhein-Westfalen',
+  'Frankfurt':'Hessen','Wiesbaden':'Hessen','Kassel':'Hessen','Darmstadt':'Hessen',
+  'Stuttgart':'Baden-Württemberg','Karlsruhe':'Baden-Württemberg','Freiburg':'Baden-Württemberg','Mannheim':'Baden-Württemberg','Heidelberg':'Baden-Württemberg',
+  'Hamburg':'Hamburg',
+  'Hannover':'Niedersachsen','Braunschweig':'Niedersachsen','Osnabrück':'Niedersachsen',
+  'Leipzig':'Sachsen','Dresden':'Sachsen','Chemnitz':'Sachsen',
+  'Kiel':'Schleswig-Holstein','Lübeck':'Schleswig-Holstein',
+  'Rostock':'Mecklenburg-Vorpommern','Schwerin':'Mecklenburg-Vorpommern',
+  'Erfurt':'Thüringen','Jena':'Thüringen',
+  'Halle':'Sachsen-Anhalt','Magdeburg':'Sachsen-Anhalt',
+  'Potsdam':'Brandenburg','Brandenburg':'Brandenburg',
+  'Mainz':'Rheinland-Pfalz','Koblenz':'Rheinland-Pfalz','Trier':'Rheinland-Pfalz',
+  'Saarbrücken':'Saarland',
+};
+function getBundesland(city){
+  if(!city)return null;
+  for(const [k,v] of Object.entries(CITY_BUNDESLAND)){
+    if(city.toLowerCase().includes(k.toLowerCase())||k.toLowerCase().includes(city.toLowerCase()))return v;
+  }
+  return null;
+}
 const GYMS = {
   'Berlin':[
     {name:'Tiger Gym Berlin',members:142,styles:['Boxing','Muay Thai','MMA'],rating:4.8,address:'Müllerstraße 12, 13353 Berlin-Mitte',street:'Müllerstraße 12',zip:'13353',city:'Berlin',emoji:'🐯',code:'TGB-2847',phone:'+49 30 12345678',hours:'Mo-Fr 07:00-22:00, Sa-So 09:00-18:00',desc:'Eines der ältesten und renommiertesten Kampfsportgyms Berlins. Professionelle Trainer, modernste Ausstattung und eine starke Community. Hier trainieren Anfänger und Profis Seite an Seite.',founded:2003,website:'tigergym-berlin.de'},
@@ -1081,7 +1112,6 @@ export default function App(){
   const [filterStyle,setFilterStyle]=useState('Alle');
   const [filterCity,setFilterCity]=useState('');
   const [filterWeightClass,setFilterWeightClass]=useState(true);
-  const [filterRadius,setFilterRadius]=useState(0);
   const [chatSearch,setChatSearch]=useState('');
 
   useEffect(()=>{
@@ -1349,20 +1379,20 @@ export default function App(){
 
   const myWeightClass=myProfile?.weight_class||profile?.weightClass||'';
   const myCity=myProfile?.city||profile?.city||'';
+  const myBundesland=getBundesland(myCity);
   const filteredCards=cards
     .filter(f=>!blockedUsers.includes(f.id))
     .filter(f=>!filterWeightClass||!myWeightClass||(f.weight_class||f.weightClass||'')===(myWeightClass))
     .filter(f=>filterStyle==='Alle'||f.style===filterStyle)
     .filter(f=>!filterCity||(f.city||'').toLowerCase().includes(filterCity.toLowerCase()))
     .filter(f=>{
-      if(!filterRadius||!myCity)return true;
-      const fCity=f.city||'';
-      if(fCity.toLowerCase()===myCity.toLowerCase())return true;
-      const dist=getDistanceKm(myCity,fCity);
-      return dist<=filterRadius;
+      if(!myBundesland)return true;
+      const fBundesland=getBundesland(f.city||'');
+      if(!fBundesland)return true;
+      return fBundesland===myBundesland;
     })
     .sort((a,b)=>{
-      if(!filterRadius||!myCity)return 0;
+      if(!myCity)return 0;
       const da=getDistanceKm(myCity,a.city||'');
       const db=getDistanceKm(myCity,b.city||'');
       return da-db;
@@ -1701,24 +1731,17 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   </div>
                 </div>
               )}
-              {/* UMKREIS FILTER */}
-              <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'9px 12px',border:'1px solid '+(filterRadius>0?'#2980b9':(darkMode?'#2a2a2a':'#eee'))}}>
-                <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:filterRadius>0?6:0}}>
-                  <div style={{fontSize:16}}>📍</div>
+              {/* BUNDESLAND INFO — nur anzeigen, kein Toggle */}
+              {myBundesland&&(
+                <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'8px 12px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{fontSize:15}}>📍</div>
                   <div style={{flex:1}}>
-                    <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700}}>Umkreis {filterRadius>0?filterRadius+'km':'— Alle'}</div>
-                    <div style={{color:'#aaa',fontSize:10}}>{myCity?'von '+myCity:'Stadt im Profil eintragen'}</div>
+                    <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700}}>{myBundesland}</div>
+                    <div style={{color:'#aaa',fontSize:10}}>Alle Fighter in deinem Bundesland · nächste zuerst</div>
                   </div>
-                  {filterRadius>0&&<div onClick={()=>setFilterRadius(0)} style={{color:'#2980b9',fontSize:10,fontWeight:700,cursor:'pointer'}}>Alle</div>}
+                  <div style={{color:'#27ae60',fontSize:10,fontWeight:700}}>AUTO ✓</div>
                 </div>
-                <div style={{display:'flex',gap:5}}>
-                  {[0,50,100,200,500].map(r=>(
-                    <button key={r} onClick={()=>setFilterRadius(r)} style={{flex:1,padding:'5px 2px',borderRadius:7,background:filterRadius===r?'#2980b9':(darkMode?'#111':'#f5f5f5'),border:'1px solid '+(filterRadius===r?'#2980b9':(darkMode?'#2a2a2a':'#e0e0e0')),color:filterRadius===r?'#fff':(darkMode?'#888':'#666'),fontSize:10,fontWeight:700,cursor:'pointer'}}>
-                      {r===0?'Alle':r+'km'}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              )}
             </div>
             <div style={{position:'relative',width:330,height:430,flexShrink:0}}>
               {cards.length===0?(
@@ -1726,7 +1749,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   <div style={{fontSize:64,marginBottom:4}}>🏆</div>
                   <div className='rj' style={{color:'#fff',fontSize:26,letterSpacing:3,lineHeight:1}}>ALLE FIGHTER</div>
                   <div className='rj' style={{color:RED,fontSize:26,letterSpacing:3,lineHeight:1}}>GESEHEN</div>
-                  <div style={{color:'rgba(255,255,255,0.5)',fontSize:13,marginTop:6,lineHeight:1.6}}>{filterWeightClass&&myWeightClass?`Keine weiteren ${myWeightClass} Fighter gefunden. Schalte den Gewichtsklassen-Filter aus um alle zu sehen.`:'Du hast alle verfügbaren Fighter durchgesehen. Neue Kämpfer kommen täglich hinzu!'}</div>
+                  <div style={{color:'rgba(255,255,255,0.5)',fontSize:13,marginTop:6,lineHeight:1.6}}>{filterWeightClass&&myWeightClass?`Keine ${myWeightClass} Fighter in ${myBundesland||'deiner Region'} gefunden.`:`Alle Fighter in ${myBundesland||'deiner Region'} wurden gesehen! Neue Kämpfer kommen täglich.`}</div>
                   <div style={{display:'flex',gap:12,marginTop:8,width:'100%'}}>
                     <button onClick={()=>{setCards([...FIGHTERS]);setSwStats({ch:0,de:0});}} style={{flex:1,padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1,cursor:'pointer'}}>
                       🔄 NOCHMAL
@@ -1778,7 +1801,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                           <div style={{display:'flex',gap:5,marginTop:6,flexWrap:'wrap'}}>
                             {f.style&&<div style={{background:fA,borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{f.style}</div>}
                             {(f.weight_class||f.weightClass)&&<div style={{background:(f.weight_class||f.weightClass)===myWeightClass?'rgba(211,84,0,0.7)':'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:(f.weight_class||f.weightClass)===myWeightClass?700:400}}>⚖️ {(f.weight_class||f.weightClass||'').split(' (')[0]}{(f.weight_class||f.weightClass)===myWeightClass?' ✓':''}</div>}
-                            {f.city&&<div style={{background:'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>📍 {f.city}{myCity&&f.city!==myCity&&getDistanceKm(myCity,f.city)<999?' · '+getDistanceKm(myCity,f.city)+'km':''}</div>}
+                            {f.city&&<div style={{background:'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>📍 {f.city}{myCity&&f.city&&f.city.toLowerCase()!==myCity.toLowerCase()&&getDistanceKm(myCity,f.city)<500?' · '+getDistanceKm(myCity,f.city)+'km':''}</div>}
                           </div>
                           {f.bio&&<div style={{color:'rgba(255,255,255,0.5)',fontSize:10,marginTop:5,fontStyle:'italic'}}>"{f.bio}"</div>}
                         </div>
