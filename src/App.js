@@ -1038,6 +1038,7 @@ export default function App(){
   const [rankMode,setRankMode]=useState('user');
   const [filterStyle,setFilterStyle]=useState('Alle');
   const [filterCity,setFilterCity]=useState('');
+  const [filterWeightClass,setFilterWeightClass]=useState(true);
 
   useEffect(()=>{
     async function restoreSession(){
@@ -1216,7 +1217,12 @@ export default function App(){
     setUploading(false);
   }
 
-  const filteredCards=cards.filter(f=>!blockedUsers.includes(f.id)).filter(f=>filterStyle==='Alle'||f.style===filterStyle).filter(f=>!filterCity||(f.city||'').toLowerCase().includes(filterCity.toLowerCase()));
+  const myWeightClass=myProfile?.weight_class||profile?.weightClass||'';
+  const filteredCards=cards
+    .filter(f=>!blockedUsers.includes(f.id))
+    .filter(f=>!filterWeightClass||!myWeightClass||(f.weight_class||f.weightClass||'')===(myWeightClass))
+    .filter(f=>filterStyle==='Alle'||f.style===filterStyle)
+    .filter(f=>!filterCity||(f.city||'').toLowerCase().includes(filterCity.toLowerCase()));
   const top=filteredCards[filteredCards.length-1];
   const lastTapRef=useRef(0);
   function dragStart(e){const p=e.touches?e.touches[0]:e;setStart({x:p.clientX,y:p.clientY});setDrag(true);}
@@ -1536,13 +1542,26 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               </div>
               <div style={{color:'#aaa',fontSize:10,textAlign:'right'}}>{profile.height}cm<br/>{profile.weight}kg</div>
             </div>
+            {/* GEWICHTSKLASSEN TOGGLE */}
+            {myWeightClass&&(
+              <div style={{width:'calc(100% - 24px)',maxWidth:380,margin:'0 0 8px',display:'flex',alignItems:'center',gap:9,background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'8px 12px',border:'1px solid '+(filterWeightClass?'#d35400':(darkMode?'#2a2a2a':'#eee'))}}>
+                <div style={{fontSize:16}}>⚖️</div>
+                <div style={{flex:1}}>
+                  <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700}}>{myWeightClass}</div>
+                  <div style={{color:'#aaa',fontSize:10}}>{filterWeightClass?'Nur meine Gewichtsklasse anzeigen':'Alle Gewichtsklassen anzeigen'}</div>
+                </div>
+                <div onClick={()=>setFilterWeightClass(v=>!v)} style={{width:42,height:24,borderRadius:12,background:filterWeightClass?'#d35400':'#ccc',position:'relative',cursor:'pointer',flexShrink:0}}>
+                  <div style={{position:'absolute',top:3,left:filterWeightClass?21:3,width:18,height:18,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 3px rgba(0,0,0,0.25)'}}/>
+                </div>
+              </div>
+            )}
             <div style={{position:'relative',width:330,height:430,flexShrink:0}}>
               {cards.length===0?(
                 <div style={{width:'100%',height:'100%',borderRadius:20,background:'linear-gradient(160deg,#1a1a1a 0%,#2d1a1a 100%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:'30px 24px',textAlign:'center'}}>
                   <div style={{fontSize:64,marginBottom:4}}>🏆</div>
                   <div className='rj' style={{color:'#fff',fontSize:26,letterSpacing:3,lineHeight:1}}>ALLE FIGHTER</div>
                   <div className='rj' style={{color:RED,fontSize:26,letterSpacing:3,lineHeight:1}}>GESEHEN</div>
-                  <div style={{color:'rgba(255,255,255,0.5)',fontSize:13,marginTop:6,lineHeight:1.6}}>Du hast alle verfügbaren Fighter durchgesehen. Neue Kämpfer kommen täglich hinzu!</div>
+                  <div style={{color:'rgba(255,255,255,0.5)',fontSize:13,marginTop:6,lineHeight:1.6}}>{filterWeightClass&&myWeightClass?`Keine weiteren ${myWeightClass} Fighter gefunden. Schalte den Gewichtsklassen-Filter aus um alle zu sehen.`:'Du hast alle verfügbaren Fighter durchgesehen. Neue Kämpfer kommen täglich hinzu!'}</div>
                   <div style={{display:'flex',gap:12,marginTop:8,width:'100%'}}>
                     <button onClick={()=>{setCards([...FIGHTERS]);setSwStats({ch:0,de:0});}} style={{flex:1,padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1,cursor:'pointer'}}>
                       🔄 NOCHMAL
@@ -1593,7 +1612,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                           </div>
                           <div style={{display:'flex',gap:5,marginTop:6,flexWrap:'wrap'}}>
                             {f.style&&<div style={{background:fA,borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{f.style}</div>}
-                            {(f.weight_class||f.weightClass)&&<div style={{background:'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>{(f.weight_class||f.weightClass||'').split(' (')[0]}</div>}
+                            {(f.weight_class||f.weightClass)&&<div style={{background:(f.weight_class||f.weightClass)===myWeightClass?'rgba(211,84,0,0.7)':'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:(f.weight_class||f.weightClass)===myWeightClass?700:400}}>⚖️ {(f.weight_class||f.weightClass||'').split(' (')[0]}{(f.weight_class||f.weightClass)===myWeightClass?' ✓':''}</div>}
                             {f.city&&<div style={{background:'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>📍 {f.city}</div>}
                           </div>
                           {f.bio&&<div style={{color:'rgba(255,255,255,0.5)',fontSize:10,marginTop:5,fontStyle:'italic'}}>"{f.bio}"</div>}
