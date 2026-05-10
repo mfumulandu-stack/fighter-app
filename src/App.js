@@ -220,7 +220,7 @@ const SPORTS = {
   'Kampfsport':{color:'#c0392b',emoji:'🥋',games:[{id:1,title:'Open Mat BJJ',location:'Tiger Gym Berlin',time:'So 11:00',cur:8,max:20,level:'Alle',host:'Kai M.'},{id:2,title:'Boxing Sparring',location:'Berserker BC',time:'Do 19:00',cur:3,max:10,level:'Mittel',host:'Felix W.'}]},
 };
 
-const SW=80, RED='#c0392b', LIGHT_RED='#e74c3c';
+const SW=60, RED='#c0392b', LIGHT_RED='#e74c3c';
 const css=`
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -1141,7 +1141,8 @@ export default function App(){
         await initProfile(s);
       }catch{localStorage.removeItem('fighter_v5');setAuthReady(true);}
     }
-    restoreSession();
+    const timeout=setTimeout(()=>{setScreen('auth');setAuthReady(true);},5000);
+    restoreSession().finally(()=>clearTimeout(timeout));
   },[]);
 
   async function rateGym(gymKey, stars){
@@ -1193,7 +1194,7 @@ export default function App(){
         loadMatches(s,p);
         loadGymRatings(s);
       }else setScreen('setup');
-    }catch{setScreen('setup');}
+    }catch{setScreen('auth');setAuthReady(true);}
     setAuthReady(true);
   }
 
@@ -1399,9 +1400,27 @@ export default function App(){
     });
   const top=filteredCards[filteredCards.length-1];
   const lastTapRef=useRef(0);
-  function dragStart(e){const p=e.touches?e.touches[0]:e;setStart({x:p.clientX,y:p.clientY});setDrag(true);}
-  function dragMove(e){if(!drag)return;const p=e.touches?e.touches[0]:e;setOffset({x:p.clientX-start.x,y:p.clientY-start.y});}
-  function dragEnd(){if(!drag)return;setDrag(false);if(offset.x>SW)doSwipe('ch');else if(offset.x<-SW)doSwipe('de');else setOffset({x:0,y:0});}
+  function dragStart(e){
+    if(e.touches)e.preventDefault();
+    const p=e.touches?e.touches[0]:e;
+    setStart({x:p.clientX,y:p.clientY});
+    setDrag(true);
+  }
+  function dragMove(e){
+    if(!drag)return;
+    if(e.touches)e.preventDefault();
+    const p=e.touches?e.touches[0]:e;
+    const dx=p.clientX-start.x;
+    const dy=p.clientY-start.y;
+    if(Math.abs(dx)>Math.abs(dy))setOffset({x:dx,y:dy*0.3});
+  }
+  function dragEnd(e){
+    if(!drag)return;
+    setDrag(false);
+    if(offset.x>SW)doSwipe('ch');
+    else if(offset.x<-SW)doSwipe('de');
+    else setOffset({x:0,y:0});
+  }
 
   async function doSwipe(dir){
     if(!top)return;
@@ -1508,7 +1527,16 @@ export default function App(){
     </div>
   );
 
-  if(!authReady)return(<div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',alignItems:'center',justifyContent:'center'}}><style>{css}</style><div className='rj' style={{fontSize:32,color:'#1a1a1a',letterSpacing:4}}>FIGHTER</div></div>);
+  if(!authReady)return(
+    <div style={{minHeight:'100vh',background:'#0d0d0d',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16}}>
+      <style>{css}</style>
+      <svg width="120" height="50" viewBox="0 0 120 50" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="tl" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#d35400"/><stop offset="100%" stopColor="#f0a070"/></linearGradient></defs>
+        <text x="60" y="36" textAnchor="middle" fontFamily="Arial Black,sans-serif" fontWeight="900" fontSize="32" letterSpacing="4" fill="url(#tl)">FIGHTER</text>
+      </svg>
+      <div style={{width:40,height:3,background:'#d35400',borderRadius:2,opacity:0.6}}/>
+    </div>
+  );
   if(!session)return <AuthScreen onSession={handleSession}/>;
   if(activeChat&&myProfile&&!viewProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>{setViewProfile(p);}}/></>);
 
@@ -1733,7 +1761,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               )}
 
             </div>
-            <div style={{position:'relative',width:330,height:430,flexShrink:0}}>
+            <div style={{position:'relative',width:330,height:430,flexShrink:0,touchAction:'none'}}>
               {cards.length===0?(
                 <div style={{width:'100%',height:'100%',borderRadius:20,background:'linear-gradient(160deg,#1a1a1a 0%,#2d1a1a 100%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:'30px 24px',textAlign:'center'}}>
                   <div style={{fontSize:64,marginBottom:4}}>🏆</div>
