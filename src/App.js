@@ -856,6 +856,23 @@ Ort: ${ort}
 
 Bis dann! 🥊`;
                           await fetch(SUPA_URL+'/rest/v1/messages',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=minimal'},body:JSON.stringify({match_id:match.id,sender_id:myProfileId,content:reply})});
+                          try{
+                            await fetch(SUPA_URL+'/rest/v1/fight_history',{
+                              method:'POST',
+                              headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=minimal'},
+                              body:JSON.stringify({
+                                user_id:myProfileId,
+                                opponent_id:other?.id||null,
+                                opponent_name:other?.name||'Unbekannt',
+                                opponent_style:other?.style||'',
+                                fight_type:typ||'Sparring',
+                                fight_date:datum||'',
+                                location:ort||'',
+                                status:'angenommen',
+                                result:'ausstehend'
+                              })
+                            });
+                          }catch(e){console.error('fight_history',e);}
                         }} style={{flex:1,padding:'9px',borderRadius:9,background:'linear-gradient(135deg,#27ae60,#2ecc71)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
                           ✅ ANNEHMEN
                         </button>
@@ -1086,6 +1103,7 @@ export default function App(){
   const [viewGym,setViewGym]=useState(null);
   const [blockedUsers,setBlockedUsers]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_blocked')||'[]')}catch{return []}});
   const [gymVerified,setGymVerified]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_gym_verified')||'null')}catch{return null}});
+  const [fightHistory,setFightHistory]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_history')||'[]')}catch{return []}});
   const [showGymVerify,setShowGymVerify]=useState(false);
   const [gymCodeInput,setGymCodeInput]=useState('');
   const [gymVerifyError,setGymVerifyError]=useState('');
@@ -1193,6 +1211,7 @@ export default function App(){
         loadRealFighters(s,p);
         loadMatches(s,p);
         loadGymRatings(s);
+        loadFightHistory(s);
       }else setScreen('setup');
     }catch{setScreen('auth');setAuthReady(true);}
     setAuthReady(true);
@@ -1207,6 +1226,16 @@ export default function App(){
       const fresh=all.filter(f=>!swipedIds.includes(f.id));
       if(fresh.length>0)setCards([...fresh.filter(f=>!f.isPro),...FIGHTERS]);
     }catch{}
+  }
+
+  async function loadFightHistory(s){
+    try{
+      const data=await dbSelect('fight_history','user_id=eq.'+s.userId+'&order=created_at.desc',s.token);
+      if(Array.isArray(data)){
+        setFightHistory(data);
+        localStorage.setItem('fighter_history',JSON.stringify(data));
+      }
+    }catch(e){console.error('loadFightHistory',e);}
   }
 
   async function loadGymRatings(s){
@@ -1333,7 +1362,7 @@ export default function App(){
         showMsg('Gespeichert! ✓');
       }else{
         const res=await dbInsert('profiles',d,session.token);
-        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg('Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);loadGymRatings(session);}
+        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg('Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);loadGymRatings(session);loadFightHistory(session);}
         else showMsg('Fehler: '+(JSON.stringify(res)||'unbekannt'));
       }
     }catch{showMsg('Netzwerkfehler');}
@@ -2020,6 +2049,60 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <div style={{color:gymVerified?'#27ae60':'#aaa',fontSize:11,marginTop:1}}>{gymVerified?gymVerified.gymName+' · '+gymVerified.gymCity:'Gym-Code eingeben → Badge erhalten'}</div>
               </div>
               <div style={{color:'#bbb',fontSize:18}}>›</div>
+            </div>
+            {/* KAMPF-HISTORIE */}
+            <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:10}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,letterSpacing:2}}>⚔️ KAMPF-HISTORIE</div>
+                <div style={{color:'#aaa',fontSize:10}}>{fightHistory.length} Kämpfe</div>
+              </div>
+              {fightHistory.length===0?(
+                <div style={{textAlign:'center',padding:'16px 0'}}>
+                  <div style={{fontSize:28,marginBottom:6}}>🥊</div>
+                  <div style={{color:'#bbb',fontSize:12}}>Noch keine Kämpfe</div>
+                  <div style={{color:'#ccc',fontSize:10,marginTop:3}}>Nimm einen Fight Request an → erscheint hier</div>
+                </div>
+              ):(
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {fightHistory.slice(0,10).map((f,i)=>{
+                    const resultColor=f.result==='sieg'?'#27ae60':f.result==='niederlage'?RED:f.result==='unentschieden'?'#d4a017':'#aaa';
+                    const resultLabel=f.result==='sieg'?'SIEG':f.result==='niederlage'?'NIEDERLAGE':f.result==='unentschieden'?'UNENTSCH':'AUSSTEHEND';
+                    return(
+                      <div key={f.id||i} style={{background:darkMode?'#111':'#f9f9f9',borderRadius:10,padding:'11px 12px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:10}}>
+                        <div style={{width:36,height:36,borderRadius:8,background:resultColor+'18',border:'1px solid '+resultColor+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0}}>
+                          {f.result==='sieg'?'🏆':f.result==='niederlage'?'💪':f.result==='unentschieden'?'🤝':'⏳'}
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>vs. {f.opponent_name}</div>
+                          <div style={{color:'#aaa',fontSize:10,marginTop:1}}>{f.fight_type} · {f.fight_date} · {f.location||'Ort offen'}</div>
+                        </div>
+                        <div style={{flexShrink:0,textAlign:'right'}}>
+                          <div style={{background:resultColor+'22',border:'1px solid '+resultColor+'44',borderRadius:6,padding:'2px 7px',color:resultColor,fontSize:9,fontWeight:700}}>{resultLabel}</div>
+                          {f.result==='ausstehend'&&(
+                            <div style={{display:'flex',gap:3,marginTop:4}}>
+                              {['sieg','niederlage','unentschieden'].map(r=>(
+                                <button key={r} onClick={async()=>{
+                                  try{
+                                    await fetch(SUPA_URL+'/rest/v1/fight_history?id=eq.'+f.id,{
+                                      method:'PATCH',
+                                      headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+                                      body:JSON.stringify({result:r})
+                                    });
+                                    setFightHistory(h=>h.map(x=>x.id===f.id?{...x,result:r}:x));
+                                    showMsg(r==='sieg'?'🏆 Sieg eingetragen!':r==='niederlage'?'💪 Niederlage eingetragen':'🤝 Unentschieden eingetragen');
+                                  }catch(e){}
+                                }} style={{padding:'2px 4px',borderRadius:4,background:'transparent',border:'1px solid #ddd',color:'#888',fontSize:7,cursor:'pointer',fontWeight:700}}>
+                                  {r==='sieg'?'S':r==='niederlage'?'N':'U'}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             {/* EINSTELLUNGEN */}
             <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginTop:10}}>
