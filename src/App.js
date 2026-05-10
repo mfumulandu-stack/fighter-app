@@ -1070,7 +1070,7 @@ export default function App(){
     restoreSession();
   },[]);
 
-  function rateGym(gymKey, stars){
+  async function rateGym(gymKey, stars){
     const newRatings={...gymRatings};
     if(!newRatings[gymKey])newRatings[gymKey]={total:0,count:0,userRating:0};
     const old=newRatings[gymKey].userRating||0;
@@ -1081,6 +1081,26 @@ export default function App(){
     setGymRatings(newRatings);
     localStorage.setItem('gymRatings',JSON.stringify(newRatings));
     showMsg('Bewertung gespeichert! '+('⭐'.repeat(stars)));
+    // In Supabase speichern
+    if(session){
+      try{
+        // Upsert: wenn bereits bewertet → update, sonst insert
+        const existing=await dbSelect('gym_ratings','user_id=eq.'+session.userId+'&gym_key=eq.'+encodeURIComponent(gymKey),session.token);
+        if(Array.isArray(existing)&&existing.length>0){
+          await fetch(SUPA_URL+'/rest/v1/gym_ratings?id=eq.'+existing[0].id,{
+            method:'PATCH',
+            headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+            body:JSON.stringify({stars,updated_at:new Date().toISOString()})
+          });
+        }else{
+          await fetch(SUPA_URL+'/rest/v1/gym_ratings',{
+            method:'POST',
+            headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+            body:JSON.stringify({user_id:session.userId,gym_key:gymKey,stars})
+          });
+        }
+      }catch(e){console.error('rateGym Supabase error',e);}
+    }
   }
 
   function showMsg(text){setMsg(text);setTimeout(()=>setMsg(''),3000);}
@@ -1097,6 +1117,7 @@ export default function App(){
         setScreen('main');
         loadRealFighters(s,p);
         loadMatches(s,p);
+        loadGymRatings(s);
       }else setScreen('setup');
     }catch{setScreen('setup');}
     setAuthReady(true);
@@ -1111,6 +1132,42 @@ export default function App(){
       const fresh=all.filter(f=>!swipedIds.includes(f.id));
       if(fresh.length>0)setCards([...fresh.filter(f=>!f.isPro),...FIGHTERS]);
     }catch{}
+  }
+
+  async function loadGymRatings(s){
+    try{
+      const data=await dbSelect('gym_ratings','user_id=eq.'+s.userId,s.token);
+      if(Array.isArray(data)&&data.length>0){
+        const merged={...gymRatings};
+        data.forEach(r=>{
+          const k=r.gym_key;
+          if(!merged[k])merged[k]={total:0,count:0,userRating:0};
+          merged[k].userRating=r.stars;
+          // Recalculate total/count from all ratings
+        });
+        // Load all ratings for avg calculation
+        const allRatings=await dbSelect('gym_ratings','',s.token);
+        const gymTotals={};
+        if(Array.isArray(allRatings)){
+          allRatings.forEach(r=>{
+            if(!gymTotals[r.gym_key])gymTotals[r.gym_key]={total:0,count:0};
+            gymTotals[r.gym_key].total+=r.stars;
+            gymTotals[r.gym_key].count+=1;
+          });
+        }
+        const final={};
+        Object.keys(gymTotals).forEach(k=>{
+          const myR=data.find(r=>r.gym_key===k);
+          final[k]={
+            total:gymTotals[k].total,
+            count:gymTotals[k].count,
+            userRating:myR?myR.stars:0
+          };
+        });
+        setGymRatings(final);
+        localStorage.setItem('gymRatings',JSON.stringify(final));
+      }
+    }catch(e){console.error('loadGymRatings',e);}
   }
 
   async function loadMatches(s,myP){
@@ -1201,19 +1258,48 @@ export default function App(){
         showMsg('Gespeichert! ✓');
       }else{
         const res=await dbInsert('profiles',d,session.token);
-        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg('Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);}
+        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg('Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);loadGymRatings(session);}
         else showMsg('Fehler: '+(JSON.stringify(res)||'unbekannt'));
       }
     }catch{showMsg('Netzwerkfehler');}
     setSaving(false);
   }
 
+  async function compressImage(file,maxSize=800,quality=0.8){
+    return new Promise(resolve=>{
+      const img=new window.Image();
+      const url=URL.createObjectURL(file);
+      img.onload=()=>{
+        let w=img.width,h=img.height;
+        if(w>maxSize||h>maxSize){
+          if(w>h){h=Math.round(h*(maxSize/w));w=maxSize;}
+          else{w=Math.round(w*(maxSize/h));h=maxSize;}
+        }
+        const canvas=document.createElement('canvas');
+        canvas.width=w;canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        canvas.toBlob(blob=>{
+          URL.revokeObjectURL(url);
+          resolve(blob||file);
+        },'image/jpeg',quality);
+      };
+      img.onerror=()=>{URL.revokeObjectURL(url);resolve(file);};
+      img.src=url;
+    });
+  }
+
   async function handlePhoto(e){
     const file=e.target.files[0];if(!file||!session)return;
-    setUploading(true);setAvatarPreview(URL.createObjectURL(file));
-    const path='fighter_'+session.userId+'_'+Date.now()+'.'+file.name.split('.').pop();
-    const url=await uploadPhoto(file,path,session.token);
-    if(url){setAvatarUrl(url);showMsg('Foto hochgeladen!');}else showMsg('Upload fehlgeschlagen');
+    setUploading(true);
+    setAvatarPreview(URL.createObjectURL(file));
+    showMsg('Foto wird komprimiert...');
+    const compressed=await compressImage(file,800,0.82);
+    const sizeMB=(compressed.size/1024/1024).toFixed(1);
+    const path='fighter_'+session.userId+'_'+Date.now()+'.jpg';
+    const url=await uploadPhoto(compressed,path,session.token);
+    if(url){setAvatarUrl(url);showMsg('Foto hochgeladen! ('+sizeMB+'MB)');}
+    else showMsg('Upload fehlgeschlagen');
     setUploading(false);
   }
 
