@@ -1113,6 +1113,7 @@ export default function App(){
   const [gymVerifyError,setGymVerifyError]=useState('');
   const GYM_CODES=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct,key:ct+'-'+g.name})));
   const [reportSent,setReportSent]=useState({});
+  const [viewProfileHistory,setViewProfileHistory]=useState([]);
   const [city,setCity]=useState('Berlin');
   const [rankF,setRankF]=useState('All');
   const [trainerF,setTrainerF]=useState('All');
@@ -1244,6 +1245,13 @@ export default function App(){
 
   async function loadFightHistory(s){
     try{
+      // history_public Status aus Profil laden
+      const profileData=await dbSelect('profiles','id=eq.'+s.userId,s.token);
+      if(Array.isArray(profileData)&&profileData[0]){
+        const hp=profileData[0].history_public===true;
+        setHistoryPublic(hp);
+        try{localStorage.setItem('fighter_history_public',String(hp));}catch{}
+      }
       const data=await dbSelect('fight_history','user_id=eq.'+s.userId+'&order=created_at.desc',s.token);
       if(Array.isArray(data)){
         setFightHistory(data);
@@ -1545,6 +1553,17 @@ export default function App(){
   if(showAGB)return(<><style>{css}</style><AGBScreen onClose={()=>setShowAGB(false)} darkMode={darkMode}/></>);
   if(showGymVerify)return(<><style>{css}</style><GymVerifyModal onClose={()=>{setShowGymVerify(false);setGymCodeInput('');setGymVerifyError('');}} gymCodeInput={gymCodeInput} setGymCodeInput={setGymCodeInput} gymVerifyError={gymVerifyError} setGymVerifyError={setGymVerifyError} gymVerified={gymVerified} setGymVerified={setGymVerified} gymCodes={GYM_CODES} darkMode={darkMode} showMsg={showMsg}/></>);
   if(viewGym)return(<><style>{css}</style><GymDetailScreen gym={viewGym.gym} gymKey={viewGym.key} gymRatings={gymRatings} rateGym={(k,s)=>{rateGym(k,s);}} onClose={()=>setViewGym(null)} darkMode={darkMode}/></>);
+  // Fight history für viewProfile laden
+  useEffect(()=>{
+    if(!viewProfile||!session)return;
+    setViewProfileHistory([]);
+    fetch(SUPA_URL+'/rest/v1/fight_history?user_id=eq.'+viewProfile.id+'&order=created_at.desc&limit=10',{
+      headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
+    }).then(r=>r.json()).then(data=>{
+      if(Array.isArray(data))setViewProfileHistory(data);
+    }).catch(()=>{});
+  },[viewProfile?.id]);
+
   if(viewProfile)return(
     <div style={{minHeight:'100vh',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column'}}>
       <style>{css}</style>
@@ -1578,18 +1597,22 @@ export default function App(){
           ))}
         </div>
         {/* BLOCK / MELDEN */}
-        {/* TRAININGS-HISTORIE auf fremdem Profil — nur wenn öffentlich */}
-        {viewProfile.history_public&&Array.isArray(viewProfile.fight_history)&&viewProfile.fight_history.length>0&&(
+        {/* TRAININGS-HISTORIE auf fremdem Profil */}
+        {viewProfile.history_public&&viewProfileHistory.length>0&&(
           <div style={{padding:'0 12px',marginTop:12}}>
-            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,letterSpacing:2,marginBottom:8}}>🤝 TRAININGS-HISTORIE</div>
+            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
+              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,letterSpacing:2}}>🤝 TRAININGS-HISTORIE</div>
+              <div style={{background:'#27ae6018',border:'1px solid #27ae6044',borderRadius:10,padding:'1px 7px',color:'#27ae60',fontSize:9,fontWeight:700}}>ÖFFENTLICH</div>
+            </div>
             <div style={{display:'flex',flexDirection:'column',gap:5}}>
-              {viewProfile.fight_history.slice(0,5).map((f,i)=>(
-                <div key={i} style={{background:darkMode?'#1a1a1a':'#f9f9f9',borderRadius:8,padding:'8px 10px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:8}}>
-                  <span style={{fontSize:13}}>🥊</span>
-                  <div style={{flex:1}}>
-                    <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700}}>{f.opponent_name}</div>
-                    <div style={{color:'#aaa',fontSize:10}}>{f.fight_type} · {f.fight_date}</div>
+              {viewProfileHistory.map((f,i)=>(
+                <div key={f.id||i} style={{background:darkMode?'#1a1a1a':'#f9f9f9',borderRadius:8,padding:'9px 11px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:9}}>
+                  <div style={{width:30,height:30,borderRadius:7,background:'#2980b918',border:'1px solid #2980b933',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,flexShrink:0}}>🥊</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{f.opponent_name}</div>
+                    <div style={{color:'#aaa',fontSize:10,marginTop:1}}>{f.fight_type}{f.fight_type&&f.fight_date?' · ':''}{f.fight_date}</div>
                   </div>
+                  {f.location&&<div style={{color:'#ccc',fontSize:9,flexShrink:0}}>📍 {f.location}</div>}
                 </div>
               ))}
             </div>
@@ -2167,10 +2190,20 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:7}}>
                   <div style={{color:'#aaa',fontSize:9,textAlign:'right'}}>{historyPublic?'Öffentlich':'Privat'}</div>
-                  <div onClick={()=>{
+                  <div onClick={async()=>{
                     const next=!historyPublic;
                     setHistoryPublic(next);
-                    localStorage.setItem('fighter_history_public',String(next));
+                    try{localStorage.setItem('fighter_history_public',String(next));}catch{}
+                    // In Supabase speichern
+                    if(session&&myProfile){
+                      try{
+                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{
+                          method:'PATCH',
+                          headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+                          body:JSON.stringify({history_public:next})
+                        });
+                      }catch(e){console.error('history_public save error',e);}
+                    }
                     showMsg(next?'Trainings-Historie ist jetzt öffentlich 👁':'Trainings-Historie ist jetzt privat 🔒');
                   }} style={{width:38,height:22,borderRadius:11,background:historyPublic?'#27ae60':'#ccc',position:'relative',cursor:'pointer',flexShrink:0}}>
                     <div style={{position:'absolute',top:3,left:historyPublic?19:3,width:16,height:16,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
