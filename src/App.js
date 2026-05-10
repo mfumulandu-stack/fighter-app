@@ -1731,17 +1731,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   </div>
                 </div>
               )}
-              {/* BUNDESLAND INFO — nur anzeigen, kein Toggle */}
-              {myBundesland&&(
-                <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'8px 12px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:8}}>
-                  <div style={{fontSize:15}}>📍</div>
-                  <div style={{flex:1}}>
-                    <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700}}>{myBundesland}</div>
-                    <div style={{color:'#aaa',fontSize:10}}>Alle Fighter in deinem Bundesland · nächste zuerst</div>
-                  </div>
-                  <div style={{color:'#27ae60',fontSize:10,fontWeight:700}}>AUTO ✓</div>
-                </div>
-              )}
+
             </div>
             <div style={{position:'relative',width:330,height:430,flexShrink:0}}>
               {cards.length===0?(
