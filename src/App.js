@@ -545,7 +545,7 @@ function AuthScreen({ onSession }) {
           setErr(r.error.message||'Registrierung fehlgeschlagen');
         }
       }else if(r.session&&r.session.access_token){
-        onSession({token:r.session.access_token,userId:r.user.id});
+        onSession({token:r.session.access_token,userId:r.user.id,refresh_token:r.session.refresh_token||null,expires_at:Date.now()+(3600*1000)});
       }else if(r.user&&!r.session){
         setInfo('✅ Bestätigungsmail gesendet an '+email+'! Bitte E-Mail öffnen und Link klicken, dann hier einloggen.');
         setMode('login');
@@ -1169,42 +1169,67 @@ export default function App(){
 
   useEffect(()=>{
     async function restoreSession(){
+      // Schritt 1: localStorage lesen
       let saved=null;
       try{saved=localStorage.getItem('fighter_v5');}catch{
-        // localStorage geblockt (Mac Safari Private / ITP)
         setAuthReady(true);setScreen('auth');return;
       }
       if(!saved){setAuthReady(true);setScreen('auth');return;}
-      try{
-        const s=JSON.parse(saved);
-        if(!s||!s.token||!s.userId){
-          try{localStorage.removeItem('fighter_v5');}catch{}
-          setAuthReady(true);setScreen('auth');return;
-        }
-        if(s.refresh_token){
-          try{
-            const r=await fetch(SUPA_URL+'/auth/v1/token?grant_type=refresh_token',{
-              method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
-              body:JSON.stringify({refresh_token:s.refresh_token})
-            });
-            const data=await r.json();
-            if(data.access_token){
-              const newS={...s,token:data.access_token,refresh_token:data.refresh_token,expires_at:Date.now()+(3600*1000)};
-              try{localStorage.setItem('fighter_v5',JSON.stringify(newS));}catch{}
-              setSession(newS);
-              await initProfile(newS);
-              return;
-            }
-          }catch{}
-        }
-        setSession(s);
-        await initProfile(s);
-      }catch{
+
+      let s=null;
+      try{s=JSON.parse(saved);}catch{
         try{localStorage.removeItem('fighter_v5');}catch{}
-        setAuthReady(true);setScreen('auth');
+        setAuthReady(true);setScreen('auth');return;
       }
+      if(!s||!s.token||!s.userId){
+        try{localStorage.removeItem('fighter_v5');}catch{}
+        setAuthReady(true);setScreen('auth');return;
+      }
+
+      // Schritt 2: Token bei Supabase validieren — immer, kein Vertrauen auf Cache
+      try{
+        // Versuche Token zu refreshen
+        if(s.refresh_token){
+          const r=await fetch(SUPA_URL+'/auth/v1/token?grant_type=refresh_token',{
+            method:'POST',
+            headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
+            body:JSON.stringify({refresh_token:s.refresh_token})
+          });
+          const data=await r.json();
+          if(data.access_token){
+            // Token gültig → Session erneuern
+            s={...s,token:data.access_token,refresh_token:data.refresh_token||s.refresh_token};
+            try{localStorage.setItem('fighter_v5',JSON.stringify(s));}catch{}
+          }else{
+            // Refresh fehlgeschlagen → Token abgelaufen → Login
+            try{localStorage.removeItem('fighter_v5');}catch{}
+            setAuthReady(true);setScreen('auth');return;
+          }
+        }else{
+          // Kein Refresh Token → Token direkt validieren
+          const check=await fetch(SUPA_URL+'/auth/v1/user',{
+            headers:{apikey:SUPA_KEY,Authorization:'Bearer '+s.token}
+          });
+          if(!check.ok){
+            try{localStorage.removeItem('fighter_v5');}catch{}
+            setAuthReady(true);setScreen('auth');return;
+          }
+        }
+      }catch{
+        // Netzwerkfehler → trotzdem versuchen mit altem Token
+        // (Offline-Fall — besser App zeigen als leere Seite)
+      }
+
+      // Schritt 3: Profil laden
+      setSession(s);
+      await initProfile(s);
     }
-    const timeout=setTimeout(()=>{setAuthReady(true);setScreen('auth');},3000);
+
+    const timeout=setTimeout(()=>{
+      try{localStorage.removeItem('fighter_v5');}catch{}
+      setAuthReady(true);
+      setScreen('auth');
+    },6000);
     restoreSession().finally(()=>clearTimeout(timeout));
   },[]);
 
