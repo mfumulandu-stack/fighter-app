@@ -2124,7 +2124,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3}}>NACHRICHTEN</div>
               {dbMatches.length>0&&<div style={{color:'#aaa',fontSize:11}}>{dbMatches.length} Match{dbMatches.length!==1?'es':''}</div>}
             </div>
-            {dbMatches.length>3&&(
+            {dbMatches.length>0&&(
               <div style={{position:'relative',marginBottom:10}}>
                 <input
                   value={chatSearch}
