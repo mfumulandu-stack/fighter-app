@@ -637,8 +637,10 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
   const [fightLocation,setFightLocation]=useState('');
   const [fightType,setFightType]=useState('Sparring');
   const [fightSent,setFightSent]=useState(false);
+  const [otherTyping,setOtherTyping]=useState(false);
   const endRef=useRef(null);
   const pollRef=useRef(null);
+  const typingRef=useRef(null);
   const other=match.profile_a_id===myProfileId?match.profile_b:match.profile_a;
   const accent=other?.style==='Boxing'?'#c0392b':other?.style==='MMA'?'#2980b9':other?.style==='Muay Thai'?'#d35400':'#27ae60';
 
@@ -655,12 +657,42 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
     try{const msgs=await dbSelect('messages','match_id=eq.'+match.id+'&order=created_at.asc',token);if(Array.isArray(msgs)){setMessages(msgs);markAsRead();}}catch{}
     setLoading(false);
   }
-  useEffect(()=>{loadMsgs();pollRef.current=setInterval(loadMsgs,3000);return()=>clearInterval(pollRef.current);},[match.id]);
+  useEffect(()=>{
+    loadMsgs();
+    pollRef.current=setInterval(async()=>{
+      loadMsgs();
+      // Typing status prüfen
+      try{
+        const r=await fetch(SUPA_URL+'/rest/v1/typing_status?match_id=eq.'+match.id+'&user_id=neq.'+myProfileId,{
+          headers:{apikey:SUPA_KEY,Authorization:'Bearer '+token}
+        });
+        const data=await r.json();
+        if(Array.isArray(data)&&data[0]){
+          const t=data[0];
+          const age=Date.now()-new Date(t.updated_at).getTime();
+          setOtherTyping(age<4000&&t.is_typing===true);
+        }else{setOtherTyping(false);}
+      }catch{}
+    },2000);
+    return()=>clearInterval(pollRef.current);
+  },[match.id]);
   useEffect(()=>{endRef.current?.scrollIntoView({behavior:'smooth'});},[messages]);
+
+  async function sendTypingStatus(isTyping){
+    try{
+      await fetch(SUPA_URL+'/rest/v1/typing_status',{
+        method:'POST',
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'resolution=merge-duplicates'},
+        body:JSON.stringify({match_id:match.id,user_id:myProfileId,is_typing:isTyping,updated_at:new Date().toISOString()})
+      });
+    }catch{}
+  }
 
   async function send(){
     if(!input.trim())return;
     const text=input.trim();setInput('');
+    sendTypingStatus(false);
+    clearTimeout(typingRef.current);
     const tmp={id:'tmp_'+Date.now(),match_id:match.id,sender_id:myProfileId,content:text,created_at:new Date().toISOString()};
     setMessages(m=>[...m,tmp]);
     try{await dbInsert('messages',{match_id:match.id,sender_id:myProfileId,content:text},token);}catch{}
@@ -967,6 +999,20 @@ Leider kann ich diesen Termin nicht wahrnehmen.`;
             </div>
           );
         })}
+        {otherTyping&&(
+          <div style={{display:'flex',alignItems:'flex-end',gap:6,marginLeft:4}}>
+            <div onClick={()=>setShowProfilePanel(true)} style={{cursor:'pointer',flexShrink:0}}>
+              {other?.avatar_url
+                ?<img src={other.avatar_url} style={{width:26,height:26,borderRadius:'50%',objectFit:'cover',border:'1px solid '+accent+'44'}} alt=''/>
+                :<div style={{width:26,height:26,borderRadius:'50%',background:accent+'22',border:'1px solid '+accent+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12}}>🥊</div>}
+            </div>
+            <div style={{padding:'10px 14px',borderRadius:'14px 14px 14px 3px',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,0.08)',display:'flex',gap:4,alignItems:'center'}}>
+              <div style={{width:7,height:7,borderRadius:'50%',background:'#bbb',animation:'pulse 1s ease-in-out infinite'}}/>
+              <div style={{width:7,height:7,borderRadius:'50%',background:'#bbb',animation:'pulse 1s ease-in-out 0.2s infinite'}}/>
+              <div style={{width:7,height:7,borderRadius:'50%',background:'#bbb',animation:'pulse 1s ease-in-out 0.4s infinite'}}/>
+            </div>
+          </div>
+        )}
         <div ref={endRef}/>
       </div>
       <div style={{padding:'6px 12px 0',background:'#fff',borderTop:'1px solid #eee'}}> 
@@ -975,7 +1021,14 @@ Leider kann ich diesen Termin nicht wahrnehmen.`;
         </button>
       </div>
       <div style={{padding:'6px 12px 10px',background:'#fff',display:'flex',gap:8,alignItems:'flex-end'}}>
-        <textarea value={input} onChange={e=>setInput(e.target.value)}
+        <textarea value={input} onChange={e=>{
+                setInput(e.target.value);
+                if(e.target.value.length>0){
+                  sendTypingStatus(true);
+                  clearTimeout(typingRef.current);
+                  typingRef.current=setTimeout(()=>sendTypingStatus(false),3000);
+                }else{sendTypingStatus(false);}
+              }}
           onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}}
           placeholder='Nachricht…' rows={1}
           style={{flex:1,background:'#f5f5f7',border:'1px solid #e0e0e0',borderRadius:20,padding:'10px 14px',fontSize:14,color:'#1a1a1a',maxHeight:80}}/>
@@ -2153,6 +2206,35 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     <button onClick={()=>setEditMode(false)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#aaa'}}>✕</button>
                   </div>
                   <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                    {/* FOTO ÄNDERN */}
+                    <div style={{textAlign:'center',marginBottom:4}}>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>PROFILBILD</div>
+                      <label style={{cursor:'pointer',display:'inline-block',position:'relative'}}>
+                        <input type='file' accept='image/*' style={{display:'none'}} onChange={async(e)=>{
+                          const file=e.target.files[0];if(!file||!session)return;
+                          showMsg('Foto wird hochgeladen...');
+                          const compressed=await compressImage(file,800,0.82);
+                          const path='fighter_'+session.userId+'_'+Date.now()+'.jpg';
+                          const url=await uploadPhoto(compressed,path,session.token);
+                          if(url){
+                            setAvatarUrl(url);setAvatarPreview(url);
+                            await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{
+                              method:'PATCH',
+                              headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+                              body:JSON.stringify({avatar_url:url})
+                            });
+                            showMsg('Foto geändert ✓');
+                          }
+                        }}/>
+                        <div style={{width:80,height:80,borderRadius:'50%',overflow:'hidden',border:'3px solid '+RED,background:'#f0f0f0',margin:'0 auto',position:'relative'}}>
+                          {avatarPreview?<img src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28}}>👤</div>}
+                          <div style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.35)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                            <span style={{fontSize:18}}>📷</span>
+                          </div>
+                        </div>
+                        <div style={{color:RED,fontSize:11,marginTop:5,fontWeight:700}}>Foto ändern</div>
+                      </label>
+                    </div>
                     {[['NAME *','name','text',profile.name],['STADT *','city','text',profile.city],['GYM','gym','text',profile.gym],['GRÖSSE (cm)','height','number',profile.height],['GEWICHT (kg)','weight','number',profile.weight],['BIO','bio','text',profile.bio]].map(([label,key,type,current])=>(
                       <div key={key}>
                         <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{label}</div>
@@ -2543,6 +2625,29 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 })}
               </div>
             )}
+            {/* EIGENER PLATZ */}
+            {rankMode!=='trainer'&&myProfile&&(()=>{
+              const myScore=(myProfile.wins||0)*3-(myProfile.losses||0)*2+(myProfile.draws||0);
+              const allScored=[...userOnly].map(f=>({...f,score:(f.wins||0)*3-(f.losses||0)*2+(f.draws||0)})).sort((a,b)=>b.score-a.score);
+              const myRank=allScored.findIndex(f=>f.id===0)+1;
+              if(myRank<=0)return null;
+              return(
+                <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'12px 14px',border:'2px solid '+RED+'44',marginBottom:10,display:'flex',alignItems:'center',gap:10}}>
+                  <div className='rj' style={{color:RED,fontSize:22,width:36,textAlign:'center',flexShrink:0}}>#{myRank}</div>
+                  <div style={{width:38,height:38,borderRadius:8,overflow:'hidden',flexShrink:0,background:'#f0f0f0'}}>
+                    {avatarPreview?<img src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🥊</div>}
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>Du · {profile.name}</div>
+                    <div style={{color:'#aaa',fontSize:10,marginTop:1}}>{profile.style} · {myBundesland||profile.city}</div>
+                  </div>
+                  <div style={{textAlign:'right',flexShrink:0}}>
+                    <div style={{color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16}}>{myScore} Pkt</div>
+                    <div style={{color:'#bbb',fontSize:9}}>{myProfile.wins||0}S · {myProfile.losses||0}N</div>
+                  </div>
+                </div>
+              );
+            })()}
             {ranked.length>=3&&rankMode!=='trainer'&&(
               <div style={{display:'flex',alignItems:'flex-end',gap:5,marginBottom:13,justifyContent:'center'}}>
                 {[ranked[1],ranked[0],ranked[2]].map((f,i)=>{
