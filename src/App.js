@@ -2081,7 +2081,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <Btn onClick={()=>doSwipe('de')} color='#d4a017' icon='⭐' size={54}/>
               </div>
             )}
-            {dbMatches.length>0&&(
+            {dbMatches.length>3&&(
               <div style={{marginTop:11,width:'calc(100% - 24px)',maxWidth:380}}>
                 <div style={{color:'#bbb',fontSize:9,letterSpacing:2,marginBottom:6,fontWeight:700}}>FIGHT REQUESTS – tippe für Chat</div>
                 <div style={{display:'flex',gap:7,overflowX:'auto'}}>
@@ -2124,7 +2124,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3}}>NACHRICHTEN</div>
               {dbMatches.length>0&&<div style={{color:'#aaa',fontSize:11}}>{dbMatches.length} Match{dbMatches.length!==1?'es':''}</div>}
             </div>
-            {dbMatches.length>0&&(
+            {dbMatches.length>3&&(
               <div style={{position:'relative',marginBottom:10}}>
                 <input
                   value={chatSearch}
@@ -2475,7 +2475,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <div style={{color:'#aaa',fontSize:16}}>›</div>
               </div>
             </div>
-            {dbMatches.length>0&&(
+            {dbMatches.length>3&&(
               <div style={{marginTop:14}}>
                 <div style={{color:'#bbb',fontSize:9,letterSpacing:2,marginBottom:8,fontWeight:700}}>MEINE MATCHES</div>
                 {dbMatches.map(m=>{
