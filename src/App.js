@@ -2601,7 +2601,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             )}
             {rankMode==='trainer'&&(
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {[...TRAINERS].sort((a,b)=>b.rating-a.rating).map((t,i)=>{
+                {[...TRAINERS].filter(t=>!myProfile||t.name!==myProfile.name).sort((a,b)=>b.rating-a.rating).map((t,i)=>{
                   const medal=['🥇','🥈','🥉'];
                   const medalColor=['#d4a017','#95a5a6','#cd7f32'];
                   const isTop3=i<3;
