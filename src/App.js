@@ -1107,7 +1107,7 @@ function AGBScreen({onClose,darkMode}){
 export default function App(){
   const [session,setSession]=useState(null);
   const [authReady,setAuthReady]=useState(false);
-  const [screen,setScreen]=useState('auth');
+  const [screen,setScreen]=useState('loading');
   const [tab,setTab]=useState('swipe');
   const [step,setStep]=useState(1);
   const [saving,setSaving]=useState(false);
@@ -1172,14 +1172,14 @@ export default function App(){
       let saved=null;
       try{saved=localStorage.getItem('fighter_v5');}catch{
         // localStorage geblockt (Mac Safari Private / ITP)
-        setScreen('auth');setAuthReady(true);return;
+        setAuthReady(true);setScreen('auth');return;
       }
-      if(!saved){setScreen('auth');setAuthReady(true);return;}
+      if(!saved){setAuthReady(true);setScreen('auth');return;}
       try{
         const s=JSON.parse(saved);
         if(!s||!s.token||!s.userId){
           try{localStorage.removeItem('fighter_v5');}catch{}
-          setScreen('auth');setAuthReady(true);return;
+          setAuthReady(true);setScreen('auth');return;
         }
         if(s.refresh_token){
           try{
@@ -1201,10 +1201,10 @@ export default function App(){
         await initProfile(s);
       }catch{
         try{localStorage.removeItem('fighter_v5');}catch{}
-        setScreen('auth');setAuthReady(true);
+        setAuthReady(true);setScreen('auth');
       }
     }
-    const timeout=setTimeout(()=>{setScreen('auth');setAuthReady(true);},3000);
+    const timeout=setTimeout(()=>{setAuthReady(true);setScreen('auth');},3000);
     restoreSession().finally(()=>clearTimeout(timeout));
   },[]);
 
@@ -1252,14 +1252,20 @@ export default function App(){
         setProfile({name:p.name||'',age:p.age||'',city:p.city||'',gym:p.gym||'',height:p.height||'',weight:p.weight||'',weightClass:p.weight_class||'',style:p.style||'',bio:p.bio||''});
         setStats({wins:p.wins||0,losses:p.losses||0,draws:p.draws||0,ko:p.ko||0});
         if(p.avatar_url){setAvatarUrl(p.avatar_url);setAvatarPreview(p.avatar_url);}
+        setAuthReady(true);
         setScreen('main');
         loadRealFighters(s,p);
         loadMatches(s,p);
         loadGymRatings(s);
         loadFightHistory(s);
-      }else setScreen('setup');
-    }catch{setScreen('auth');}
-    setAuthReady(true);
+      }else{
+        setAuthReady(true);
+        setScreen('setup');
+      }
+    }catch{
+      setAuthReady(true);
+      setScreen('auth');
+    }
   }
 
   async function loadRealFighters(s,myP){
@@ -1403,7 +1409,7 @@ export default function App(){
   async function handleLogout(){
     if(session)await authSignOut(session.token);
     localStorage.removeItem('fighter_v5');
-    setSession(null);setMyProfile(null);setProfile({name:'',age:'',city:'',gym:'',height:'',weight:'',weightClass:'',style:'',bio:''});setStats({wins:0,losses:0,draws:0,ko:0});setAvatarUrl('');setAvatarPreview('');setScreen('auth');setAuthReady(true);
+    setSession(null);setMyProfile(null);setProfile({name:'',age:'',city:'',gym:'',height:'',weight:'',weightClass:'',style:'',bio:''});setStats({wins:0,losses:0,draws:0,ko:0});setAvatarUrl('');setAvatarPreview('');setAuthReady(true);setScreen('auth');
   }
 
   async function saveEditProfile(){
@@ -1674,7 +1680,18 @@ export default function App(){
     </div>
   );
 
-  if(!authReady)return(<div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',alignItems:'center',justifyContent:'center'}}><style>{css}</style><div className='rj' style={{fontSize:32,color:'#1a1a1a',letterSpacing:4}}>FIGHTER</div></div>);
+  if(!authReady||screen==='loading')return(
+    <div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12}}>
+      <style>{css}</style>
+      <div className='rj' style={{fontSize:36,color:'#1a1a1a',letterSpacing:6}}>FIGHTER</div>
+      <div style={{color:'#c0392b',fontSize:10,letterSpacing:4,fontFamily:'DM Sans,sans-serif',fontWeight:700}}>FINDE DEINEN GEGNER</div>
+      <div style={{marginTop:12,display:'flex',gap:6}}>
+        <div style={{width:6,height:6,borderRadius:'50%',background:'#c0392b',animation:'pulse 1.2s ease-in-out infinite'}}/>
+        <div style={{width:6,height:6,borderRadius:'50%',background:'#c0392b',animation:'pulse 1.2s ease-in-out 0.2s infinite',opacity:0.6}}/>
+        <div style={{width:6,height:6,borderRadius:'50%',background:'#c0392b',animation:'pulse 1.2s ease-in-out 0.4s infinite',opacity:0.3}}/>
+      </div>
+    </div>
+  );
   if(!session)return <AuthScreen onSession={handleSession}/>;
   if(activeChat&&myProfile&&!viewProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>{setViewProfile(p);}}/></>);
 
