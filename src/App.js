@@ -273,11 +273,12 @@ textarea{resize:none}
 
 
 function GymDetailScreen({gym,gymKey,gymRatings,rateGym,onClose,darkMode}){
-  const bg=darkMode?'#0d0d0d':'#f5f5f7';
-  const card=darkMode?'#1a1a1a':'#fff';
-  const text=darkMode?'#fff':'#1a1a1a';
-  const sub=darkMode?'#aaa':'#666';
-  const border=darkMode?'#2a2a2a':'#eee';
+  const isDark=darkMode===true;
+  const bg=isDark?'#0d0d0d':'#f5f5f7';
+  const card=isDark?'#1a1a1a':'#fff';
+  const text=isDark?'#fff':'#1a1a1a';
+  const sub=isDark?'#aaa':'#666';
+  const border=isDark?'#2a2a2a':'#eee';
   const r=gymRatings[gymKey];
   const userRating=r?.userRating||0;
   const avgRating=r&&r.count>0?(r.total/r.count):gym.rating;
@@ -379,7 +380,7 @@ function GymDetailScreen({gym,gymKey,gymRatings,rateGym,onClose,darkMode}){
               </div>
             </div>
             {gym.code&&(
-              <div style={{display:'flex',alignItems:'center',gap:12,background:darkMode?'#1f1f10':'#fffbf0',borderRadius:10,padding:'10px 12px',border:'1px solid #d4a01733'}}>
+              <div style={{display:'flex',alignItems:'center',gap:12,background:isDark?'#1f1f10':'#fffbf0',borderRadius:10,padding:'10px 12px',border:'1px solid #d4a01733'}}>
                 <div style={{width:34,height:34,borderRadius:8,background:'#d4a01718',border:'1px solid #d4a01733',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0}}>🔑</div>
                 <div style={{flex:1}}>
                   <div style={{color:sub,fontSize:10,letterSpacing:1,marginBottom:2}}>FIGHTER-APP CODE</div>
@@ -1674,7 +1675,7 @@ export default function App(){
   if(showDatenschutz)return(<><style>{css}</style><DatenschutzScreen onClose={()=>setShowDatenschutz(false)} darkMode={darkMode}/></>);
   if(showAGB)return(<><style>{css}</style><AGBScreen onClose={()=>setShowAGB(false)} darkMode={darkMode}/></>);
   if(showGymVerify)return(<><style>{css}</style><GymVerifyModal onClose={()=>{setShowGymVerify(false);setGymCodeInput('');setGymVerifyError('');}} gymCodeInput={gymCodeInput} setGymCodeInput={setGymCodeInput} gymVerifyError={gymVerifyError} setGymVerifyError={setGymVerifyError} gymVerified={gymVerified} setGymVerified={setGymVerified} gymCodes={GYM_CODES} darkMode={darkMode} showMsg={showMsg}/></>);
-  if(viewGym)return(<><style>{css}</style><GymDetailScreen gym={viewGym.gym} gymKey={viewGym.key} gymRatings={gymRatings} rateGym={(k,s)=>{rateGym(k,s);}} onClose={()=>setViewGym(null)} darkMode={darkMode}/></>);
+  if(viewGym)return(<><style>{css}</style><GymDetailScreen gym={viewGym.gym} gymKey={viewGym.key} gymRatings={gymRatings} rateGym={(k,s)=>{rateGym(k,s);}} onClose={()=>setViewGym(null)} darkMode={darkMode===true}/></>);
   // Fight history für viewProfile laden
   useEffect(()=>{
     if(!viewProfile||!session)return;
