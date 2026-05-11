@@ -204,7 +204,7 @@ const GYMS = {
     {name:'Ground Zero Stuttgart',members:88,styles:['BJJ','MMA'],rating:4.5,address:'Hauptstätter Str. 65, 70178 Stuttgart-Mitte',street:'Hauptstätter Str. 65',zip:'70178',city:'Stuttgart',emoji:'💣',code:'GZS-5547',phone:'+49 711 22334455',hours:'Mo-Fr 18:00-22:00, Sa 10:00-14:00',desc:'Ground Zero ist Stuttgarts führendes BJJ und MMA Gym. Gegründet von Ex-Profi Rafael Santos bringt das Team regelmäßig Athleten zu deutschen und europäischen Meisterschaften.',founded:2013,website:'groundzero-stuttgart.de'},
     {name:'Swabia Combat Sports',members:112,styles:['Muay Thai','Kickboxing'],rating:4.3,address:'Cannstatter Str. 88, 70190 Stuttgart-Bad Cannstatt',street:'Cannstatter Str. 88',zip:'70190',city:'Stuttgart',emoji:'🏋️',code:'SCS-2203',phone:'+49 711 66778899',hours:'Mo-Fr 08:00-21:00, Sa 10:00-16:00',desc:'Swabia Combat Sports verbindet schwäbische Disziplin mit asiatischen Kampfkünsten. Eines der wenigen Gyms in der Region mit echtem Muay Thai Camp-Feeling und regelmäßigen Thailand-Trips.',founded:2010,website:'swabia-combat.de'},
   ],
-  'Moenchengladbach':[
+  'Mönchengladbach':[
     {name:'Faustkämpfer Mönchengladbach',members:95,styles:['Boxing','Kickboxing'],rating:4.6,address:'Lüpertzender Str. 30, 41061 Mönchengladbach',street:'Lüpertzender Str. 30',zip:'41061',city:'Mönchengladbach',emoji:'👊',code:'FKM-3317',phone:'+49 2161 112233',hours:'Mo-Fr 17:00-21:00, Sa 10:00-14:00',desc:'Faustkämpfer Mönchengladbach ist das bekannteste Boxgym der Stadt. Traditionelles Boxing mit modernem Training — für Anfänger und erfahrene Kämpfer.',founded:2006,website:'faustkämpfer-mg.de'},
     {name:'NFT Mönchengladbach',members:120,styles:['MMA','BJJ','Grappling'],rating:4.7,address:'Rheydter Str. 55, 41065 Mönchengladbach',street:'Rheydter Str. 55',zip:'41065',city:'Mönchengladbach',emoji:'⚔️',code:'NFT-7761',phone:'+49 2161 445566',hours:'Mo-Fr 17:30-22:00, Sa 10:00-15:00',desc:'NFT Mönchengladbach — Kampfsport auf höchstem Niveau. Spezialisiert auf MMA, BJJ und Grappling mit erfahrenen Trainern und starker Wettkampftruppe.',founded:2014,website:'nft-mg.de'},
   ],
@@ -273,6 +273,7 @@ textarea{resize:none}
 
 
 function GymDetailScreen({gym,gymKey,gymRatings,rateGym,onClose,darkMode}){
+  if(!gym)return(<div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:250,display:'flex',alignItems:'center',justifyContent:'center'}}><button onClick={onClose} style={{padding:'12px 24px',background:'#c0392b',color:'#fff',border:'none',borderRadius:10,fontSize:16,cursor:'pointer'}}>← Zurück</button></div>);
   const isDark=darkMode===true;
   const bg=isDark?'#0d0d0d':'#f5f5f7';
   const card=isDark?'#1a1a1a':'#fff';
