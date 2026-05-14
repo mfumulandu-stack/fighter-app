@@ -1554,22 +1554,25 @@ export default function App(){
   const myWeightClass=myProfile?.weight_class||profile?.weightClass||'';
   const myCity=myProfile?.city||profile?.city||'';
   const myBundesland=getBundesland(myCity);
+
+  // Smart Matching — erst gleiche Stadt + Klasse, dann Bundesland, dann alle
   const filteredCards=cards
     .filter(f=>!blockedUsers.includes(f.id))
-    .filter(f=>!filterWeightClass||!myWeightClass||(f.weight_class||f.weightClass||'')===(myWeightClass))
     .filter(f=>filterStyle==='Alle'||f.style===filterStyle)
     .filter(f=>!filterCity||(f.city||'').toLowerCase().includes(filterCity.toLowerCase()))
-    .filter(f=>{
-      if(!myBundesland)return true;
-      const fBundesland=getBundesland(f.city||'');
-      if(!fBundesland)return true;
-      return fBundesland===myBundesland;
-    })
+    .map(f=>({
+      ...f,
+      _dist:getDistanceKm(myCity,f.city||''),
+      _sameCity:(f.city||'').toLowerCase()===(myCity||'').toLowerCase(),
+      _sameBL:getBundesland(f.city||'')===myBundesland&&!!myBundesland,
+      _sameWC:(f.weight_class||f.weightClass||'')===(myWeightClass||''),
+    }))
     .sort((a,b)=>{
-      if(!myCity)return 0;
-      const da=getDistanceKm(myCity,a.city||'');
-      const db=getDistanceKm(myCity,b.city||'');
-      return da-db;
+      // Priorität: 1=gleiche Stadt+Klasse, 2=gleiches BL+Klasse, 3=gleiche Klasse, 4=gleiche Stadt, 5=gleiches BL, 6=alle
+      const pa=a._sameCity&&a._sameWC?1:a._sameBL&&a._sameWC?2:a._sameWC?3:a._sameCity?4:a._sameBL?5:6;
+      const pb=b._sameCity&&b._sameWC?1:b._sameBL&&b._sameWC?2:b._sameWC?3:b._sameCity?4:b._sameBL?5:6;
+      if(pa!==pb)return pa-pb;
+      return (a._dist||999)-(b._dist||999);
     });
   const top=filteredCards[filteredCards.length-1];
   const lastTapRef=useRef(0);
@@ -1962,7 +1965,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   <div style={{fontSize:64,marginBottom:4}}>🏆</div>
                   <div className='rj' style={{color:'#fff',fontSize:26,letterSpacing:3,lineHeight:1}}>ALLE FIGHTER</div>
                   <div className='rj' style={{color:RED,fontSize:26,letterSpacing:3,lineHeight:1}}>GESEHEN</div>
-                  <div style={{color:'rgba(255,255,255,0.5)',fontSize:13,marginTop:6,lineHeight:1.6}}>{filterWeightClass&&myWeightClass?`Keine ${myWeightClass} Fighter in ${myBundesland||'deiner Region'} gefunden.`:`Alle Fighter in ${myBundesland||'deiner Region'} wurden gesehen! Neue Kämpfer kommen täglich.`}</div>
+                  <div style={{color:'rgba(255,255,255,0.5)',fontSize:13,marginTop:6,lineHeight:1.6}}>{filterWeightClass&&myWeightClass?`Keine Fighter in deiner Nähe gefunden.`:`Alle Fighter wurden gesehen! Neue kommen täglich dazu.`}</div>
                   <div style={{display:'flex',gap:12,marginTop:8,width:'100%'}}>
                     <button onClick={()=>{setCards([...FIGHTERS]);setSwStats({ch:0,de:0});}} style={{flex:1,padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1,cursor:'pointer'}}>
                       🔄 NOCHMAL
