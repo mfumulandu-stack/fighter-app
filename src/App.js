@@ -1167,9 +1167,19 @@ export default function App(){
   const [showAdmin,setShowAdmin]=useState(false);
   const [adminTab,setAdminTab]=useState('gyms');
   const [adminUsers,setAdminUsers]=useState([]);
+  const [adminReports,setAdminReports]=useState([]);
+  const [adminRecords,setAdminRecords]=useState([]);
   const [adminGymCode,setAdminGymCode]=useState('');
   const [adminGymLogoUrl,setAdminGymLogoUrl]=useState('');
+  const [adminGymName,setAdminGymName]=useState('');
+  const [adminGymCity,setAdminGymCity]=useState('');
+  const [adminGymStyles,setAdminGymStyles]=useState('');
+  const [adminGymPhone,setAdminGymPhone]=useState('');
+  const [adminGymHours,setAdminGymHours]=useState('');
+  const [adminGymDesc,setAdminGymDesc]=useState('');
+  const [adminBroadcast,setAdminBroadcast]=useState('');
   const [adminSaving,setAdminSaving]=useState(false);
+  const [adminUsersLoaded,setAdminUsersLoaded]=useState(false);
   const isAdmin=session?.userId===ADMIN_ID;
   const [fightHistory,setFightHistory]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_history')||'[]')}catch{return []}});
   const [historyPublic,setHistoryPublic]=useState(()=>{try{return localStorage.getItem('fighter_history_public')==='true'}catch{return false}});
@@ -2761,26 +2771,28 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <div className='rj' style={{color:'#fff',fontSize:18,letterSpacing:3}}>⚙️ ADMIN</div>
             <button onClick={()=>setShowAdmin(false)} style={{background:'none',border:'none',color:'#fff',fontSize:22,cursor:'pointer'}}>✕</button>
           </div>
-          <div style={{display:'flex',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
-            {[['gyms','🏋️ Gyms'],['users','👤 User'],['stats','📊 Stats']].map(([t,l])=>(
-              <button key={t} onClick={()=>setAdminTab(t)} style={{flex:1,padding:'12px',background:'none',border:'none',borderBottom:adminTab===t?'2px solid '+RED:'2px solid transparent',color:adminTab===t?RED:(darkMode?'#aaa':'#888'),fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',letterSpacing:1}}>{l}</button>
+          <div style={{display:'flex',overflowX:'auto',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+            {[['gyms','🏋️'],['addgym','➕'],['users','👤'],['reports','🚨'],['records','🏅'],['broadcast','📢'],['stats','📊']].map(([t,l])=>(
+              <button key={t} onClick={()=>setAdminTab(t)} style={{flexShrink:0,padding:'10px 14px',background:'none',border:'none',borderBottom:adminTab===t?'2px solid '+RED:'2px solid transparent',color:adminTab===t?RED:(darkMode?'#aaa':'#888'),fontWeight:700,fontSize:16,cursor:'pointer'}}>{l}</button>
             ))}
           </div>
-          <div style={{padding:'16px',flex:1}}>
+          <div style={{padding:'16px',flex:1,overflowY:'auto'}}>
 
+            {/* ── GYM LOGOS ── */}
             {adminTab==='gyms'&&(
               <div>
-                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>GYM LOGOS VERWALTEN</div>
-                <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20}}>
-                  <div style={{color:'#aaa',fontSize:10,letterSpacing:1}}>GYM CODE</div>
-                  <input value={adminGymCode} onChange={e=>setAdminGymCode(e.target.value)} placeholder="z.B. TGB-2847" style={{padding:'10px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontFamily:'DM Sans,sans-serif'}}/>
-                  <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginTop:4}}>LOGO — BILD HOCHLADEN</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>🏋️ GYM LOGOS</div>
+                <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
+                  {[['GYM CODE',adminGymCode,setAdminGymCode,'z.B. TGB-2847']].map(([lbl,val,set,ph])=>(
+                    <div key={lbl}><div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:4}}>{lbl}</div>
+                    <input value={val} onChange={e=>set(e.target.value)} placeholder={ph} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box'}}/></div>
+                  ))}
                   <label style={{cursor:'pointer'}}>
                     <input type='file' accept='image/*' style={{display:'none'}} onChange={async(e)=>{
                       const file=e.target.files[0];if(!file)return;
                       setAdminSaving(true);
                       const compressed=await compressImage(file,400,0.9);
-                      const path='gym_logos/'+adminGymCode+'_'+Date.now()+'.jpg';
+                      const path='gym_logos/'+(adminGymCode||'gym')+'_'+Date.now()+'.jpg';
                       const url=await uploadPhoto(compressed,path,session.token);
                       if(url){setAdminGymLogoUrl(url);showMsg('✅ Logo hochgeladen!');}
                       setAdminSaving(false);
@@ -2790,78 +2802,206 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     </div>
                   </label>
                   <button onClick={async()=>{
-                    if(!adminGymCode||!adminGymLogoUrl){showMsg('Bitte Code und Logo eingeben');return;}
+                    if(!adminGymCode||!adminGymLogoUrl){showMsg('Code + Logo eingeben');return;}
                     setAdminSaving(true);
                     try{
-                      await fetch(SUPA_URL+'/rest/v1/gym_logos',{
-                        method:'POST',
-                        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'resolution=merge-duplicates'},
-                        body:JSON.stringify({gym_code:adminGymCode,logo_url:adminGymLogoUrl,verified:true})
-                      });
-                      showMsg('✅ Gym Logo gespeichert!');
-                      setAdminGymCode('');setAdminGymLogoUrl('');
-                      loadGymLogos();
-                    }catch{showMsg('Fehler beim Speichern');}
+                      await fetch(SUPA_URL+'/rest/v1/gym_logos',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'resolution=merge-duplicates'},body:JSON.stringify({gym_code:adminGymCode,logo_url:adminGymLogoUrl,verified:true})});
+                      showMsg('✅ Logo gespeichert!');setAdminGymCode('');setAdminGymLogoUrl('');loadGymLogos();
+                    }catch{showMsg('Fehler');}
                     setAdminSaving(false);
-                  }} style={{padding:'12px',borderRadius:10,background:adminSaving?'#eee':`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:adminSaving?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,cursor:'pointer',letterSpacing:2}}>
-                    {adminSaving?'Speichern...':'SPEICHERN'}
-                  </button>
+                  }} style={{padding:'11px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer',letterSpacing:2}}>SPEICHERN</button>
                 </div>
-                <div className='rj' style={{color:darkMode?'#aaa':'#888',fontSize:11,letterSpacing:2,marginBottom:8}}>VORHANDENE LOGOS</div>
+                <div className='rj' style={{color:'#888',fontSize:11,letterSpacing:2,marginBottom:8}}>VORHANDENE LOGOS ({Object.keys(gymLogos).length})</div>
                 {Object.entries(gymLogos).map(([code,g])=>(
                   <div key={code} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:6}}>
                     {g.logo_url&&<img src={g.logo_url} style={{width:36,height:36,borderRadius:6,objectFit:'cover'}} alt=''/>}
-                    <div style={{flex:1}}>
-                      <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700}}>{code}</div>
-                      <div style={{color:'#27ae60',fontSize:10}}>✅ Verifiziert</div>
-                    </div>
+                    <div style={{flex:1}}><div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700}}>{code}</div><div style={{color:'#27ae60',fontSize:10}}>✅ Verifiziert</div></div>
                     <button onClick={async()=>{
-                      if(!window.confirm('Logo löschen?'))return;
                       await fetch(SUPA_URL+'/rest/v1/gym_logos?gym_code=eq.'+code,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
-                      showMsg('Logo gelöscht');loadGymLogos();
+                      showMsg('Gelöscht');loadGymLogos();
                     }} style={{background:'none',border:'none',color:'#e74c3c',fontSize:16,cursor:'pointer'}}>🗑️</button>
                   </div>
                 ))}
               </div>
             )}
 
-            {adminTab==='users'&&(
+            {/* ── NEUES GYM HINZUFÜGEN ── */}
+            {adminTab==='addgym'&&(
               <div>
-                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>USER VERWALTEN</div>
-                <button onClick={async()=>{
-                  try{
-                    const data=await dbSelect('profiles','order=created_at.desc&limit=50',session.token);
-                    if(Array.isArray(data))setAdminUsers(data);
-                  }catch{}
-                }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>
-                  USER LADEN
-                </button>
-                {adminUsers.map(u=>(
-                  <div key={u.id} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:5}}>
-                    {u.avatar_url?<img src={u.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover'}} alt=''/>:<div style={{width:32,height:32,borderRadius:'50%',background:'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>👤</div>}
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{u.name||'Unbekannt'}</div>
-                      <div style={{color:'#aaa',fontSize:10}}>{u.city} · {u.style}</div>
-                    </div>
-                    <div style={{color:'#bbb',fontSize:9}}>{new Date(u.created_at).toLocaleDateString('de')}</div>
-                  </div>
-                ))}
-                {adminUsers.length===0&&<div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>Auf "User laden" tippen</div>}
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>➕ NEUES GYM</div>
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {[['GYM NAME *',adminGymName,setAdminGymName,'z.B. Tiger Gym Berlin'],['STADT *',adminGymCity,setAdminGymCity,'z.B. Berlin'],['KAMPFSTILE',adminGymStyles,setAdminGymStyles,'z.B. Boxing, MMA, BJJ'],['TELEFON',adminGymPhone,setAdminGymPhone,'+49 ...'],['ÖFFNUNGSZEITEN',adminGymHours,setAdminGymHours,'Mo-Fr 17:00-22:00']].map(([lbl,val,set,ph])=>(
+                    <div key={lbl}><div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:4}}>{lbl}</div>
+                    <input value={val} onChange={e=>set(e.target.value)} placeholder={ph} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/></div>
+                  ))}
+                  <div><div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:4}}>BESCHREIBUNG</div>
+                  <textarea value={adminGymDesc} onChange={e=>setAdminGymDesc(e.target.value)} placeholder="Kurze Beschreibung des Gyms..." rows={3} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box',resize:'none'}}/></div>
+                  <button onClick={async()=>{
+                    if(!adminGymName||!adminGymCity){showMsg('Name + Stadt eingeben');return;}
+                    const code=adminGymName.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,3)+'-'+Math.floor(1000+Math.random()*9000);
+                    setAdminSaving(true);
+                    try{
+                      await fetch(SUPA_URL+'/rest/v1/gym_directory',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:adminGymName,city:adminGymCity,styles:adminGymStyles,phone:adminGymPhone,hours:adminGymHours,description:adminGymDesc,code,verified:false})});
+                      showMsg('✅ Gym hinzugefügt! Code: '+code);
+                      setAdminGymName('');setAdminGymCity('');setAdminGymStyles('');setAdminGymPhone('');setAdminGymHours('');setAdminGymDesc('');
+                    }catch(e){showMsg('Fehler: '+e.message);}
+                    setAdminSaving(false);
+                  }} style={{padding:'11px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer',letterSpacing:2}}>GYM HINZUFÜGEN</button>
+                </div>
               </div>
             )}
 
+            {/* ── USER VERWALTEN ── */}
+            {adminTab==='users'&&(
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>👤 USER ({adminUsers.length})</div>
+                {!adminUsersLoaded&&<button onClick={async()=>{
+                  const data=await dbSelect('profiles','order=created_at.desc&limit=100',session.token);
+                  if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
+                }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>USER LADEN</button>}
+                {adminUsers.map(u=>(
+                  <div key={u.id} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,border:'1px solid '+(u.banned?'#e74c3c44':(darkMode?'#2a2a2a':'#eee')),marginBottom:5}}>
+                    {u.avatar_url?<img src={u.avatar_url} style={{width:34,height:34,borderRadius:'50%',objectFit:'cover',opacity:u.banned?0.4:1}} alt=''/>:<div style={{width:34,height:34,borderRadius:'50%',background:'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>👤</div>}
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{color:u.banned?'#e74c3c':(darkMode?'#fff':'#1a1a1a'),fontSize:12,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{u.name||'?'} {u.banned&&'🚫'}</div>
+                      <div style={{color:'#aaa',fontSize:10}}>{u.city} · {u.style} · {new Date(u.created_at).toLocaleDateString('de')}</div>
+                    </div>
+                    <div style={{display:'flex',gap:4}}>
+                      <button onClick={async()=>{
+                        const ban=!u.banned;
+                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({banned:ban})});
+                        setAdminUsers(prev=>prev.map(x=>x.id===u.id?{...x,banned:ban}:x));
+                        showMsg(ban?'User gesperrt 🚫':'User entsperrt ✅');
+                      }} style={{background:u.banned?'#27ae60':'#e74c3c',border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:10,fontWeight:700,cursor:'pointer'}}>{u.banned?'Freig.':'Sperren'}</button>
+                      <button onClick={async()=>{
+                        if(!confirm('User '+u.name+' löschen?'))return;
+                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                        setAdminUsers(prev=>prev.filter(x=>x.id!==u.id));
+                        showMsg('User gelöscht');
+                      }} style={{background:'none',border:'1px solid #e74c3c',borderRadius:6,padding:'4px 6px',color:'#e74c3c',fontSize:10,cursor:'pointer'}}>🗑️</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ── GEMELDETE USER ── */}
+            {adminTab==='reports'&&(
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>🚨 MELDUNGEN</div>
+                <button onClick={async()=>{
+                  try{
+                    const data=await dbSelect('reports','order=created_at.desc&limit=50',session.token);
+                    if(Array.isArray(data))setAdminReports(data);
+                    else setAdminReports([]);
+                  }catch{setAdminReports([]);}
+                }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>MELDUNGEN LADEN</button>
+                {adminReports.length===0&&<div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>Keine Meldungen — oder "Laden" drücken</div>}
+                {adminReports.map((r,i)=>(
+                  <div key={r.id||i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'12px',border:'1px solid #e74c3c44',marginBottom:8}}>
+                    <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                      <div style={{color:RED,fontSize:11,fontWeight:700}}>🚨 {r.reason||'Kein Grund angegeben'}</div>
+                      <div style={{color:'#bbb',fontSize:10}}>{new Date(r.created_at).toLocaleDateString('de')}</div>
+                    </div>
+                    <div style={{color:darkMode?'#aaa':'#666',fontSize:11}}>Gemeldet: <strong>{r.reported_name||r.reported_id}</strong></div>
+                    <div style={{color:'#bbb',fontSize:10,marginTop:2}}>Von: {r.reporter_id?.slice(0,8)}...</div>
+                    <div style={{display:'flex',gap:6,marginTop:8}}>
+                      <button onClick={async()=>{
+                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+r.reported_id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({banned:true})});
+                        showMsg('User gesperrt 🚫');
+                        setAdminReports(prev=>prev.filter(x=>x.id!==r.id));
+                      }} style={{flex:1,padding:'7px',borderRadius:7,background:'#e74c3c',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>🚫 Sperren</button>
+                      <button onClick={async()=>{
+                        await fetch(SUPA_URL+'/rest/v1/reports?id=eq.'+r.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                        setAdminReports(prev=>prev.filter(x=>x.id!==r.id));
+                        showMsg('Meldung ignoriert');
+                      }} style={{flex:1,padding:'7px',borderRadius:7,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#aaa':'#666',fontSize:11,fontWeight:700,cursor:'pointer'}}>✓ Ignorieren</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ── KAMPFREKORD VERIFIZIEREN ── */}
+            {adminTab==='records'&&(
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>🏅 REKORD-ANTRÄGE</div>
+                <button onClick={async()=>{
+                  try{
+                    const data=await dbSelect('profiles','record_verified=eq.pending&select=id,name,city,style,record_proof_url,created_at&limit=30',session.token);
+                    if(Array.isArray(data))setAdminRecords(data);
+                    else setAdminRecords([]);
+                  }catch{setAdminRecords([]);}
+                }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>ANTRÄGE LADEN</button>
+                {adminRecords.length===0&&<div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>Keine offenen Anträge</div>}
+                {adminRecords.map((u,i)=>(
+                  <div key={u.id||i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'12px',border:'1px solid #d4a01744',marginBottom:8}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                      <div style={{flex:1}}>
+                        <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:700}}>{u.name}</div>
+                        <div style={{color:'#aaa',fontSize:10}}>{u.city} · {u.style}</div>
+                      </div>
+                      <div style={{background:'#d4a01722',borderRadius:6,padding:'2px 7px',color:'#d4a017',fontSize:10,fontWeight:700}}>⏳ WARTEND</div>
+                    </div>
+                    {u.record_proof_url&&<img src={u.record_proof_url} style={{width:'100%',borderRadius:8,marginBottom:8,maxHeight:200,objectFit:'contain',background:'#f0f0f0'}} alt='Nachweis'/>}
+                    <div style={{display:'flex',gap:6}}>
+                      <button onClick={async()=>{
+                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({record_verified:'verified'})});
+                        setAdminRecords(prev=>prev.filter(x=>x.id!==u.id));
+                        showMsg('✅ Rekord verifiziert!');
+                      }} style={{flex:1,padding:'8px',borderRadius:7,background:'#27ae60',border:'none',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer'}}>✅ Bestätigen</button>
+                      <button onClick={async()=>{
+                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({record_verified:'rejected'})});
+                        setAdminRecords(prev=>prev.filter(x=>x.id!==u.id));
+                        showMsg('❌ Abgelehnt');
+                      }} style={{flex:1,padding:'8px',borderRadius:7,background:'#e74c3c',border:'none',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer'}}>❌ Ablehnen</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ── BROADCAST ── */}
+            {adminTab==='broadcast'&&(
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>📢 NACHRICHT AN ALLE</div>
+                <div style={{color:'#aaa',fontSize:11,marginBottom:12,lineHeight:1.6}}>Sende eine Systemnachricht die alle User beim nächsten Öffnen der App sehen.</div>
+                <textarea value={adminBroadcast} onChange={e=>setAdminBroadcast(e.target.value)} placeholder="z.B. Neues Feature: Jetzt Gym-Seiten besuchen! 🏋️" rows={4} style={{width:'100%',padding:'12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',resize:'none',marginBottom:10}}/>
+                <button onClick={async()=>{
+                  if(!adminBroadcast.trim()){showMsg('Nachricht eingeben');return;}
+                  setAdminSaving(true);
+                  try{
+                    await fetch(SUPA_URL+'/rest/v1/broadcasts',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({message:adminBroadcast,created_by:session.userId,active:true})});
+                    showMsg('✅ Nachricht gesendet!');setAdminBroadcast('');
+                  }catch{showMsg('Fehler — broadcasts Tabelle anlegen');}
+                  setAdminSaving(false);
+                }} style={{width:'100%',padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,cursor:'pointer',letterSpacing:2}}>📢 SENDEN</button>
+              </div>
+            )}
+
+            {/* ── STATISTIKEN ── */}
             {adminTab==='stats'&&(
               <div>
-                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:16}}>APP STATISTIKEN</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>📊 STATISTIKEN</div>
+                <button onClick={async()=>{
+                  if(!adminUsersLoaded){
+                    const data=await dbSelect('profiles','order=created_at.desc&limit=500',session.token);
+                    if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
+                  }
+                }} style={{width:'100%',padding:'10px',borderRadius:8,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:12}}>
+                  {adminUsersLoaded?'✅ Stats geladen':'Stats laden'}
+                </button>
                 {[
                   ['👤 Registrierte User',adminUsers.length||'?'],
                   ['🏋️ Gyms in App',Object.values(GYMS).flat().length],
                   ['🌍 Städte',Object.keys(GYMS).length],
                   ['🖼️ Gym Logos',Object.keys(gymLogos).length],
+                  ['📍 Top Stadt',adminUsers.length>0?(()=>{const cnt={};adminUsers.forEach(u=>{if(u.city)cnt[u.city]=(cnt[u.city]||0)+1;});return Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'?';})():'?'],
+                  ['🥊 Top Stil',adminUsers.length>0?(()=>{const cnt={};adminUsers.forEach(u=>{if(u.style)cnt[u.style]=(cnt[u.style]||0)+1;});return Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'?';})():'?'],
                 ].map(([label,val])=>(
                   <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',background:darkMode?'#1a1a1a':'#fff',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:8}}>
                     <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13}}>{label}</div>
-                    <div style={{color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:20}}>{val}</div>
+                    <div style={{color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18}}>{val}</div>
                   </div>
                 ))}
               </div>
