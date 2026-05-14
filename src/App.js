@@ -515,14 +515,18 @@ function AuthScreen({ onSession }) {
           setErr(r.error.message||'Registrierung fehlgeschlagen');
         }
       }else if(r.session&&r.session.access_token){
+        // Direkt einloggen (E-Mail Bestätigung deaktiviert)
         onSession({token:r.session.access_token,userId:r.user.id,refresh_token:r.session.refresh_token||null,expires_at:Date.now()+(3600*1000)});
-      }else if(r.user&&!r.session){
-        setInfo('✅ Bestätigungsmail gesendet an '+email+'! Bitte E-Mail öffnen und Link klicken, dann hier einloggen.');
-        setMode('login');
       }else if(r.access_token){
         onSession({token:r.access_token,userId:r.user?.id});
+      }else if(r.user&&r.user.id){
+        // E-Mail Bestätigung aktiv → Hinweis zeigen
+        setInfo('✅ Fast fertig! Wir haben eine Bestätigungsmail an '+email+' gesendet. Bitte öffne sie und klicke auf den Link, dann kannst du dich hier einloggen.');
+        setMode('login');
       }else{
-        setErr('Unbekannter Fehler bei der Registrierung');
+        // Fallback — trotzdem versuchen einzuloggen
+        setErr('Registrierung fehlgeschlagen. Bitte versuche es erneut oder wende dich an den Support.');
+        console.error('SignUp response:', JSON.stringify(r));
       }
     }else{
       const r=await authSignIn(email,password);
