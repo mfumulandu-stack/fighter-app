@@ -1607,10 +1607,14 @@ export default function App(){
         try{
           await dbInsert('swipes',{swiper_id:myProfile.id,target_id:top.id,direction:'like'},session.token);
           const mutual=await dbSelect('swipes','swiper_id=eq.'+top.id+'&target_id=eq.'+myProfile.id+'&direction=eq.like',session.token);
-          if(Array.isArray(mutual)&&mutual.length>0){await dbInsert('matches',{profile_a_id:myProfile.id,profile_b_id:top.id},session.token);setTimeout(()=>{setMatched(top);loadMatches(session,myProfile);},300);}
-          else if(Math.random()<0.2)setTimeout(()=>setMatched(top),300);
+          if(Array.isArray(mutual)&&mutual.length>0){
+            // Echtes Match — in DB speichern und Match-Screen zeigen
+            await dbInsert('matches',{profile_a_id:myProfile.id,profile_b_id:top.id},session.token);
+            setTimeout(()=>{setMatched(top);loadMatches(session,myProfile);},300);
+          }
+          // Keine fake Matches mehr
         }catch{}
-      }else{if(Math.random()<0.45)setTimeout(()=>setMatched(top),300);}
+      }
     }else{
       setSwStats(s=>({...s,de:s.de+1}));
       if(session&&myProfile&&!String(top.id).startsWith('demo_')){try{await dbInsert('swipes',{swiper_id:myProfile.id,target_id:top.id,direction:'pass'},session.token);}catch{}}
@@ -2724,15 +2728,17 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
       </div>
 
       {matched&&(
-        <div onClick={()=>setMatched(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',zIndex:100,gap:12}}>
-          <div className='rj' style={{color:RED,fontSize:12,letterSpacing:8}}>FIGHT ACCEPTED</div>
-          <div className='rj' style={{fontSize:46,color:'#fff',letterSpacing:4,textAlign:'center',lineHeight:1,animation:'pulse 1.2s infinite'}}>IT'S ON!</div>
-          {matched.avatar_url?<img src={matched.avatar_url} style={{width:160,height:160,borderRadius:16,objectFit:'cover',border:'3px solid '+RED}} alt=''/>:<div style={{fontSize:52}}>{matched.emoji||'🥊'}</div>}
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',zIndex:100,gap:12}}>
+          <div className='rj' style={{color:RED,fontSize:12,letterSpacing:8}}>⚡ NEUES MATCH</div>
+          <div className='rj' style={{fontSize:46,color:'#fff',letterSpacing:4,textAlign:'center',lineHeight:1,animation:'pulse 1.2s infinite'}}>IT'S A MATCH!</div>
+          <div style={{fontSize:14,color:'rgba(255,255,255,0.6)',textAlign:'center'}}>Ihr habt beide geswipt — jetzt chatten!</div>
+          {matched.avatar_url?<img src={matched.avatar_url} style={{width:140,height:140,borderRadius:'50%',objectFit:'cover',border:'3px solid '+RED}} alt=''/>:<div style={{fontSize:52}}>{matched.emoji||'🥊'}</div>}
           <div className='rj' style={{color:'#fff',fontSize:24,letterSpacing:2}}>{matched.name}</div>
-          <div style={{color:matched.accent||RED,fontSize:12,fontWeight:700}}>{matched.style} - {matched.weight_class||matched.weightClass}</div>
-          <div style={{color:'#aaa',fontSize:11}}>{matched.gym}, {matched.city}</div>
-          <button onClick={()=>{setMatched(null);setTab('chat');}} style={{marginTop:5,padding:'11px 26px',borderRadius:6,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>💬 Chat öffnen</button>
-          <div style={{color:'#555',fontSize:10}}>Tippen zum Schliessen</div>
+          <div style={{color:matched.accent||RED,fontSize:12,fontWeight:700}}>{matched.style} · {matched.city}</div>
+          <div style={{display:'flex',gap:10,marginTop:8}}>
+            <button onClick={()=>{setMatched(null);setTab('chat');}} style={{padding:'13px 28px',borderRadius:12,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>💬 JETZT CHATTEN</button>
+            <button onClick={()=>setMatched(null)} style={{padding:'13px 20px',borderRadius:12,background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.2)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>Weiter swipen</button>
+          </div>
         </div>
       )}
     </div>
