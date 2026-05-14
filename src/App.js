@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 
 const SUPA_URL = 'https://uykdrmymjvqgebsmndme.supabase.co';
+const ADMIN_ID = '1a697731-458d-4559-a4cf-a89d3150bfa5';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk';
 
 async function authSignUp(email, password) {
@@ -1163,6 +1164,13 @@ export default function App(){
   const [blockedUsers,setBlockedUsers]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_blocked')||'[]')}catch{return []}});
   const [gymVerified,setGymVerified]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_gym_verified')||'null')}catch{return null}});
   const [gymLogos,setGymLogos]=useState({});
+  const [showAdmin,setShowAdmin]=useState(false);
+  const [adminTab,setAdminTab]=useState('gyms');
+  const [adminUsers,setAdminUsers]=useState([]);
+  const [adminGymCode,setAdminGymCode]=useState('');
+  const [adminGymLogoUrl,setAdminGymLogoUrl]=useState('');
+  const [adminSaving,setAdminSaving]=useState(false);
+  const isAdmin=session?.userId===ADMIN_ID;
   const [fightHistory,setFightHistory]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_history')||'[]')}catch{return []}});
   const [historyPublic,setHistoryPublic]=useState(()=>{try{return localStorage.getItem('fighter_history_public')==='true'}catch{return false}});
   const [editMode,setEditMode]=useState(false);
@@ -1960,7 +1968,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 18px 8px',flexShrink:0,borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),background:darkMode?'#1a1a1a':'#fff'}}>
         <div style={{color:'#999',fontSize:11,fontWeight:600}}>Abgelehnt: {swStats.de}</div>
         <div className='rj' style={{fontSize:28,color:darkMode?'#ff4500':'#1a1a1a',letterSpacing:5}}>FIGHTER</div>
-        <button onClick={()=>setDarkMode(d=>!d)} style={{background:darkMode?'#222':'#f0f0f0',border:'none',cursor:'pointer',fontSize:16,padding:'4px 8px',borderRadius:8,marginRight:6}}>{darkMode?'☀️':'🌙'}</button><button onClick={handleLogout} style={{color:darkMode?'#555':'#aaa',fontSize:11,fontWeight:600,background:'none',border:'none',cursor:'pointer'}}>Logout</button>
+        <button onClick={()=>setDarkMode(d=>!d)} style={{background:darkMode?'#222':'#f0f0f0',border:'none',cursor:'pointer',fontSize:16,padding:'4px 8px',borderRadius:8,marginRight:6}}>{darkMode?'☀️':'🌙'}</button>{isAdmin&&<button onClick={()=>setShowAdmin(true)} style={{background:RED,border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:6}}>⚙️</button>}<button onClick={handleLogout} style={{color:darkMode?'#555':'#aaa',fontSize:11,fontWeight:600,background:'none',border:'none',cursor:'pointer'}}>Logout</button>
       </div>
 
       <div style={{flex:1,overflowY:'auto',paddingBottom:65}}>
@@ -2746,6 +2754,122 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         {tabs.map(([id,iconOrKey,label])=>{const icon=iconOrKey==='unread'?'💬':iconOrKey;const showBadge=iconOrKey==='unread'&&unreadCount>0&&tab!=='chat';return(<button key={id} onClick={()=>{setTab(id);if(id==='chat'){dbMatches.forEach(m=>localStorage.setItem('fighter_last_read_'+m.id,new Date().toISOString()));setUnreadCount(0);}}} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer',gap:2,borderTop:tab===id?'2px solid '+RED:'2px solid transparent',transition:'all 0.2s',position:'relative'}}><div style={{position:'relative',display:'inline-block'}}><div style={{fontSize:15,opacity:tab===id?1:0.4}}>{icon}</div>{showBadge&&<div style={{position:'absolute',top:-3,right:-5,width:14,height:14,borderRadius:'50%',background:RED,border:'1.5px solid '+(darkMode?'#0d0d0d':'#f5f5f7'),display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{color:'#fff',fontSize:7,fontWeight:700}}>{unreadCount>9?'9+':unreadCount}</span></div>}</div><div style={{color:tab===id?RED:(darkMode?'#666':'#aaa'),fontSize:9,fontFamily:'DM Sans,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:0.5}}>{label}</div></button>);})}
       </div>
 
+      {/* ADMIN PANEL */}
+      {showAdmin&&isAdmin&&(
+        <div style={{position:'fixed',inset:0,background:darkMode?'#0d0d0d':'#f5f5f7',zIndex:600,display:'flex',flexDirection:'column',overflowY:'auto'}}>
+          <div style={{background:RED,padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
+            <div className='rj' style={{color:'#fff',fontSize:18,letterSpacing:3}}>⚙️ ADMIN</div>
+            <button onClick={()=>setShowAdmin(false)} style={{background:'none',border:'none',color:'#fff',fontSize:22,cursor:'pointer'}}>✕</button>
+          </div>
+          <div style={{display:'flex',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+            {[['gyms','🏋️ Gyms'],['users','👤 User'],['stats','📊 Stats']].map(([t,l])=>(
+              <button key={t} onClick={()=>setAdminTab(t)} style={{flex:1,padding:'12px',background:'none',border:'none',borderBottom:adminTab===t?'2px solid '+RED:'2px solid transparent',color:adminTab===t?RED:(darkMode?'#aaa':'#888'),fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',letterSpacing:1}}>{l}</button>
+            ))}
+          </div>
+          <div style={{padding:'16px',flex:1}}>
+
+            {adminTab==='gyms'&&(
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>GYM LOGOS VERWALTEN</div>
+                <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20}}>
+                  <div style={{color:'#aaa',fontSize:10,letterSpacing:1}}>GYM CODE</div>
+                  <input value={adminGymCode} onChange={e=>setAdminGymCode(e.target.value)} placeholder="z.B. TGB-2847" style={{padding:'10px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontFamily:'DM Sans,sans-serif'}}/>
+                  <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginTop:4}}>LOGO — BILD HOCHLADEN</div>
+                  <label style={{cursor:'pointer'}}>
+                    <input type='file' accept='image/*' style={{display:'none'}} onChange={async(e)=>{
+                      const file=e.target.files[0];if(!file)return;
+                      setAdminSaving(true);
+                      const compressed=await compressImage(file,400,0.9);
+                      const path='gym_logos/'+adminGymCode+'_'+Date.now()+'.jpg';
+                      const url=await uploadPhoto(compressed,path,session.token);
+                      if(url){setAdminGymLogoUrl(url);showMsg('✅ Logo hochgeladen!');}
+                      setAdminSaving(false);
+                    }}/>
+                    <div style={{padding:'12px',borderRadius:8,border:'1.5px dashed '+(adminGymLogoUrl?RED:'#ccc'),textAlign:'center',background:darkMode?'#111':'#f9f9f9'}}>
+                      {adminGymLogoUrl?<img src={adminGymLogoUrl} style={{width:60,height:60,objectFit:'cover',borderRadius:8}} alt=''/>:<div style={{color:'#aaa',fontSize:12}}>📷 Logo hochladen</div>}
+                    </div>
+                  </label>
+                  <button onClick={async()=>{
+                    if(!adminGymCode||!adminGymLogoUrl){showMsg('Bitte Code und Logo eingeben');return;}
+                    setAdminSaving(true);
+                    try{
+                      await fetch(SUPA_URL+'/rest/v1/gym_logos',{
+                        method:'POST',
+                        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'resolution=merge-duplicates'},
+                        body:JSON.stringify({gym_code:adminGymCode,logo_url:adminGymLogoUrl,verified:true})
+                      });
+                      showMsg('✅ Gym Logo gespeichert!');
+                      setAdminGymCode('');setAdminGymLogoUrl('');
+                      loadGymLogos();
+                    }catch{showMsg('Fehler beim Speichern');}
+                    setAdminSaving(false);
+                  }} style={{padding:'12px',borderRadius:10,background:adminSaving?'#eee':`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:adminSaving?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,cursor:'pointer',letterSpacing:2}}>
+                    {adminSaving?'Speichern...':'SPEICHERN'}
+                  </button>
+                </div>
+                <div className='rj' style={{color:darkMode?'#aaa':'#888',fontSize:11,letterSpacing:2,marginBottom:8}}>VORHANDENE LOGOS</div>
+                {Object.entries(gymLogos).map(([code,g])=>(
+                  <div key={code} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:6}}>
+                    {g.logo_url&&<img src={g.logo_url} style={{width:36,height:36,borderRadius:6,objectFit:'cover'}} alt=''/>}
+                    <div style={{flex:1}}>
+                      <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700}}>{code}</div>
+                      <div style={{color:'#27ae60',fontSize:10}}>✅ Verifiziert</div>
+                    </div>
+                    <button onClick={async()=>{
+                      if(!window.confirm('Logo löschen?'))return;
+                      await fetch(SUPA_URL+'/rest/v1/gym_logos?gym_code=eq.'+code,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                      showMsg('Logo gelöscht');loadGymLogos();
+                    }} style={{background:'none',border:'none',color:'#e74c3c',fontSize:16,cursor:'pointer'}}>🗑️</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {adminTab==='users'&&(
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>USER VERWALTEN</div>
+                <button onClick={async()=>{
+                  try{
+                    const data=await dbSelect('profiles','order=created_at.desc&limit=50',session.token);
+                    if(Array.isArray(data))setAdminUsers(data);
+                  }catch{}
+                }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>
+                  USER LADEN
+                </button>
+                {adminUsers.map(u=>(
+                  <div key={u.id} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:5}}>
+                    {u.avatar_url?<img src={u.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover'}} alt=''/>:<div style={{width:32,height:32,borderRadius:'50%',background:'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>👤</div>}
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{u.name||'Unbekannt'}</div>
+                      <div style={{color:'#aaa',fontSize:10}}>{u.city} · {u.style}</div>
+                    </div>
+                    <div style={{color:'#bbb',fontSize:9}}>{new Date(u.created_at).toLocaleDateString('de')}</div>
+                  </div>
+                ))}
+                {adminUsers.length===0&&<div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>Auf "User laden" tippen</div>}
+              </div>
+            )}
+
+            {adminTab==='stats'&&(
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:16}}>APP STATISTIKEN</div>
+                {[
+                  ['👤 Registrierte User',adminUsers.length||'?'],
+                  ['🏋️ Gyms in App',Object.values(GYMS).flat().length],
+                  ['🌍 Städte',Object.keys(GYMS).length],
+                  ['🖼️ Gym Logos',Object.keys(gymLogos).length],
+                ].map(([label,val])=>(
+                  <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',background:darkMode?'#1a1a1a':'#fff',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:8}}>
+                    <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13}}>{label}</div>
+                    <div style={{color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:20}}>{val}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
       {matched&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',zIndex:100,gap:12}}>
           <div className='rj' style={{color:RED,fontSize:12,letterSpacing:8}}>⚡ NEUES MATCH</div>
