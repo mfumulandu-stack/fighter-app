@@ -1987,19 +1987,6 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             </div>
             {/* FILTER LEISTE */}
             <div style={{width:'calc(100% - 24px)',maxWidth:380,margin:'0 0 8px',display:'flex',flexDirection:'column',gap:6}}>
-              {/* GEWICHTSKLASSEN TOGGLE */}
-              {myWeightClass&&(
-                <div style={{display:'flex',alignItems:'center',gap:9,background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'8px 12px',border:'1px solid '+(filterWeightClass?'#d35400':(darkMode?'#2a2a2a':'#eee'))}}>
-                  <div style={{fontSize:16}}>⚖️</div>
-                  <div style={{flex:1}}>
-                    <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700}}>{myWeightClass}</div>
-                    <div style={{color:'#aaa',fontSize:10}}>{filterWeightClass?'Nur meine Gewichtsklasse':'Alle Klassen'}</div>
-                  </div>
-                  <div onClick={()=>setFilterWeightClass(v=>!v)} style={{width:42,height:24,borderRadius:12,background:filterWeightClass?'#d35400':'#ccc',position:'relative',cursor:'pointer',flexShrink:0}}>
-                    <div style={{position:'absolute',top:3,left:filterWeightClass?21:3,width:18,height:18,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 3px rgba(0,0,0,0.25)'}}/>
-                  </div>
-                </div>
-              )}
 
             </div>
             <div style={{position:'relative',width:330,height:430,flexShrink:0,touchAction:'none'}}>
