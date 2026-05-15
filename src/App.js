@@ -1028,12 +1028,11 @@ Leider kann ich diesen Termin nicht wahrnehmen.`;
 
 
 function ImpressumScreen({onClose,darkMode}){
-  const isDark=darkMode===true;
-  const bg=isDark?'#0d0d0d':'#f5f5f7';
-  const card=isDark?'#1a1a1a':'#fff';
-  const text=isDark?'#fff':'#1a1a1a';
-  const sub=isDark?'#aaa':'#555';
-  const border=isDark?'#2a2a2a':'#eee';
+  const bg='#f5f5f7';
+  const card='#fff';
+  const text='#1a1a1a';
+  const sub='#555';
+  const border='#eee';
   return(
     <div style={{position:'fixed',inset:0,background:bg,zIndex:300,overflowY:'auto',padding:'20px 16px 40px'}}>
       <div style={{maxWidth:480,margin:'0 auto'}}>
@@ -1064,12 +1063,11 @@ function ImpressumScreen({onClose,darkMode}){
   );
 }
 function DatenschutzScreen({onClose,darkMode}){
-  const isDark=darkMode===true;
-  const bg=isDark?'#0d0d0d':'#f5f5f7';
-  const card=isDark?'#1a1a1a':'#fff';
-  const text=isDark?'#fff':'#1a1a1a';
-  const sub=isDark?'#aaa':'#555';
-  const border=isDark?'#2a2a2a':'#eee';
+  const bg='#f5f5f7';
+  const card='#fff';
+  const text='#1a1a1a';
+  const sub='#555';
+  const border='#eee';
   const sections=[
     ['1. Verantwortlicher (Art. 13 DSGVO)','Junior Landu Mfumu · Ottostraße 43, 52070 Aachen · E-Mail: support@fighterapp.de'],
     ['2. Erhobene Daten','Pflichtangaben: E-Mail (Login), Passwort (verschlüsselt). Profilangaben: Name, Alter, Wohnort, Kampfstil, Gym, Gewichtsklasse, Profilbild (freiwillig), Kampfrekord (freiwillig), Bio (freiwillig). Nutzungsdaten: Swipe-Aktionen, Chat-Nachrichten, Session-Token.'],
@@ -1104,12 +1102,11 @@ function DatenschutzScreen({onClose,darkMode}){
   );
 }
 function AGBScreen({onClose,darkMode}){
-  const isDark=darkMode===true;
-  const bg=isDark?'#0d0d0d':'#f5f5f7';
-  const card=isDark?'#1a1a1a':'#fff';
-  const text=isDark?'#fff':'#1a1a1a';
-  const sub=isDark?'#aaa':'#555';
-  const border=isDark?'#2a2a2a':'#eee';
+  const bg='#f5f5f7';
+  const card='#fff';
+  const text='#1a1a1a';
+  const sub='#555';
+  const border='#eee';
   const sections=[
     ['1. Geltungsbereich','Diese AGB gelten für die Nutzung der Fighter-App, betrieben von Junior Landu Mfumu, Ottostraße 43, 52070 Aachen (support@fighterapp.de). Mit der Registrierung erkennst du diese AGB verbindlich an.'],
     ['2. Mindestalter 18 Jahre','⚠️ Die Nutzung ist ausschließlich Personen ab 18 Jahren gestattet. Mit Registrierung bestätigst du: Mindestalter 18 Jahre erreicht · Angaben sind wahrheitsgemäß · Nur ein Konto pro Person · Registrierung im eigenen Namen. Bei Verdacht auf Minderjährigkeit: sofortige Sperrung ohne Vorankündigung.'],
