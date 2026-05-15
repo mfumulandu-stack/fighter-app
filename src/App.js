@@ -1042,8 +1042,8 @@ function ImpressumScreen({onClose,darkMode}){
           <div style={{color:'#c0392b',fontSize:10,letterSpacing:2,marginBottom:20}}>Angaben gemäß § 5 TMG</div>
           <div style={{color:sub,fontSize:12,lineHeight:1.9}}>
             {[
-              ['Betreiber',<><div>Junior Landu Mfumu</div><div>Ottostraße 43</div><div>52070 Aachen</div><div>Deutschland</div></>],
-              ['Kontakt',<><div>E-Mail: mfumulandu@gmail.com</div><div style={{color:'#aaa',fontSize:11,marginTop:2}}>Antwortzeit: innerhalb von 5 Werktagen</div></>],
+              ['Betreiber',<><div>Fighter App</div><div>Deutschland</div></>],
+              ['Kontakt',<><div>E-Mail: support@fighterapp.de</div><div style={{color:'#aaa',fontSize:11,marginTop:2}}>Antwortzeit: innerhalb von 5 Werktagen</div></>],
               ['Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV',<><div>Junior Landu Mfumu, Ottostraße 43, 52070 Aachen</div></>],
               ['Haftungsausschluss',<><div>Die Inhalte dieser App wurden mit größter Sorgfalt erstellt. Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte verantwortlich. Nach §§ 8–10 TMG sind wir nicht verpflichtet, übermittelte fremde Informationen zu überwachen.</div></>],
               ['Haftung für Links',<><div>Unser Angebot enthält Links zu externen Websites Dritter. Für deren Inhalte übernehmen wir keine Haftung, da wir keinen Einfluss darauf haben.</div></>],
@@ -1069,13 +1069,13 @@ function DatenschutzScreen({onClose,darkMode}){
   const sub=darkMode?'#aaa':'#555';
   const border=darkMode?'#2a2a2a':'#eee';
   const sections=[
-    ['1. Verantwortlicher (Art. 13 DSGVO)','Junior Landu Mfumu · Ottostraße 43, 52070 Aachen · E-Mail: mfumulandu@gmail.com'],
+    ['1. Verantwortlicher (Art. 13 DSGVO)','Junior Landu Mfumu · Ottostraße 43, 52070 Aachen · E-Mail: support@fighterapp.de'],
     ['2. Erhobene Daten','Pflichtangaben: E-Mail (Login), Passwort (verschlüsselt). Profilangaben: Name, Alter, Wohnort, Kampfstil, Gym, Gewichtsklasse, Profilbild (freiwillig), Kampfrekord (freiwillig), Bio (freiwillig). Nutzungsdaten: Swipe-Aktionen, Chat-Nachrichten, Session-Token.'],
     ['3. Rechtsgrundlagen','Art. 6 Abs. 1 lit. a DSGVO — Einwilligung beim Registrieren. Art. 6 Abs. 1 lit. b DSGVO — Vertragserfüllung (App-Nutzung). Art. 6 Abs. 1 lit. f DSGVO — berechtigte Interessen (Sicherheit).'],
     ['4. Datenübermittlung USA (Supabase)','Deine Daten werden bei Supabase Inc. (San Francisco, USA) gespeichert. Rechtsgrundlage: Standardvertragsklauseln (SCC) nach Art. 46 Abs. 2 lit. c DSGVO + EU-US Data Privacy Framework. Auftragsverarbeitungsvertrag (AVV) nach Art. 28 DSGVO liegt vor. Details: supabase.com/privacy'],
     ['5. Speicherdauer','Solange dein Account aktiv ist. Nach Löschungsantrag: vollständige Datenlöschung innerhalb von 30 Tagen. Inaktive Accounts (24+ Monate): Löschanfrage per E-Mail.'],
     ['6. Keine Datenweitergabe','Wir verkaufen, vermieten oder tauschen deine Daten nicht. Weitergabe nur an Supabase (technischer Betrieb, AVV liegt vor) und bei gesetzlicher Verpflichtung.'],
-    ['7. Deine Rechte (Art. 15–22 DSGVO)','Auskunft · Berichtigung · Löschung (Recht auf Vergessenwerden) · Einschränkung der Verarbeitung · Datenübertragbarkeit · Widerspruch · Widerruf der Einwilligung. Anfragen an: mfumulandu@gmail.com (Antwort innerhalb 30 Tage)'],
+    ['7. Deine Rechte (Art. 15–22 DSGVO)','Auskunft · Berichtigung · Löschung (Recht auf Vergessenwerden) · Einschränkung der Verarbeitung · Datenübertragbarkeit · Widerspruch · Widerruf der Einwilligung. Anfragen an: support@fighterapp.de (Antwort innerhalb 30 Tage)'],
     ['8. Beschwerderecht','Landesbeauftragte für Datenschutz NRW · Postfach 20 04 44, 40102 Düsseldorf · poststelle@ldi.nrw.de · www.ldi.nrw.de'],
     ['9. Technische Sicherheit','SSL/TLS-Verschlüsselung (HTTPS) · Passwörter mit bcrypt gehasht · Session-Tokens nach 1h erneuert · Keine Tracking-Cookies · Kein Google Analytics oder Facebook Pixel.'],
     ['10. Lokaler Speicher','Nur technisch notwendige Daten: Session-Token (Login-Status) + Gym-Bewertungen (nur lokal, nicht auf dem Server). Kein Tracking.'],
@@ -1094,7 +1094,7 @@ function DatenschutzScreen({onClose,darkMode}){
                 <div>{content}</div>
               </div>
             ))}
-            <div style={{color:'#aaa',fontSize:10,textAlign:'center',marginTop:16,paddingTop:12,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>Stand: Mai 2026 · mfumulandu@gmail.com</div>
+            <div style={{color:'#aaa',fontSize:10,textAlign:'center',marginTop:16,paddingTop:12,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>Stand: Mai 2026 · support@fighterapp.de</div>
           </div>
         </div>
       </div>
@@ -1108,7 +1108,7 @@ function AGBScreen({onClose,darkMode}){
   const sub=darkMode?'#aaa':'#555';
   const border=darkMode?'#2a2a2a':'#eee';
   const sections=[
-    ['1. Geltungsbereich','Diese AGB gelten für die Nutzung der Fighter-App, betrieben von Junior Landu Mfumu, Ottostraße 43, 52070 Aachen (mfumulandu@gmail.com). Mit der Registrierung erkennst du diese AGB verbindlich an.'],
+    ['1. Geltungsbereich','Diese AGB gelten für die Nutzung der Fighter-App, betrieben von Junior Landu Mfumu, Ottostraße 43, 52070 Aachen (support@fighterapp.de). Mit der Registrierung erkennst du diese AGB verbindlich an.'],
     ['2. Mindestalter 18 Jahre','⚠️ Die Nutzung ist ausschließlich Personen ab 18 Jahren gestattet. Mit Registrierung bestätigst du: Mindestalter 18 Jahre erreicht · Angaben sind wahrheitsgemäß · Nur ein Konto pro Person · Registrierung im eigenen Namen. Bei Verdacht auf Minderjährigkeit: sofortige Sperrung ohne Vorankündigung.'],
     ['3. Leistungsumfang','Die App bietet: Kampfsport-Profil · Matching (Swipe-System) · Chat zwischen Matches · Gym-Suche und Bewertungen · Ranglisten und Trainer-Übersichten. Kein Anspruch auf dauerhaften Betrieb. Änderungen und Einstellungen von Funktionen vorbehalten.'],
     ['4. Nutzerpflichten','Nur eigene, aktuelle Profilbilder verwenden · Keine falschen Kampfrekorde oder Angaben · Respektvoller Umgang mit anderen Nutzern · Keine Beleidigungen, Drohungen oder Hassrede · Keine rechtswidrigen Inhalte · Keine kommerzielle Nutzung ohne Genehmigung · Keine automatisierten Skripte oder Bots.'],
@@ -1335,6 +1335,14 @@ export default function App(){
       const data=await dbSelect('profiles','user_id=eq.'+s.userId,s.token);
       if(Array.isArray(data)&&data[0]){
         const p=data[0];
+        // Banned Check
+        if(p.banned===true){
+          try{localStorage.removeItem('fighter_v5');}catch{}
+          setAuthReady(true);
+          setScreen('auth');
+          alert('Dein Account wurde gesperrt. Bei Fragen: support@fighterapp.de');
+          return;
+        }
         setMyProfile(p);
         setProfile({name:p.name||'',age:p.age||'',city:p.city||'',gym:p.gym||'',height:p.height||'',weight:p.weight||'',weightClass:p.weight_class||'',style:p.style||'',bio:p.bio||''});
         setStats({wins:p.wins||0,losses:p.losses||0,draws:p.draws||0,ko:p.ko||0});
@@ -2008,7 +2016,7 @@ Adresse: ${newGymData.address||'-'}
 Stil: ${newGymData.style||'-'}
 
 Angemeldet von: ${profile.name||'Unbekannt'}`;
-                            fetch('https://api.emailjs.com/api/v1.0/email/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service_id:'default_service',template_id:'template_default',user_id:'user_default',template_params:{message:body,to_email:'mfumulandu@gmail.com'}})}).catch(()=>{});
+                            fetch('https://api.emailjs.com/api/v1.0/email/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service_id:'default_service',template_id:'template_default',user_id:'user_default',template_params:{message:body,to_email:'support@fighterapp.de'}})}).catch(()=>{});
                             setProfile(p=>({...p,gym:newGymData.name}));
                             setGymRegSent(true);
                           }} disabled={!newGymData.name||!newGymData.city}
@@ -2150,6 +2158,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                           </div>
                           <div style={{display:'flex',gap:5,marginTop:6,flexWrap:'wrap'}}>
                             {f.style&&<div style={{background:fA,borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{f.style}</div>}
+                            {f.age&&<div style={{background:'rgba(255,255,255,0.15)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>🎂 {f.age} J.</div>}
                             {(f.weight_class||f.weightClass)&&<div style={{background:(f.weight_class||f.weightClass)===myWeightClass?'rgba(211,84,0,0.7)':'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:(f.weight_class||f.weightClass)===myWeightClass?700:400}}>⚖️ {(f.weight_class||f.weightClass||'').split(' (')[0]}{(f.weight_class||f.weightClass)===myWeightClass?' ✓':''}</div>}
                             {f.city&&<div style={{background:'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>📍 {f.city}{myCity&&f.city&&f.city.toLowerCase()!==myCity.toLowerCase()&&getDistanceKm(myCity,f.city)<500?' · '+getDistanceKm(myCity,f.city)+'km':''}</div>}
                           </div>
@@ -2557,7 +2566,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>📜 AGB</div>
                 <div style={{color:'#aaa',fontSize:16}}>›</div>
               </div>
-              <div onClick={()=>showMsg('Bitte kontaktiere mfumulandu@gmail.com')} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
+              <div onClick={()=>showMsg('Bitte kontaktiere support@fighterapp.de')} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
                 <div style={{color:'#c0392b',fontSize:14,fontWeight:600}}>🗑️ Account löschen</div>
                 <div style={{color:'#aaa',fontSize:16}}>›</div>
               </div>
