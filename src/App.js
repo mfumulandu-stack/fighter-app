@@ -1040,19 +1040,19 @@ function ImpressumScreen({onClose,darkMode}){
         <div style={{background:card,borderRadius:14,padding:'20px',marginBottom:12,border:'1px solid '+border}}>
           <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,color:text,letterSpacing:2,marginBottom:4}}>IMPRESSUM</div>
           <div style={{color:'#c0392b',fontSize:10,letterSpacing:2,marginBottom:20}}>Angaben gemäß § 5 TMG</div>
-          <div style={{color:sub,fontSize:12,lineHeight:1.9}}>
+          <div style={{color:sub,fontSize:13,lineHeight:1.8}}>
             {[
-              ['Betreiber',<><div>Junior Landu Mfumu</div><div>Ottostraße 43</div><div>52070 Aachen</div><div>Deutschland</div></>],
-              ['Kontakt',<><div>E-Mail: mfumulandu@gmail.com</div><div style={{color:'#aaa',fontSize:11,marginTop:2}}>Antwortzeit: innerhalb von 5 Werktagen</div></>],
-              ['Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV',<><div>Junior Landu Mfumu, Ottostraße 43, 52070 Aachen</div></>],
-              ['Haftungsausschluss',<><div>Die Inhalte dieser App wurden mit größter Sorgfalt erstellt. Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte verantwortlich. Nach §§ 8–10 TMG sind wir nicht verpflichtet, übermittelte fremde Informationen zu überwachen.</div></>],
-              ['Haftung für Links',<><div>Unser Angebot enthält Links zu externen Websites Dritter. Für deren Inhalte übernehmen wir keine Haftung, da wir keinen Einfluss darauf haben.</div></>],
-              ['Urheberrecht',<><div>Die durch den Betreiber erstellten Inhalte unterliegen dem deutschen Urheberrecht. Vervielfältigung oder Verbreitung bedarf der schriftlichen Zustimmung des Autors.</div></>],
-              ['Online-Streitbeilegung (OS)',<><div>EU-Plattform: https://ec.europa.eu/consumers/odr</div><div style={{marginTop:4}}>Wir nehmen nicht an Verbraucherstreitbeilegungsverfahren teil.</div></>],
-            ].map(([title,content],i)=>(
-              <div key={i} style={{marginBottom:14}}>
+              ['Betreiber','Junior Landu Mfumu, Ottostraße 43, 52070 Aachen, Deutschland'],
+              ['Kontakt','E-Mail: mfumulandu@gmail.com'],
+              ['Verantwortlich','Junior Landu Mfumu, Ottostraße 43, 52070 Aachen'],
+              ['Haftungsausschluss','Die Inhalte dieser App wurden mit größter Sorgfalt erstellt. Nach §§ 8-10 TMG sind wir nicht verpflichtet, übermittelte fremde Informationen zu überwachen.'],
+              ['Haftung für Links','Für Inhalte externer Websites Dritter übernehmen wir keine Haftung.'],
+              ['Urheberrecht','Inhalte unterliegen dem deutschen Urheberrecht. Vervielfältigung bedarf der Zustimmung.'],
+              ['Streitbeilegung','EU-Plattform: ec.europa.eu/consumers/odr — Wir nehmen nicht an Streitbeilegungsverfahren teil.'],
+            ].map(([title,content])=>(
+              <div key={title} style={{marginBottom:14}}>
                 <div style={{fontWeight:700,color:text,fontSize:13,marginBottom:5,borderLeft:'3px solid #c0392b',paddingLeft:8}}>{title}</div>
-                <div>{content}</div>
+                <div style={{color:sub}}>{content}</div>
               </div>
             ))}
             <div style={{color:'#aaa',fontSize:10,textAlign:'center',marginTop:8}}>Stand: Mai 2026</div>
