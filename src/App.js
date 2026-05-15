@@ -637,7 +637,15 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
   useEffect(()=>{
     loadMsgs();
     pollRef.current=setInterval(async()=>{
-      loadMsgs();
+      const prevCount=msgs.length;
+      await loadMsgs();
+      // Push bei neuer Nachricht
+      if(msgs.length>prevCount){
+        const newest=msgs[msgs.length-1];
+        if(newest&&newest.sender_id!==myProfileId){
+          sendLocalNotification('💬 Neue Nachricht',other?.name+': '+newest.content?.slice(0,60));
+        }
+      }
       // Typing status prüfen
       try{
         const r=await fetch(SUPA_URL+'/rest/v1/typing_status?match_id=eq.'+match.id+'&user_id=neq.'+myProfileId,{
@@ -1163,6 +1171,8 @@ export default function App(){
   const [viewGym,setViewGym]=useState(null);
   const [blockedUsers,setBlockedUsers]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_blocked')||'[]')}catch{return []}});
   const [gymVerified,setGymVerified]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_gym_verified')||'null')}catch{return null}});
+  const [showOnboarding,setShowOnboarding]=useState(()=>{try{return !localStorage.getItem('fighter_onboarding_done')}catch{return true}});
+  const [onboardSlide,setOnboardSlide]=useState(0);
   const [gymLogos,setGymLogos]=useState({});
   const [showAdmin,setShowAdmin]=useState(false);
   const [adminTab,setAdminTab]=useState('gyms');
@@ -1331,6 +1341,10 @@ export default function App(){
         if(p.avatar_url){setAvatarUrl(p.avatar_url);setAvatarPreview(p.avatar_url);}
         setAuthReady(true);
         setScreen('main');
+        // Push Permission anfragen (nach kurzer Verzögerung)
+        setTimeout(()=>requestPushPermission(),2000);
+        // last_seen updaten
+        try{fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+s.userId,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+s.token,Prefer:'return=minimal'},body:JSON.stringify({last_seen:new Date().toISOString()})});}catch{}
         loadRealFighters(s,p);
         loadMatches(s,p);
         loadGymRatings(s);
@@ -1345,6 +1359,20 @@ export default function App(){
     }
   }
 
+  async function requestPushPermission(){
+    if(!('Notification' in window))return;
+    if(Notification.permission==='default'){
+      const perm=await Notification.requestPermission();
+      if(perm==='granted')showMsg('🔔 Benachrichtigungen aktiviert!');
+    }
+  }
+
+  function sendLocalNotification(title,body){
+    if(Notification.permission==='granted'){
+      new Notification(title,{body,icon:'/icons/icon-192.png',badge:'/icons/icon-72.png'});
+    }
+  }
+
   async function loadRealFighters(s,myP){
     try{
       const all=await dbSelect('profiles','user_id=neq.'+s.userId,s.token);
@@ -1354,6 +1382,19 @@ export default function App(){
       const fresh=all.filter(f=>!swipedIds.includes(f.id));
       if(fresh.length>0)setCards([...fresh.filter(f=>!f.isPro),...FIGHTERS]);
     }catch{}
+  }
+
+  function getLastSeen(dateStr){
+    if(!dateStr)return null;
+    const diff=Date.now()-new Date(dateStr).getTime();
+    const min=Math.floor(diff/60000);
+    const h=Math.floor(min/60);
+    const d=Math.floor(h/24);
+    if(min<2)return'🟢 Gerade online';
+    if(min<60)return'🟡 Vor '+min+' Min';
+    if(h<24)return'⚪ Vor '+h+' Std';
+    if(d<7)return'⚪ Vor '+d+' Tag'+(d>1?'en':'');
+    return'⚪ Vor einer Weile';
   }
 
   async function loadGymLogos(){
@@ -1649,6 +1690,7 @@ export default function App(){
           if(Array.isArray(mutual)&&mutual.length>0){
             // Echtes Match — in DB speichern und Match-Screen zeigen
             await dbInsert('matches',{profile_a_id:myProfile.id,profile_b_id:top.id},session.token);
+            sendLocalNotification('🥊 IT'S A MATCH!',top.name+' hat dich auch geliket!');
             setTimeout(()=>{setMatched(top);loadMatches(session,myProfile);},300);
           }
           // Keine fake Matches mehr
@@ -1713,6 +1755,7 @@ export default function App(){
         <button onClick={()=>{setViewProfile(null);}} style={{position:'absolute',top:14,left:14,background:'rgba(0,0,0,0.45)',border:'none',color:'#fff',fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700,borderRadius:8,padding:'4px 12px'}}>← Zurück</button>
         <div style={{position:'absolute',bottom:16,left:16,right:16}}>
           <div className='rj' style={{color:'#fff',fontSize:28,letterSpacing:2,lineHeight:1}}>{viewProfile.name}</div>
+          {viewProfile.last_seen&&<div style={{color:'rgba(255,255,255,0.65)',fontSize:11,marginTop:3}}>{getLastSeen(viewProfile.last_seen)}</div>}
           <div style={{color:'#ff6b6b',fontSize:12,fontWeight:700,marginTop:4}}>{viewProfile.style} · {viewProfile.city}</div>
           {viewProfile.bio&&<div style={{color:'rgba(255,255,255,0.55)',fontSize:11,marginTop:4,fontStyle:'italic'}}>'{viewProfile.bio}'</div>}
         </div>
@@ -1780,17 +1823,65 @@ export default function App(){
   );
 
   if(!authReady||screen==='loading')return(
-    <div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12}}>
+    <div style={{minHeight:'100vh',background:'#0d0d0d',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:0,position:'relative',overflow:'hidden'}}>
       <style>{css}</style>
-      <div className='rj' style={{fontSize:36,color:'#1a1a1a',letterSpacing:6}}>FIGHTER</div>
-      <div style={{color:'#c0392b',fontSize:10,letterSpacing:4,fontFamily:'DM Sans,sans-serif',fontWeight:700}}>FINDE DEINEN GEGNER</div>
-      <div style={{marginTop:12,display:'flex',gap:6}}>
-        <div style={{width:6,height:6,borderRadius:'50%',background:'#c0392b',animation:'pulse 1.2s ease-in-out infinite'}}/>
-        <div style={{width:6,height:6,borderRadius:'50%',background:'#c0392b',animation:'pulse 1.2s ease-in-out 0.2s infinite',opacity:0.6}}/>
-        <div style={{width:6,height:6,borderRadius:'50%',background:'#c0392b',animation:'pulse 1.2s ease-in-out 0.4s infinite',opacity:0.3}}/>
+      <style>{`
+        @keyframes splashScale{0%{transform:scale(0.7);opacity:0}60%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+        @keyframes splashFade{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+        @keyframes splashDot{0%,80%,100%{transform:scale(0.6);opacity:0.3}40%{transform:scale(1);opacity:1}}
+        .splash-logo{animation:splashScale 0.7s ease-out forwards}
+        .splash-sub{animation:splashFade 0.5s ease-out 0.4s forwards;opacity:0}
+        .splash-dot1{animation:splashDot 1.4s ease-in-out 0.8s infinite}
+        .splash-dot2{animation:splashDot 1.4s ease-in-out 1.0s infinite}
+        .splash-dot3{animation:splashDot 1.4s ease-in-out 1.2s infinite}
+      `}</style>
+      <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse at center,#1a0a0a 0%,#0d0d0d 70%)'}}/>
+      <div style={{position:'relative',textAlign:'center'}}>
+        <div className='rj splash-logo' style={{fontSize:56,color:'#fff',letterSpacing:8,textShadow:'0 0 40px rgba(192,57,43,0.6)'}}>FIGHTER</div>
+        <div className='splash-sub' style={{color:'#c0392b',fontSize:11,letterSpacing:5,fontFamily:'DM Sans,sans-serif',fontWeight:700,marginTop:4}}>FINDE DEINEN GEGNER</div>
+        <div style={{marginTop:24,display:'flex',gap:8,justifyContent:'center'}}>
+          <div className='splash-dot1' style={{width:7,height:7,borderRadius:'50%',background:'#c0392b'}}/>
+          <div className='splash-dot2' style={{width:7,height:7,borderRadius:'50%',background:'#c0392b'}}/>
+          <div className='splash-dot3' style={{width:7,height:7,borderRadius:'50%',background:'#c0392b'}}/>
+        </div>
       </div>
     </div>
   );
+  // ONBOARDING
+  const onboardSlides=[
+    {icon:'🥊',title:'FINDE DEINEN
+GEGNER',sub:'Entdecke Kampfsportler in deiner Nähe — egal ob Sparring, Techniktraining oder offizieller Kampf.',bg:'linear-gradient(160deg,#1a0505 0%,#0d0d0d 100%)',accent:'#c0392b'},
+    {icon:'💬',title:'MATCH &
+CHAT',sub:'Wenn beide geliket haben habt ihr ein Match. Schreibt euch, vereinbart Trainings und baut euren Rekord auf.',bg:'linear-gradient(160deg,#05101a 0%,#0d0d0d 100%)',accent:'#2980b9'},
+    {icon:'🏆',title:'BAUE DEINEN
+REKORD AUF',sub:'Trainings-Historie, verifizierter Kampfrekord, Gym-Mitgliedschaft. Zeig der Community wer du bist.',bg:'linear-gradient(160deg,#0a0a05 0%,#0d0d0d 100%)',accent:'#d4a017'},
+  ];
+
+  if(showOnboarding&&authReady)return(
+    <div style={{minHeight:'100vh',background:onboardSlides[onboardSlide].bg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'space-between',padding:'60px 24px 50px',position:'relative',overflow:'hidden'}}>
+      <style>{css}</style>
+      <style>{`@keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}.slide-content{animation:slideIn 0.4s ease-out}`}</style>
+      <div/>
+      <div className='slide-content' key={onboardSlide} style={{textAlign:'center',maxWidth:340}}>
+        <div style={{fontSize:80,marginBottom:24,filter:'drop-shadow(0 0 30px '+onboardSlides[onboardSlide].accent+'66)'}}>{onboardSlides[onboardSlide].icon}</div>
+        <div className='rj' style={{fontSize:36,color:'#fff',letterSpacing:3,lineHeight:1.15,marginBottom:16,whiteSpace:'pre-line'}}>{onboardSlides[onboardSlide].title}</div>
+        <div style={{color:'rgba(255,255,255,0.65)',fontSize:15,lineHeight:1.7,fontFamily:'DM Sans,sans-serif'}}>{onboardSlides[onboardSlide].sub}</div>
+      </div>
+      <div style={{width:'100%',maxWidth:340}}>
+        <div style={{display:'flex',justifyContent:'center',gap:8,marginBottom:28}}>
+          {onboardSlides.map((_,i)=><div key={i} style={{width:i===onboardSlide?24:7,height:7,borderRadius:4,background:i===onboardSlide?onboardSlides[onboardSlide].accent:'rgba(255,255,255,0.2)',transition:'all 0.3s'}}/>)}
+        </div>
+        <button onClick={()=>{
+          if(onboardSlide<onboardSlides.length-1){setOnboardSlide(s=>s+1);}
+          else{try{localStorage.setItem('fighter_onboarding_done','1');}catch{}setShowOnboarding(false);}
+        }} style={{width:'100%',padding:'16px',borderRadius:14,background:onboardSlides[onboardSlide].accent,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:20,letterSpacing:3,cursor:'pointer',boxShadow:'0 4px 20px '+onboardSlides[onboardSlide].accent+'55'}}>
+          {onboardSlide<onboardSlides.length-1?'WEITER →':'JETZT STARTEN 🥊'}
+        </button>
+        {onboardSlide===0&&<button onClick={()=>{try{localStorage.setItem('fighter_onboarding_done','1');}catch{}setShowOnboarding(false);}} style={{width:'100%',marginTop:10,padding:'10px',background:'none',border:'none',color:'rgba(255,255,255,0.3)',fontSize:12,cursor:'pointer'}}>Überspringen</button>}
+      </div>
+    </div>
+  );
+
   if(!session)return <AuthScreen onSession={handleSession}/>;
   if(activeChat&&myProfile&&!viewProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>{setViewProfile(p);}}/></>);
 
