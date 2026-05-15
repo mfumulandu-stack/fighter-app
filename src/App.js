@@ -659,7 +659,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
           setOtherTyping(age<4000&&t.is_typing===true);
         }else{setOtherTyping(false);}
       }catch{}
-    },2000);
+    },1500);
     return()=>clearInterval(pollRef.current);
   },[match.id]);
   useEffect(()=>{endRef.current?.scrollIntoView({behavior:'smooth'});},[messages]);
@@ -1388,22 +1388,26 @@ export default function App(){
     finally{setMatchesLoading(false);}
   }
 
+  // Profile-Polling entfernt — zu langsam, nicht nötig
+
+  // Zurück-Button abfangen
   useEffect(()=>{
-    if(!session||!myProfile)return;
-    const interval=setInterval(async()=>{
-      try{
-        const allProfiles=await dbSelect('profiles','',session.token);
-        const profileMap={};
-        if(Array.isArray(allProfiles))allProfiles.forEach(p=>{profileMap[p.id]=p;});
-        setDbMatches(prev=>prev.map(match=>({
-          ...match,
-          profile_a:profileMap[match.profile_a_id]||match.profile_a,
-          profile_b:profileMap[match.profile_b_id]||match.profile_b
-        })));
-      }catch{}
-    },10000);
-    return()=>clearInterval(interval);
-  },[session,myProfile]);
+    const onPop=()=>{
+      if(activeChat){setActiveChat(null);return;}
+      if(viewProfile){setViewProfile(null);return;}
+      if(viewGym){setViewGym(null);return;}
+      if(showAdmin){setShowAdmin(false);return;}
+      if(showImpressum){setShowImpressum(false);return;}
+      if(showDatenschutz){setShowDatenschutz(false);return;}
+      if(showAGB){setShowAGB(false);return;}
+      if(showGymVerify){setShowGymVerify(false);return;}
+      // Nichts zu schließen — bleib in der App
+      window.history.pushState(null,'',window.location.href);
+    };
+    window.history.pushState(null,'',window.location.href);
+    window.addEventListener('popstate',onPop);
+    return()=>window.removeEventListener('popstate',onPop);
+  },[activeChat,viewProfile,viewGym,showAdmin,showImpressum,showDatenschutz,showAGB,showGymVerify]);
 
   function handleSession(s){
     const sessionData={token:s.token,userId:s.userId,refresh_token:s.refresh_token,expires_at:Date.now()+(3600*1000)};
@@ -1618,7 +1622,7 @@ export default function App(){
 
 
 
-  if(showGymVerify)return(<><style>{css}</style><GymVerifyModal onClose={()=>{setShowGymVerify(false);setGymCodeInput('');setGymVerifyError('');}} gymCodeInput={gymCodeInput} setGymCodeInput={setGymCodeInput} gymVerifyError={gymVerifyError} setGymVerifyError={setGymVerifyError} gymVerified={gymVerified} setGymVerified={setGymVerified} gymCodes={GYM_CODES} darkMode={darkMode} showMsg={showMsg}/></>);
+
   // Fight history für viewProfile laden (MUSS vor frühen Returns stehen!)
   useEffect(()=>{
     if(!viewProfile||!session)return;
@@ -2744,6 +2748,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         {tabs.map(([id,iconOrKey,label])=>{const icon=iconOrKey==='unread'?'💬':iconOrKey;const showBadge=iconOrKey==='unread'&&unreadCount>0&&tab!=='chat';return(<button key={id} onClick={()=>{setTab(id);if(id==='chat'){dbMatches.forEach(m=>localStorage.setItem('fighter_last_read_'+m.id,new Date().toISOString()));setUnreadCount(0);}}} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer',gap:2,borderTop:tab===id?'2px solid '+RED:'2px solid transparent',transition:'all 0.2s',position:'relative'}}><div style={{position:'relative',display:'inline-block'}}><div style={{fontSize:15,opacity:tab===id?1:0.4}}>{icon}</div>{showBadge&&<div style={{position:'absolute',top:-3,right:-5,width:14,height:14,borderRadius:'50%',background:RED,border:'1.5px solid '+(darkMode?'#0d0d0d':'#f5f5f7'),display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{color:'#fff',fontSize:7,fontWeight:700}}>{unreadCount>9?'9+':unreadCount}</span></div>}</div><div style={{color:tab===id?RED:(darkMode?'#666':'#aaa'),fontSize:9,fontFamily:'DM Sans,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:0.5}}>{label}</div></button>);})}
       </div>
 
+      {/* GYM VERIFY OVERLAY */}
+      {showGymVerify&&<div style={{position:'fixed',inset:0,zIndex:500}}><style>{css}</style><GymVerifyModal onClose={()=>{setShowGymVerify(false);setGymCodeInput('');setGymVerifyError('');}} gymCodeInput={gymCodeInput} setGymCodeInput={setGymCodeInput} gymVerifyError={gymVerifyError} setGymVerifyError={setGymVerifyError} gymVerified={gymVerified} setGymVerified={setGymVerified} gymCodes={GYM_CODES} darkMode={darkMode} showMsg={showMsg}/></div>}
       {/* IMPRESSUM MODAL */}
       {showImpressum&&(
         <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:400,overflowY:'auto',padding:'20px 16px 40px'}}>
