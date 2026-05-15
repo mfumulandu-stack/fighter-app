@@ -1793,12 +1793,9 @@ export default function App(){
   );
   // ONBOARDING
   const onboardSlides=[
-    {icon:'🥊',title:'FINDE DEINEN
-GEGNER',sub:'Entdecke Kampfsportler in deiner Nähe — egal ob Sparring, Techniktraining oder offizieller Kampf.',bg:'linear-gradient(160deg,#1a0505 0%,#0d0d0d 100%)',accent:'#c0392b'},
-    {icon:'💬',title:'MATCH &
-CHAT',sub:'Wenn beide geliket haben habt ihr ein Match. Schreibt euch, vereinbart Trainings und baut euren Rekord auf.',bg:'linear-gradient(160deg,#05101a 0%,#0d0d0d 100%)',accent:'#2980b9'},
-    {icon:'🏆',title:'BAUE DEINEN
-REKORD AUF',sub:'Trainings-Historie, verifizierter Kampfrekord, Gym-Mitgliedschaft. Zeig der Community wer du bist.',bg:'linear-gradient(160deg,#0a0a05 0%,#0d0d0d 100%)',accent:'#d4a017'},
+    {icon:'🥊',title:'FINDE DEINEN GEGNER',sub:'Entdecke Kampfsportler in deiner Nähe — egal ob Sparring, Techniktraining oder offizieller Kampf.',bg:'linear-gradient(160deg,#1a0505 0%,#0d0d0d 100%)',accent:'#c0392b'},
+    {icon:'💬',title:'MATCH & CHAT',sub:'Wenn beide geliket haben habt ihr ein Match. Schreibt euch, vereinbart Trainings und baut euren Rekord auf.',bg:'linear-gradient(160deg,#05101a 0%,#0d0d0d 100%)',accent:'#2980b9'},
+    {icon:'🏆',title:'BAUE DEINEN REKORD AUF',sub:'Trainings-Historie, verifizierter Kampfrekord, Gym-Mitgliedschaft. Zeig der Community wer du bist.',bg:'linear-gradient(160deg,#0a0a05 0%,#0d0d0d 100%)',accent:'#d4a017'},
   ];
 
   if(showOnboarding&&authReady)return(
