@@ -1634,7 +1634,7 @@ export default function App(){
           if(Array.isArray(mutual)&&mutual.length>0){
             // Echtes Match — in DB speichern und Match-Screen zeigen
             await dbInsert('matches',{profile_a_id:myProfile.id,profile_b_id:top.id},session.token);
-            sendLocalNotification('🥊 IT'S A MATCH!',top.name+' hat dich auch geliket!');
+            sendLocalNotification('🥊 ITS A MATCH!',top.name+' hat dich auch geliket!');
             setTimeout(()=>{setMatched(top);loadMatches(session,myProfile);},300);
           }
           // Keine fake Matches mehr
