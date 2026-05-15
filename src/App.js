@@ -1042,7 +1042,7 @@ function ImpressumScreen({onClose,darkMode}){
           <div style={{color:'#c0392b',fontSize:10,letterSpacing:2,marginBottom:20}}>Angaben gemäß § 5 TMG</div>
           <div style={{color:sub,fontSize:12,lineHeight:1.9}}>
             {[
-              ['Betreiber',<><div>Fighter App</div><div>Deutschland</div></>],
+              ['Betreiber',<><div>Junior Landu Mfumu</div><div>Ottostraße 43</div><div>52070 Aachen</div><div>Deutschland</div></>],
               ['Kontakt',<><div>E-Mail: support@fighterapp.de</div><div style={{color:'#aaa',fontSize:11,marginTop:2}}>Antwortzeit: innerhalb von 5 Werktagen</div></>],
               ['Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV',<><div>Junior Landu Mfumu, Ottostraße 43, 52070 Aachen</div></>],
               ['Haftungsausschluss',<><div>Die Inhalte dieser App wurden mit größter Sorgfalt erstellt. Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte verantwortlich. Nach §§ 8–10 TMG sind wir nicht verpflichtet, übermittelte fremde Informationen zu überwachen.</div></>],
