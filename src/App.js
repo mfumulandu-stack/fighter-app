@@ -7,7 +7,7 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 async function authSignUp(email, password) {
   const r = await fetch(SUPA_URL + '/auth/v1/signup', {
     method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY },
-    body: JSON.stringify({ email, password, options: { emailRedirectTo: 'https://fighter-app-pi.vercel.app' } }),
+    body: JSON.stringify({ email, password, options: { emailRedirectTo: 'https://fighterapp.de' } }),
   });
   return r.json();
 }
@@ -2371,8 +2371,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:11,textAlign:'center',boxShadow:'0 1px 4px rgba(0,0,0,0.06)',position:'relative'}}>
               <div style={{position:'absolute',top:12,right:12,display:'flex',gap:6,alignItems:'center'}}>
                 <button onClick={()=>{
-                  const shareText=`⚔️ ${profile.name} auf Fighter\n${profile.style} · ${profile.weightClass?profile.weightClass.split(' (')[0]:''}\n📍 ${profile.city}\n\nSchau dir mein Profil an: https://fighter-app-pi.vercel.app`;
-                  if(navigator.share){navigator.share({title:'Fighter — '+profile.name,text:shareText,url:'https://fighter-app-pi.vercel.app'});}
+                  const shareText=`⚔️ ${profile.name} auf Fighter\n${profile.style} · ${profile.weightClass?profile.weightClass.split(' (')[0]:''}\n📍 ${profile.city}\n\nSchau dir mein Profil an: https://fighterapp.de`;
+                  if(navigator.share){navigator.share({title:'Fighter — '+profile.name,text:shareText,url:'https://fighterapp.de'});}
                   else{navigator.clipboard?.writeText(shareText);showMsg('Profil-Link kopiert! 📋');}
                 }} style={{background:'none',border:'none',color:darkMode?'#666':'#aaa',fontSize:16,cursor:'pointer',padding:'4px'}}>
                   🔗
