@@ -1032,7 +1032,9 @@ export default function App(){
   const [session,setSession]=useState(null);
   const [authReady,setAuthReady]=useState(false);
   const [screen,setScreen]=useState('loading');
-  const [tab,setTab]=useState('swipe');
+  const [tabRaw,setTabRaw]=useState(()=>{try{return localStorage.getItem('fighter_tab')||'swipe'}catch{return 'swipe'}});
+  const tab=tabRaw;
+  const setTab=(t)=>{try{localStorage.setItem('fighter_tab',t)}catch{}setTabRaw(t);};
   const [step,setStep]=useState(1);
   const [saving,setSaving]=useState(false);
   const [msg,setMsg]=useState('');
