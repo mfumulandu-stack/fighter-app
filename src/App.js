@@ -384,8 +384,8 @@ function GymDetailScreen({gym,gymKey,gymRatings,rateGym,onClose,darkMode}){
 
 function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,setGymVerifyError,gymVerified,setGymVerified,gymCodes,darkMode,showMsg}){
   const bg=darkMode?'rgba(0,0,0,0.85)':'rgba(0,0,0,0.6)';
-  const card=darkMode?'#1a1a1a':'#fff';
-  const text=darkMode?'#fff':'#1a1a1a';
+  const card=isDark?'#1a1a1a':'#fff';
+  const text=isDark?'#fff':'#1a1a1a';
   const sub=darkMode?'#aaa':'#666';
 
   function verify(){
@@ -1028,11 +1028,12 @@ Leider kann ich diesen Termin nicht wahrnehmen.`;
 
 
 function ImpressumScreen({onClose,darkMode}){
-  const bg=darkMode?'#0d0d0d':'#f5f5f7';
-  const card=darkMode?'#1a1a1a':'#fff';
-  const text=darkMode?'#fff':'#1a1a1a';
-  const sub=darkMode?'#aaa':'#555';
-  const border=darkMode?'#2a2a2a':'#eee';
+  const isDark=darkMode===true;
+  const bg=isDark?'#0d0d0d':'#f5f5f7';
+  const card=isDark?'#1a1a1a':'#fff';
+  const text=isDark?'#fff':'#1a1a1a';
+  const sub=isDark?'#aaa':'#555';
+  const border=isDark?'#2a2a2a':'#eee';
   return(
     <div style={{position:'fixed',inset:0,background:bg,zIndex:300,overflowY:'auto',padding:'20px 16px 40px'}}>
       <div style={{maxWidth:480,margin:'0 auto'}}>
@@ -1063,11 +1064,12 @@ function ImpressumScreen({onClose,darkMode}){
   );
 }
 function DatenschutzScreen({onClose,darkMode}){
-  const bg=darkMode?'#0d0d0d':'#f5f5f7';
-  const card=darkMode?'#1a1a1a':'#fff';
-  const text=darkMode?'#fff':'#1a1a1a';
-  const sub=darkMode?'#aaa':'#555';
-  const border=darkMode?'#2a2a2a':'#eee';
+  const isDark=darkMode===true;
+  const bg=isDark?'#0d0d0d':'#f5f5f7';
+  const card=isDark?'#1a1a1a':'#fff';
+  const text=isDark?'#fff':'#1a1a1a';
+  const sub=isDark?'#aaa':'#555';
+  const border=isDark?'#2a2a2a':'#eee';
   const sections=[
     ['1. Verantwortlicher (Art. 13 DSGVO)','Junior Landu Mfumu · Ottostraße 43, 52070 Aachen · E-Mail: support@fighterapp.de'],
     ['2. Erhobene Daten','Pflichtangaben: E-Mail (Login), Passwort (verschlüsselt). Profilangaben: Name, Alter, Wohnort, Kampfstil, Gym, Gewichtsklasse, Profilbild (freiwillig), Kampfrekord (freiwillig), Bio (freiwillig). Nutzungsdaten: Swipe-Aktionen, Chat-Nachrichten, Session-Token.'],
@@ -1102,11 +1104,12 @@ function DatenschutzScreen({onClose,darkMode}){
   );
 }
 function AGBScreen({onClose,darkMode}){
-  const bg=darkMode?'#0d0d0d':'#f5f5f7';
-  const card=darkMode?'#1a1a1a':'#fff';
-  const text=darkMode?'#fff':'#1a1a1a';
-  const sub=darkMode?'#aaa':'#555';
-  const border=darkMode?'#2a2a2a':'#eee';
+  const isDark=darkMode===true;
+  const bg=isDark?'#0d0d0d':'#f5f5f7';
+  const card=isDark?'#1a1a1a':'#fff';
+  const text=isDark?'#fff':'#1a1a1a';
+  const sub=isDark?'#aaa':'#555';
+  const border=isDark?'#2a2a2a':'#eee';
   const sections=[
     ['1. Geltungsbereich','Diese AGB gelten für die Nutzung der Fighter-App, betrieben von Junior Landu Mfumu, Ottostraße 43, 52070 Aachen (support@fighterapp.de). Mit der Registrierung erkennst du diese AGB verbindlich an.'],
     ['2. Mindestalter 18 Jahre','⚠️ Die Nutzung ist ausschließlich Personen ab 18 Jahren gestattet. Mit Registrierung bestätigst du: Mindestalter 18 Jahre erreicht · Angaben sind wahrheitsgemäß · Nur ein Konto pro Person · Registrierung im eigenen Namen. Bei Verdacht auf Minderjährigkeit: sofortige Sperrung ohne Vorankündigung.'],
@@ -1735,9 +1738,9 @@ export default function App(){
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
   const filteredT=TRAINERS.filter(t=>trainerF==='All'||t.style.includes(trainerF)).sort((a,b)=>b.rating-a.rating);
 
-  if(showImpressum)return(<><style>{css}</style><ImpressumScreen onClose={()=>setShowImpressum(false)} darkMode={darkMode}/></>);
-  if(showDatenschutz)return(<><style>{css}</style><DatenschutzScreen onClose={()=>setShowDatenschutz(false)} darkMode={darkMode}/></>);
-  if(showAGB)return(<><style>{css}</style><AGBScreen onClose={()=>setShowAGB(false)} darkMode={darkMode}/></>);
+  if(showImpressum)return(<><style>{css}</style><ImpressumScreen onClose={()=>setShowImpressum(false)} darkMode={darkMode===true}/></>);
+  if(showDatenschutz)return(<><style>{css}</style><DatenschutzScreen onClose={()=>setShowDatenschutz(false)} darkMode={darkMode===true}/></>);
+  if(showAGB)return(<><style>{css}</style><AGBScreen onClose={()=>setShowAGB(false)} darkMode={darkMode===true}/></>);
   if(showGymVerify)return(<><style>{css}</style><GymVerifyModal onClose={()=>{setShowGymVerify(false);setGymCodeInput('');setGymVerifyError('');}} gymCodeInput={gymCodeInput} setGymCodeInput={setGymCodeInput} gymVerifyError={gymVerifyError} setGymVerifyError={setGymVerifyError} gymVerified={gymVerified} setGymVerified={setGymVerified} gymCodes={GYM_CODES} darkMode={darkMode} showMsg={showMsg}/></>);
   // Fight history für viewProfile laden (MUSS vor frühen Returns stehen!)
   useEffect(()=>{
