@@ -1277,11 +1277,11 @@ export default function App(){
 
   async function loadRealFighters(s,myP){
     try{
-      const all=await dbSelect('profiles','user_id=neq.'+s.userId,s.token);
+      const all=await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true',s.token);
       if(!Array.isArray(all)||all.length===0)return;
       const swiped=await dbSelect('swipes','swiper_id=eq.'+myP.id,s.token);
       const swipedIds=Array.isArray(swiped)?swiped.map(x=>x.target_id):[];
-      const fresh=all.filter(f=>!swipedIds.includes(f.id));
+      const fresh=all.filter(f=>!swipedIds.includes(f.id)&&!f.banned);
       if(fresh.length>0)setCards([...fresh.filter(f=>!f.isPro),...FIGHTERS]);
     }catch{}
   }
@@ -1544,6 +1544,7 @@ export default function App(){
   // Smart Matching — erst gleiche Stadt + Klasse, dann Bundesland, dann alle
   const filteredCards=cards
     .filter(f=>!blockedUsers.includes(f.id))
+    .filter(f=>!f.banned)
     .filter(f=>filterStyle==='Alle'||f.style===filterStyle)
     .filter(f=>!filterCity||(f.city||'').toLowerCase().includes(filterCity.toLowerCase()))
     .map(f=>({
