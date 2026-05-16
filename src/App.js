@@ -2140,6 +2140,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   </div>
                 </div>
               )}
+              </div>
             )}
             {dbMatches.length>3&&(
               <div style={{marginTop:11,width:'calc(100% - 24px)',maxWidth:380}}>
