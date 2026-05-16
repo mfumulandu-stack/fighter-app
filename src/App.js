@@ -2057,6 +2057,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         <span style={{color:'rgba(255,255,255,0.85)',fontSize:10,fontWeight:600,letterSpacing:0.5}}>Profil ansehen</span>
                       </div>
                     </>)}
+                    {isTop&&f.last_seen&&<div style={{position:'absolute',top:12,left:12,background:'rgba(0,0,0,0.55)',borderRadius:20,padding:'3px 10px',backdropFilter:'blur(4px)',zIndex:2}}><div style={{color:'#fff',fontSize:10,fontWeight:600}}>{getLastSeen(f.last_seen)}</div></div>}
                     <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'12px 16px 16px'}}> 
                       <div style={{display:'flex',gap:8,marginBottom:8}}>
                         {[{v:f.wins||0,l:'SIEGE',c:'#27ae60'},{v:f.losses||0,l:'NIEDER',c:'#e74c3c'},{v:f.draws||0,l:'UNENTSCH',c:'#d4a017'},{v:f.ko||0,l:'KOs',c:'#e74c3c'}].map(({v,l,c})=>(
