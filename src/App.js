@@ -1064,7 +1064,7 @@ export default function App(){
   const [viewGym,setViewGym]=useState(null);
   const [blockedUsers,setBlockedUsers]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_blocked')||'[]')}catch{return []}});
   const [gymVerified,setGymVerified]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_gym_verified')||'null')}catch{return null}});
-  const [showOnboarding,setShowOnboarding]=useState(()=>{try{return !localStorage.getItem('fighter_onboarding_done')}catch{return true}});
+  const [showOnboarding,setShowOnboarding]=useState(()=>{try{const done=localStorage.getItem('fighter_onboarding_done');const hasSession=localStorage.getItem('fighter_v5');return !done&&!hasSession;}catch{return true}});
   const [onboardSlide,setOnboardSlide]=useState(0);
   const [gymLogos,setGymLogos]=useState({});
   const [showAdmin,setShowAdmin]=useState(false);
