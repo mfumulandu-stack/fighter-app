@@ -1230,6 +1230,13 @@ export default function App(){
       const data=await dbSelect('profiles','user_id=eq.'+s.userId,s.token);
       if(Array.isArray(data)&&data[0]){
         const p=data[0];
+        if(p.banned===true){
+          try{localStorage.removeItem('fighter_v5');}catch{}
+          setSession(null);
+          setAuthReady(true);
+          alert('Dein Account wurde gesperrt. Kontakt: support@fighterapp.de');
+          return;
+        }
         setMyProfile(p);
         setProfile({name:p.name||'',age:p.age||'',city:p.city||'',gym:p.gym||'',height:p.height||'',weight:p.weight||'',weightClass:p.weight_class||'',style:p.style||'',bio:p.bio||''});
         setStats({wins:p.wins||0,losses:p.losses||0,draws:p.draws||0,ko:p.ko||0});
@@ -2992,10 +2999,13 @@ ${blCode}`;
             {adminTab==='users'&&(
               <div>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>👤 USER ({adminUsers.length})</div>
-                {!adminUsersLoaded&&<button onClick={async()=>{
-                  const data=await dbSelect('profiles','order=created_at.desc&limit=100',session.token);
-                  if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
-                }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>USER LADEN</button>}
+                <button onClick={async()=>{
+                  try{
+                    const resp=await fetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=500',{headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                    const data=await resp.json();
+                    if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
+                  }catch(e){showMsg('Fehler: '+e.message);}
+                }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>{adminUsersLoaded?'🔄 AKTUALISIEREN':'USER LADEN'}</button>
                 {adminUsers.map(u=>(
                   <div key={u.id} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,border:'1px solid '+(u.banned?'#e74c3c44':(darkMode?'#2a2a2a':'#eee')),marginBottom:5}}>
                     {u.avatar_url?<img src={u.avatar_url} style={{width:34,height:34,borderRadius:'50%',objectFit:'cover',opacity:u.banned?0.4:1}} alt=''/>:<div style={{width:34,height:34,borderRadius:'50%',background:'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>👤</div>}
@@ -3011,10 +3021,22 @@ ${blCode}`;
                         showMsg(ban?'User gesperrt 🚫':'User entsperrt ✅');
                       }} style={{background:u.banned?'#27ae60':'#e74c3c',border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:10,fontWeight:700,cursor:'pointer'}}>{u.banned?'Freig.':'Sperren'}</button>
                       <button onClick={async()=>{
-                        if(!confirm('User '+u.name+' löschen?'))return;
-                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
-                        setAdminUsers(prev=>prev.filter(x=>x.id!==u.id));
-                        showMsg('User gelöscht');
+                        if(!window.confirm('User '+u.name+' wirklich löschen? Das kann nicht rückgängig gemacht werden.'))return;
+                        try{
+                          // 1. Profile löschen
+                          await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                          // 2. Swipes löschen
+                          await fetch(SUPA_URL+'/rest/v1/swipes?swiper_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                          await fetch(SUPA_URL+'/rest/v1/swipes?target_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                          // 3. Auth User löschen (Supabase Admin API)
+                          await fetch(SUPA_URL+'/auth/v1/admin/users/'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                          setAdminUsers(prev=>prev.filter(x=>x.id!==u.id));
+                          showMsg('✅ User vollständig gelöscht');
+                        }catch(e){
+                          // Falls Auth delete fehlschlägt — zumindest banned setzen
+                          await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({banned:true})});
+                          showMsg('Account gesperrt (Auth-Löschung fehlgeschlagen)');
+                        }
                       }} style={{background:'none',border:'1px solid #e74c3c',borderRadius:6,padding:'4px 6px',color:'#e74c3c',fontSize:10,cursor:'pointer'}}>🗑️</button>
                     </div>
                   </div>
@@ -3049,7 +3071,7 @@ ${blCode}`;
                         setAdminReports(prev=>prev.filter(x=>x.id!==r.id));
                       }} style={{flex:1,padding:'7px',borderRadius:7,background:'#e74c3c',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>🚫 Sperren</button>
                       <button onClick={async()=>{
-                        await fetch(SUPA_URL+'/rest/v1/reports?id=eq.'+r.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                        await fetch(SUPA_URL+'/rest/v1/reports?id=eq.'+r.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
                         setAdminReports(prev=>prev.filter(x=>x.id!==r.id));
                         showMsg('Meldung ignoriert');
                       }} style={{flex:1,padding:'7px',borderRadius:7,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#aaa':'#666',fontSize:11,fontWeight:700,cursor:'pointer'}}>✓ Ignorieren</button>
