@@ -3032,7 +3032,7 @@ ${blCode}`;
                           // 2. Profile löschen + banned setzen damit Login fehlschlägt
                           await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({banned:true,name:'[Gelöscht]',avatar_url:null,bio:null})});
                           // 3. Auth User löschen
-                          const authResp=await fetch(SUPA_URL+'/auth/v1/admin/users/'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,'Content-Type':'application/json'}});
+                          const authResp=await fetch(SUPA_URL+'/auth/v1/admin/users/'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,'Content-Type':'application/json','X-Supabase-Admin':SUPA_SERVICE_KEY}});
                           if(authResp.ok){
                             await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
                             showMsg('✅ User vollständig gelöscht');
