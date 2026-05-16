@@ -2018,10 +2018,13 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
     <div style={{minHeight:'100vh',background:darkMode?'#1a1a1a':'#f5f5f7',fontFamily:'DM Sans,sans-serif',display:'flex',flexDirection:'column'}} onMouseMove={dragMove} onMouseUp={dragEnd} onTouchMove={dragMove} onTouchEnd={dragEnd}>
       <style>{css}</style>
       {msg&&<div style={{position:'fixed',top:60,left:'50%',transform:'translateX(-50%)',background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+RED,borderRadius:20,padding:'8px 20px',color:'#1a1a1a',fontSize:13,zIndex:200,fontWeight:600,boxShadow:'0 4px 20px rgba(0,0,0,0.1)',whiteSpace:'nowrap'}}>{msg}</div>}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 18px 8px',flexShrink:0,borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),background:darkMode?'#1a1a1a':'#fff'}}>
-        <div style={{color:'#999',fontSize:11,fontWeight:600}}>Abgelehnt: {swStats.de}</div>
-        <div className='rj' style={{fontSize:28,color:darkMode?'#ff4500':'#1a1a1a',letterSpacing:5}}>FIGHTER</div>
-        <button onClick={()=>{setDarkMode(d=>!d);}} style={{background:darkMode?'#222':'#f0f0f0',border:'none',cursor:'pointer',fontSize:16,padding:'4px 8px',borderRadius:8,marginRight:6}}>{darkMode?'☀️':'🌙'}</button>{isAdmin&&<button onClick={()=>setShowAdmin(true)} style={{background:RED,border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:6}}>⚙️</button>}<button onClick={handleLogout} style={{color:darkMode?'#555':'#aaa',fontSize:11,fontWeight:600,background:'none',border:'none',cursor:'pointer'}}>Logout</button>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 18px 8px',flexShrink:0,borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),background:darkMode?'#1a1a1a':'#fff',position:'relative'}}>
+        <div style={{display:'flex',alignItems:'center',gap:6}}>
+          <button onClick={()=>{setDarkMode(d=>!d);}} style={{background:darkMode?'#222':'#f0f0f0',border:'none',cursor:'pointer',fontSize:16,padding:'4px 8px',borderRadius:8}}>{darkMode?'☀️':'🌙'}</button>
+          {isAdmin&&<button onClick={()=>setShowAdmin(true)} style={{background:RED,border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>⚙️</button>}
+        </div>
+        <div className='rj' style={{fontSize:28,color:darkMode?'#fff':'#1a1a1a',letterSpacing:5,position:'absolute',left:'50%',transform:'translateX(-50%)'}}>FIGHTER</div>
+        <button onClick={handleLogout} style={{color:darkMode?'#555':'#aaa',fontSize:11,fontWeight:600,background:'none',border:'none',cursor:'pointer'}}>Logout</button>
       </div>
 
       <div style={{flex:1,overflowY:'auto',paddingBottom:65}}>
