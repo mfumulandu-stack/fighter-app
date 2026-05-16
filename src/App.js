@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 
 const SUPA_URL = 'https://uykdrmymjvqgebsmndme.supabase.co';
 const ADMIN_ID = '1a697731-458d-4559-a4cf-a89d3150bfa5';
+const SUPA_SERVICE_KEY = process.env.REACT_APP_SUPA_SERVICE_KEY||'';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk';
 
 async function authSignUp(email, password) {
@@ -2959,13 +2960,13 @@ ${blCode}`;
                     <div style={{display:'flex',gap:4}}>
                       <button onClick={async()=>{
                         const ban=!u.banned;
-                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({banned:ban})});
+                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({banned:ban})});
                         setAdminUsers(prev=>prev.map(x=>x.id===u.id?{...x,banned:ban}:x));
                         showMsg(ban?'User gesperrt 🚫':'User entsperrt ✅');
                       }} style={{background:u.banned?'#27ae60':'#e74c3c',border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:10,fontWeight:700,cursor:'pointer'}}>{u.banned?'Freig.':'Sperren'}</button>
                       <button onClick={async()=>{
                         if(!confirm('User '+u.name+' löschen?'))return;
-                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
                         setAdminUsers(prev=>prev.filter(x=>x.id!==u.id));
                         showMsg('User gelöscht');
                       }} style={{background:'none',border:'1px solid #e74c3c',borderRadius:6,padding:'4px 6px',color:'#e74c3c',fontSize:10,cursor:'pointer'}}>🗑️</button>
@@ -2997,7 +2998,7 @@ ${blCode}`;
                     <div style={{color:'#bbb',fontSize:10,marginTop:2}}>Von: {r.reporter_id?.slice(0,8)}...</div>
                     <div style={{display:'flex',gap:6,marginTop:8}}>
                       <button onClick={async()=>{
-                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+r.reported_id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({banned:true})});
+                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+r.reported_id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({banned:true})});
                         showMsg('User gesperrt 🚫');
                         setAdminReports(prev=>prev.filter(x=>x.id!==r.id));
                       }} style={{flex:1,padding:'7px',borderRadius:7,background:'#e74c3c',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>🚫 Sperren</button>
@@ -3036,12 +3037,12 @@ ${blCode}`;
                     {u.record_proof_url&&<img src={u.record_proof_url} style={{width:'100%',borderRadius:8,marginBottom:8,maxHeight:200,objectFit:'contain',background:'#f0f0f0'}} alt='Nachweis'/>}
                     <div style={{display:'flex',gap:6}}>
                       <button onClick={async()=>{
-                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({record_verified:'verified'})});
+                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({record_verified:'verified'})});
                         setAdminRecords(prev=>prev.filter(x=>x.id!==u.id));
                         showMsg('✅ Rekord verifiziert!');
                       }} style={{flex:1,padding:'8px',borderRadius:7,background:'#27ae60',border:'none',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer'}}>✅ Bestätigen</button>
                       <button onClick={async()=>{
-                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({record_verified:'rejected'})});
+                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({record_verified:'rejected'})});
                         setAdminRecords(prev=>prev.filter(x=>x.id!==u.id));
                         showMsg('❌ Abgelehnt');
                       }} style={{flex:1,padding:'8px',borderRadius:7,background:'#e74c3c',border:'none',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer'}}>❌ Ablehnen</button>
