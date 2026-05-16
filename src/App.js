@@ -2024,8 +2024,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   <div className='rj' style={{color:RED,fontSize:26,letterSpacing:3,lineHeight:1}}>GESEHEN</div>
                   <div style={{color:'rgba(255,255,255,0.5)',fontSize:13,marginTop:6,lineHeight:1.6}}>{filterWeightClass&&myWeightClass?`Keine Fighter in deiner Nähe gefunden.`:`Alle Fighter wurden gesehen! Neue kommen täglich dazu.`}</div>
                   <div style={{display:'flex',gap:12,marginTop:8,width:'100%'}}>
-                    <button onClick={()=>{setCards([...FIGHTERS]);setSwStats({ch:0,de:0});}} style={{flex:1,padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1,cursor:'pointer'}}>
-                      🔄 NOCHMAL
+                    <button onClick={async()=>{setSwStats({ch:0,de:0});if(session&&myProfile){await loadRealFighters(session,myProfile);}}} style={{flex:1,padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1,cursor:'pointer'}}>
+                      🔄 NEUE FIGHTER
                     </button>
                     <button onClick={()=>setTab('chat')} style={{flex:1,padding:'12px',borderRadius:10,background:'rgba(255,255,255,0.1)',color:'#fff',border:'1px solid rgba(255,255,255,0.2)',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1,cursor:'pointer'}}>
                       💬 CHATS
@@ -2096,7 +2096,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <Btn onClick={()=>doSwipe('de')} color='#d4a017' icon='⭐' size={54}/>
               </div>
               {recentSwiped.length>0&&(
-                <div style={{padding:'8px 16px 0',width:'100%',maxWidth:420}}>
+                <div style={{padding:'8px 16px 0',width:'100%',maxWidth:420,position:'relative',zIndex:10}}>
                   <div style={{color:'rgba(255,255,255,0.4)',fontSize:9,letterSpacing:2,marginBottom:6,textAlign:'center',fontWeight:700}}>ZULETZT GESEHEN</div>
                   <div style={{display:'flex',gap:8,justifyContent:'center'}}>
                     {recentSwiped.map((s,i)=>(
