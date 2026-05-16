@@ -1055,6 +1055,7 @@ export default function App(){
   const [start,setStart]=useState({x:0,y:0});
   const [lastAct,setLastAct]=useState(null);
   const [lastSwiped,setLastSwiped]=useState(null);
+  const [recentSwiped,setRecentSwiped]=useState([]);
   const [matched,setMatched]=useState(null);
   const [swStats,setSwStats]=useState({ch:0,de:0});
   const [dbMatches,setDbMatches]=useState([]);
@@ -1598,6 +1599,7 @@ export default function App(){
     if(dir==='ch'){
       setSwStats(s=>({...s,ch:s.ch+1}));
       setLastSwiped({profile:top,dir:'like'});
+      setRecentSwiped(prev=>[{profile:top,dir:'like'},...prev].slice(0,4));
       if(session&&myProfile&&!String(top.id).startsWith('demo_')){
         try{
           await dbInsert('swipes',{swiper_id:myProfile.id,target_id:top.id,direction:'like'},session.token);
@@ -1621,6 +1623,7 @@ export default function App(){
     }else{
       setSwStats(s=>({...s,de:s.de+1}));
       setLastSwiped({profile:top,dir:'pass'});
+      setRecentSwiped(prev=>[{profile:top,dir:'pass'},...prev].slice(0,4));
       if(session&&myProfile&&!String(top.id).startsWith('demo_')){try{await dbInsert('swipes',{swiper_id:myProfile.id,target_id:top.id,direction:'pass'},session.token);}catch{}}
     }
     setTimeout(()=>{setCards(prev=>prev.slice(0,-1));setLastAct(null);},260);
@@ -2092,6 +2095,21 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <Btn onClick={()=>doSwipe('ch')} color='#27ae60' icon='⚔️' size={64} primary label='FIGHT'/>
                 <Btn onClick={()=>doSwipe('de')} color='#d4a017' icon='⭐' size={54}/>
               </div>
+              {recentSwiped.length>0&&(
+                <div style={{padding:'8px 16px 0',width:'100%',maxWidth:420}}>
+                  <div style={{color:'rgba(255,255,255,0.4)',fontSize:9,letterSpacing:2,marginBottom:6,textAlign:'center',fontWeight:700}}>ZULETZT GESEHEN</div>
+                  <div style={{display:'flex',gap:8,justifyContent:'center'}}>
+                    {recentSwiped.map((s,i)=>(
+                      <div key={i} onClick={()=>setViewProfile(s.profile)} style={{position:'relative',cursor:'pointer'}}>
+                        <div style={{width:44,height:44,borderRadius:10,overflow:'hidden',border:'2px solid '+(s.dir==='like'?'#27ae60':RED)}}>
+                          {s.profile.avatar_url?<img src={s.profile.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{width:'100%',height:'100%',background:'#2a2a2a',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}>🥊</div>}
+                        </div>
+                        <div style={{position:'absolute',bottom:-2,right:-2,fontSize:8,background:s.dir==='like'?'#27ae60':RED,borderRadius:'50%',width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:700}}>{s.dir==='like'?'✓':'✕'}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             )}
             {dbMatches.length>3&&(
               <div style={{marginTop:11,width:'calc(100% - 24px)',maxWidth:380}}>
