@@ -238,7 +238,7 @@ textarea{resize:none}
 
 
 function GymDetailScreen({gym,gymKey,gymRatings,rateGym,onClose,darkMode}){
-  if(!gym)return(<div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:250,display:'flex',alignItems:'center',justifyContent:'center'}}><button onClick={onClose} style={{padding:'12px 24px',background:'#c0392b',color:'#fff',border:'none',borderRadius:10,fontSize:16,cursor:'pointer'}}>← Zurück</button></div>);
+  if(!gym)return(<div style={{position:'fixed',inset:0,background:darkMode?'#0d0d0d':'#f5f5f7',zIndex:250,display:'flex',alignItems:'center',justifyContent:'center'}}><button onClick={onClose} style={{padding:'12px 24px',background:'#c0392b',color:'#fff',border:'none',borderRadius:10,fontSize:16,cursor:'pointer'}}>← Zurück</button></div>);
   const isDark=darkMode===true;
   const bg=isDark?'#0d0d0d':'#f5f5f7';
   const card=isDark?'#1a1a1a':'#fff';
@@ -546,15 +546,15 @@ function AuthScreen({ onSession }) {
   }
 
   return(
-    <div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'20px'}}>
+    <div style={{minHeight:'100vh',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'20px'}}>
       <style>{css}</style>
       <div className='fadeUp' style={{width:'100%',maxWidth:380}}>
         <div style={{textAlign:'center',marginBottom:32}}>
           <div className='rj' style={{fontSize:64,color:'#1a1a1a',letterSpacing:6,lineHeight:1}}>FIGHTER</div>
           <div style={{color:RED,fontSize:11,letterSpacing:7,marginTop:5,fontWeight:600}}>FINDE DEINEN GEGNER</div>
         </div>
-        <div style={{background:'#fff',borderRadius:16,padding:'24px 20px',border:'1px solid #eee',boxShadow:'0 4px 20px rgba(0,0,0,0.08)'}}>
-          <div style={{display:'flex',marginBottom:20,background:'#f5f5f7',borderRadius:8,padding:3,gap:3}}>
+        <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:16,padding:'24px 20px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),boxShadow:'0 4px 20px rgba(0,0,0,0.08)'}}>
+          <div style={{display:'flex',marginBottom:20,background:darkMode?'#0d0d0d':'#f5f5f7',borderRadius:8,padding:3,gap:3}}>
             {['login','register'].map(m=>(
               <button key={m} onClick={()=>{setMode(m);setErr('');setInfo('');}}
                 style={{flex:1,padding:'9px',borderRadius:6,background:mode===m?'#fff':'transparent',border:mode===m?'1px solid #eee':'none',color:mode===m?'#1a1a1a':'#aaa',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',boxShadow:mode===m?'0 1px 4px rgba(0,0,0,0.08)':'none',transition:'all 0.2s'}}>
@@ -589,7 +589,7 @@ function AuthScreen({ onSession }) {
       </div>
       {showForgot&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:500,padding:'20px'}}>
-          <div style={{background:'#fff',borderRadius:16,padding:'24px 20px',width:'100%',maxWidth:340,boxShadow:'0 8px 40px rgba(0,0,0,0.2)'}}>
+          <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:16,padding:'24px 20px',width:'100%',maxWidth:340,boxShadow:'0 8px 40px rgba(0,0,0,0.2)'}}>
             <div className='rj' style={{color:'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:6}}>PASSWORT RESET</div>
             <div style={{color:'#888',fontSize:12,marginBottom:16}}>Wir senden dir einen Reset-Link per E-Mail.</div>
             <Inp placeholder='Deine E-Mail' value={email} onChange={setEmail} type='email'/>
@@ -692,11 +692,11 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
   const wins=other?.wins||0;const losses=other?.losses||0;const draws=other?.draws||0;const ko=other?.ko||0;
   const totalFights=wins+losses+draws;const winRate=totalFights>0?Math.round((wins/totalFights)*100):0;
   return(
-    <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:200,display:'flex',flexDirection:'column'}}>
+    <div style={{position:'fixed',inset:0,background:darkMode?'#0d0d0d':'#f5f5f7',zIndex:200,display:'flex',flexDirection:'column'}}>
 
       {/* PROFIL-PANEL — slide in von oben */}
       {showProfilePanel&&(
-        <div style={{position:'absolute',inset:0,zIndex:10,background:'#f5f5f7',overflowY:'auto',display:'flex',flexDirection:'column'}}>
+        <div style={{position:'absolute',inset:0,zIndex:10,background:darkMode?'#0d0d0d':'#f5f5f7',overflowY:'auto',display:'flex',flexDirection:'column'}}>
           {/* Hero-Bild */}
           <div style={{position:'relative',height:280,flexShrink:0,background:'#111'}}>
             {other?.avatar_url
@@ -740,7 +740,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
                 <div style={{color:'#888',fontSize:11,fontWeight:600}}>SIEGRATE</div>
                 <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15}}>{winRate}%</div>
               </div>
-              <div style={{height:6,background:'#f0f0f0',borderRadius:3}}>
+              <div style={{height:6,background:darkMode?'#222':'#f0f0f0',borderRadius:3}}>
                 <div style={{height:'100%',width:winRate+'%',background:'linear-gradient(90deg,#27ae60,#2ecc71)',borderRadius:3,transition:'width 0.6s ease'}}/>
               </div>
               <div style={{color:'#ccc',fontSize:10,marginTop:5}}>{totalFights} Kämpfe gesamt · {ko} KO/TKO Siege</div>
@@ -780,7 +780,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
 
       {/* FIGHT REQUEST PANEL */}
       {showFightRequest&&(
-        <div style={{position:'absolute',inset:0,zIndex:11,background:'#f5f5f7',overflowY:'auto',display:'flex',flexDirection:'column'}}>
+        <div style={{position:'absolute',inset:0,zIndex:11,background:darkMode?'#0d0d0d':'#f5f5f7',overflowY:'auto',display:'flex',flexDirection:'column'}}>
           <div style={{background:'linear-gradient(135deg,#1a1a1a,#c0392b)',padding:'14px 16px',flexShrink:0,display:'flex',alignItems:'center',gap:10}}>
             <button onClick={()=>setShowFightRequest(false)} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',fontSize:18,cursor:'pointer',borderRadius:8,padding:'5px 12px',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
             <div className='rj' style={{color:'#fff',fontSize:20,letterSpacing:2,flex:1}}>FIGHT REQUEST</div>
@@ -805,12 +805,12 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
             <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
               <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>DATUM</div>
               <input type='date' value={fightDate} onChange={e=>setFightDate(e.target.value)}
-                style={{width:'100%',background:'#f5f5f7',border:'1px solid #e0e0e0',borderRadius:8,padding:'10px 12px',fontSize:14,color:'#1a1a1a',fontFamily:'DM Sans,sans-serif'}}/>
+                style={{width:'100%',background:darkMode?'#0d0d0d':'#f5f5f7',border:'1px solid #e0e0e0',borderRadius:8,padding:'10px 12px',fontSize:14,color:darkMode?'#fff':'#1a1a1a',fontFamily:'DM Sans,sans-serif'}}/>
             </div>
             <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
               <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>ORT / GYM</div>
               <input type='text' value={fightLocation} onChange={e=>setFightLocation(e.target.value)} placeholder='z.B. Tiger Gym Berlin, Mitte'
-                style={{width:'100%',background:'#f5f5f7',border:'1px solid #e0e0e0',borderRadius:8,padding:'10px 12px',fontSize:14,color:'#1a1a1a',fontFamily:'DM Sans,sans-serif'}}/>
+                style={{width:'100%',background:darkMode?'#0d0d0d':'#f5f5f7',border:'1px solid #e0e0e0',borderRadius:8,padding:'10px 12px',fontSize:14,color:darkMode?'#fff':'#1a1a1a',fontFamily:'DM Sans,sans-serif'}}/>
             </div>
             {fightSent?(
               <div style={{background:'#f0faf0',border:'1px solid #27ae6044',borderRadius:12,padding:'16px',textAlign:'center'}}>
@@ -884,7 +884,7 @@ Bist du dabei?`;
             const ort=lines.find(l=>l.startsWith('Ort:'))?.replace('Ort: ','');
             return(
               <div key={m.id} style={{display:'flex',justifyContent:'center',margin:'6px 0'}}>
-                <div style={{width:'90%',maxWidth:320,background:'#fff',borderRadius:14,border:'2px solid #c0392b33',boxShadow:'0 2px 12px rgba(192,57,43,0.1)',overflow:'hidden'}}>
+                <div style={{width:'90%',maxWidth:320,background:darkMode?'#1a1a1a':'#fff',borderRadius:14,border:'2px solid #c0392b33',boxShadow:'0 2px 12px rgba(192,57,43,0.1)',overflow:'hidden'}}>
                   <div style={{background:'linear-gradient(135deg,#1a1a1a,#c0392b)',padding:'10px 14px',display:'flex',alignItems:'center',gap:8}}>
                     <span style={{fontSize:20}}>⚔️</span>
                     <div className='rj' style={{color:'#fff',fontSize:16,letterSpacing:2,flex:1}}>FIGHT REQUEST</div>
@@ -933,10 +933,10 @@ Bis dann! 🥊`;
 
 Leider kann ich diesen Termin nicht wahrnehmen.`;
                           await fetch(SUPA_URL+'/rest/v1/messages',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=minimal'},body:JSON.stringify({match_id:match.id,sender_id:myProfileId,content:reply})});
-                        }} style={{flex:1,padding:'9px',borderRadius:9,background:'#fff',border:'1px solid #e74c3c',color:'#e74c3c',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+                        }} style={{flex:1,padding:'9px',borderRadius:9,background:darkMode?'#1a1a1a':'#fff',border:'1px solid #e74c3c',color:'#e74c3c',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
                           ❌ ABLEHNEN
                         </button>
-                        <button onClick={()=>{setShowFightRequest(true);}} style={{flex:1,padding:'9px',borderRadius:9,background:'#fff',border:'1px solid #2980b9',color:'#2980b9',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>
+                        <button onClick={()=>{setShowFightRequest(true);}} style={{flex:1,padding:'9px',borderRadius:9,background:darkMode?'#1a1a1a':'#fff',border:'1px solid #2980b9',color:'#2980b9',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>
                           🔄 GEGEN-TERMIN
                         </button>
                       </div>
@@ -1022,7 +1022,7 @@ Leider kann ich diesen Termin nicht wahrnehmen.`;
               }}
           onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}}
           placeholder='Nachricht…' rows={1}
-          style={{flex:1,background:'#f5f5f7',border:'1px solid #e0e0e0',borderRadius:20,padding:'10px 14px',fontSize:14,color:'#1a1a1a',maxHeight:80}}/>
+          style={{flex:1,background:darkMode?'#0d0d0d':'#f5f5f7',border:'1px solid #e0e0e0',borderRadius:20,padding:'10px 14px',fontSize:14,color:'#1a1a1a',maxHeight:80}}/>
         <button onClick={send} disabled={!input.trim()}
           style={{width:42,height:42,borderRadius:'50%',background:input.trim()?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#eee',border:'none',color:input.trim()?'#fff':'#aaa',fontSize:17,cursor:input.trim()?'pointer':'not-allowed',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
           ➤
@@ -1817,7 +1817,7 @@ export default function App(){
   if(activeChat&&myProfile&&!viewProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>{setViewProfile(p);}}/></>);
 
   if(screen==='setup')return(
-    <div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'0 0 40px'}}>
+    <div style={{minHeight:'100vh',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'0 0 40px'}}>
       <style>{css}</style>
       <div style={{width:'100%',maxWidth:420,padding:'32px 24px 0',textAlign:'center'}}>
         <div className='rj fadeUp' style={{fontSize:64,color:'#1a1a1a',letterSpacing:6,lineHeight:1}}>FIGHTER</div>
@@ -1866,7 +1866,7 @@ export default function App(){
                 }
               }}/>
               {showGymSuggestions&&gymSuggestions.length>0&&(
-                <div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',borderRadius:10,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',border:'1px solid #eee',zIndex:100,overflow:'hidden',marginTop:4}}>
+                <div style={{position:'absolute',top:'100%',left:0,right:0,background:darkMode?'#1a1a1a':'#fff',borderRadius:10,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',border:'1px solid '+(darkMode?'#333':'#eee'),zIndex:100,overflow:'hidden',marginTop:4}}>
                   {gymSuggestions.map((g,i)=>(
                     <div key={i} onClick={()=>{setProfile(p=>({...p,gym:g.name}));setShowGymSuggestions(false);}} style={{padding:'10px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',borderBottom:i<gymSuggestions.length-1?'1px solid #f5f5f5':'none'}} onMouseEnter={e=>e.currentTarget.style.background='#fdf0ef'} onMouseLeave={e=>e.currentTarget.style.background='#fff'}>
                       <div style={{fontSize:22,flexShrink:0}}>{g.emoji}</div>
@@ -1884,7 +1884,7 @@ export default function App(){
                 </div>
               )}
               {showGymSuggestions&&gymSuggestions.length===0&&profile.gym.length>=2&&(
-                <div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',borderRadius:10,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',border:'1px solid #eee',zIndex:100,marginTop:4}}>
+                <div style={{position:'absolute',top:'100%',left:0,right:0,background:darkMode?'#1a1a1a':'#fff',borderRadius:10,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',border:'1px solid '+(darkMode?'#333':'#eee'),zIndex:100,marginTop:4}}>
                   <div style={{padding:'12px 14px',color:'#aaa',fontSize:13,textAlign:'center'}}>Kein Gym gefunden</div>
                   <div onClick={()=>{setShowGymSuggestions(false);setShowRegisterGym(true);setNewGymData(d=>({...d,name:profile.gym}));}} style={{padding:'10px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',background:'#fdf8ff',borderTop:'1px solid #f0e8ff'}}>
                     <div style={{fontSize:20}}>➕</div>
@@ -1897,7 +1897,7 @@ export default function App(){
             {/* GYM ANMELDE-MODAL */}
             {showRegisterGym&&(
               <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
-                <div style={{background:'#fff',borderRadius:20,width:'100%',maxWidth:360,overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,0.25)'}}>
+                <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:20,width:'100%',maxWidth:360,overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,0.25)'}}>
                   <div style={{background:'linear-gradient(135deg,#6c3483,#8e44ad)',padding:'18px 20px'}}>
                     <div className='rj' style={{color:'#fff',fontSize:20,letterSpacing:2}}>GYM ANMELDEN</div>
                     <div style={{color:'rgba(255,255,255,0.65)',fontSize:11,marginTop:2}}>Dein Gym wird geprüft und hinzugefügt</div>
@@ -1921,7 +1921,7 @@ export default function App(){
                           <div key={key}>
                             <div style={{color:'#aaa',fontSize:9,letterSpacing:1,marginBottom:4}}>{label}</div>
                             <input value={val} onChange={e=>setNewGymData(d=>({...d,[key]:e.target.value}))} placeholder={ph}
-                              style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #e0e0e0',background:'#f5f5f7',color:'#1a1a1a',fontSize:13,fontFamily:'DM Sans,sans-serif'}}/>
+                              style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #e0e0e0',background:darkMode?'#0d0d0d':'#f5f5f7',color:'#1a1a1a',fontSize:13,fontFamily:'DM Sans,sans-serif'}}/>
                           </div>
                         ))}
                         <div style={{background:'#fdf8ff',borderRadius:8,padding:'10px',border:'1px solid #e8d5f5',marginTop:2}}>
@@ -2013,7 +2013,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
           <div style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:8}}>
             <div style={{width:'calc(100% - 24px)',maxWidth:380,margin:'0 0 8px',background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'9px 12px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
               {avatarPreview?<img src={avatarPreview} style={{width:36,height:36,borderRadius:'50%',objectFit:'cover',border:'2px solid '+RED}} alt='me'/>
-                :<div style={{fontSize:20,width:36,height:36,borderRadius:'50%',background:'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center'}}>🥊</div>}
+                :<div style={{fontSize:20,width:36,height:36,borderRadius:'50%',background:darkMode?'#222':'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center'}}>🥊</div>}
               <div style={{flex:1}}>
                 <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{profile.name}, {profile.age} - {profile.city}</div>
                 <div style={{color:RED,fontSize:11,marginTop:1}}>{profile.style} - {profile.weightClass?profile.weightClass.split(' (')[0]:''}</div>
@@ -2132,7 +2132,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       <div key={m.id} style={{textAlign:'center',flexShrink:0}}>
                         <div onClick={()=>setActiveChat(m)} style={{cursor:'pointer'}}>
                           {other.avatar_url?<img src={other.avatar_url} style={{width:42,height:42,borderRadius:6,border:'2px solid '+ac,objectFit:'cover'}} alt={other.name}/>
-                          :<div style={{width:42,height:42,borderRadius:6,background:'#fff',border:'2px solid '+ac,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🥊</div>}
+                          :<div style={{width:42,height:42,borderRadius:6,background:darkMode?'#2a2a2a':'#fff',border:'2px solid '+ac,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🥊</div>}
                         </div>
                         <div onClick={()=>setViewProfile(other)} style={{color:ac,fontSize:9,marginTop:2,cursor:'pointer',fontWeight:700}}>{other.name?.split(' ')[0]}</div>
                       </div>
@@ -2273,7 +2273,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                             showMsg('Foto geändert ✓');
                           }
                         }}/>
-                        <div style={{width:80,height:80,borderRadius:'50%',overflow:'hidden',border:'3px solid '+RED,background:'#f0f0f0',margin:'0 auto',position:'relative'}}>
+                        <div style={{width:80,height:80,borderRadius:'50%',overflow:'hidden',border:'3px solid '+RED,background:darkMode?'#222':'#f0f0f0',margin:'0 auto',position:'relative'}}>
                           {avatarPreview?<img src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28}}>👤</div>}
                           <div style={{position:'absolute',inset:0,background:'rgba(0,0,0,0.35)',display:'flex',alignItems:'center',justifyContent:'center'}}>
                             <span style={{fontSize:18}}>📷</span>
@@ -2332,7 +2332,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               <div style={{position:'relative',display:'inline-block',marginBottom:10}}>
                 <label style={{cursor:'pointer'}}>
                   <input type='file' accept='image/*' onChange={handlePhoto} style={{display:'none'}}/>
-                  <div style={{width:160,height:160,borderRadius:16,background:'#f0f0f0',border:'3px solid '+(avatarPreview?RED:'#ddd'),overflow:'hidden',margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <div style={{width:160,height:160,borderRadius:16,background:darkMode?'#222':'#f0f0f0',border:'3px solid '+(avatarPreview?RED:'#ddd'),overflow:'hidden',margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'center'}}>
                     {uploading?<div style={{fontSize:24}} className='spin'>⏳</div>:avatarPreview?<img src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='avatar'/>:<div style={{fontSize:32}}>👤</div>}
                   </div>
                   <div style={{position:'absolute',bottom:0,right:0,background:RED,borderRadius:'50%',width:24,height:24,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12}}>📷</div>
@@ -2363,7 +2363,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   <div style={{color:'#bbb',fontSize:9,letterSpacing:2}}>{label}</div>
                   <div className='rj' style={{color:color,fontSize:30,marginTop:3}}>{val}</div>
                   <div style={{color:'#ccc',fontSize:10,marginTop:2}}>{sub}</div>
-                  <div style={{marginTop:6,height:3,background:'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:pct+'%',background:`linear-gradient(90deg,${color},${color}88)`,borderRadius:2}}/></div>
+                  <div style={{marginTop:6,height:3,background:darkMode?'#222':'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:pct+'%',background:`linear-gradient(90deg,${color},${color}88)`,borderRadius:2}}/></div>
                 </div>
               ))}
             </div>
@@ -2520,8 +2520,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 {dbMatches.map(m=>{
                   const other=m.profile_a_id===myProfile?.id?m.profile_b:m.profile_a;
                   if(!other)return null;
-                  return(<div key={m.id} onClick={()=>setActiveChat(m)} style={{background:'#fff',borderRadius:10,padding:'11px 13px',border:'1px solid #eee',marginBottom:7,display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}>
-                    {other.avatar_url?<img src={other.avatar_url} style={{width:38,height:38,borderRadius:'50%',objectFit:'cover'}} alt=''/>:<div style={{width:38,height:38,borderRadius:'50%',background:'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🥊</div>}
+                  return(<div key={m.id} onClick={()=>setActiveChat(m)} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'11px 13px',border:'1px solid #eee',marginBottom:7,display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}>
+                    {other.avatar_url?<img src={other.avatar_url} style={{width:38,height:38,borderRadius:'50%',objectFit:'cover'}} alt=''/>:<div style={{width:38,height:38,borderRadius:'50%',background:darkMode?'#222':'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🥊</div>}
                     <div style={{flex:1}}><div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{other.name}</div><div style={{color:'#aaa',fontSize:11}}>{other.style} · {other.city}</div></div>
                     <div style={{color:RED,fontSize:11,fontWeight:700}}>💬 Chat →</div>
                   </div>);
@@ -2609,7 +2609,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     <div style={{color:'#888',fontSize:12}}>👥 {gym.members} Mitglieder</div>
                     <div style={{display:'flex',alignItems:'center',gap:3}}><span style={{color:'#d4a017'}}>★</span><span style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14}}>{gym.rating}</span></div>
                   </div>
-                  <div style={{marginTop:6,height:3,background:'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:((gym.rating-4)/1*100)+'%',background:`linear-gradient(90deg,${RED},#e67e22)`,borderRadius:2}}/></div>
+                  <div style={{marginTop:6,height:3,background:darkMode?'#222':'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:((gym.rating-4)/1*100)+'%',background:`linear-gradient(90deg,${RED},#e67e22)`,borderRadius:2}}/></div>
                   <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
                     <div style={{color:darkMode?'#666':'#aaa',fontSize:10,marginBottom:4}}>Gym bewerten:</div>
                     <div style={{display:'flex',gap:2,alignItems:'center'}}>
@@ -2683,7 +2683,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               return(
                 <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'12px 14px',border:'2px solid '+RED+'44',marginBottom:10,display:'flex',alignItems:'center',gap:10}}>
                   <div className='rj' style={{color:RED,fontSize:22,width:36,textAlign:'center',flexShrink:0}}>#{myRank}</div>
-                  <div style={{width:38,height:38,borderRadius:8,overflow:'hidden',flexShrink:0,background:'#f0f0f0'}}>
+                  <div style={{width:38,height:38,borderRadius:8,overflow:'hidden',flexShrink:0,background:darkMode?'#222':'#f0f0f0'}}>
                     {avatarPreview?<img src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🥊</div>}
                   </div>
                   <div style={{flex:1}}>
@@ -2762,7 +2762,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     </div>
                     <div style={{marginTop:9,color:darkMode?'#ccc':'#666',fontSize:12,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee'),paddingTop:8}}>{t.bio}</div>
                     <div style={{marginTop:8,background:darkMode?'#2a2a2a':'#f8f8f8',borderRadius:7,padding:'7px 10px'}}><div style={{color:'#aaa',fontSize:9,letterSpacing:1,marginBottom:3}}>BEKANNTE SCHUELER</div><div style={{color:darkMode?'#ccc':'#666',fontSize:12,fontWeight:600}}>{t.pupils}</div></div>
-                    <div style={{marginTop:8,height:3,background:'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:(t.rating/10*100)+'%',background:`linear-gradient(90deg,${t.accent},${t.accent}66)`,borderRadius:2}}/></div>
+                    <div style={{marginTop:8,height:3,background:darkMode?'#222':'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:(t.rating/10*100)+'%',background:`linear-gradient(90deg,${t.accent},${t.accent}66)`,borderRadius:2}}/></div>
                   </div>
                 </div>
               ))}
@@ -2780,7 +2780,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <div style={{display:'flex',flexDirection:'column',gap:9}}>
               {SPORTS[sport].games.map(game=>{
                 const{color}=SPORTS[sport];const pct=(game.cur/game.max)*100;const full=game.cur>=game.max;const key=sport+game.id;const isJoined=joined[key];
-                return(<div key={game.id} style={{background:'#fff',borderRadius:12,overflow:'hidden',border:'1px solid '+color+'22',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
+                return(<div key={game.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,overflow:'hidden',border:'1px solid '+color+'22',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
                   <div style={{height:2,background:`linear-gradient(90deg,${color},transparent)`}}/>
                   <div style={{padding:'13px'}}>
                     <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
@@ -2791,7 +2791,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       <div style={{display:'flex',gap:10}}><div style={{color:'#888',fontSize:11}}>🕐 {game.time}</div><div style={{color:'#888',fontSize:11}}>👤 {game.host}</div></div>
                       <div style={{color:full?RED:color,fontSize:11,fontWeight:700}}>{game.cur}/{game.max}</div>
                     </div>
-                    <div style={{height:4,background:'#f0f0f0',borderRadius:3,marginBottom:9}}><div style={{height:'100%',width:pct+'%',background:`linear-gradient(90deg,${color},${color}88)`,borderRadius:3}}/></div>
+                    <div style={{height:4,background:darkMode?'#222':'#f0f0f0',borderRadius:3,marginBottom:9}}><div style={{height:'100%',width:pct+'%',background:`linear-gradient(90deg,${color},${color}88)`,borderRadius:3}}/></div>
                     <button onClick={()=>setJoined(j=>({...j,[key]:!j[key]}))} style={{width:'100%',padding:'10px',borderRadius:8,background:isJoined?'#f0faf0':full?'#f5f5f5':`linear-gradient(135deg,${color}cc,${color})`,border:isJoined?'1px solid #27ae60':'none',color:isJoined?'#27ae60':full?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1.5,cursor:'pointer',transition:'all 0.2s'}}>
                       {isJoined?'Beigetreten':full?'Ausgebucht':'Mitmachen'}
                     </button>
@@ -2811,7 +2811,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
       {showGymVerify&&<div style={{position:'fixed',inset:0,zIndex:500}}><style>{css}</style><GymVerifyModal onClose={()=>{setShowGymVerify(false);setGymCodeInput('');setGymVerifyError('');}} gymCodeInput={gymCodeInput} setGymCodeInput={setGymCodeInput} gymVerifyError={gymVerifyError} setGymVerifyError={setGymVerifyError} gymVerified={gymVerified} setGymVerified={setGymVerified} gymCodes={GYM_CODES} darkMode={darkMode} showMsg={showMsg}/></div>}
       {/* IMPRESSUM MODAL */}
       {showImpressum&&(
-        <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:400,overflowY:'auto',padding:'20px 16px 40px'}}>
+        <div style={{position:'fixed',inset:0,background:darkMode?'#0d0d0d':'#f5f5f7',zIndex:400,overflowY:'auto',padding:'20px 16px 40px'}}>
           <div style={{maxWidth:480,margin:'0 auto'}}>
             <button onClick={()=>setShowImpressum(false)} style={{background:'none',border:'none',color:'#c0392b',fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>← Zurück</button>
             <div style={{background:'#fff',borderRadius:14,padding:'20px',border:'1px solid #eee'}}>
@@ -2829,7 +2829,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
       )}
       {/* DATENSCHUTZ MODAL */}
       {showDatenschutz&&(
-        <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:400,overflowY:'auto',padding:'20px 16px 40px'}}>
+        <div style={{position:'fixed',inset:0,background:darkMode?'#0d0d0d':'#f5f5f7',zIndex:400,overflowY:'auto',padding:'20px 16px 40px'}}>
           <div style={{maxWidth:480,margin:'0 auto'}}>
             <button onClick={()=>setShowDatenschutz(false)} style={{background:'none',border:'none',color:'#c0392b',fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>← Zurück</button>
             <div style={{background:'#fff',borderRadius:14,padding:'20px',border:'1px solid #eee'}}>
@@ -2848,7 +2848,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
       )}
       {/* AGB MODAL */}
       {showAGB&&(
-        <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:400,overflowY:'auto',padding:'20px 16px 40px'}}>
+        <div style={{position:'fixed',inset:0,background:darkMode?'#0d0d0d':'#f5f5f7',zIndex:400,overflowY:'auto',padding:'20px 16px 40px'}}>
           <div style={{maxWidth:480,margin:'0 auto'}}>
             <button onClick={()=>setShowAGB(false)} style={{background:'none',border:'none',color:'#c0392b',fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>← Zurück</button>
             <div style={{background:'#fff',borderRadius:14,padding:'20px',border:'1px solid #eee'}}>
@@ -3009,7 +3009,7 @@ ${blCode}`;
                 }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>{adminUsersLoaded?'🔄 AKTUALISIEREN':'USER LADEN'}</button>
                 {adminUsers.map(u=>(
                   <div key={u.id} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,border:'1px solid '+(u.banned?'#e74c3c44':(darkMode?'#2a2a2a':'#eee')),marginBottom:5}}>
-                    {u.avatar_url?<img src={u.avatar_url} style={{width:34,height:34,borderRadius:'50%',objectFit:'cover',opacity:u.banned?0.4:1}} alt=''/>:<div style={{width:34,height:34,borderRadius:'50%',background:'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>👤</div>}
+                    {u.avatar_url?<img src={u.avatar_url} style={{width:34,height:34,borderRadius:'50%',objectFit:'cover',opacity:u.banned?0.4:1}} alt=''/>:<div style={{width:34,height:34,borderRadius:'50%',background:darkMode?'#222':'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>👤</div>}
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{color:u.banned?'#e74c3c':(darkMode?'#fff':'#1a1a1a'),fontSize:12,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{u.name||'?'} {u.banned&&'🚫'}</div>
                       <div style={{color:'#aaa',fontSize:10}}>{u.city} · {u.style} · {new Date(u.created_at).toLocaleDateString('de')}</div>
@@ -3109,7 +3109,7 @@ ${blCode}`;
                       </div>
                       <div style={{background:'#d4a01722',borderRadius:6,padding:'2px 7px',color:'#d4a017',fontSize:10,fontWeight:700}}>⏳ WARTEND</div>
                     </div>
-                    {u.record_proof_url&&<img src={u.record_proof_url} style={{width:'100%',borderRadius:8,marginBottom:8,maxHeight:200,objectFit:'contain',background:'#f0f0f0'}} alt='Nachweis'/>}
+                    {u.record_proof_url&&<img src={u.record_proof_url} style={{width:'100%',borderRadius:8,marginBottom:8,maxHeight:200,objectFit:'contain',background:darkMode?'#222':'#f0f0f0'}} alt='Nachweis'/>}
                     <div style={{display:'flex',gap:6}}>
                       <button onClick={async()=>{
                         await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({record_verified:'verified'})});
@@ -3197,7 +3197,7 @@ ${blCode}`;
 function Lbl({children}){return <div style={{color:'#555',fontSize:11,fontWeight:600,letterSpacing:1.5,textTransform:'uppercase'}}>{children}</div>;}
 function Inp({placeholder,value,onChange,type='text',onKeyDown}){
   return(<input type={type} placeholder={placeholder} value={value} onChange={e=>onChange(e.target.value)} onKeyDown={onKeyDown}
-    style={{width:'100%',background:'#fff',border:'1px solid #e0e0e0',borderRadius:8,padding:'12px 13px',color:'#1a1a1a',fontSize:15,fontFamily:'DM Sans,sans-serif',transition:'border-color 0.2s'}}
+    style={{width:'100%',background:darkMode?'#111':'#fff',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),borderRadius:8,padding:'12px 13px',color:'#1a1a1a',fontSize:15,fontFamily:'DM Sans,sans-serif',transition:'border-color 0.2s'}}
     onFocus={e=>e.target.style.borderColor=RED} onBlur={e=>e.target.style.borderColor='#e0e0e0'}/>);
 }
 function Tag({text,accent}){return <div style={{padding:'2px 7px',borderRadius:3,background:accent?accent+'12':'#f5f5f5',color:accent||'#888',fontSize:10,fontWeight:600,border:accent?'1px solid '+accent+'22':'none'}}>{text}</div>;}
