@@ -526,11 +526,15 @@ function AuthScreen({ onSession }) {
         // E-Mail Bestätigung aktiv → Hinweis zeigen
         setInfo('✅ Fast fertig! Wir haben eine Bestätigungsmail an '+email+' gesendet. Bitte öffne sie und klicke auf den Link, dann kannst du dich hier einloggen.');
         setMode('login');
+      }else if(r.id&&r.aud==='authenticated'){
+        // Supabase gibt User direkt zurück — E-Mail Bestätigung nötig
+        setInfo('✅ Fast fertig! Wir haben eine Bestätigungsmail an '+email+' gesendet. Bitte öffne sie und klicke auf den Link, dann kannst du dich hier einloggen.');
+        setMode('login');
+      }else if(r.error){
+        setErr(r.error.message||'Registrierung fehlgeschlagen');
       }else{
-        // Zeige den echten Fehler aus der Supabase-Antwort
-        const msg=r.msg||r.message||r.error_description||JSON.stringify(r);
-        setErr('Fehler: '+msg);
-        console.error('SignUp response:', JSON.stringify(r));
+        setInfo('✅ Registrierung erfolgreich! Bitte bestätige deine E-Mail und logge dich dann ein.');
+        setMode('login');
       }
     }else{
       const r=await authSignIn(email,password);
