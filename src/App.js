@@ -2098,27 +2098,29 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               })}
             </div>
             {cards.length>0&&(
-              <div style={{display:'flex',gap:16,alignItems:'center',marginTop:10}}>
-                <Btn onClick={()=>doSwipe('de')} color={RED} icon='✕' size={54}/>
-                {lastSwiped&&<Btn onClick={undoSwipe} color='rgba(255,255,255,0.2)' icon='↩️' size={46}/>}
-                <Btn onClick={()=>doSwipe('ch')} color='#27ae60' icon='⚔️' size={64} primary label='FIGHT'/>
-                <Btn onClick={()=>doSwipe('de')} color='#d4a017' icon='⭐' size={54}/>
-              </div>
-              {recentSwiped.length>0&&(
-                <div style={{padding:'8px 16px 0',width:'100%',maxWidth:420,position:'relative',zIndex:10}}>
-                  <div style={{color:'rgba(255,255,255,0.4)',fontSize:9,letterSpacing:2,marginBottom:6,textAlign:'center',fontWeight:700}}>ZULETZT GESEHEN</div>
-                  <div style={{display:'flex',gap:8,justifyContent:'center'}}>
-                    {recentSwiped.map((s,i)=>(
-                      <div key={i} onClick={()=>setViewProfile(s.profile)} style={{position:'relative',cursor:'pointer'}}>
-                        <div style={{width:44,height:44,borderRadius:10,overflow:'hidden',border:'2px solid '+(s.dir==='like'?'#27ae60':RED)}}>
-                          {s.profile.avatar_url?<img src={s.profile.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{width:'100%',height:'100%',background:'#2a2a2a',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}>🥊</div>}
-                        </div>
-                        <div style={{position:'absolute',bottom:-2,right:-2,fontSize:8,background:s.dir==='like'?'#27ae60':RED,borderRadius:'50%',width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:700}}>{s.dir==='like'?'✓':'✕'}</div>
-                      </div>
-                    ))}
-                  </div>
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,marginTop:10}}>
+                <div style={{display:'flex',gap:16,alignItems:'center'}}>
+                  <Btn onClick={()=>doSwipe('de')} color={RED} icon='✕' size={54}/>
+                  {lastSwiped&&<Btn onClick={undoSwipe} color='rgba(255,255,255,0.2)' icon='↩️' size={46}/>}
+                  <Btn onClick={()=>doSwipe('ch')} color='#27ae60' icon='⚔️' size={64} primary label='FIGHT'/>
+                  <Btn onClick={()=>doSwipe('de')} color='#d4a017' icon='⭐' size={54}/>
                 </div>
-              )}
+                {recentSwiped.length>0&&(
+                  <div style={{padding:'4px 16px 0',width:'100%',maxWidth:420}}>
+                    <div style={{color:'rgba(255,255,255,0.4)',fontSize:9,letterSpacing:2,marginBottom:6,textAlign:'center',fontWeight:700}}>ZULETZT GESEHEN</div>
+                    <div style={{display:'flex',gap:8,justifyContent:'center'}}>
+                      {recentSwiped.map((s,i)=>(
+                        <div key={i} onClick={()=>setViewProfile(s.profile)} style={{position:'relative',cursor:'pointer'}}>
+                          <div style={{width:44,height:44,borderRadius:10,overflow:'hidden',border:'2px solid '+(s.dir==='like'?'#27ae60':RED)}}>
+                            {s.profile.avatar_url?<img src={s.profile.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{width:'100%',height:'100%',background:'#2a2a2a',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}>🥊</div>}
+                          </div>
+                          <div style={{position:'absolute',bottom:-2,right:-2,fontSize:8,background:s.dir==='like'?'#27ae60':RED,borderRadius:'50%',width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:700}}>{s.dir==='like'?'✓':'✕'}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
             {dbMatches.length>3&&(
               <div style={{marginTop:11,width:'calc(100% - 24px)',maxWidth:380}}>
