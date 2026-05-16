@@ -2139,6 +2139,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   </div>
                 </div>
               )}
+            )}
             {dbMatches.length>3&&(
               <div style={{marginTop:11,width:'calc(100% - 24px)',maxWidth:380}}>
                 <div style={{color:'#bbb',fontSize:9,letterSpacing:2,marginBottom:6,fontWeight:700}}>FIGHT REQUESTS – tippe für Chat</div>
