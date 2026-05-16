@@ -727,7 +727,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
             {/* Kampfrekord */}
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginBottom:10}}>
               {[['SIEGE',wins,'#27ae60'],['NIEDER',losses,RED],['UNENTSCH',draws,'#d4a017'],['KOs',ko,RED]].map(([label,val,color])=>(
-                <div key={label} style={{background:'#fff',borderRadius:11,padding:'11px 4px',textAlign:'center',border:'1px solid '+color+'33',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
+                <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:11,padding:'11px 4px',textAlign:'center',border:'1px solid '+color+'33',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
                   <div className='rj' style={{color:color,fontSize:26,lineHeight:1}}>{val}</div>
                   <div style={{color:'#bbb',fontSize:8,letterSpacing:1,marginTop:3}}>{label}</div>
                 </div>
@@ -735,7 +735,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
             </div>
 
             {/* Win-Rate Bar */}
-            <div style={{background:'#fff',borderRadius:11,padding:'13px',border:'1px solid #eee',marginBottom:10,boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
+            <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:11,padding:'13px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:10,boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
               <div style={{display:'flex',justifyContent:'space-between',marginBottom:7}}>
                 <div style={{color:'#888',fontSize:11,fontWeight:600}}>SIEGRATE</div>
                 <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15}}>{winRate}%</div>
@@ -754,7 +754,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
                 ['GRÖSSE',other?.height?(other.height+'cm'):'-','#27ae60'],
                 ['GEWICHT',other?.weight?(other.weight+'kg'):'-','#e67e22'],
               ].map(([label,val,color])=>(
-                <div key={label} style={{background:'#fff',borderRadius:10,padding:'11px 12px',border:'1px solid '+color+'22',boxShadow:'0 1px 4px rgba(0,0,0,0.04)'}}>
+                <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'11px 12px',border:'1px solid '+color+'22',boxShadow:'0 1px 4px rgba(0,0,0,0.04)'}}>
                   <div style={{color:'#ccc',fontSize:9,letterSpacing:1}}>{label}</div>
                   <div style={{color:color,fontWeight:700,fontSize:13,marginTop:3}}>{val}</div>
                 </div>
@@ -763,7 +763,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
 
             {/* Bio */}
             {other?.bio&&(
-              <div style={{background:'#fff',borderRadius:11,padding:'13px',border:'1px solid #eee',marginBottom:10}}>
+              <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:11,padding:'13px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:10}}>
                 <div style={{color:'#ccc',fontSize:9,letterSpacing:1,marginBottom:6}}>ÜBER MICH</div>
                 <div style={{color:'#555',fontSize:13,fontStyle:'italic',lineHeight:1.6}}>"{other.bio}"</div>
               </div>
@@ -787,12 +787,12 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
             <div style={{fontSize:22}}>⚔️</div>
           </div>
           <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%',display:'flex',flexDirection:'column',gap:12}}>
-            <div style={{background:'#fff',borderRadius:12,padding:'14px',border:'1px solid #eee',textAlign:'center'}}>
+            <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),textAlign:'center'}}>
               <div style={{fontSize:40,marginBottom:6}}>{other?.emoji||'🥊'}</div>
               <div className='rj' style={{color:'#1a1a1a',fontSize:18,letterSpacing:1}}>{other?.name}</div>
               <div style={{color:'#888',fontSize:12,marginTop:2}}>{other?.style} · {other?.weight_class||other?.weightClass||''}</div>
             </div>
-            <div style={{background:'#fff',borderRadius:12,padding:'14px',border:'1px solid #eee'}}>
+            <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
               <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:10}}>FIGHT TYP</div>
               <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                 {['Sparring','Amateur Wettkampf','Profi Wettkampf','Freundschaftskampf'].map(t=>(
@@ -802,12 +802,12 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
                 ))}
               </div>
             </div>
-            <div style={{background:'#fff',borderRadius:12,padding:'14px',border:'1px solid #eee'}}>
+            <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
               <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>DATUM</div>
               <input type='date' value={fightDate} onChange={e=>setFightDate(e.target.value)}
                 style={{width:'100%',background:'#f5f5f7',border:'1px solid #e0e0e0',borderRadius:8,padding:'10px 12px',fontSize:14,color:'#1a1a1a',fontFamily:'DM Sans,sans-serif'}}/>
             </div>
-            <div style={{background:'#fff',borderRadius:12,padding:'14px',border:'1px solid #eee'}}>
+            <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
               <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>ORT / GYM</div>
               <input type='text' value={fightLocation} onChange={e=>setFightLocation(e.target.value)} placeholder='z.B. Tiger Gym Berlin, Mitte'
                 style={{width:'100%',background:'#f5f5f7',border:'1px solid #e0e0e0',borderRadius:8,padding:'10px 12px',fontSize:14,color:'#1a1a1a',fontFamily:'DM Sans,sans-serif'}}/>
@@ -849,7 +849,7 @@ Bist du dabei?`;
       )}
 
       {/* CHAT HEADER — klickbar für Profil */}
-      <div onClick={()=>setShowProfilePanel(true)} style={{display:'flex',alignItems:'center',gap:11,padding:'10px 14px',background:'#fff',borderBottom:'1px solid #eee',boxShadow:'0 1px 4px rgba(0,0,0,0.06)',cursor:'pointer',userSelect:'none'}}>
+      <div onClick={()=>setShowProfilePanel(true)} style={{display:'flex',alignItems:'center',gap:11,padding:'10px 14px',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee'),boxShadow:'0 1px 4px rgba(0,0,0,0.06)',cursor:'pointer',userSelect:'none'}}>
         <button onClick={e=>{e.stopPropagation();onClose();}} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',padding:'0 4px 0 0',fontFamily:'Rajdhani,sans-serif',fontWeight:700,flexShrink:0}}>←</button>
         <div style={{position:'relative',flexShrink:0}}>
           {other?.avatar_url
@@ -997,7 +997,7 @@ Leider kann ich diesen Termin nicht wahrnehmen.`;
                 ?<img src={other.avatar_url} style={{width:26,height:26,borderRadius:'50%',objectFit:'cover',border:'1px solid '+accent+'44'}} alt=''/>
                 :<div style={{width:26,height:26,borderRadius:'50%',background:accent+'22',border:'1px solid '+accent+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12}}>🥊</div>}
             </div>
-            <div style={{padding:'10px 14px',borderRadius:'14px 14px 14px 3px',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,0.08)',display:'flex',gap:4,alignItems:'center'}}>
+            <div style={{padding:'10px 14px',borderRadius:'14px 14px 14px 3px',background:darkMode?'#2a2a2a':'#fff',boxShadow:'0 1px 4px rgba(0,0,0,0.08)',display:'flex',gap:4,alignItems:'center'}}>
               <div style={{width:7,height:7,borderRadius:'50%',background:'#bbb',animation:'pulse 1s ease-in-out infinite'}}/>
               <div style={{width:7,height:7,borderRadius:'50%',background:'#bbb',animation:'pulse 1s ease-in-out 0.2s infinite'}}/>
               <div style={{width:7,height:7,borderRadius:'50%',background:'#bbb',animation:'pulse 1s ease-in-out 0.4s infinite'}}/>
@@ -1006,12 +1006,12 @@ Leider kann ich diesen Termin nicht wahrnehmen.`;
         )}
         <div ref={endRef}/>
       </div>
-      <div style={{padding:'6px 12px 0',background:'#fff',borderTop:'1px solid #eee'}}> 
+      <div style={{padding:'6px 12px 0',background:darkMode?'#1a1a1a':'#fff',borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}> 
         <button onClick={()=>setShowFightRequest(true)} style={{width:'100%',padding:'7px',borderRadius:8,background:'linear-gradient(135deg,#1a1a1a,#c0392b)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,letterSpacing:1.5,cursor:'pointer',marginBottom:6}}>
           ⚔️ FIGHT REQUEST SENDEN
         </button>
       </div>
-      <div style={{padding:'6px 12px 10px',background:'#fff',display:'flex',gap:8,alignItems:'flex-end'}}>
+      <div style={{padding:'6px 12px 10px',background:darkMode?'#1a1a1a':'#fff',display:'flex',gap:8,alignItems:'flex-end'}}>
         <textarea value={input} onChange={e=>{
                 setInput(e.target.value);
                 if(e.target.value.length>0){
@@ -2243,7 +2243,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
           </div>
         )}
         {tab==='stats'&&(
-          <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
+          <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto',background:darkMode?'#0d0d0d':'#f5f5f7',minHeight:'calc(100vh - 120px)'}}>
             {/* EDIT MODAL */}
             {editMode&&(
               <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.65)',zIndex:500,display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
@@ -2532,7 +2532,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         )}
 
         {tab==='gyms'&&(
-          <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
+          <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto',background:darkMode?'#0d0d0d':'#f5f5f7',minHeight:'calc(100vh - 120px)'}}>
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:11}}>GYMS FINDEN</div>
             {/* TOP GYMS */}
             {(()=>{
@@ -2628,7 +2628,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         )}
 
         {tab==='ranking'&&(
-          <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
+          <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto',background:darkMode?'#0d0d0d':'#f5f5f7',minHeight:'calc(100vh - 120px)'}}>
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:8}}>WELTRANGLISTE</div>
             <div style={{display:'flex',gap:6,marginBottom:11}}>
               <button onClick={()=>setRankMode('user')} style={{flex:1,padding:'7px',borderRadius:8,background:rankMode==='user'?RED:'transparent',border:'1px solid '+(rankMode==='user'?RED:(darkMode?'#333':'#ddd')),color:rankMode==='user'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>🏅 AMATEURE</button>
