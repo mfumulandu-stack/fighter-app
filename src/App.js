@@ -2118,12 +2118,13 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               })}
             </div>
             {cards.length>0&&(
-              <div style={{display:'flex',gap:16,alignItems:'center',marginTop:10}}>
-                <Btn onClick={()=>doSwipe('de')} color={RED} icon='✕' size={54}/>
-                {lastSwiped&&<Btn onClick={undoSwipe} color='rgba(255,255,255,0.2)' icon='↩️' size={46}/>}
-                <Btn onClick={()=>doSwipe('ch')} color='#27ae60' icon='⚔️' size={64} primary label='FIGHT'/>
-                <Btn onClick={()=>doSwipe('de')} color='#d4a017' icon='⭐' size={54}/>
-              </div>
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,marginTop:10}}>
+                <div style={{display:'flex',gap:16,alignItems:'center'}}>
+                  <Btn onClick={()=>doSwipe('de')} color={RED} icon='✕' size={54}/>
+                  {lastSwiped&&<Btn onClick={undoSwipe} color='rgba(255,255,255,0.2)' icon='↩️' size={46}/>}
+                  <Btn onClick={()=>doSwipe('ch')} color='#27ae60' icon='⚔️' size={64} primary label='FIGHT'/>
+                  <Btn onClick={()=>doSwipe('de')} color='#d4a017' icon='⭐' size={54}/>
+                </div>
               {recentSwiped.length>0&&(
                 <div style={{padding:'8px 16px 0',width:'100%',maxWidth:420,position:'relative',zIndex:10}}>
                   <div style={{color:'rgba(255,255,255,0.4)',fontSize:9,letterSpacing:2,marginBottom:6,textAlign:'center',fontWeight:700}}>ZULETZT GESEHEN</div>
