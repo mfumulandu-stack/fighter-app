@@ -3023,19 +3023,25 @@ ${blCode}`;
                       <button onClick={async()=>{
                         if(!window.confirm('User '+u.name+' wirklich löschen? Das kann nicht rückgängig gemacht werden.'))return;
                         try{
-                          // 1. Profile löschen
-                          await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
-                          // 2. Swipes löschen
+                          // 1. Alle Daten löschen
+                          await fetch(SUPA_URL+'/rest/v1/messages?sender_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
                           await fetch(SUPA_URL+'/rest/v1/swipes?swiper_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
                           await fetch(SUPA_URL+'/rest/v1/swipes?target_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
-                          // 3. Auth User löschen (Supabase Admin API)
-                          await fetch(SUPA_URL+'/auth/v1/admin/users/'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                          await fetch(SUPA_URL+'/rest/v1/matches?profile_a_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                          await fetch(SUPA_URL+'/rest/v1/matches?profile_b_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                          // 2. Profile löschen + banned setzen damit Login fehlschlägt
+                          await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({banned:true,name:'[Gelöscht]',avatar_url:null,bio:null})});
+                          // 3. Auth User löschen
+                          const authResp=await fetch(SUPA_URL+'/auth/v1/admin/users/'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,'Content-Type':'application/json'}});
+                          if(authResp.ok){
+                            await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                            showMsg('✅ User vollständig gelöscht');
+                          }else{
+                            showMsg('✅ User gesperrt + Daten gelöscht (Auth-Account bleibt)');
+                          }
                           setAdminUsers(prev=>prev.filter(x=>x.id!==u.id));
-                          showMsg('✅ User vollständig gelöscht');
                         }catch(e){
-                          // Falls Auth delete fehlschlägt — zumindest banned setzen
-                          await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({banned:true})});
-                          showMsg('Account gesperrt (Auth-Löschung fehlgeschlagen)');
+                          showMsg('Fehler: '+e.message);
                         }
                       }} style={{background:'none',border:'1px solid #e74c3c',borderRadius:6,padding:'4px 6px',color:'#e74c3c',fontSize:10,cursor:'pointer'}}>🗑️</button>
                     </div>
