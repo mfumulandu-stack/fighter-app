@@ -1054,6 +1054,7 @@ export default function App(){
   const [offset,setOffset]=useState({x:0,y:0});
   const [start,setStart]=useState({x:0,y:0});
   const [lastAct,setLastAct]=useState(null);
+  const [lastSwiped,setLastSwiped]=useState(null);
   const [matched,setMatched]=useState(null);
   const [swStats,setSwStats]=useState({ch:0,de:0});
   const [dbMatches,setDbMatches]=useState([]);
@@ -1575,18 +1576,42 @@ export default function App(){
     else setOffset({x:0,y:0});
   }
 
+  async function undoSwipe(){
+    if(!lastSwiped||!session||!myProfile)return;
+    const {profile} = lastSwiped;
+    // Swipe aus DB löschen
+    try{
+      await fetch(SUPA_URL+'/rest/v1/swipes?swiper_id=eq.'+myProfile.id+'&target_id=eq.'+profile.id,{
+        method:'DELETE',
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
+      });
+    }catch{}
+    // Karte wieder hinzufügen
+    setCards(prev=>[...prev, profile]);
+    setLastSwiped(null);
+    showMsg('↩️ Rückgängig!');
+  }
+
   async function doSwipe(dir){
     if(!top)return;
     setLastAct(dir);setOffset({x:0,y:0});
     if(dir==='ch'){
       setSwStats(s=>({...s,ch:s.ch+1}));
+      setLastSwiped({profile:top,dir:'like'});
       if(session&&myProfile&&!String(top.id).startsWith('demo_')){
         try{
           await dbInsert('swipes',{swiper_id:myProfile.id,target_id:top.id,direction:'like'},session.token);
           const mutual=await dbSelect('swipes','swiper_id=eq.'+top.id+'&target_id=eq.'+myProfile.id+'&direction=eq.like',session.token);
           if(Array.isArray(mutual)&&mutual.length>0){
             // Echtes Match — in DB speichern und Match-Screen zeigen
-            await dbInsert('matches',{profile_a_id:myProfile.id,profile_b_id:top.id},session.token);
+            // Match nur einmal anlegen (ON CONFLICT ignorieren)
+            try{
+              await fetch(SUPA_URL+'/rest/v1/matches',{
+                method:'POST',
+                headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'resolution=ignore-duplicates,return=minimal'},
+                body:JSON.stringify({profile_a_id:myProfile.id,profile_b_id:top.id})
+              });
+            }catch{}
             sendLocalNotification('🥊 ITS A MATCH!',top.name+' hat dich auch geliket!');
             setTimeout(()=>{setMatched(top);loadMatches(session,myProfile);},300);
           }
@@ -1595,6 +1620,7 @@ export default function App(){
       }
     }else{
       setSwStats(s=>({...s,de:s.de+1}));
+      setLastSwiped({profile:top,dir:'pass'});
       if(session&&myProfile&&!String(top.id).startsWith('demo_')){try{await dbInsert('swipes',{swiper_id:myProfile.id,target_id:top.id,direction:'pass'},session.token);}catch{}}
     }
     setTimeout(()=>{setCards(prev=>prev.slice(0,-1));setLastAct(null);},260);
@@ -2062,6 +2088,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             {cards.length>0&&(
               <div style={{display:'flex',gap:16,alignItems:'center',marginTop:10}}>
                 <Btn onClick={()=>doSwipe('de')} color={RED} icon='✕' size={54}/>
+                {lastSwiped&&<Btn onClick={undoSwipe} color='rgba(255,255,255,0.2)' icon='↩️' size={46}/>}
                 <Btn onClick={()=>doSwipe('ch')} color='#27ae60' icon='⚔️' size={64} primary label='FIGHT'/>
                 <Btn onClick={()=>doSwipe('de')} color='#d4a017' icon='⭐' size={54}/>
               </div>
