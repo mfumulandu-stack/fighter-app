@@ -224,6 +224,9 @@ const css=`
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#f5f5f7;font-family:'DM Sans',sans-serif}
+body.dark{background:#0d0d0d!important}
+body.dark input,body.dark select,body.dark textarea{background:#111!important;color:#fff!important;border-color:#333!important}
+body.dark input::placeholder,body.dark textarea::placeholder{color:#555!important}
 .rj{font-family:'Rajdhani',sans-serif!important;font-weight:700}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
@@ -234,6 +237,11 @@ input,select,textarea{outline:none;font-family:'DM Sans',sans-serif}
 input::placeholder,textarea::placeholder{color:#aaa}
 ::-webkit-scrollbar{display:none}
 textarea{resize:none}
+.dark-card{background:#1a1a1a!important;border-color:#2a2a2a!important;color:#fff!important}
+.dark-text{color:#fff!important}
+.dark-sub{color:#aaa!important}
+.dark-bg{background:#0d0d0d!important}
+.dark-bg2{background:#111!important}
 `;
 
 
@@ -1114,7 +1122,16 @@ export default function App(){
   const [newGymData,setNewGymData]=useState({name:'',city:'',address:'',style:''});
   const [gymRegSent,setGymRegSent]=useState(false);
   const ALL_GYMS_FLAT=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct})));
-  const [darkMode,setDarkMode]=useState(false);
+  const [darkMode,setDarkMode]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_dark')||'false')}catch{return false}});
+  // Body Dark Mode Klasse
+  useEffect(()=>{
+    document.body.classList.toggle('dark',darkMode);
+    try{localStorage.setItem('fighter_dark',JSON.stringify(darkMode));}catch{}
+  },[darkMode]);
+  useEffect(()=>{
+    const saved=localStorage.getItem('fighter_dark');
+    if(saved==='true')document.body.classList.add('dark');
+  },[]);
   const [showImpressum,setShowImpressum]=useState(false);
   const [showDatenschutz,setShowDatenschutz]=useState(false);
   const [showAGB,setShowAGB]=useState(false);
@@ -2004,7 +2021,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 18px 8px',flexShrink:0,borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),background:darkMode?'#1a1a1a':'#fff'}}>
         <div style={{color:'#999',fontSize:11,fontWeight:600}}>Abgelehnt: {swStats.de}</div>
         <div className='rj' style={{fontSize:28,color:darkMode?'#ff4500':'#1a1a1a',letterSpacing:5}}>FIGHTER</div>
-        <button onClick={()=>setDarkMode(d=>!d)} style={{background:darkMode?'#222':'#f0f0f0',border:'none',cursor:'pointer',fontSize:16,padding:'4px 8px',borderRadius:8,marginRight:6}}>{darkMode?'☀️':'🌙'}</button>{isAdmin&&<button onClick={()=>setShowAdmin(true)} style={{background:RED,border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:6}}>⚙️</button>}<button onClick={handleLogout} style={{color:darkMode?'#555':'#aaa',fontSize:11,fontWeight:600,background:'none',border:'none',cursor:'pointer'}}>Logout</button>
+        <button onClick={()=>{setDarkMode(d=>!d);}} style={{background:darkMode?'#222':'#f0f0f0',border:'none',cursor:'pointer',fontSize:16,padding:'4px 8px',borderRadius:8,marginRight:6}}>{darkMode?'☀️':'🌙'}</button>{isAdmin&&<button onClick={()=>setShowAdmin(true)} style={{background:RED,border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:6}}>⚙️</button>}<button onClick={handleLogout} style={{color:darkMode?'#555':'#aaa',fontSize:11,fontWeight:600,background:'none',border:'none',cursor:'pointer'}}>Logout</button>
       </div>
 
       <div style={{flex:1,overflowY:'auto',paddingBottom:65}}>
@@ -2487,7 +2504,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             {/* EINSTELLUNGEN */}
             <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginTop:10}}>
               <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:2,marginBottom:12}}>EINSTELLUNGEN</div>
-              <div onClick={()=>setDarkMode(d=>!d)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
+              <div onClick={()=>{setDarkMode(d=>!d);}} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
                 <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>🌙 Dark Mode</div>
                 <div style={{width:48,height:26,borderRadius:13,background:darkMode?'#c0392b':'#ddd',position:'relative',cursor:'pointer'}}>
                   <div style={{width:20,height:20,borderRadius:'50%',background:'#fff',position:'absolute',top:3,left:darkMode?24:4,transition:'all 0.3s'}}/>
