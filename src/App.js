@@ -1294,6 +1294,15 @@ export default function App(){
     }
   }
 
+  // Neue Fighter automatisch nachladen
+  useEffect(()=>{
+    if(!session||!myProfile)return;
+    const interval=setInterval(async()=>{
+      await loadRealFighters(session,myProfile);
+    },60000); // alle 60 Sekunden
+    return()=>clearInterval(interval);
+  },[session?.userId,myProfile?.id]);
+
   async function loadRealFighters(s,myP){
     try{
       const all=await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true',s.token);
