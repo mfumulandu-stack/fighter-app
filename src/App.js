@@ -1310,7 +1310,7 @@ export default function App(){
       const swiped=await dbSelect('swipes','swiper_id=eq.'+myP.id,s.token);
       const swipedIds=Array.isArray(swiped)?swiped.map(x=>x.target_id):[];
       const fresh=all.filter(f=>!swipedIds.includes(f.id)&&!f.banned);
-      if(fresh.length>0)setCards([...fresh.filter(f=>!f.isPro),...FIGHTERS]);
+      if(fresh.length>0)setCards([...fresh.filter(f=>!f.banned)]);
     }catch{}
   }
 
@@ -2140,7 +2140,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       {recentSwiped.map((s,i)=>(
                         <div key={i} onClick={()=>setViewProfile(s.profile)} style={{position:'relative',cursor:'pointer'}}>
                           <div style={{width:44,height:44,borderRadius:10,overflow:'hidden',border:'2px solid '+(s.dir==='like'?'#27ae60':RED)}}>
-                            {s.profile.avatar_url?<img src={s.profile.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{width:'100%',height:'100%',background:'#2a2a2a',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}>🥊</div>}
+                            {s.profile.avatar_url?<img src={s.profile.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='' onError={e=>{e.target.style.display='none'}}/>:<div style={{width:'100%',height:'100%',background:'#2a2a2a',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}>🥊</div>}
                           </div>
                           <div style={{position:'absolute',bottom:-2,right:-2,fontSize:8,background:s.dir==='like'?'#27ae60':RED,borderRadius:'50%',width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:700}}>{s.dir==='like'?'✓':'✕'}</div>
                         </div>
