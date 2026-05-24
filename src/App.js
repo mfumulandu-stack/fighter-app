@@ -545,9 +545,14 @@ function AuthScreen({ onSession }) {
         setMode('login');
       }
     }else{
-      const r=await authSignIn(email,password);
-      if(r.error)setErr(r.error.message||'Login fehlgeschlagen');
-      else if(r.access_token)onSession({token:r.access_token,userId:r.user.id,refresh_token:r.refresh_token});
+      try{
+        const r=await authSignIn(email,password);
+        if(r.error)setErr(r.error.message||'Login fehlgeschlagen');
+        else if(r.access_token)onSession({token:r.access_token,userId:r.user.id,refresh_token:r.refresh_token});
+        else setErr('Login fehlgeschlagen — bitte erneut versuchen');
+      }catch(e){
+        setErr('Netzwerkfehler — bitte Verbindung prüfen');
+      }
     }
     setLoading(false);
   }
