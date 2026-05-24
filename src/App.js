@@ -2535,10 +2535,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>📜 AGB</div>
                 <div style={{color:'#aaa',fontSize:16}}>›</div>
               </div>
-              <div onClick={()=>showMsg('Bitte kontaktiere mfumulandu@gmail.com')} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
-                <div style={{color:'#c0392b',fontSize:14,fontWeight:600}}>🗑️ Account löschen</div>
-                <div style={{color:'#aaa',fontSize:16}}>›</div>
-              </div>
+
               <div onClick={async()=>{
                 if(!window.confirm('Account wirklich löschen? Alle deine Daten werden permanent gelöscht.'))return;
                 if(!window.confirm('Bist du sicher? Diese Aktion kann nicht rückgängig gemacht werden!'))return;
