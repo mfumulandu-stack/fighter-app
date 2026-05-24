@@ -2530,6 +2530,23 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <div style={{color:'#c0392b',fontSize:14,fontWeight:600}}>🗑️ Account löschen</div>
                 <div style={{color:'#aaa',fontSize:16}}>›</div>
               </div>
+              <div onClick={async()=>{
+                if(!window.confirm('Account wirklich löschen? Alle deine Daten werden permanent gelöscht.'))return;
+                if(!window.confirm('Bist du sicher? Diese Aktion kann nicht rückgängig gemacht werden!'))return;
+                try{
+                  // Alle Daten löschen
+                  await fetch('https://uykdrmymjvqgebsmndme.supabase.co/rest/v1/swipes?swiper_id=eq.'+session.userId,{method:'DELETE',headers:{apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk',Authorization:'Bearer '+session.token}});
+                  await fetch('https://uykdrmymjvqgebsmndme.supabase.co/rest/v1/matches?profile_a_id=eq.'+session.userId,{method:'DELETE',headers:{apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk',Authorization:'Bearer '+session.token}});
+                  await fetch('https://uykdrmymjvqgebsmndme.supabase.co/rest/v1/matches?profile_b_id=eq.'+session.userId,{method:'DELETE',headers:{apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk',Authorization:'Bearer '+session.token}});
+                  await fetch('https://uykdrmymjvqgebsmndme.supabase.co/rest/v1/profiles?id=eq.'+session.userId,{method:'DELETE',headers:{apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk',Authorization:'Bearer '+session.token}});
+                  try{localStorage.clear();}catch{}
+                  setSession(null);setMyProfile(null);
+                  alert('Dein Account wurde gelöscht.');
+                }catch(e){alert('Fehler beim Löschen: '+e.message);}
+              }} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',cursor:'pointer',borderTop:'1px solid #e74c3c22'}}>
+                <span style={{color:'#e74c3c',fontSize:14,fontWeight:600}}>🗑️ Account löschen</span>
+                <span style={{color:'#e74c3c',fontSize:16}}>›</span>
+              </div>
               <div onClick={handleLogout} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',cursor:'pointer'}}>
                 <div style={{color:'#c0392b',fontSize:14,fontWeight:600}}>🚪 Ausloggen</div>
                 <div style={{color:'#aaa',fontSize:16}}>›</div>
