@@ -1369,9 +1369,9 @@ export default function App(){
 
   async function loadAllProfiles(s){
     try{
-      // Service Key umgeht RLS — alle Profile laden
+      const token=s?.token||session?.token;
       const resp=await fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=500',{
-        headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+token}
       });
       const data=await resp.json();
       if(Array.isArray(data)&&data.length>0){
@@ -1468,9 +1468,10 @@ export default function App(){
 
   async function loadDbGyms(s){
     try{
-      const token=(s?.token)||session?.token;
+      const token=(s?.token)||session?.token||SUPA_KEY;
+      const key=token===SUPA_KEY?SUPA_KEY:SUPA_KEY;
       const resp=await fetch(SUPA_URL+'/rest/v1/gyms?order=city.asc,name.asc',{
-        headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+token}
       });
       const data=await resp.json();
       if(Array.isArray(data)){setDbGyms(data);}
