@@ -2289,11 +2289,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     const ac=other.accent||'#c0392b';
                     return(
                       <div key={m.id} style={{textAlign:'center',flexShrink:0}}>
-                        <div onClick={()=>setActiveChat(m)} style={{cursor:'pointer'}}>
-                          {other.avatar_url?<img src={other.avatar_url} style={{width:42,height:42,borderRadius:6,border:'2px solid '+ac,objectFit:'cover'}} alt={other.name}/>
-                          :<div style={{width:42,height:42,borderRadius:6,background:'#fff',border:'2px solid '+ac,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🥊</div>}
+                        <div onClick={()=>setActiveChat(m)} style={{cursor:'pointer',width:54,height:54,borderRadius:8,overflow:'hidden',border:'2px solid '+ac}}>
+                          {other.avatar_url?<img src={other.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} alt={other.name}/>
+                          :<div style={{width:'100%',height:'100%',background:'#2a2a2a',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>🥊</div>}
                         </div>
-                        <div onClick={()=>setViewProfile(other)} style={{color:ac,fontSize:9,marginTop:2,cursor:'pointer',fontWeight:700}}>{other.name?.split(' ')[0]}</div>
+                        <div onClick={()=>setViewProfile(other)} style={{color:ac,fontSize:9,marginTop:3,cursor:'pointer',fontWeight:700,maxWidth:54,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{other.name?.split(' ')[0]}</div>
                       </div>
                     );
                   })}
