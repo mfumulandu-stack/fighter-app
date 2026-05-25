@@ -2754,7 +2754,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               <div style={{display:'flex',alignItems:'flex-end',gap:5,marginBottom:13,justifyContent:'center'}}>
                 {[ranked[1],ranked[0],ranked[2]].map((f,i)=>{
                   const heights=[96,118,80];const places=[2,1,3];const colors=['#95a5a6','#d4a017','#cd7f32'];const isFirst=i===1;
-                  return(<div key={f.id} style={{flex:1,maxWidth:105,display:'flex',flexDirection:'column',alignItems:'center'}}>
+                  return(<div key={f.id} onClick={()=>{if(!f.isMe&&f.id)setViewProfile(f);}} style={{flex:1,maxWidth:105,display:'flex',flexDirection:'column',alignItems:'center',cursor:f.isMe?'default':'pointer'}}>
                     {isFirst&&<div style={{fontSize:26,marginBottom:2}}>🏆</div>}
                     {f.avatar_url?<img src={f.avatar_url} style={{width:isFirst?44:36,height:isFirst?44:36,borderRadius:'50%',objectFit:'cover',border:'2px solid '+colors[i],marginBottom:3}} alt={f.name}/>:<div style={{fontSize:isFirst?28:22,marginBottom:3}}>{f.emoji||'🥊'}</div>}
                     <div style={{color:f.isMe?RED:(darkMode?'#fff':'#1a1a1a'),fontSize:11,fontWeight:700,textAlign:'center'}}>{f.name?.split(' ')[0]}</div>
@@ -2767,7 +2767,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <div style={{display:'flex',flexDirection:'column',gap:5}}>
               {ranked.map((f,i)=>{
                 const score=f.wins*3-f.losses*2+f.draws;const rc=['#d4a017','#95a5a6','#cd7f32'];
-                return(<div key={f.id} style={{background:f.isMe?(darkMode?'#2a1510':'#fdf0ef'):(darkMode?'#1a1a1a':'#fff'),borderRadius:9,padding:'10px 12px',border:'1px solid '+(f.isMe?RED+'33':i<3?rc[i]+'33':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.04)'}}>
+                return(<div key={f.id} onClick={()=>{if(!f.isMe&&f.id&&typeof f.id==='string')setViewProfile(f);}} style={{background:f.isMe?(darkMode?'#2a1510':'#fdf0ef'):(darkMode?'#1a1a1a':'#fff'),borderRadius:9,padding:'10px 12px',border:'1px solid '+(f.isMe?RED+'33':i<3?rc[i]+'33':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.04)',cursor:f.isMe?'default':'pointer'}}>
                   <div className='rj' style={{color:i<3?rc[i]:'#bbb',fontSize:18,width:24,textAlign:'center'}}>#{i+1}</div>
                   {f.avatar_url?<img src={f.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover'}} alt={f.name}/>:<div style={{fontSize:22}}>{f.emoji||'🥊'}</div>}
                   <div style={{flex:1}}>
