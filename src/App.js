@@ -1312,10 +1312,23 @@ export default function App(){
 
   async function loadAllProfiles(s){
     try{
-      const resp=await fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=500',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+s.token}});
+      // Anon key für öffentliche Profile — RLS erlaubt SELECT für alle
+      const resp=await fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=500',{
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+      });
       const data=await resp.json();
-      if(Array.isArray(data))setAllProfiles(data);
-    }catch{}
+      if(Array.isArray(data)&&data.length>0){
+        setAllProfiles(data);
+        console.log('Rangliste: '+data.length+' User geladen');
+      }else{
+        // Fallback mit Session Token
+        const resp2=await fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=500',{
+          headers:{apikey:SUPA_KEY,Authorization:'Bearer '+s.token}
+        });
+        const data2=await resp2.json();
+        if(Array.isArray(data2))setAllProfiles(data2);
+      }
+    }catch(e){console.log('loadAllProfiles Fehler:',e);}
   }
 
   async function loadWhoLikedMe(s,myP){
