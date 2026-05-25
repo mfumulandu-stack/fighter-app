@@ -3234,8 +3234,8 @@ ${blCode}`;
                       {adminUsers.filter(u=>u.created_at&&(Date.now()-new Date(u.created_at).getTime())<86400000).length===0
                         ?<div style={{color:darkMode?'#555':'#bbb',fontSize:12,textAlign:'center',padding:'8px 0'}}>Noch keine neuen User heute</div>
                         :adminUsers.filter(u=>u.created_at&&(Date.now()-new Date(u.created_at).getTime())<86400000).map((u,i)=>(
-                          <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
-                            <div style={{width:28,height:28,borderRadius:'50%',background:RED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,color:'#fff',fontWeight:700,flexShrink:0}}>{u.name?u.name[0].toUpperCase():'?'}</div>
+                          <div key={i} onClick={()=>{setShowAdmin(false);setViewProfile(u);}} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
+                            {u.avatar_url?<img src={u.avatar_url} style={{width:28,height:28,borderRadius:'50%',objectFit:'cover',flexShrink:0}} alt=''/>:<div style={{width:28,height:28,borderRadius:'50%',background:RED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,color:'#fff',fontWeight:700,flexShrink:0}}>{u.name?u.name[0].toUpperCase():'?'}</div>}
                             <div style={{flex:1}}>
                               <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:600}}>{u.name||'Unbekannt'}</div>
                               <div style={{color:darkMode?'#666':'#aaa',fontSize:10}}>{u.style||'?'} · {u.city||'?'}</div>
@@ -3244,6 +3244,20 @@ ${blCode}`;
                           </div>
                         ))
                       }
+                    </div>
+                    {/* Alle User */}
+                    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:8}}>
+                      <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>ALLE USER ({adminUsers.length})</div>
+                      {adminUsers.map((u,i)=>(
+                        <div key={i} onClick={()=>{setShowAdmin(false);setViewProfile(u);}} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
+                          {u.avatar_url?<img src={u.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover',flexShrink:0,opacity:u.banned?0.4:1}} alt=''/>:<div style={{width:32,height:32,borderRadius:'50%',background:u.banned?'#555':RED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#fff',fontWeight:700,flexShrink:0}}>{u.name?u.name[0].toUpperCase():'?'}</div>}
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{color:u.banned?'#e74c3c':(darkMode?'#fff':'#1a1a1a'),fontSize:12,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{u.name||'Unbekannt'} {u.banned&&'🚫'}</div>
+                            <div style={{color:darkMode?'#666':'#aaa',fontSize:10}}>{u.style||'?'} · {u.city||'?'}</div>
+                          </div>
+                          <div style={{color:darkMode?'#555':'#888',fontSize:10,flexShrink:0}}>{u.created_at?new Date(u.created_at).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}):'?'}</div>
+                        </div>
+                      ))}
                     </div>
                     {/* Top Städte */}
                     <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:8}}>
