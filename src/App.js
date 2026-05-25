@@ -1299,14 +1299,14 @@ export default function App(){
     if(!session||!myProfile)return;
     const interval=setInterval(async()=>{
       await loadRealFighters(session,myProfile);
-    },60000); // alle 60 Sekunden
+    },30000); // alle 30 Sekunden für schnellere Updates // alle 60 Sekunden
     return()=>clearInterval(interval);
   },[session?.userId,myProfile?.id]);
 
   async function loadRealFighters(s,myP){
     try{
       const all=await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true',s.token);
-      if(!Array.isArray(all)||all.length===0)return;
+      if(!Array.isArray(all))return;
       const swiped=await dbSelect('swipes','swiper_id=eq.'+myP.id,s.token);
       const swipedIds=Array.isArray(swiped)?swiped.map(x=>x.target_id):[];
       const fresh=all.filter(f=>!swipedIds.includes(f.id)&&!f.banned);
@@ -2033,7 +2033,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 18px 8px',flexShrink:0,borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),background:darkMode?'#1a1a1a':'#fff'}}>
         <div style={{color:'#999',fontSize:11,fontWeight:600}}>Abgelehnt: {swStats.de}</div>
         <div className='rj' style={{fontSize:28,color:darkMode?'#ff4500':'#1a1a1a',letterSpacing:5}}>FIGHTER</div>
-        <button onClick={()=>setDarkMode(d=>!d)} style={{background:darkMode?'#222':'#f0f0f0',border:'none',cursor:'pointer',fontSize:16,padding:'4px 8px',borderRadius:8,marginRight:6}}>{darkMode?'☀️':'🌙'}</button>{isAdmin&&<button onClick={()=>setShowAdmin(true)} style={{background:RED,border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:6}}>⚙️</button>}<button onClick={handleLogout} style={{color:darkMode?'#555':'#aaa',fontSize:11,fontWeight:600,background:'none',border:'none',cursor:'pointer'}}>Logout</button>
+        <button onClick={()=>setDarkMode(d=>!d)} style={{background:darkMode?'#222':'#f0f0f0',border:'none',cursor:'pointer',fontSize:16,padding:'4px 8px',borderRadius:8,marginRight:6}}>{darkMode?'☀️':'🌙'}</button>{isAdmin&&<button onClick={()=>setShowAdmin(true)} style={{background:RED,border:'none',borderRadius:8,padding:'6px 12px',color:'#fff',fontSize:16,fontWeight:700,cursor:'pointer',marginRight:6,boxShadow:'0 2px 8px rgba(192,57,43,0.5)'}}>⚙️</button>}<button onClick={handleLogout} style={{color:darkMode?'#555':'#aaa',fontSize:11,fontWeight:600,background:'none',border:'none',cursor:'pointer'}}>Logout</button>
       </div>
 
       <div style={{flex:1,overflowY:'auto',paddingBottom:65}}>
