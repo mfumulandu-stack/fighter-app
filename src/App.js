@@ -1073,6 +1073,7 @@ export default function App(){
   const [adminMessages,setAdminMessages]=useState([]);
   const [showAdminMsg,setShowAdminMsg]=useState(false);
   const [allProfiles,setAllProfiles]=useState([]);
+  const [rankingLoading,setRankingLoading]=useState(false);
   const [whoLikedTab,setWhoLikedTab]=useState(false);
   const [newLikesCount,setNewLikesCount]=useState(0);
   const [lastLikesCheck,setLastLikesCheck]=useState(()=>{try{return localStorage.getItem('fighter_likes_check')||'2000-01-01'}catch{return '2000-01-01'}});
@@ -1140,6 +1141,19 @@ export default function App(){
     document.body.classList.toggle('dark',darkMode);
     try{localStorage.setItem('fighter_dark',String(darkMode));}catch{}
   },[darkMode]);
+
+  // Rangliste neu laden wenn Tab geöffnet wird
+  useEffect(()=>{
+    if(tab==='ranking'&&session){
+      setRankingLoading(true);
+      fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=500',{
+        headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
+      }).then(r=>r.json()).then(data=>{
+        if(Array.isArray(data)&&data.length>0)setAllProfiles(data);
+        setRankingLoading(false);
+      }).catch(()=>setRankingLoading(false));
+    }
+  },[tab]);
   useEffect(()=>{
     if(localStorage.getItem('fighter_dark')==='true')document.body.classList.add('dark');
   },[]);
