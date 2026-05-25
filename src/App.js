@@ -3500,7 +3500,14 @@ ${blCode}`;
                             </div>
                             <button onClick={async()=>{
                               try{
-                                await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({name:'Unbekanntes Gym '+city,city:city,code:'GYM-'+city.toUpperCase().replace(/\s/g,'-'),emoji:'🥊',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})});
+                                // Nur Stadt hinzufügen — User kann danach Gym Namen eingeben
+                                const gymName=window.prompt('Gym Name für '+city+' (oder leer lassen):');
+                                const name=gymName&&gymName.trim()?gymName.trim():'Kampfsport '+city;
+                                await fetch(SUPA_URL+'/rest/v1/gyms',{
+                                  method:'POST',
+                                  headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
+                                  body:JSON.stringify({name,city,code:name.toUpperCase().replace(/[^A-Z0-9]/g,'-').slice(0,20)+'-'+Date.now().toString().slice(-4),emoji:'🥊',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})
+                                });
                                 setScanResult(prev=>({...prev,cities:prev.cities.filter(([c])=>c!==city)}));
                                 await loadDbGyms(session);
                                 showMsg('✅ '+city+' hinzugefügt');
