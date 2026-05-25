@@ -2088,7 +2088,7 @@ export default function App(){
                         </div>
                         <div style={{display:'flex',gap:8,marginTop:4}}>
                           <button onClick={()=>{setShowRegisterGym(false);setGymRegSent(false);}} style={{flex:1,padding:'11px',borderRadius:10,background:'transparent',border:'1px solid #eee',color:'#aaa',fontFamily:'DM Sans,sans-serif',fontSize:13,cursor:'pointer'}}>Abbrechen</button>
-                          <button onClick={()=>{
+                          <button onClick={async()=>{
                             if(!newGymData.name||!newGymData.city)return;
                             const body=`GYM ANMELDUNG
 
