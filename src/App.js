@@ -1720,7 +1720,7 @@ export default function App(){
       <style>{css}</style>
       <div style={{position:'relative',width:'100%',height:340,overflow:'hidden',flexShrink:0}}>
         {viewProfile.avatar_url
-          ?<img src={viewProfile.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>
+          ?<img src={viewProfile.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'center top'}} alt=''/>
           :<div style={{width:'100%',height:'100%',background:'#222',display:'flex',alignItems:'center',justifyContent:'center',fontSize:80}}>🥊</div>}
         <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0.2) 0%,rgba(0,0,0,0.75) 100%)'}}/>
         <button onClick={()=>{setViewProfile(null);}} style={{position:'absolute',top:14,left:14,background:'rgba(0,0,0,0.45)',border:'none',color:'#fff',fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700,borderRadius:8,padding:'4px 12px'}}>← Zurück</button>
