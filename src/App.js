@@ -3192,28 +3192,73 @@ ${blCode}`;
             {/* ── STATISTIKEN ── */}
             {adminTab==='stats'&&(
               <div>
-                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>📊 STATISTIKEN</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>📊 ECHTZEIT STATISTIKEN</div>
                 <button onClick={async()=>{
-                  if(!adminUsersLoaded){
-                    const data=await dbSelect('profiles','order=created_at.desc&limit=500',session.token);
+                  try{
+                    const resp=await fetch('https://uykdrmymjvqgebsmndme.supabase.co/rest/v1/profiles?order=created_at.desc&limit=500',{headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                    const data=await resp.json();
                     if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
-                  }
-                }} style={{width:'100%',padding:'10px',borderRadius:8,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:12}}>
-                  {adminUsersLoaded?'✅ Stats geladen':'Stats laden'}
+                  }catch(e){showMsg('Fehler: '+e.message);}
+                }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:12}}>
+                  🔄 STATS AKTUALISIEREN
                 </button>
-                {[
-                  ['👤 Registrierte User',adminUsers.length||'?'],
-                  ['🏋️ Gyms in App',Object.values(GYMS).flat().length],
-                  ['🌍 Städte',Object.keys(GYMS).length],
-                  ['🖼️ Gym Logos',Object.keys(gymLogos).length],
-                  ['📍 Top Stadt',adminUsers.length>0?(()=>{const cnt={};adminUsers.forEach(u=>{if(u.city)cnt[u.city]=(cnt[u.city]||0)+1;});return Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'?';})():'?'],
-                  ['🥊 Top Stil',adminUsers.length>0?(()=>{const cnt={};adminUsers.forEach(u=>{if(u.style)cnt[u.style]=(cnt[u.style]||0)+1;});return Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'?';})():'?'],
-                ].map(([label,val])=>(
-                  <div key={label} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 14px',background:darkMode?'#1a1a1a':'#fff',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:8}}>
-                    <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13}}>{label}</div>
-                    <div style={{color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18}}>{val}</div>
-                  </div>
-                ))}
+                {adminUsersLoaded&&(
+                  <>
+                    {/* Haupt-Stats */}
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
+                      {[
+                        ['👤','Gesamt User',adminUsers.length],
+                        ['🟢','Heute aktiv',adminUsers.filter(u=>u.last_seen&&(Date.now()-new Date(u.last_seen).getTime())<86400000).length],
+                        ['⚡','Diese Woche',adminUsers.filter(u=>u.last_seen&&(Date.now()-new Date(u.last_seen).getTime())<604800000).length],
+                        ['🚫','Gesperrt',adminUsers.filter(u=>u.banned).length],
+                      ].map(([icon,label,val])=>(
+                        <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px 12px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),textAlign:'center'}}>
+                          <div style={{fontSize:22}}>{icon}</div>
+                          <div style={{color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:28,lineHeight:1}}>{val}</div>
+                          <div style={{color:darkMode?'#aaa':'#888',fontSize:10,marginTop:2}}>{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Neue User heute */}
+                    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:8}}>
+                      <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>NEUE USER HEUTE</div>
+                      {adminUsers.filter(u=>u.created_at&&(Date.now()-new Date(u.created_at).getTime())<86400000).length===0
+                        ?<div style={{color:darkMode?'#555':'#bbb',fontSize:12,textAlign:'center',padding:'8px 0'}}>Noch keine neuen User heute</div>
+                        :adminUsers.filter(u=>u.created_at&&(Date.now()-new Date(u.created_at).getTime())<86400000).map((u,i)=>(
+                          <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
+                            <div style={{width:28,height:28,borderRadius:'50%',background:RED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,color:'#fff',fontWeight:700,flexShrink:0}}>{u.name?u.name[0].toUpperCase():'?'}</div>
+                            <div style={{flex:1}}>
+                              <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:600}}>{u.name||'Unbekannt'}</div>
+                              <div style={{color:darkMode?'#666':'#aaa',fontSize:10}}>{u.style||'?'} · {u.city||'?'}</div>
+                            </div>
+                            <div style={{color:darkMode?'#555':'#bbb',fontSize:10}}>{u.created_at?new Date(u.created_at).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'?'}</div>
+                          </div>
+                        ))
+                      }
+                    </div>
+                    {/* Top Städte */}
+                    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:8}}>
+                      <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>TOP STÄDTE</div>
+                      {(()=>{const cnt={};adminUsers.forEach(u=>{if(u.city)cnt[u.city]=(cnt[u.city]||0)+1;});return Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([city,count],i)=>(
+                        <div key={city} style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5')}}>
+                          <span style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13}}>{i===0?'🥇':i===1?'🥈':i===2?'🥉':'  '} {city}</span>
+                          <span style={{color:RED,fontWeight:700,fontSize:13}}>{count}</span>
+                        </div>
+                      ))})()}
+                    </div>
+                    {/* Top Kampfstile */}
+                    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                      <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>TOP KAMPFSTILE</div>
+                      {(()=>{const cnt={};adminUsers.forEach(u=>{if(u.style)cnt[u.style]=(cnt[u.style]||0)+1;});return Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([style,count],i)=>(
+                        <div key={style} style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5')}}>
+                          <span style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13}}>{style}</span>
+                          <span style={{color:RED,fontWeight:700,fontSize:13}}>{count}</span>
+                        </div>
+                      ))})()}
+                    </div>
+                  </>
+                )}
+                {!adminUsersLoaded&&<div style={{color:darkMode?'#555':'#bbb',fontSize:13,textAlign:'center',padding:'20px 0'}}>Klicke auf "Stats aktualisieren" um die Daten zu laden</div>}
               </div>
             )}
 
