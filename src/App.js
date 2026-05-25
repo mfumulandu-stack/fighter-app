@@ -1070,6 +1070,7 @@ export default function App(){
   const [lightboxImg,setLightboxImg]=useState(null);
   const [recentSwiped,setRecentSwiped]=useState([]);
   const [whoLikedMe,setWhoLikedMe]=useState([]);
+  const [allProfiles,setAllProfiles]=useState([]);
   const [whoLikedTab,setWhoLikedTab]=useState(false);
   const [newLikesCount,setNewLikesCount]=useState(0);
   const [lastLikesCheck,setLastLikesCheck]=useState(()=>{try{return localStorage.getItem('fighter_likes_check')||'2000-01-01'}catch{return '2000-01-01'}});
@@ -1308,6 +1309,14 @@ export default function App(){
     },30000); // alle 30 Sekunden für schnellere Updates // alle 60 Sekunden
     return()=>clearInterval(interval);
   },[session?.userId,myProfile?.id]);
+
+  async function loadAllProfiles(s){
+    try{
+      const resp=await fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=500',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+s.token}});
+      const data=await resp.json();
+      if(Array.isArray(data))setAllProfiles(data);
+    }catch{}
+  }
 
   async function loadWhoLikedMe(s,myP){
     try{
@@ -1565,7 +1574,7 @@ export default function App(){
         showMsg('Gespeichert! ✓');
       }else{
         const res=await dbInsert('profiles',d,session.token);
-        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg('Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);loadGymRatings(session);loadFightHistory(session);loadDbGyms();loadWhoLikedMe(s,p);}
+        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg('Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);loadGymRatings(session);loadFightHistory(session);loadDbGyms();loadWhoLikedMe(s,p);loadAllProfiles(s);}
         else showMsg('Fehler: '+(JSON.stringify(res)||'unbekannt'));
       }
     }catch{showMsg('Netzwerkfehler');}
@@ -1729,7 +1738,23 @@ export default function App(){
   const kr=stats.wins>0?Math.round((stats.ko/stats.wins)*100):0;
   const allF=profile.name?[{id:0,name:profile.name,age:profile.age,city:profile.city,gym:profile.gym,weight_class:profile.weightClass,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'🥊',accent:RED,isMe:true,avatar_url:avatarUrl}].concat(FIGHTERS):FIGHTERS;
   const proRanked=[...PRO_FIGHTERS].filter(f=>rankF==='All'||f.style===rankF).sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
-  const userOnly=profile.name?[{id:0,name:profile.name,age:profile.age,city:profile.city,gym:profile.gym,weightClass:profile.weightClass,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'🥊',accent:RED,isMe:true,avatarUrl}].concat(dbMatches.map(m=>m.profile_a_id===myProfile?.id?m.profile_b:m.profile_a).filter(Boolean)):[];
+  // Rangliste: ALLE angemeldeten User aus Datenbank
+  const userOnly=(()=>{
+    const me=profile.name?[{id:0,name:profile.name,city:profile.city,gym:profile.gym,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'🥊',accent:RED,isMe:true,avatar_url:avatarUrl}]:[];
+    if(allProfiles.length>0){
+      const others=allProfiles.filter(p=>p.id!==myProfile?.id&&p.name&&!p.banned).map(p=>({
+        ...p,
+        wins:p.wins||0,losses:p.losses||0,draws:p.draws||0,ko:p.ko||0,
+        accent:p.accent||RED,isMe:false
+      }));
+      return [...me,...others];
+    }
+    // Fallback: cards + matches
+    const fallback=[...cards,...dbMatches.map(m=>m.profile_a_id===myProfile?.id?m.profile_b:m.profile_a).filter(Boolean)];
+    const seen=new Set();
+    const unique=fallback.filter(f=>{if(!f||!f.id||seen.has(f.id))return false;seen.add(f.id);return true;});
+    return [...me,...unique];
+  })();
   const ranked=rankMode==='pro'?proRanked:[...userOnly].filter(f=>rankF==='All'||f.style===rankF).sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
   const filteredT=TRAINERS.filter(t=>trainerF==='All'||t.style.includes(trainerF)).sort((a,b)=>b.rating-a.rating);
