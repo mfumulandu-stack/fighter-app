@@ -1120,6 +1120,7 @@ export default function App(){
   const [sport,setSport]=useState('Basketball');
   const [joined,setJoined]=useState({});
   const [gymRatings,setGymRatings]=useState(()=>{try{return JSON.parse(localStorage.getItem('gymRatings')||'{}')}catch{return {}}});
+  const [dbGyms,setDbGyms]=useState([]);
   const [gymRatingInput,setGymRatingInput]=useState({});
   const [gymSuggestions,setGymSuggestions]=useState([]);
   const [showGymSuggestions,setShowGymSuggestions]=useState(false);
@@ -1368,6 +1369,14 @@ export default function App(){
     }catch(e){console.error('loadFightHistory',e);}
   }
 
+  async function loadDbGyms(){
+    try{
+      const resp=await fetch(SUPA_URL+'/rest/v1/gyms?order=city.asc,name.asc',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
+      const data=await resp.json();
+      if(Array.isArray(data)&&data.length>0)setDbGyms(data);
+    }catch{}
+  }
+
   async function loadGymRatings(s){
     try{
       const data=await dbSelect('gym_ratings','user_id=eq.'+s.userId,s.token);
@@ -1530,7 +1539,7 @@ export default function App(){
         showMsg('Gespeichert! ✓');
       }else{
         const res=await dbInsert('profiles',d,session.token);
-        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg('Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);loadGymRatings(session);loadFightHistory(session);}
+        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg('Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);loadGymRatings(session);loadFightHistory(session);loadDbGyms();}
         else showMsg('Fehler: '+(JSON.stringify(res)||'unbekannt'));
       }
     }catch{showMsg('Netzwerkfehler');}
@@ -1984,6 +1993,24 @@ Stil: ${newGymData.style||'-'}
 
 Angemeldet von: ${profile.name||'Unbekannt'}`;
                             fetch('https://api.emailjs.com/api/v1.0/email/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service_id:'default_service',template_id:'template_default',user_id:'user_default',template_params:{message:body,to_email:'mfumulandu@gmail.com'}})}).catch(()=>{});
+                            // Gym in DB speichern
+                            try{
+                              await fetch(SUPA_URL+'/rest/v1/gyms',{
+                                method:'POST',
+                                headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+                                body:JSON.stringify({
+                                  name:newGymData.name,
+                                  city:newGymData.city,
+                                  address:newGymData.address||'',
+                                  style:newGymData.style||'',
+                                  styles:newGymData.style?[newGymData.style]:[],
+                                  code:newGymData.name.replace(/\s+/g,'-').toUpperCase()+'-'+Math.floor(Math.random()*9000+1000),
+                                  emoji:'🥊'
+                                })
+                              });
+                              await loadDbGyms();
+                              showMsg('✅ Gym gespeichert!');
+                            }catch(e){showMsg('Fehler: '+e.message);}
                             setProfile(p=>({...p,gym:newGymData.name}));
                             setGymRegSent(true);
                           }} disabled={!newGymData.name||!newGymData.city}
@@ -2652,10 +2679,10 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             })()}
 
             <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
-              {Object.keys(GYMS).map(c=>(<button key={c} onClick={()=>setCity(c)} style={{flexShrink:0,padding:'6px 13px',borderRadius:20,background:city===c?RED:'#fff',border:'1px solid '+(city===c?RED:'#e0e0e0'),color:city===c?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{c}</button>))}
+              {[...new Set([...Object.keys(GYMS),...dbGyms.map(g=>g.city).filter(Boolean)])].sort().map(c=>(<button key={c} onClick={()=>setCity(c)} style={{flexShrink:0,padding:'6px 13px',borderRadius:20,background:city===c?RED:'#fff',border:'1px solid '+(city===c?RED:'#e0e0e0'),color:city===c?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{c}</button>))}
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:8}}>
-              {GYMS[city].map((gym,i)=>(
+              {(dbGyms.filter(g=>g.city===city).length>0?dbGyms.filter(g=>g.city===city):(GYMS[city]||[])).map((gym,i)=>(
                 <div key={i} onClick={()=>setViewGym({gym,key:city+'-'+gym.name})} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'13px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),boxShadow:'0 1px 4px rgba(0,0,0,0.05)',cursor:'pointer'}}>
                   <div style={{display:'flex',gap:11,alignItems:'flex-start'}}>
                     <div style={{width:46,height:46,borderRadius:9,background:darkMode?'#2a2a2a':'#f0f0f0',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>{(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#aaa',fontSize:10,fontWeight:700,textAlign:'center',lineHeight:1.2}}>{gym.name.split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}</div>
