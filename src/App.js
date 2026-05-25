@@ -1067,6 +1067,7 @@ export default function App(){
   const [start,setStart]=useState({x:0,y:0});
   const [lastAct,setLastAct]=useState(null);
   const [lastSwiped,setLastSwiped]=useState(null);
+  const [lightboxImg,setLightboxImg]=useState(null);
   const [recentSwiped,setRecentSwiped]=useState([]);
   const [matched,setMatched]=useState(null);
   const [swStats,setSwStats]=useState({ch:0,de:0});
@@ -1720,7 +1721,7 @@ export default function App(){
       <style>{css}</style>
       <div style={{position:'relative',width:'100%',height:340,overflow:'hidden',flexShrink:0}}>
         {viewProfile.avatar_url
-          ?<img src={viewProfile.avatar_url} style={{width:'100%',height:'100%',objectFit:'contain',objectPosition:'center top',background:'#111'}} alt=''/>
+          ?<img src={viewProfile.avatar_url} onClick={()=>setLightboxImg(viewProfile.avatar_url)} style={{width:'100%',height:'100%',objectFit:'contain',objectPosition:'center top',background:'#111',cursor:'zoom-in'}} alt=''/>
           :<div style={{width:'100%',height:'100%',background:'#222',display:'flex',alignItems:'center',justifyContent:'center',fontSize:80}}>🥊</div>}
         <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0.2) 0%,rgba(0,0,0,0.75) 100%)'}}/>
         <button onClick={()=>{setViewProfile(null);}} style={{position:'absolute',top:14,left:14,background:'rgba(0,0,0,0.45)',border:'none',color:'#fff',fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700,borderRadius:8,padding:'4px 12px'}}>← Zurück</button>
@@ -3286,6 +3287,12 @@ ${blCode}`;
             )}
 
           </div>
+        </div>
+      )}
+      {lightboxImg&&(
+        <div onClick={()=>setLightboxImg(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.97)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',cursor:'zoom-out'}}>
+          <img src={lightboxImg} style={{maxWidth:'100%',maxHeight:'100%',objectFit:'contain'}} alt=''/>
+          <button onClick={()=>setLightboxImg(null)} style={{position:'absolute',top:16,right:16,background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',fontSize:24,width:44,height:44,borderRadius:'50%',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
         </div>
       )}
       {matched&&(
