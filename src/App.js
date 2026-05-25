@@ -1277,6 +1277,9 @@ export default function App(){
         loadMatches(s,p);
         loadGymRatings(s);
         loadFightHistory(s);
+        loadDbGyms(s);
+        loadWhoLikedMe(s,p);
+        loadAllProfiles(s);
       }else{
         setAuthReady(true);
         setScreen('setup');
@@ -1583,7 +1586,7 @@ export default function App(){
         showMsg('Gespeichert! ✓');
       }else{
         const res=await dbInsert('profiles',d,session.token);
-        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg('Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);loadGymRatings(session);loadFightHistory(session);loadDbGyms(s);loadWhoLikedMe(s,p);loadAllProfiles(s);}
+        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg('Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);loadGymRatings(session);loadFightHistory(session);loadDbGyms(session);loadWhoLikedMe(session,res[0]);loadAllProfiles(session);}
         else showMsg('Fehler: '+(JSON.stringify(res)||'unbekannt'));
       }
     }catch{showMsg('Netzwerkfehler');}
