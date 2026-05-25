@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 
 const SUPA_URL = 'https://uykdrmymjvqgebsmndme.supabase.co';
 const ADMIN_ID = '1a697731-458d-4559-a4cf-a89d3150bfa5';
-const SUPA_SERVICE_KEY = process.env.REACT_APP_SUPA_SERVICE_KEY||'';
+const SUPA_SERVICE_KEY = process.env.REACT_APP_SUPA_SERVICE_KEY||'sb_secret_N0bkvRQt1mqBwGdbH3fwIw_nidJ7iX_';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk';
 
 async function authSignUp(email, password) {
