@@ -1069,6 +1069,10 @@ export default function App(){
   const [lastSwiped,setLastSwiped]=useState(null);
   const [lightboxImg,setLightboxImg]=useState(null);
   const [recentSwiped,setRecentSwiped]=useState([]);
+  const [whoLikedMe,setWhoLikedMe]=useState([]);
+  const [whoLikedTab,setWhoLikedTab]=useState(false);
+  const [newLikesCount,setNewLikesCount]=useState(0);
+  const [lastLikesCheck,setLastLikesCheck]=useState(()=>{try{return localStorage.getItem('fighter_likes_check')||'2000-01-01'}catch{return '2000-01-01'}});
   const [matched,setMatched]=useState(null);
   const [swStats,setSwStats]=useState({ch:0,de:0});
   const [dbMatches,setDbMatches]=useState([]);
@@ -1305,6 +1309,28 @@ export default function App(){
     return()=>clearInterval(interval);
   },[session?.userId,myProfile?.id]);
 
+  async function loadWhoLikedMe(s,myP){
+    try{
+      // Alle die mich geliket haben
+      const likes=await dbSelect('swipes','target_id=eq.'+myP.id+'&direction=eq.like',s.token);
+      if(!Array.isArray(likes)||likes.length===0){setWhoLikedMe([]);return;}
+      // Profile dazu laden
+      const ids=likes.map(l=>l.swiper_id);
+      const profiles=await dbSelect('profiles','id=in.('+ids.join(',')+')'+'&banned=neq.true',s.token);
+      if(!Array.isArray(profiles))return;
+      // Bereits gematchte rausfiltern (die sind schon im Chat)
+      const matchedIds=dbMatches.map(m=>m.profile_a_id===myP.id?m.profile_b_id:m.profile_a_id);
+      const notYetMatched=profiles.filter(p=>!matchedIds.includes(p.id));
+      setWhoLikedMe(notYetMatched);
+      // Neue Likes seit letztem Check
+      const newLikes=likes.filter(l=>l.created_at&&l.created_at>lastLikesCheck);
+      if(newLikes.length>0){
+        setNewLikesCount(newLikes.length);
+        sendLocalNotification('🥊 '+newLikes.length+' neue Fighter interessieren sich für dich!','Schau nach wer dich geliket hat');
+      }
+    }catch{}
+  }
+
   async function loadRealFighters(s,myP){
     try{
       // Versuche erst mit Session Token, dann mit anon key als Fallback
@@ -1539,7 +1565,7 @@ export default function App(){
         showMsg('Gespeichert! ✓');
       }else{
         const res=await dbInsert('profiles',d,session.token);
-        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg('Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);loadGymRatings(session);loadFightHistory(session);loadDbGyms();}
+        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg('Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);loadGymRatings(session);loadFightHistory(session);loadDbGyms();loadWhoLikedMe(s,p);}
         else showMsg('Fehler: '+(JSON.stringify(res)||'unbekannt'));
       }
     }catch{showMsg('Netzwerkfehler');}
@@ -1724,6 +1750,55 @@ export default function App(){
   },[viewProfile?.id]);
 
   if(viewGym)return(<><style>{css}</style><GymDetailScreen gym={viewGym.gym} gymKey={viewGym.key} gymRatings={gymRatings} rateGym={(k,s)=>{rateGym(k,s);}} onClose={()=>setViewGym(null)} darkMode={darkMode===true}/></>);
+
+  if(whoLikedTab)return(
+    <div style={{minHeight:'100vh',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column'}}> 
+      <style>{css}</style>
+      <div style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+        <button onClick={()=>setWhoLikedTab(false)} style={{background:'none',border:'none',color:darkMode?'#fff':'#1a1a1a',fontSize:20,cursor:'pointer',padding:'0 8px 0 0'}}>←</button>
+        <div>
+          <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:2}}>INTERESSE AN DIR</div>
+          <div style={{color:'#aaa',fontSize:11}}>{whoLikedMe.length} Fighter haben dich geliket</div>
+        </div>
+      </div>
+      <div style={{flex:1,overflowY:'auto',padding:'12px 16px',display:'flex',flexDirection:'column',gap:10}}>
+        {whoLikedMe.length===0?(
+          <div style={{textAlign:'center',padding:'60px 20px',color:darkMode?'#555':'#bbb'}}>
+            <div style={{fontSize:48,marginBottom:12}}>🥊</div>
+            <div style={{fontSize:14}}>Noch niemand hat dich geliket</div>
+            <div style={{fontSize:12,marginTop:6}}>Swipe weiter — dein Match kommt!</div>
+          </div>
+        ):whoLikedMe.map((p,i)=>(
+          <div key={i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),overflow:'hidden',boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px'}}>
+              <div onClick={()=>{setWhoLikedTab(false);setViewProfile(p);}} style={{width:54,height:54,borderRadius:12,overflow:'hidden',flexShrink:0,cursor:'pointer',border:'2px solid '+RED+'44'}}>
+                {p.avatar_url?<img src={p.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{width:'100%',height:'100%',background:'#2a2a2a',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>🥊</div>}
+              </div>
+              <div style={{flex:1}} onClick={()=>{setWhoLikedTab(false);setViewProfile(p);}}>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15,cursor:'pointer'}}>{p.name}</div>
+                <div style={{color:RED,fontSize:12,marginTop:1}}>{p.style} · {p.city}</div>
+                <div style={{color:darkMode?'#666':'#aaa',fontSize:11,marginTop:2}}>{p.wins||0}S {p.losses||0}N {p.draws||0}U</div>
+              </div>
+              <button onClick={async()=>{
+                // Zurücklieken — Match erstellen
+                try{
+                  await dbInsert('swipes',{swiper_id:myProfile.id,target_id:p.id,direction:'like'},session.token);
+                  await fetch(SUPA_URL+'/rest/v1/matches',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify({profile_a_id:myProfile.id,profile_b_id:p.id})});
+                  setWhoLikedMe(prev=>prev.filter(x=>x.id!==p.id));
+                  setMatched(p);
+                  setWhoLikedTab(false);
+                  loadMatches(session,myProfile);
+                  sendLocalNotification('🥊 MATCH!',p.name+' — ihr könnt jetzt chatten!');
+                }catch(e){showMsg('Fehler: '+e.message);}
+              }} style={{background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',borderRadius:10,padding:'10px 14px',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',flexShrink:0}}>
+                ⚔️ MATCH
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   if(viewProfile)return(
     <div style={{minHeight:'100vh',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column'}}>
@@ -2082,6 +2157,17 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
 
         {tab==='swipe'&&(
           <div style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:8}}>
+            {/* WER HAT MICH GELIKET Banner */}
+            {whoLikedMe.length>0&&(
+              <div onClick={()=>{setWhoLikedTab(true);setNewLikesCount(0);try{const now=new Date().toISOString();localStorage.setItem('fighter_likes_check',now);setLastLikesCheck(now);}catch{}}} style={{width:'calc(100% - 24px)',maxWidth:420,marginBottom:8,background:darkMode?'#1a0808':'#fff5f5',border:'1px solid '+RED+'55',borderRadius:12,padding:'10px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}>
+                <div style={{fontSize:20}}>❤️</div>
+                <div style={{flex:1}}>
+                  <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{whoLikedMe.length} Fighter interessieren sich für dich</div>
+                  <div style={{color:RED,fontSize:11,marginTop:1}}>Tippe um zu sehen wer — vielleicht dein nächster Fight</div>
+                </div>
+                {newLikesCount>0&&<div style={{background:RED,color:'#fff',borderRadius:'50%',width:22,height:22,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,flexShrink:0}}>{newLikesCount}</div>}
+              </div>
+            )}
             <div style={{width:'calc(100% - 24px)',maxWidth:380,margin:'0 0 8px',background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'9px 12px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
               {avatarPreview?<img src={avatarPreview} style={{width:36,height:36,borderRadius:'50%',objectFit:'cover',border:'2px solid '+RED}} alt='me'/>
                 :<div style={{fontSize:20,width:36,height:36,borderRadius:'50%',background:'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center'}}>🥊</div>}
