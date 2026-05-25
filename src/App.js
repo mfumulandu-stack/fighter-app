@@ -1410,12 +1410,15 @@ export default function App(){
     }catch(e){console.error('loadFightHistory',e);}
   }
 
-  async function loadDbGyms(){
+  async function loadDbGyms(s){
     try{
-      const resp=await fetch(SUPA_URL+'/rest/v1/gyms?order=city.asc,name.asc',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
+      const token=(s?.token)||session?.token;
+      const resp=await fetch(SUPA_URL+'/rest/v1/gyms?order=city.asc,name.asc',{
+        headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
+      });
       const data=await resp.json();
-      if(Array.isArray(data)&&data.length>0)setDbGyms(data);
-    }catch{}
+      if(Array.isArray(data)){setDbGyms(data);}
+    }catch(e){console.log('loadDbGyms error',e);}
   }
 
   async function loadGymRatings(s){
@@ -1580,7 +1583,7 @@ export default function App(){
         showMsg('Gespeichert! ✓');
       }else{
         const res=await dbInsert('profiles',d,session.token);
-        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg('Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);loadGymRatings(session);loadFightHistory(session);loadDbGyms();loadWhoLikedMe(s,p);loadAllProfiles(s);}
+        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg('Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);loadGymRatings(session);loadFightHistory(session);loadDbGyms(s);loadWhoLikedMe(s,p);loadAllProfiles(s);}
         else showMsg('Fehler: '+(JSON.stringify(res)||'unbekannt'));
       }
     }catch{showMsg('Netzwerkfehler');}
