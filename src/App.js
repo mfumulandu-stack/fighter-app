@@ -1310,7 +1310,8 @@ export default function App(){
       const swiped=await dbSelect('swipes','swiper_id=eq.'+myP.id,s.token);
       const swipedIds=Array.isArray(swiped)?swiped.map(x=>x.target_id):[];
       const fresh=all.filter(f=>!swipedIds.includes(f.id)&&!f.banned);
-      if(fresh.length>0)setCards([...fresh.filter(f=>!f.banned)]);
+      // Immer setzen — auch wenn wenige übrig, damit neue User direkt erscheinen
+      setCards([...fresh]);
     }catch{}
   }
 
@@ -1574,7 +1575,7 @@ export default function App(){
     .filter(f=>!blockedUsers.includes(f.id))
     .filter(f=>!f.banned)
     .filter(f=>filterStyle==='Alle'||f.style===filterStyle)
-    .filter(f=>!filterCity||(f.city||'').toLowerCase().includes(filterCity.toLowerCase()))
+    // Kein harter Stadt-Filter — alle User werden angezeigt, nähere zuerst sortiert
     .map(f=>({
       ...f,
       _dist:getDistanceKm(myCity,f.city||''),
