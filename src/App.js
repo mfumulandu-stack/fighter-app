@@ -1146,11 +1146,22 @@ export default function App(){
   useEffect(()=>{
     if(tab==='ranking'&&session){
       setRankingLoading(true);
+      // Erst mit Session Token versuchen
       fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=500',{
-        headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
       }).then(r=>r.json()).then(data=>{
-        if(Array.isArray(data)&&data.length>0)setAllProfiles(data);
-        setRankingLoading(false);
+        if(Array.isArray(data)&&data.length>0){
+          setAllProfiles(data);
+          setRankingLoading(false);
+        } else {
+          // Fallback mit Service Key
+          return fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=500',{
+            headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
+          }).then(r=>r.json()).then(d=>{
+            if(Array.isArray(d))setAllProfiles(d);
+            setRankingLoading(false);
+          });
+        }
       }).catch(()=>setRankingLoading(false));
     }
   },[tab]);
@@ -1801,7 +1812,7 @@ export default function App(){
     const unique=fallback.filter(f=>{if(!f||!f.id||seen.has(f.id))return false;seen.add(f.id);return true;});
     return [...me,...unique];
   })();
-  const ranked=rankMode==='pro'?proRanked:[...userOnly].filter(f=>rankF==='All'||f.style===rankF).sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
+  const ranked=rankMode==='pro'?proRanked:[...userOnly].filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF)))).sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
   const filteredT=TRAINERS.filter(t=>trainerF==='All'||t.style.includes(trainerF)).sort((a,b)=>b.rating-a.rating);
 
