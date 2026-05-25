@@ -3461,8 +3461,8 @@ ${blCode}`;
                     // Alle Profile laden
                     const resp=await fetch(SUPA_URL+'/rest/v1/profiles?select=city,gym&limit=500',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                     const profiles=await resp.json();
-                    // Bekannte Städte aus DB
-                    const gymResp=await fetch(SUPA_URL+'/rest/v1/gyms?select=city,name',{headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                    // Bekannte Städte aus DB — mit Session Token
+                    const gymResp=await fetch(SUPA_URL+'/rest/v1/gyms?select=city,name',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                     const existingGyms=await gymResp.json();
                     const existingCities=new Set((Array.isArray(existingGyms)?existingGyms:[]).map(g=>g.city?.toLowerCase().trim()));
                     const existingGymNames=new Set((Array.isArray(existingGyms)?existingGyms:[]).map(g=>g.name?.toLowerCase().trim()));
