@@ -1143,6 +1143,13 @@ export default function App(){
     try{localStorage.setItem('fighter_dark',String(darkMode));}catch{}
   },[darkMode]);
 
+  // Gyms neu laden wenn Gym Tab geöffnet wird
+  useEffect(()=>{
+    if(tab==='gyms'&&session){
+      loadDbGyms(session);
+    }
+  },[tab]);
+
   // Rangliste neu laden wenn Tab geöffnet wird
   useEffect(()=>{
     if(tab==='ranking'&&session){
