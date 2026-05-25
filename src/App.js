@@ -1070,6 +1070,8 @@ export default function App(){
   const [lightboxImg,setLightboxImg]=useState(null);
   const [recentSwiped,setRecentSwiped]=useState([]);
   const [whoLikedMe,setWhoLikedMe]=useState([]);
+  const [adminMessages,setAdminMessages]=useState([]);
+  const [showAdminMsg,setShowAdminMsg]=useState(false);
   const [allProfiles,setAllProfiles]=useState([]);
   const [whoLikedTab,setWhoLikedTab]=useState(false);
   const [newLikesCount,setNewLikesCount]=useState(0);
@@ -1280,6 +1282,7 @@ export default function App(){
         loadDbGyms(s);
         loadWhoLikedMe(s,p);
         loadAllProfiles(s);
+        loadAdminMessages(s);
       }else{
         setAuthReady(true);
         setScreen('setup');
@@ -1313,6 +1316,23 @@ export default function App(){
     },30000); // alle 30 Sekunden für schnellere Updates // alle 60 Sekunden
     return()=>clearInterval(interval);
   },[session?.userId,myProfile?.id]);
+
+  async function loadAdminMessages(s){
+    try{
+      const resp=await fetch(SUPA_URL+'/rest/v1/admin_messages?user_id=eq.'+s.userId+'&order=created_at.desc&limit=20',{
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+s.token}
+      });
+      const data=await resp.json();
+      if(Array.isArray(data)&&data.length>0){
+        setAdminMessages(data);
+        const unread=data.filter(m=>!m.read);
+        if(unread.length>0){
+          setShowAdminMsg(true);
+          sendLocalNotification('📢 Nachricht vom Fighter Team','Du hast '+unread.length+' neue Nachricht(en)');
+        }
+      }
+    }catch{}
+  }
 
   async function loadAllProfiles(s){
     try{
@@ -3018,6 +3038,36 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
       </div>
 
       {/* GYM VERIFY OVERLAY */}
+      {showAdminMsg&&adminMessages.length>0&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+          <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:16,padding:20,maxWidth:360,width:'100%',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+              <div style={{fontSize:28}}>📢</div>
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:1}}>NACHRICHT VOM TEAM</div>
+                <div style={{color:'#aaa',fontSize:11}}>Fighter Support</div>
+              </div>
+            </div>
+            {adminMessages.filter(m=>!m.read).map((m,i)=>(
+              <div key={i} style={{background:darkMode?'#111':'#f9f9f9',borderRadius:10,padding:'12px 14px',marginBottom:8,borderLeft:'3px solid '+RED}}>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,lineHeight:1.6}}>{m.message}</div>
+                <div style={{color:'#aaa',fontSize:10,marginTop:4}}>{m.created_at?new Date(m.created_at).toLocaleDateString('de-DE'):''}</div>
+              </div>
+            ))}
+            <button onClick={async()=>{
+              setShowAdminMsg(false);
+              try{
+                const ids=adminMessages.filter(m=>!m.read).map(m=>m.id);
+                for(const id of ids){
+                  await fetch(SUPA_URL+'/rest/v1/admin_messages?id=eq.'+id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({read:true})});
+                }
+              }catch{}
+            }} style={{width:'100%',padding:'12px',borderRadius:10,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginTop:4}}>
+              VERSTANDEN ✓
+            </button>
+          </div>
+        </div>
+      )}
       {showGymVerify&&<div style={{position:'fixed',inset:0,zIndex:500}}><style>{css}</style><GymVerifyModal onClose={()=>{setShowGymVerify(false);setGymCodeInput('');setGymVerifyError('');}} gymCodeInput={gymCodeInput} setGymCodeInput={setGymCodeInput} gymVerifyError={gymVerifyError} setGymVerifyError={setGymVerifyError} gymVerified={gymVerified} setGymVerified={setGymVerified} gymCodes={GYM_CODES} darkMode={darkMode} showMsg={showMsg}/></div>}
       {/* IMPRESSUM MODAL */}
       {showImpressum&&(
@@ -3231,6 +3281,18 @@ ${blCode}`;
                         setAdminUsers(prev=>prev.map(x=>x.id===u.id?{...x,banned:ban}:x));
                         showMsg(ban?'User gesperrt 🚫':'User entsperrt ✅');
                       }} style={{background:u.banned?'#27ae60':'#e74c3c',border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:10,fontWeight:700,cursor:'pointer'}}>{u.banned?'Freig.':'Sperren'}</button>
+                      <button onClick={async()=>{
+                        const msg=window.prompt('Nachricht an '+u.name+':');
+                        if(!msg||!msg.trim())return;
+                        try{
+                          await fetch(SUPA_URL+'/rest/v1/admin_messages',{
+                            method:'POST',
+                            headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
+                            body:JSON.stringify({user_id:u.id,message:msg,from_admin:true,read:false})
+                          });
+                          showMsg('✅ Nachricht gesendet an '+(u.name||'User'));
+                        }catch(e){showMsg('Fehler: '+e.message);}
+                      }} style={{background:'#2980b9',border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:10,fontWeight:700,cursor:'pointer'}}>✉️</button>
                       <button onClick={async()=>{
                         if(!window.confirm('User '+u.name+' wirklich löschen? Das kann nicht rückgängig gemacht werden.'))return;
                         try{
