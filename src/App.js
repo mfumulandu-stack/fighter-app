@@ -1459,9 +1459,9 @@ export default function App(){
     try{
       const m=await dbSelect('matches','or=(profile_a_id.eq.'+myP.id+',profile_b_id.eq.'+myP.id+')',s.token);
       if(!Array.isArray(m)||m.length===0){setDbMatches([]);return;}
-      const allProfiles=await dbSelect('profiles','',s.token);
+      const matchProfiles=await dbSelect('profiles','',s.token);
       const profileMap={};
-      if(Array.isArray(allProfiles))allProfiles.forEach(p=>{profileMap[p.id]=p;});
+      if(Array.isArray(matchProfiles))matchProfiles.forEach(p=>{profileMap[p.id]=p;});
       // Letzte Nachricht pro Match laden
       const enrichedRaw=m.map(match=>({
         ...match,
