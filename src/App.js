@@ -1305,7 +1305,15 @@ export default function App(){
 
   async function loadRealFighters(s,myP){
     try{
-      const all=await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true',s.token);
+      // Versuche erst mit Session Token, dann mit anon key als Fallback
+      let all = await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true',s.token);
+      if(!Array.isArray(all)||all.length===0){
+        // Fallback: anon key
+        try{
+          const r=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=neq.'+s.userId+'&banned=neq.true',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
+          all=await r.json();
+        }catch{}
+      }
       if(!Array.isArray(all))return;
       const swiped=await dbSelect('swipes','swiper_id=eq.'+myP.id,s.token);
       const swipedIds=Array.isArray(swiped)?swiped.map(x=>x.target_id):[];
@@ -3047,7 +3055,7 @@ ${blCode}`;
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>👤 USER ({adminUsers.length})</div>
                 <button onClick={async()=>{
                   try{
-                    const resp=await fetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=500',{headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                    const resp=await fetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=500',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                     const data=await resp.json();
                     if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
                   }catch(e){showMsg('Fehler: '+e.message);}
@@ -3196,7 +3204,7 @@ ${blCode}`;
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>📊 ECHTZEIT STATISTIKEN</div>
                 <button onClick={async()=>{
                   try{
-                    const resp=await fetch('https://uykdrmymjvqgebsmndme.supabase.co/rest/v1/profiles?order=created_at.desc&limit=500',{headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                    const resp=await fetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=500',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                     const data=await resp.json();
                     if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
                   }catch(e){showMsg('Fehler: '+e.message);}
