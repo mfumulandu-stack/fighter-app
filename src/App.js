@@ -1074,6 +1074,7 @@ export default function App(){
   const [showAdminMsg,setShowAdminMsg]=useState(false);
   const [allProfiles,setAllProfiles]=useState([]);
   const [rankingLoading,setRankingLoading]=useState(false);
+  const [scanResult,setScanResult]=useState(null);
   const [whoLikedTab,setWhoLikedTab]=useState(false);
   const [newLikesCount,setNewLikesCount]=useState(0);
   const [lastLikesCheck,setLastLikesCheck]=useState(()=>{try{return localStorage.getItem('fighter_likes_check')||'2000-01-01'}catch{return '2000-01-01'}});
@@ -3157,7 +3158,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <button onClick={()=>setShowAdmin(false)} style={{background:'none',border:'none',color:'#fff',fontSize:22,cursor:'pointer'}}>✕</button>
           </div>
           <div style={{display:'flex',overflowX:'auto',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
-            {[['gyms','🏋️'],['addgym','➕'],['addcity','🌍'],['users','👤'],['reports','🚨'],['records','🏅'],['broadcast','📢'],['stats','📊']].map(([t,l])=>(
+            {[['gyms','🏋️'],['addgym','➕'],['addcity','🌍'],['users','👤'],['reports','🚨'],['records','🏅'],['broadcast','📢'],['stats','📊'],['scanner','🔍']].map(([t,l])=>(
               <button key={t} onClick={()=>setAdminTab(t)} style={{flexShrink:0,padding:'10px 14px',background:'none',border:'none',borderBottom:adminTab===t?'2px solid '+RED:'2px solid transparent',color:adminTab===t?RED:(darkMode?'#aaa':'#888'),fontWeight:700,fontSize:16,cursor:'pointer'}}>{l}</button>
             ))}
           </div>
@@ -3443,6 +3444,98 @@ ${blCode}`;
             )}
 
             {/* ── STATISTIKEN ── */}
+            {adminTab==='scanner'&&(
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>🔍 STÄDTE & GYMS SCANNER</div>
+                <button onClick={async()=>{
+                  showMsg('Scanne alle Profile...');
+                  try{
+                    // Alle Profile laden
+                    const resp=await fetch(SUPA_URL+'/rest/v1/profiles?select=city,gym&limit=500',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                    const profiles=await resp.json();
+                    // Bekannte Städte aus DB
+                    const gymResp=await fetch(SUPA_URL+'/rest/v1/gyms?select=city,name',{headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                    const existingGyms=await gymResp.json();
+                    const existingCities=new Set((Array.isArray(existingGyms)?existingGyms:[]).map(g=>g.city?.toLowerCase().trim()));
+                    const existingGymNames=new Set((Array.isArray(existingGyms)?existingGyms:[]).map(g=>g.name?.toLowerCase().trim()));
+                    // Hardcoded Städte auch
+                    Object.keys(GYMS).forEach(c=>existingCities.add(c.toLowerCase()));
+                    // Neue Städte finden
+                    const newCities={};
+                    const newGyms={};
+                    if(Array.isArray(profiles)){
+                      profiles.forEach(p=>{
+                        if(p.city&&!existingCities.has(p.city.toLowerCase().trim())){
+                          newCities[p.city]=(newCities[p.city]||0)+1;
+                        }
+                        if(p.gym&&!existingGymNames.has(p.gym.toLowerCase().trim())){
+                          newGyms[p.gym]={city:p.city,count:(newGyms[p.gym]?.count||0)+1};
+                        }
+                      });
+                    }
+                    setScanResult({cities:Object.entries(newCities).sort((a,b)=>b[1]-a[1]),gyms:Object.entries(newGyms).sort((a,b)=>b[1].count-a[1].count)});
+                    showMsg('Scan abgeschlossen!');
+                  }catch(e){showMsg('Fehler: '+e.message);}
+                }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:16}}>
+                  🔍 JETZT SCANNEN
+                </button>
+                {scanResult&&(
+                  <>
+                    {/* Fehlende Städte */}
+                    {scanResult.cities.length>0&&(
+                      <div style={{marginBottom:16}}>
+                        <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>FEHLENDE STÄDTE ({scanResult.cities.length})</div>
+                        {scanResult.cities.map(([city,count])=>(
+                          <div key={city} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,marginBottom:6,border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                            <div style={{flex:1}}>
+                              <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:600}}>{city}</div>
+                              <div style={{color:'#aaa',fontSize:11}}>{count} User</div>
+                            </div>
+                            <button onClick={async()=>{
+                              try{
+                                await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({name:'Unbekanntes Gym '+city,city:city,code:'GYM-'+city.toUpperCase().replace(/\s/g,'-'),emoji:'🥊',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})});
+                                setScanResult(prev=>({...prev,cities:prev.cities.filter(([c])=>c!==city)}));
+                                await loadDbGyms(session);
+                                showMsg('✅ '+city+' hinzugefügt');
+                              }catch(e){showMsg('Fehler: '+e.message);}
+                            }} style={{background:'#27ae60',border:'none',borderRadius:6,padding:'6px 10px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>+ Hinzufügen</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Fehlende Gyms */}
+                    {scanResult.gyms.length>0&&(
+                      <div>
+                        <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>FEHLENDE GYMS ({scanResult.gyms.length})</div>
+                        {scanResult.gyms.map(([gym,data])=>(
+                          <div key={gym} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,marginBottom:6,border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                            <div style={{flex:1}}>
+                              <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:600}}>{gym}</div>
+                              <div style={{color:'#aaa',fontSize:11}}>{data.city||'?'} · {data.count} User</div>
+                            </div>
+                            <button onClick={async()=>{
+                              try{
+                                await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({name:gym,city:data.city||'Unbekannt',code:gym.toUpperCase().replace(/\s/g,'-').slice(0,20),emoji:'🥊',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})});
+                                setScanResult(prev=>({...prev,gyms:prev.gyms.filter(([g])=>g!==gym)}));
+                                await loadDbGyms(session);
+                                showMsg('✅ '+gym+' hinzugefügt');
+                              }catch(e){showMsg('Fehler: '+e.message);}
+                            }} style={{background:'#27ae60',border:'none',borderRadius:6,padding:'6px 10px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>+ Hinzufügen</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {scanResult.cities.length===0&&scanResult.gyms.length===0&&(
+                      <div style={{textAlign:'center',padding:'30px',color:darkMode?'#555':'#bbb'}}>
+                        <div style={{fontSize:32,marginBottom:8}}>✅</div>
+                        <div style={{fontSize:14}}>Alle Städte und Gyms sind bereits erfasst!</div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             {adminTab==='stats'&&(
               <div>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>📊 ECHTZEIT STATISTIKEN</div>
