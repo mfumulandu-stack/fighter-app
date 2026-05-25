@@ -1306,6 +1306,7 @@ export default function App(){
     if(!session||!myProfile)return;
     const interval=setInterval(async()=>{
       await loadRealFighters(session,myProfile);
+      await loadAllProfiles(session);
     },30000); // alle 30 Sekunden für schnellere Updates // alle 60 Sekunden
     return()=>clearInterval(interval);
   },[session?.userId,myProfile?.id]);
@@ -1755,7 +1756,7 @@ export default function App(){
   const userOnly=(()=>{
     const me=profile.name?[{id:0,name:profile.name,city:profile.city,gym:profile.gym,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'🥊',accent:RED,isMe:true,avatar_url:avatarUrl}]:[];
     if(allProfiles.length>0){
-      const others=allProfiles.filter(p=>p.id!==myProfile?.id&&p.name&&!p.banned).map(p=>({
+      const others=allProfiles.filter(p=>p.id!==myProfile?.id&&!p.banned).map(p=>({
         ...p,
         wins:p.wins||0,losses:p.losses||0,draws:p.draws||0,ko:p.ko||0,
         accent:p.accent||RED,isMe:false
