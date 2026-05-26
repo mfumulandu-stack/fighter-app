@@ -3205,18 +3205,17 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
       )}
       {/* ADMIN PANEL */}
       {showAdmin&&isAdmin&&(
-        <div style={{position:'fixed',inset:0,background:darkMode?'#0d0d0d':'#f0f0f5',zIndex:600,display:'flex',flexDirection:'column'}}>
+        <div style={{position:'fixed',inset:0,background:darkMode?'#111':'#f0f0f5',zIndex:600,display:'flex',flexDirection:'column'}}>
           <style>{`
             .adm-card{background:${darkMode?'#1a1a1a':'#fff'};border-radius:12px;padding:16px;border:1px solid ${darkMode?'#2a2a2a':'#e8e8e8'};margin-bottom:12px;}
-            .adm-label{font-size:10px;font-weight:700;letter-spacing:2px;color:#888;margin-bottom:6px;text-transform:uppercase;}
-            .adm-inp{width:100%;padding:10px 12px;border-radius:8px;border:1px solid ${darkMode?'#333':'#ddd'};background:${darkMode?'#111':'#f9f9f9'};color:${darkMode?'#fff':'#1a1a1a'};font-size:13px;box-sizing:border-box;outline:none;}
+            .adm-label{font-size:10px;font-weight:700;letter-spacing:2px;color:#888;margin-bottom:6px;text-transform:uppercase;display:block;}
+            .adm-inp{width:100%;padding:10px 12px;border-radius:8px;border:1px solid ${darkMode?'#333':'#ddd'};background:${darkMode?'#222':'#f9f9f9'};color:${darkMode?'#fff':'#1a1a1a'};font-size:13px;box-sizing:border-box;outline:none;}
             .adm-btn{padding:10px 16px;border-radius:8px;border:none;font-family:Rajdhani,sans-serif;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:1px;}
-            .adm-red{background:#c0392b;color:#fff;}
-            .adm-green{background:#27ae60;color:#fff;}
-            .adm-blue{background:#2980b9;color:#fff;}
-            .adm-ghost{background:transparent;border:1px solid #c0392b !important;color:#c0392b;}
-            .adm-tab{padding:10px 14px;background:none;border:none;border-bottom:2px solid transparent;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;transition:all 0.2s;}
-            .adm-tab.active{border-bottom-color:#c0392b;color:#c0392b;}
+            .adm-red{background:#c0392b !important;color:#fff !important;}
+            .adm-green{background:#27ae60 !important;color:#fff !important;}
+            .adm-blue{background:#2980b9 !important;color:#fff !important;}
+            .adm-tab{padding:10px 14px;background:none;border:none;border-bottom:2px solid transparent;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;transition:all 0.2s;color:${darkMode?'#aaa':'#666'};}
+            .adm-tab.active{border-bottom-color:#c0392b;color:#c0392b !important;}
             .adm-user-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid ${darkMode?'#2a2a2a':'#f0f0f0'};}
           `}</style>
 
