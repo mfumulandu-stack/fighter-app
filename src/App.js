@@ -1068,6 +1068,10 @@ export default function App(){
   const [lastAct,setLastAct]=useState(null);
   const [lastSwiped,setLastSwiped]=useState(null);
   const [lightboxImg,setLightboxImg]=useState(null);
+  const [imgPosition,setImgPosition]=useState({x:50,y:50}); // % position
+  const [showImgEditor,setShowImgEditor]=useState(false);
+  const [imgEditorSrc,setImgEditorSrc]=useState(null);
+  const [imgEditorCallback,setImgEditorCallback]=useState(null);
   const [recentSwiped,setRecentSwiped]=useState([]);
   const [whoLikedMe,setWhoLikedMe]=useState([]);
   const [adminMessages,setAdminMessages]=useState([]);
@@ -1682,16 +1686,31 @@ export default function App(){
 
   async function handlePhoto(e){
     const file=e.target.files[0];if(!file||!session)return;
-    setUploading(true);
-    setAvatarPreview(URL.createObjectURL(file));
-    showMsg('Foto wird komprimiert...');
-    const compressed=await compressImage(file,800,0.82);
-    const sizeMB=(compressed.size/1024/1024).toFixed(1);
-    const path='fighter_'+session.userId+'_'+Date.now()+'.jpg';
-    const url=await uploadPhoto(compressed,path,session.token);
-    if(url){setAvatarUrl(url);showMsg('Foto hochgeladen! ('+sizeMB+'MB)');}
-    else showMsg('Upload fehlgeschlagen');
-    setUploading(false);
+    // Erst Editor zeigen
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      setImgEditorSrc(ev.target.result);
+      setImgEditorCallback(()=>async(pos)=>{
+        setShowImgEditor(false);
+        setImgPosition(pos);
+        setUploading(true);
+        setAvatarPreview(ev.target.result);
+        showMsg('Foto wird komprimiert...');
+        const compressed=await compressImage(file,800,0.82);
+        const sizeMB=(compressed.size/1024/1024).toFixed(1);
+        const path='fighter_'+session.userId+'_'+Date.now()+'.jpg';
+        const url=await uploadPhoto(compressed,path,session.token);
+        if(url){
+          setAvatarUrl(url);
+          setProfile(p=>({...p,avatar_url:url,img_pos_x:pos.x,img_pos_y:pos.y}));
+          showMsg('Foto hochgeladen! ('+sizeMB+'MB)');
+        } else showMsg('Upload fehlgeschlagen');
+        setUploading(false);
+      });
+      setShowImgEditor(true);
+    };
+    reader.readAsDataURL(file);
+    // dummy to match closing braces
   }
 
   const myWeightClass=myProfile?.weight_class||profile?.weightClass||'';
@@ -1972,6 +1991,14 @@ export default function App(){
           </button>
         </div>
       </div>
+      {showImgEditor&&imgEditorSrc&&(
+        <ImgPositionEditor
+          src={imgEditorSrc}
+          onSave={imgEditorCallback}
+          onCancel={()=>setShowImgEditor(false)}
+          darkMode={darkMode}
+        />
+      )}
       {lightboxImg&&(
         <div onClick={()=>setLightboxImg(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.97)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',cursor:'zoom-out'}}>
           <img src={lightboxImg} style={{maxWidth:'100%',maxHeight:'100%',objectFit:'contain'}} alt=''/>
@@ -2060,7 +2087,7 @@ export default function App(){
                 <div style={{position:'relative',display:'inline-block'}}>
                   <div style={{width:110,height:110,borderRadius:'50%',background:avatarPreview?'#000':'#fdf0ef',border:'3px solid '+(avatarPreview?RED:'#e74c3c'),display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',margin:'0 auto',animation:avatarPreview?'none':'pulse 1.8s infinite',boxShadow:avatarPreview?'0 4px 16px rgba(192,57,43,0.3)':'0 0 0 6px rgba(231,76,60,0.15)'}}>
                     {uploading?<div style={{fontSize:28}} className='spin'>⏳</div>
-                      :avatarPreview?<img src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='avatar'/>
+                      :avatarPreview?<img src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:(profile.img_pos_x||50)+'% '+(profile.img_pos_y||50)+'%'}} alt='avatar'/>
                       :<div style={{textAlign:'center'}}><div style={{fontSize:36}}>📸</div><div style={{color:RED,fontSize:10,marginTop:4,fontWeight:700}}>FOTO</div></div>}
                   </div>
                   {!avatarPreview&&<div style={{position:'absolute',top:-4,right:-4,background:RED,borderRadius:10,padding:'2px 6px',fontSize:9,color:'#fff',fontWeight:700,fontFamily:'Rajdhani,sans-serif',letterSpacing:1}}>PFLICHT</div>}
@@ -2586,7 +2613,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <label style={{cursor:'pointer'}}>
                   <input type='file' accept='image/*' onChange={handlePhoto} style={{display:'none'}}/>
                   <div style={{width:160,height:160,borderRadius:16,background:'#f0f0f0',border:'3px solid '+(avatarPreview?RED:'#ddd'),overflow:'hidden',margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                    {uploading?<div style={{fontSize:24}} className='spin'>⏳</div>:avatarPreview?<img src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='avatar'/>:<div style={{fontSize:32}}>👤</div>}
+                    {uploading?<div style={{fontSize:24}} className='spin'>⏳</div>:avatarPreview?<img src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:(profile.img_pos_x||50)+'% '+(profile.img_pos_y||50)+'%'}} alt='avatar'/>:<div style={{fontSize:32}}>👤</div>}
                   </div>
                   <div style={{position:'absolute',bottom:0,right:0,background:RED,borderRadius:'50%',width:24,height:24,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12}}>📷</div>
                 </label>
@@ -3643,6 +3670,14 @@ ${blCode}`;
           </div>
         </div>
       )}
+      {showImgEditor&&imgEditorSrc&&(
+        <ImgPositionEditor
+          src={imgEditorSrc}
+          onSave={imgEditorCallback}
+          onCancel={()=>setShowImgEditor(false)}
+          darkMode={darkMode}
+        />
+      )}
       {lightboxImg&&(
         <div onClick={()=>setLightboxImg(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.97)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',cursor:'zoom-out'}}>
           <img src={lightboxImg} style={{maxWidth:'100%',maxHeight:'100%',objectFit:'contain'}} alt=''/>
@@ -3663,6 +3698,48 @@ ${blCode}`;
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ImgPositionEditor({src,onSave,onCancel,darkMode}){
+  const [pos,setPos]=React.useState({x:50,y:50});
+  const [dragging,setDragging]=React.useState(false);
+  const [startPos,setStartPos]=React.useState({x:0,y:0});
+  const containerRef=React.useRef(null);
+
+  const handleStart=(clientX,clientY)=>{
+    setDragging(true);
+    setStartPos({x:clientX,y:clientY});
+  };
+  const handleMove=(clientX,clientY)=>{
+    if(!dragging||!containerRef.current)return;
+    const rect=containerRef.current.getBoundingClientRect();
+    const dx=(clientX-startPos.x)/rect.width*100;
+    const dy=(clientY-startPos.y)/rect.height*100;
+    setPos(p=>({x:Math.max(0,Math.min(100,p.x-dx)),y:Math.max(0,Math.min(100,p.y-dy))}));
+    setStartPos({x:clientX,y:clientY});
+  };
+
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.95)',zIndex:1001,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20}}>
+      <div style={{color:'#fff',fontFamily:'Rajdhani,sans-serif',fontSize:18,fontWeight:700,letterSpacing:2,marginBottom:12}}>BILDAUSSCHNITT WÄHLEN</div>
+      <div style={{color:'#aaa',fontSize:12,marginBottom:16,textAlign:'center'}}>Ziehe das Bild um den Ausschnitt anzupassen</div>
+      <div ref={containerRef}
+        style={{width:280,height:280,borderRadius:'50%',overflow:'hidden',border:'3px solid #c0392b',cursor:'grab',userSelect:'none',position:'relative',boxShadow:'0 0 0 3000px rgba(0,0,0,0.5)'}}
+        onMouseDown={e=>{e.preventDefault();handleStart(e.clientX,e.clientY);}}
+        onMouseMove={e=>{if(dragging)handleMove(e.clientX,e.clientY);}}
+        onMouseUp={()=>setDragging(false)}
+        onTouchStart={e=>{e.preventDefault();handleStart(e.touches[0].clientX,e.touches[0].clientY);}}
+        onTouchMove={e=>{e.preventDefault();if(dragging)handleMove(e.touches[0].clientX,e.touches[0].clientY);}}
+        onTouchEnd={()=>setDragging(false)}
+      >
+        <img src={src} style={{width:'150%',height:'150%',objectFit:'cover',objectPosition:pos.x+'% '+pos.y+'%',pointerEvents:'none',transform:'translate(-17%,-17%)'}} alt=''/>
+      </div>
+      <div style={{display:'flex',gap:12,marginTop:24,width:'100%',maxWidth:280}}>
+        <button onClick={onCancel} style={{flex:1,padding:'12px',borderRadius:10,background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.2)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>ABBRECHEN</button>
+        <button onClick={()=>onSave(pos)} style={{flex:1,padding:'12px',borderRadius:10,background:'#c0392b',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>SPEICHERN ✓</button>
+      </div>
     </div>
   );
 }
