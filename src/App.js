@@ -3392,6 +3392,11 @@ ${blCode}`;
                             showMsg('✅ User gesperrt + Daten gelöscht (Auth-Account bleibt)');
                           }
                           setAdminUsers(prev=>prev.filter(x=>x.id!==u.id));
+                          // Aus allen lokalen States entfernen
+                          setCards(prev=>prev.filter(x=>x.id!==u.id));
+                          setAllProfiles(prev=>prev.filter(x=>x.id!==u.id));
+                          setDbMatches(prev=>prev.filter(m=>m.profile_a_id!==u.id&&m.profile_b_id!==u.id));
+                          setWhoLikedMe(prev=>prev.filter(x=>x.id!==u.id));
                         }catch(e){
                           showMsg('Fehler: '+e.message);
                         }
