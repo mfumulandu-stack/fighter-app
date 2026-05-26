@@ -2893,7 +2893,15 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             })()}
 
             <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
-              {(()=>{const seen=new Set();const allCities=[...dbGyms.map(g=>g.city).filter(Boolean),...Object.keys(GYMS)];return allCities.filter(c=>{const k=c.toLowerCase().trim();if(seen.has(k))return false;seen.add(k);return true;}).sort();})().map(c=>(<button key={c} onClick={()=>setCity(c)} style={{flexShrink:0,padding:'6px 13px',borderRadius:20,background:city===c?RED:'#fff',border:'1px solid '+(city===c?RED:'#e0e0e0'),color:city===c?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{c}</button>))}
+              {(()=>{
+  const normalize=s=>(s||'').toLowerCase().trim().replace(/ü/g,'ue').replace(/ö/g,'oe').replace(/ä/g,'ae').replace(/ß/g,'ss');
+  const seen=new Set();
+  // DB Gyms haben Vorrang — originale Namen behalten
+  const dbCities=dbGyms.map(g=>g.city).filter(Boolean);
+  const hardCities=Object.keys(GYMS).filter(c=>!dbCities.some(d=>normalize(d)===normalize(c)));
+  const allCities=[...dbCities,...hardCities];
+  return allCities.filter(c=>{const k=normalize(c);if(seen.has(k))return false;seen.add(k);return true;}).sort();
+})().map(c=>(<button key={c} onClick={()=>setCity(c)} style={{flexShrink:0,padding:'6px 13px',borderRadius:20,background:city===c?RED:'#fff',border:'1px solid '+(city===c?RED:'#e0e0e0'),color:city===c?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{c}</button>))}
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:8}}>
               {(dbGyms.filter(g=>g.city===city).length>0?dbGyms.filter(g=>g.city===city):(GYMS[city]||[])).map((gym,i)=>(
@@ -3501,24 +3509,28 @@ ${blCode}`;
                     // Bekannte Städte aus DB — mit Session Token
                     const gymResp=await fetch(SUPA_URL+'/rest/v1/gyms?select=city,name',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                     const existingGyms=await gymResp.json();
-                    const existingCities=new Set((Array.isArray(existingGyms)?existingGyms:[]).map(g=>g.city?.toLowerCase().trim()));
-                    const existingGymNames=new Set((Array.isArray(existingGyms)?existingGyms:[]).map(g=>g.name?.toLowerCase().trim()));
-                    // Hardcoded Städte auch ausschließen
-                    Object.keys(GYMS).forEach(c=>existingCities.add(c.toLowerCase().trim()));
-                    // DB Gym Namen auch in lowercase
+                    const norm=s=>(s||'').toLowerCase().trim().replace(/ü/g,'ue').replace(/ö/g,'oe').replace(/ä/g,'ae').replace(/ß/g,'ss');
+                    const existingCities=new Set();
+                    const existingGymNames=new Set();
                     if(Array.isArray(existingGyms))existingGyms.forEach(g=>{
-                      if(g.city)existingCities.add(g.city.toLowerCase().trim());
+                      if(g.city)existingCities.add(norm(g.city));
+                      if(g.name)existingGymNames.add(norm(g.name));
                     });
+                    // Hardcoded Städte auch ausschließen
+                    Object.keys(GYMS).forEach(c=>existingCities.add(norm(c)));
+                    // Alle hardcoded Gym-Namen
+                    Object.values(GYMS).flat().forEach(g=>{if(g.name)existingGymNames.add(norm(g.name));});
                     // Neue Städte finden
                     const newCities={};
                     const newGyms={};
                     if(Array.isArray(profiles)){
                       profiles.forEach(p=>{
-                        if(p.city&&!existingCities.has(p.city.toLowerCase().trim())){
+                        if(p.city&&!existingCities.has(norm(p.city))){
                           newCities[p.city]=(newCities[p.city]||0)+1;
                         }
-                        if(p.gym&&!existingGymNames.has(p.gym.toLowerCase().trim())){
-                          newGyms[p.gym]={city:p.city,count:(newGyms[p.gym]?.count||0)+1};
+                        if(p.gym&&!existingGymNames.has(norm(p.gym))){
+                          if(!newGyms[p.gym])newGyms[p.gym]={city:p.city,count:0};
+                          newGyms[p.gym].count++;
                         }
                       });
                     }
