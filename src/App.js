@@ -1350,7 +1350,7 @@ export default function App(){
     const interval=setInterval(async()=>{
       await loadRealFighters(session,myProfile);
       await loadAllProfiles(session);
-    },30000); // alle 30 Sekunden für schnellere Updates // alle 60 Sekunden
+    },60000); // alle 60 Sekunden — weniger Sprünge // alle 60 Sekunden
     return()=>clearInterval(interval);
   },[session?.userId,myProfile?.id]);
 
@@ -1425,12 +1425,14 @@ export default function App(){
       const fresh=all.filter(f=>!swipedIds.includes(f.id)&&!f.banned&&!matchedIds.includes(f.id));
       // Nur neue Fighter hinzufügen — bestehende Karten nicht überschreiben
       setCards(prev=>{
-        const existingIds=new Set(prev.map(c=>c.id));
-        const newOnes=fresh.filter(f=>!existingIds.has(f.id));
-        // Wenn keine Karten mehr oder erste Ladung — alles setzen
+        // Wenn leer — alles setzen
         if(prev.length===0)return [...fresh];
-        // Sonst nur neue hinzufügen am Ende
-        return newOnes.length>0?[...prev,...newOnes]:prev;
+        // Bestehende IDs merken
+        const existingIds=new Set(prev.map(c=>c.id));
+        // Nur wirklich neue Fighter hinzufügen — NIE bestehende entfernen oder sortieren
+        const newOnes=fresh.filter(f=>!existingIds.has(f.id));
+        if(newOnes.length>0)return [...prev,...newOnes];
+        return prev; // Keine Änderung wenn nichts Neues
       });
     }catch{}
   }
