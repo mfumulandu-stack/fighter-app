@@ -1489,7 +1489,12 @@ export default function App(){
         headers:{apikey:SUPA_KEY,Authorization:'Bearer '+token}
       });
       const data=await resp.json();
-      if(Array.isArray(data)){setDbGyms(data);}
+      if(Array.isArray(data)&&data.length>0){
+        setDbGyms(data);
+        // Setze erste verfügbare Stadt
+        const firstCity=data[0]?.city;
+        if(firstCity)setCity(c=>c==='Berlin'?firstCity:c);
+      }
     }catch(e){console.log('loadDbGyms error',e);}
   }
 
@@ -2888,7 +2893,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             })()}
 
             <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
-              {[...new Set([...Object.keys(GYMS),...dbGyms.map(g=>g.city).filter(Boolean)])].sort().map(c=>(<button key={c} onClick={()=>setCity(c)} style={{flexShrink:0,padding:'6px 13px',borderRadius:20,background:city===c?RED:'#fff',border:'1px solid '+(city===c?RED:'#e0e0e0'),color:city===c?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{c}</button>))}
+              {(()=>{const seen=new Set();const allCities=[...dbGyms.map(g=>g.city).filter(Boolean),...Object.keys(GYMS)];return allCities.filter(c=>{const k=c.toLowerCase().trim();if(seen.has(k))return false;seen.add(k);return true;}).sort();})().map(c=>(<button key={c} onClick={()=>setCity(c)} style={{flexShrink:0,padding:'6px 13px',borderRadius:20,background:city===c?RED:'#fff',border:'1px solid '+(city===c?RED:'#e0e0e0'),color:city===c?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{c}</button>))}
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:8}}>
               {(dbGyms.filter(g=>g.city===city).length>0?dbGyms.filter(g=>g.city===city):(GYMS[city]||[])).map((gym,i)=>(
@@ -3498,8 +3503,12 @@ ${blCode}`;
                     const existingGyms=await gymResp.json();
                     const existingCities=new Set((Array.isArray(existingGyms)?existingGyms:[]).map(g=>g.city?.toLowerCase().trim()));
                     const existingGymNames=new Set((Array.isArray(existingGyms)?existingGyms:[]).map(g=>g.name?.toLowerCase().trim()));
-                    // Hardcoded Städte auch
-                    Object.keys(GYMS).forEach(c=>existingCities.add(c.toLowerCase()));
+                    // Hardcoded Städte auch ausschließen
+                    Object.keys(GYMS).forEach(c=>existingCities.add(c.toLowerCase().trim()));
+                    // DB Gym Namen auch in lowercase
+                    if(Array.isArray(existingGyms))existingGyms.forEach(g=>{
+                      if(g.city)existingCities.add(g.city.toLowerCase().trim());
+                    });
                     // Neue Städte finden
                     const newCities={};
                     const newGyms={};
