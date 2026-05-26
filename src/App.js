@@ -3205,100 +3205,87 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
       )}
       {/* ADMIN PANEL */}
       {showAdmin&&isAdmin&&(
-        <div style={{position:'fixed',inset:0,background:darkMode?'#111':'#f0f0f5',zIndex:600,display:'flex',flexDirection:'column'}}>
-          <style>{`
-            .adm-card{background:${darkMode?'#1a1a1a':'#fff'};border-radius:12px;padding:16px;border:1px solid ${darkMode?'#2a2a2a':'#e8e8e8'};margin-bottom:12px;}
-            .adm-label{font-size:10px;font-weight:700;letter-spacing:2px;color:#888;margin-bottom:6px;text-transform:uppercase;display:block;}
-            .adm-inp{width:100%;padding:10px 12px;border-radius:8px;border:1px solid ${darkMode?'#333':'#ddd'};background:${darkMode?'#222':'#f9f9f9'};color:${darkMode?'#fff':'#1a1a1a'};font-size:13px;box-sizing:border-box;outline:none;}
-            .adm-btn{padding:10px 16px;border-radius:8px;border:none;font-family:Rajdhani,sans-serif;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:1px;}
-            .adm-red{background:#c0392b !important;color:#fff !important;}
-            .adm-green{background:#27ae60 !important;color:#fff !important;}
-            .adm-blue{background:#2980b9 !important;color:#fff !important;}
-            .adm-tab{padding:10px 14px;background:none;border:none;border-bottom:2px solid transparent;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;transition:all 0.2s;color:${darkMode?'#aaa':'#666'};}
-            .adm-tab.active{border-bottom-color:#c0392b;color:#c0392b !important;}
-            .adm-user-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid ${darkMode?'#2a2a2a':'#f0f0f0'};}
-          `}</style>
-
-          {/* Header */}
-          <div style={{background:'#c0392b',padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
-            <div style={{display:'flex',alignItems:'center',gap:10}}>
-              <div style={{fontSize:22}}>⚙️</div>
-              <div>
-                <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:20,color:'#fff',letterSpacing:3}}>ADMIN PANEL</div>
-                <div style={{fontSize:11,color:'rgba(255,255,255,0.7)'}}>Fighter App Control Center</div>
-              </div>
-            </div>
-            <button onClick={()=>setShowAdmin(false)} style={{background:'rgba(255,255,255,0.2)',border:'none',borderRadius:8,width:36,height:36,color:'#fff',fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+        <div style={{position:'fixed',inset:0,background:darkMode?'#0d0d0d':'#f5f5f7',zIndex:600,display:'flex',flexDirection:'column',overflowY:'auto'}}>
+          <div style={{background:RED,padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
+            <div className='rj' style={{color:'#fff',fontSize:18,letterSpacing:3}}>⚙️ ADMIN</div>
+            <button onClick={()=>setShowAdmin(false)} style={{background:'none',border:'none',color:'#fff',fontSize:22,cursor:'pointer'}}>✕</button>
           </div>
-
-          {/* Tab Bar */}
-          <div style={{display:'flex',overflowX:'auto',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),flexShrink:0,padding:'0 4px'}}>
-            {[['gyms','🏋️ Gyms'],['addgym','➕ Gym'],['addcity','🌍 Stadt'],['users','👤 User'],['reports','🚨 Meldungen'],['records','🏅 Rekorde'],['broadcast','📢 Broadcast'],['stats','📊 Stats'],['scanner','🔍 Scanner']].map(([t,l])=>(
-              <button key={t} onClick={()=>setAdminTab(t)} className={'adm-tab'+(adminTab===t?' active':'')} style={{color:adminTab===t?'#c0392b':(darkMode?'#aaa':'#666')}}>{l}</button>
+          <div style={{display:'flex',overflowX:'auto',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+            {[['gyms','🏋️'],['addgym','➕'],['addcity','🌍'],['users','👤'],['reports','🚨'],['records','🏅'],['broadcast','📢'],['stats','📊'],['scanner','🔍']].map(([t,l])=>(
+              <button key={t} onClick={()=>setAdminTab(t)} style={{flexShrink:0,padding:'10px 14px',background:'none',border:'none',borderBottom:adminTab===t?'2px solid '+RED:'2px solid transparent',color:adminTab===t?RED:(darkMode?'#aaa':'#888'),fontWeight:700,fontSize:16,cursor:'pointer'}}>{l}</button>
             ))}
           </div>
+          <div style={{padding:'16px',flex:1,overflowY:'auto'}}>
 
-          {/* Content */}
-          <div style={{flex:1,overflowY:'auto',padding:'16px'}}>
-
-            {/* ── GYMS ── */}
+            {/* ── GYM LOGOS ── */}
             {adminTab==='gyms'&&(
               <div>
-                <div className='adm-label'>Gym Logos verwalten</div>
-                <div className='adm-card'>
-                  <div className='adm-label'>Gym Code</div>
-                  <input className='adm-inp' placeholder='z.B. TGB-2847' value={newGymCode||''} onChange={e=>setNewGymCode(e.target.value)} style={{marginBottom:10}}/>
-                  <label style={{display:'block',border:'2px dashed '+(darkMode?'#333':'#ddd'),borderRadius:8,padding:'20px',textAlign:'center',cursor:'pointer',marginBottom:10,color:darkMode?'#666':'#aaa'}}>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>🏋️ GYM LOGOS</div>
+                <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
+                  {[['GYM CODE',adminGymCode,setAdminGymCode,'z.B. TGB-2847']].map(([lbl,val,set,ph])=>(
+                    <div key={lbl}><div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:4}}>{lbl}</div>
+                    <input value={val} onChange={e=>set(e.target.value)} placeholder={ph} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box'}}/></div>
+                  ))}
+                  <label style={{cursor:'pointer'}}>
                     <input type='file' accept='image/*' style={{display:'none'}} onChange={async(e)=>{
-                      const file=e.target.files?.[0];if(!file||!newGymCode)return;
-                      try{
-                        const url=await uploadPhoto(file,'gyms/'+newGymCode+'.png',session.token);
-                        if(url){
-                          await dbInsert('gym_logos',{gym_code:newGymCode,logo_url:url},session.token);
-                          setGymLogos(g=>({...g,[newGymCode]:url}));
-                          showMsg('✅ Logo gespeichert');
-                          setNewGymCode('');
-                        }
-                      }catch(e){showMsg('Fehler: '+e.message);}
+                      const file=e.target.files[0];if(!file)return;
+                      setAdminSaving(true);
+                      const compressed=await compressImage(file,400,0.9);
+                      const path='gym_logos/'+(adminGymCode||'gym')+'_'+Date.now()+'.jpg';
+                      const url=await uploadPhoto(compressed,path,session.token);
+                      if(url){setAdminGymLogoUrl(url);showMsg('✅ Logo hochgeladen!');}
+                      setAdminSaving(false);
                     }}/>
-                    📷 Logo hochladen
+                    <div style={{padding:'12px',borderRadius:8,border:'1.5px dashed '+(adminGymLogoUrl?RED:'#ccc'),textAlign:'center',background:darkMode?'#111':'#f9f9f9'}}>
+                      {adminGymLogoUrl?<img src={adminGymLogoUrl} style={{width:60,height:60,objectFit:'cover',borderRadius:8}} alt=''/>:<div style={{color:'#aaa',fontSize:12}}>📷 Logo hochladen</div>}
+                    </div>
                   </label>
-                  <button className='adm-btn adm-red' style={{width:'100%'}}>SPEICHERN</button>
+                  <button onClick={async()=>{
+                    if(!adminGymCode||!adminGymLogoUrl){showMsg('Code + Logo eingeben');return;}
+                    setAdminSaving(true);
+                    try{
+                      await fetch(SUPA_URL+'/rest/v1/gym_logos',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'resolution=merge-duplicates'},body:JSON.stringify({gym_code:adminGymCode,logo_url:adminGymLogoUrl,verified:true})});
+                      showMsg('✅ Logo gespeichert!');setAdminGymCode('');setAdminGymLogoUrl('');loadGymLogos();
+                    }catch{showMsg('Fehler');}
+                    setAdminSaving(false);
+                  }} style={{padding:'11px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer',letterSpacing:2}}>SPEICHERN</button>
                 </div>
-                <div className='adm-label'>Vorhandene Logos ({Object.keys(gymLogos).length})</div>
-                {Object.entries(gymLogos).map(([code,url])=>(
-                  <div key={code} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 12px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,marginBottom:6,border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
-                    <img src={url} style={{width:36,height:36,borderRadius:6,objectFit:'cover'}} alt=''/>
-                    <div style={{flex:1,color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:600}}>{code}</div>
+                <div className='rj' style={{color:'#888',fontSize:11,letterSpacing:2,marginBottom:8}}>VORHANDENE LOGOS ({Object.keys(gymLogos).length})</div>
+                {Object.entries(gymLogos).map(([code,g])=>(
+                  <div key={code} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:6}}>
+                    {g.logo_url&&<img src={g.logo_url} style={{width:36,height:36,borderRadius:6,objectFit:'cover'}} alt=''/>}
+                    <div style={{flex:1}}><div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700}}>{code}</div><div style={{color:'#27ae60',fontSize:10}}>✅ Verifiziert</div></div>
+                    <button onClick={async()=>{
+                      await fetch(SUPA_URL+'/rest/v1/gym_logos?gym_code=eq.'+code,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                      showMsg('Gelöscht');loadGymLogos();
+                    }} style={{background:'none',border:'none',color:'#e74c3c',fontSize:16,cursor:'pointer'}}>🗑️</button>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* ── GYM HINZUFÜGEN ── */}
+            {/* ── NEUES GYM HINZUFÜGEN ── */}
             {adminTab==='addgym'&&(
               <div>
-                <div className='adm-label'>Neues Gym hinzufügen</div>
-                <div className='adm-card'>
-                  {[['name','Gym Name','z.B. Black Dragon MMA'],['city','Stadt','z.B. Düsseldorf'],['address','Adresse (optional)','z.B. Hauptstr. 12'],['style','Hauptstil','z.B. MMA']].map(([key,label,ph])=>(
-                    <div key={key} style={{marginBottom:10}}>
-                      <div className='adm-label'>{label}</div>
-                      <input className='adm-inp' placeholder={ph} value={newGymData?.[key]||''} onChange={e=>setNewGymData(p=>({...p,[key]:e.target.value}))}/>
-                    </div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>➕ NEUES GYM</div>
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {[['GYM NAME *',adminGymName,setAdminGymName,'z.B. Tiger Gym Berlin'],['STADT *',adminGymCity,setAdminGymCity,'z.B. Berlin'],['KAMPFSTILE',adminGymStyles,setAdminGymStyles,'z.B. Boxing, MMA, BJJ'],['TELEFON',adminGymPhone,setAdminGymPhone,'+49 ...'],['ÖFFNUNGSZEITEN',adminGymHours,setAdminGymHours,'Mo-Fr 17:00-22:00']].map(([lbl,val,set,ph])=>(
+                    <div key={lbl}><div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:4}}>{lbl}</div>
+                    <input value={val} onChange={e=>set(e.target.value)} placeholder={ph} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/></div>
                   ))}
-                  <button className='adm-btn adm-red' style={{width:'100%'}} onClick={async()=>{
-                    if(!newGymData?.name||!newGymData?.city){showMsg('Name und Stadt pflicht!');return;}
+                  <div><div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:4}}>BESCHREIBUNG</div>
+                  <textarea value={adminGymDesc} onChange={e=>setAdminGymDesc(e.target.value)} placeholder="Kurze Beschreibung des Gyms..." rows={3} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box',resize:'none'}}/></div>
+                  <button onClick={async()=>{
+                    if(!adminGymName||!adminGymCity){showMsg('Name + Stadt eingeben');return;}
+                    const code=adminGymName.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,3)+'-'+Math.floor(1000+Math.random()*9000);
+                    setAdminSaving(true);
                     try{
-                      await fetch(SUPA_URL+'/rest/v1/gyms',{
-                        method:'POST',
-                        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
-                        body:JSON.stringify({name:newGymData.name,city:newGymData.city,address:newGymData.address||'',style:newGymData.style||'',styles:newGymData.style?[newGymData.style]:[],code:newGymData.name.replace(/[^A-Z0-9]/gi,'-').toUpperCase().slice(0,15)+'-'+Date.now().toString().slice(-4),emoji:'🥊',members:0,rating:0})
-                      });
-                      await loadDbGyms(session);
-                      showMsg('✅ '+newGymData.name+' hinzugefügt!');
-                      setNewGymData({});
+                      await fetch(SUPA_URL+'/rest/v1/gym_directory',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:adminGymName,city:adminGymCity,styles:adminGymStyles,phone:adminGymPhone,hours:adminGymHours,description:adminGymDesc,code,verified:false})});
+                      showMsg('✅ Gym hinzugefügt! Code: '+code);
+                      setAdminGymName('');setAdminGymCity('');setAdminGymStyles('');setAdminGymPhone('');setAdminGymHours('');setAdminGymDesc('');
                     }catch(e){showMsg('Fehler: '+e.message);}
-                  }}>GYM HINZUFÜGEN</button>
+                    setAdminSaving(false);
+                  }} style={{padding:'11px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer',letterSpacing:2}}>GYM HINZUFÜGEN</button>
                 </div>
               </div>
             )}
@@ -3306,289 +3293,411 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             {/* ── STADT HINZUFÜGEN ── */}
             {adminTab==='addcity'&&(
               <div>
-                <div className='adm-label'>Neue Stadt + Gym hinzufügen</div>
-                <div className='adm-card'>
-                  {[['city','Stadt','z.B. Hamburg'],['gymName','Gym Name','z.B. Kampfsport Hamburg']].map(([key,label,ph])=>(
-                    <div key={key} style={{marginBottom:10}}>
-                      <div className='adm-label'>{label}</div>
-                      <input className='adm-inp' placeholder={ph} value={newCityData?.[key]||''} onChange={e=>setNewCityData(p=>({...p,[key]:e.target.value}))}/>
-                    </div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:8}}>🌍 NEUE STADT</div>
+                <div style={{color:'#aaa',fontSize:11,marginBottom:12,lineHeight:1.6}}>Koordinaten findest du bei Google Maps — Rechtsklick auf die Stadt → "Was ist hier?"</div>
+                <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
+                  {[['STADTNAME *',adminCityName,setAdminCityName,'z.B. Dortmund'],['BUNDESLAND / KANTON *',adminCityBL,setAdminCityBL,'z.B. Nordrhein-Westfalen'],['BREITENGRAD (lat) *',adminCityLat,setAdminCityLat,'z.B. 51.514'],['LÄNGENGRAD (lon) *',adminCityLon,setAdminCityLon,'z.B. 7.468']].map(([lbl,val,set,ph])=>(
+                    <div key={lbl}><div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:4}}>{lbl}</div>
+                    <input value={val} onChange={e=>set(e.target.value)} placeholder={ph} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box'}}/></div>
                   ))}
-                  <button className='adm-btn adm-red' style={{width:'100%'}} onClick={async()=>{
-                    if(!newCityData?.city){showMsg('Stadt pflicht!');return;}
-                    const gymName=newCityData.gymName||('Kampfsport '+newCityData.city);
-                    try{
-                      await fetch(SUPA_URL+'/rest/v1/gyms',{
-                        method:'POST',
-                        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
-                        body:JSON.stringify({name:gymName,city:newCityData.city,code:gymName.replace(/[^A-Z0-9]/gi,'-').toUpperCase().slice(0,15)+'-'+Date.now().toString().slice(-4),emoji:'🥊',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})
-                      });
-                      await loadDbGyms(session);
-                      showMsg('✅ '+newCityData.city+' hinzugefügt!');
-                      setNewCityData({});
-                    }catch(e){showMsg('Fehler: '+e.message);}
-                  }}>STADT HINZUFÜGEN</button>
                 </div>
+                <div style={{background:darkMode?'#1a1a1a':'#f5f5f5',borderRadius:8,padding:'10px 12px',marginBottom:12,fontSize:11,color:'#aaa',lineHeight:1.8}}>
+                  <div style={{color:darkMode?'#fff':'#555',fontWeight:700,marginBottom:4}}>Code der in App.js eingefügt wird:</div>
+                  <div style={{fontFamily:'monospace',fontSize:12,color:'#27ae60',wordBreak:'break-all'}}>
+                    {adminCityName&&adminCityLat&&adminCityLon?(
+                      `COORDS: '${adminCityName}':{lat:${adminCityLat},lon:${adminCityLon}}
+BUNDESLAND: '${adminCityName}':'${adminCityBL}'`
+                    ):'Felder ausfüllen → Code erscheint hier'}
+                  </div>
+                </div>
+                <button onClick={async()=>{
+                  if(!adminCityName||!adminCityLat||!adminCityLon||!adminCityBL){showMsg('Alle Felder ausfüllen');return;}
+                  // In Supabase city_requests speichern
+                  try{
+                    await fetch(SUPA_URL+'/rest/v1/city_requests',{
+                      method:'POST',
+                      headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+                      body:JSON.stringify({city:adminCityName,lat:parseFloat(adminCityLat),lon:parseFloat(adminCityLon),bundesland:adminCityBL,added_by:session.userId})
+                    });
+                  }catch{}
+                  // Code in Zwischenablage kopieren
+                  const coordsCode=`  '${adminCityName}':{lat:${adminCityLat},lon:${adminCityLon}},`;
+                  const blCode=`  '${adminCityName}':'${adminCityBL}',`;
+                  const fullCode=`COORDS:
+${coordsCode}
+
+BUNDESLAND:
+${blCode}`;
+                  navigator.clipboard?.writeText(fullCode);
+                  showMsg(`✅ Code kopiert! In App.js bei CITY_COORDS und CITY_BUNDESLAND einfügen.`);
+                  setAdminCityName('');setAdminCityLat('');setAdminCityLon('');setAdminCityBL('');
+                }} style={{width:'100%',padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer',letterSpacing:2}}>CODE KOPIEREN</button>
               </div>
             )}
 
-            {/* ── USER ── */}
+            {/* ── USER VERWALTEN ── */}
             {adminTab==='users'&&(
               <div>
-                <button className='adm-btn adm-red' style={{width:'100%',marginBottom:12}} onClick={async()=>{
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>👤 USER ({adminUsers.length})</div>
+                <button onClick={async()=>{
                   try{
                     const resp=await fetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=500',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                     const data=await resp.json();
                     if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
                   }catch(e){showMsg('Fehler: '+e.message);}
-                }}>🔄 USER LADEN ({adminUsers.length})</button>
-
-                {adminUsersLoaded&&(
-                  <div>
-                    {/* Search */}
-                    <input className='adm-inp' placeholder='🔍 User suchen...' style={{marginBottom:12}} onChange={e=>setAdminSearch(e.target.value)} value={adminSearch||''}/>
-                    {(adminSearch?adminUsers.filter(u=>(u.name||'').toLowerCase().includes((adminSearch||'').toLowerCase())||(u.city||'').toLowerCase().includes((adminSearch||'').toLowerCase())):adminUsers).map((u,i)=>(
-                      <div key={i} className='adm-card' style={{padding:'12px',marginBottom:8,opacity:u.banned?0.6:1}}>
-                        <div style={{display:'flex',alignItems:'center',gap:10}}>
-                          {u.avatar_url
-                            ?<img src={u.avatar_url} style={{width:44,height:44,borderRadius:10,objectFit:'cover',flexShrink:0,cursor:'pointer'}} onClick={()=>{setShowAdmin(false);setViewProfile(u);}} alt=''/>
-                            :<div style={{width:44,height:44,borderRadius:10,background:'#c0392b',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:700,fontSize:16,flexShrink:0,cursor:'pointer'}} onClick={()=>{setShowAdmin(false);setViewProfile(u);}}>{(u.name||'?')[0].toUpperCase()}</div>
+                }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>{adminUsersLoaded?'🔄 AKTUALISIEREN':'USER LADEN'}</button>
+                {adminUsers.map(u=>(
+                  <div key={u.id} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,border:'1px solid '+(u.banned?'#e74c3c44':(darkMode?'#2a2a2a':'#eee')),marginBottom:5}}>
+                    {u.avatar_url?<img src={u.avatar_url} style={{width:34,height:34,borderRadius:'50%',objectFit:'cover',opacity:u.banned?0.4:1}} alt=''/>:<div style={{width:34,height:34,borderRadius:'50%',background:'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>👤</div>}
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{color:u.banned?'#e74c3c':(darkMode?'#fff':'#1a1a1a'),fontSize:12,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{u.name||'?'} {u.banned&&'🚫'}</div>
+                      <div style={{color:'#aaa',fontSize:10}}>{u.city} · {u.style} · {new Date(u.created_at).toLocaleDateString('de')}</div>
+                    </div>
+                    <div style={{display:'flex',gap:4}}>
+                      <button onClick={async()=>{
+                        const ban=!u.banned;
+                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({banned:ban})});
+                        setAdminUsers(prev=>prev.map(x=>x.id===u.id?{...x,banned:ban}:x));
+                        showMsg(ban?'User gesperrt 🚫':'User entsperrt ✅');
+                      }} style={{background:u.banned?'#27ae60':'#e74c3c',border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:10,fontWeight:700,cursor:'pointer'}}>{u.banned?'Freig.':'Sperren'}</button>
+                      <button onClick={async()=>{
+                        const msg=window.prompt('Nachricht an '+u.name+':');
+                        if(!msg||!msg.trim())return;
+                        try{
+                          await fetch(SUPA_URL+'/rest/v1/admin_messages',{
+                            method:'POST',
+                            headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
+                            body:JSON.stringify({user_id:u.id,message:msg,from_admin:true,read:false})
+                          });
+                          showMsg('✅ Nachricht gesendet an '+(u.name||'User'));
+                        }catch(e){showMsg('Fehler: '+e.message);}
+                      }} style={{background:'#2980b9',border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:10,fontWeight:700,cursor:'pointer'}}>✉️</button>
+                      <button onClick={async()=>{
+                        if(!window.confirm('User '+u.name+' wirklich löschen? Das kann nicht rückgängig gemacht werden.'))return;
+                        try{
+                          // 1. Alle Daten löschen
+                          await fetch(SUPA_URL+'/rest/v1/messages?sender_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                          await fetch(SUPA_URL+'/rest/v1/swipes?swiper_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                          await fetch(SUPA_URL+'/rest/v1/swipes?target_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                          await fetch(SUPA_URL+'/rest/v1/matches?profile_a_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                          await fetch(SUPA_URL+'/rest/v1/matches?profile_b_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                          // 2. Profile löschen + banned setzen damit Login fehlschlägt
+                          await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({banned:true,name:'[Gelöscht]',avatar_url:null,bio:null})});
+                          // 3. Auth User löschen
+                          const authResp=await fetch(SUPA_URL+'/auth/v1/admin/users/'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,'Content-Type':'application/json','X-Supabase-Admin':SUPA_SERVICE_KEY}});
+                          if(authResp.ok){
+                            await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                            showMsg('✅ User vollständig gelöscht');
+                          }else{
+                            showMsg('✅ User gesperrt + Daten gelöscht (Auth-Account bleibt)');
                           }
-                          <div style={{flex:1,minWidth:0,cursor:'pointer'}} onClick={()=>{setShowAdmin(false);setViewProfile(u);}}>
-                            <div style={{fontWeight:700,fontSize:14,color:darkMode?'#fff':'#1a1a1a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{u.name||'Unbekannt'} {u.banned&&<span style={{background:'#e74c3c',color:'#fff',fontSize:9,padding:'1px 5px',borderRadius:4,marginLeft:4}}>GESPERRT</span>}</div>
-                            <div style={{fontSize:11,color:'#888'}}>{u.style||'?'} · {u.city||'?'} · {u.wins||0}W {u.losses||0}L</div>
-                            <div style={{fontSize:10,color:'#aaa'}}>{u.created_at?new Date(u.created_at).toLocaleDateString('de-DE'):''}</div>
-                          </div>
-                          <div style={{display:'flex',gap:4,flexShrink:0}}>
-                            <button className='adm-btn' style={{background:u.banned?'#27ae60':'#e67e22',color:'#fff',padding:'5px 8px',fontSize:11}} onClick={async()=>{
-                              const ban=!u.banned;
-                              await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({banned:ban})});
-                              setAdminUsers(prev=>prev.map(x=>x.id===u.id?{...x,banned:ban}:x));
-                              showMsg(ban?'User gesperrt':'User entsperrt');
-                            }}>{u.banned?'✓ Frei':'🚫 Sperren'}</button>
-                            <button className='adm-btn adm-blue' style={{padding:'5px 8px',fontSize:11}} onClick={async()=>{
-                              const msg=window.prompt('Nachricht an '+u.name+':');
-                              if(!msg?.trim())return;
-                              try{
-                                await fetch(SUPA_URL+'/rest/v1/admin_messages',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({user_id:u.id,message:msg,from_admin:true,read:false})});
-                                showMsg('✅ Nachricht gesendet');
-                              }catch(e){showMsg('Fehler: '+e.message);}
-                            }}>✉️</button>
-                            <button className='adm-btn' style={{background:'#c0392b',color:'#fff',padding:'5px 8px',fontSize:11}} onClick={async()=>{
-                              if(!window.confirm('User '+u.name+' wirklich löschen?'))return;
-                              try{
-                                await fetch(SUPA_URL+'/rest/v1/swipes?swiper_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
-                                await fetch(SUPA_URL+'/rest/v1/matches?profile_a_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
-                                await fetch(SUPA_URL+'/rest/v1/matches?profile_b_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
-                                await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
-                                try{await fetch(SUPA_URL+'/auth/v1/admin/users/'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});}catch{}
-                                setAdminUsers(prev=>prev.filter(x=>x.id!==u.id));
-                                setCards(prev=>prev.filter(x=>x.id!==u.id));
-                                setAllProfiles(prev=>prev.filter(x=>x.id!==u.id));
-                                setDbMatches(prev=>prev.filter(m=>m.profile_a_id!==u.id&&m.profile_b_id!==u.id));
-                                setWhoLikedMe(prev=>prev.filter(x=>x.id!==u.id));
-                                showMsg('✅ User gelöscht');
-                              }catch(e){showMsg('Fehler: '+e.message);}
-                            }}>🗑️</button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                          setAdminUsers(prev=>prev.filter(x=>x.id!==u.id));
+                          // Aus allen lokalen States entfernen
+                          setCards(prev=>prev.filter(x=>x.id!==u.id));
+                          setAllProfiles(prev=>prev.filter(x=>x.id!==u.id));
+                          setDbMatches(prev=>prev.filter(m=>m.profile_a_id!==u.id&&m.profile_b_id!==u.id));
+                          setWhoLikedMe(prev=>prev.filter(x=>x.id!==u.id));
+                        }catch(e){
+                          showMsg('Fehler: '+e.message);
+                        }
+                      }} style={{background:'none',border:'1px solid #e74c3c',borderRadius:6,padding:'4px 6px',color:'#e74c3c',fontSize:10,cursor:'pointer'}}>🗑️</button>
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
             )}
 
-            {/* ── MELDUNGEN ── */}
+            {/* ── GEMELDETE USER ── */}
             {adminTab==='reports'&&(
               <div>
-                <div className='adm-label'>Eingegangene Meldungen</div>
-                {reports.length===0
-                  ?<div style={{textAlign:'center',padding:'40px',color:'#aaa'}}><div style={{fontSize:32,marginBottom:8}}>✅</div>Keine Meldungen</div>
-                  :reports.map((r,i)=>(
-                    <div key={i} className='adm-card'>
-                      <div style={{fontWeight:700,color:darkMode?'#fff':'#1a1a1a',fontSize:13}}>{r.reporter_name||'?'} meldet {r.reported_name||'?'}</div>
-                      <div style={{color:'#aaa',fontSize:12,marginTop:4}}>{r.reason||'Kein Grund angegeben'}</div>
-                      <div style={{color:'#666',fontSize:10,marginTop:4}}>{r.created_at?new Date(r.created_at).toLocaleDateString('de-DE'):''}</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>🚨 MELDUNGEN</div>
+                <button onClick={async()=>{
+                  try{
+                    const data=await dbSelect('reports','order=created_at.desc&limit=50',session.token);
+                    if(Array.isArray(data))setAdminReports(data);
+                    else setAdminReports([]);
+                  }catch{setAdminReports([]);}
+                }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>MELDUNGEN LADEN</button>
+                {adminReports.length===0&&<div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>Keine Meldungen — oder "Laden" drücken</div>}
+                {adminReports.map((r,i)=>(
+                  <div key={r.id||i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'12px',border:'1px solid #e74c3c44',marginBottom:8}}>
+                    <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                      <div style={{color:RED,fontSize:11,fontWeight:700}}>🚨 {r.reason||'Kein Grund angegeben'}</div>
+                      <div style={{color:'#bbb',fontSize:10}}>{new Date(r.created_at).toLocaleDateString('de')}</div>
                     </div>
-                  ))
-                }
+                    <div style={{color:darkMode?'#aaa':'#666',fontSize:11}}>Gemeldet: <strong>{r.reported_name||r.reported_id}</strong></div>
+                    <div style={{color:'#bbb',fontSize:10,marginTop:2}}>Von: {r.reporter_id?.slice(0,8)}...</div>
+                    <div style={{display:'flex',gap:6,marginTop:8}}>
+                      <button onClick={async()=>{
+                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+r.reported_id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({banned:true})});
+                        showMsg('User gesperrt 🚫');
+                        setAdminReports(prev=>prev.filter(x=>x.id!==r.id));
+                      }} style={{flex:1,padding:'7px',borderRadius:7,background:'#e74c3c',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>🚫 Sperren</button>
+                      <button onClick={async()=>{
+                        await fetch(SUPA_URL+'/rest/v1/reports?id=eq.'+r.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                        setAdminReports(prev=>prev.filter(x=>x.id!==r.id));
+                        showMsg('Meldung ignoriert');
+                      }} style={{flex:1,padding:'7px',borderRadius:7,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#aaa':'#666',fontSize:11,fontWeight:700,cursor:'pointer'}}>✓ Ignorieren</button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
-            {/* ── REKORDE ── */}
+            {/* ── KAMPFREKORD VERIFIZIEREN ── */}
             {adminTab==='records'&&(
               <div>
-                <div className='adm-label'>Ausstehende Rekord-Anträge</div>
-                {recordRequests.length===0
-                  ?<div style={{textAlign:'center',padding:'40px',color:'#aaa'}}><div style={{fontSize:32,marginBottom:8}}>✅</div>Keine Anträge</div>
-                  :recordRequests.map((r,i)=>(
-                    <div key={i} className='adm-card'>
-                      <div style={{fontWeight:700,color:darkMode?'#fff':'#1a1a1a',fontSize:13}}>{r.name}</div>
-                      <div style={{color:'#aaa',fontSize:12}}>{r.wins}W {r.losses}L {r.draws}U {r.ko}KO</div>
-                      {r.record_proof_url&&<img src={r.record_proof_url} style={{width:'100%',borderRadius:8,marginTop:8}} alt=''/>}
-                      <div style={{display:'flex',gap:8,marginTop:10}}>
-                        <button className='adm-btn adm-green' style={{flex:1}} onClick={async()=>{
-                          await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+r.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({record_verified:true})});
-                          setRecordRequests(prev=>prev.filter(x=>x.id!==r.id));
-                          showMsg('✅ Rekord verifiziert');
-                        }}>✓ VERIFIZIEREN</button>
-                        <button className='adm-btn' style={{flex:1,background:'#e74c3c',color:'#fff'}} onClick={()=>setRecordRequests(prev=>prev.filter(x=>x.id!==r.id))}>✕ ABLEHNEN</button>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>🏅 REKORD-ANTRÄGE</div>
+                <button onClick={async()=>{
+                  try{
+                    const data=await dbSelect('profiles','record_verified=eq.pending&select=id,name,city,style,record_proof_url,created_at&limit=30',session.token);
+                    if(Array.isArray(data))setAdminRecords(data);
+                    else setAdminRecords([]);
+                  }catch{setAdminRecords([]);}
+                }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>ANTRÄGE LADEN</button>
+                {adminRecords.length===0&&<div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>Keine offenen Anträge</div>}
+                {adminRecords.map((u,i)=>(
+                  <div key={u.id||i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'12px',border:'1px solid #d4a01744',marginBottom:8}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                      <div style={{flex:1}}>
+                        <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:700}}>{u.name}</div>
+                        <div style={{color:'#aaa',fontSize:10}}>{u.city} · {u.style}</div>
                       </div>
+                      <div style={{background:'#d4a01722',borderRadius:6,padding:'2px 7px',color:'#d4a017',fontSize:10,fontWeight:700}}>⏳ WARTEND</div>
                     </div>
-                  ))
-                }
+                    {u.record_proof_url&&<img src={u.record_proof_url} style={{width:'100%',borderRadius:8,marginBottom:8,maxHeight:200,objectFit:'contain',background:'#f0f0f0'}} alt='Nachweis'/>}
+                    <div style={{display:'flex',gap:6}}>
+                      <button onClick={async()=>{
+                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({record_verified:'verified'})});
+                        setAdminRecords(prev=>prev.filter(x=>x.id!==u.id));
+                        showMsg('✅ Rekord verifiziert!');
+                      }} style={{flex:1,padding:'8px',borderRadius:7,background:'#27ae60',border:'none',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer'}}>✅ Bestätigen</button>
+                      <button onClick={async()=>{
+                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({record_verified:'rejected'})});
+                        setAdminRecords(prev=>prev.filter(x=>x.id!==u.id));
+                        showMsg('❌ Abgelehnt');
+                      }} style={{flex:1,padding:'8px',borderRadius:7,background:'#e74c3c',border:'none',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer'}}>❌ Ablehnen</button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
             {/* ── BROADCAST ── */}
             {adminTab==='broadcast'&&(
               <div>
-                <div className='adm-label'>Nachricht an alle User</div>
-                <div className='adm-card'>
-                  <div className='adm-label'>Nachricht</div>
-                  <textarea className='adm-inp' rows={4} placeholder='Deine Nachricht an alle Fighter...' style={{resize:'none',marginBottom:10}} value={broadcastMsg||''} onChange={e=>setBroadcastMsg(e.target.value)}/>
-                  <button className='adm-btn adm-red' style={{width:'100%'}} onClick={async()=>{
-                    if(!broadcastMsg?.trim())return;
-                    if(!window.confirm('Nachricht an ALLE senden?'))return;
-                    try{
-                      await dbInsert('broadcasts',{message:broadcastMsg,sent_by:session.userId,created_at:new Date().toISOString()},session.token);
-                      showMsg('✅ Broadcast gesendet!');
-                      setBroadcastMsg('');
-                    }catch(e){showMsg('Fehler: '+e.message);}
-                  }}>📢 AN ALLE SENDEN</button>
-                </div>
-              </div>
-            )}
-
-            {/* ── STATS ── */}
-            {adminTab==='stats'&&(
-              <div>
-                <button className='adm-btn adm-red' style={{width:'100%',marginBottom:12}} onClick={async()=>{
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>📢 NACHRICHT AN ALLE</div>
+                <div style={{color:'#aaa',fontSize:11,marginBottom:12,lineHeight:1.6}}>Sende eine Systemnachricht die alle User beim nächsten Öffnen der App sehen.</div>
+                <textarea value={adminBroadcast} onChange={e=>setAdminBroadcast(e.target.value)} placeholder="z.B. Neues Feature: Jetzt Gym-Seiten besuchen! 🏋️" rows={4} style={{width:'100%',padding:'12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',resize:'none',marginBottom:10}}/>
+                <button onClick={async()=>{
+                  if(!adminBroadcast.trim()){showMsg('Nachricht eingeben');return;}
+                  setAdminSaving(true);
                   try{
-                    const resp=await fetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=500',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
-                    const data=await resp.json();
-                    if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
-                  }catch(e){showMsg('Fehler: '+e.message);}
-                }}>🔄 STATS AKTUALISIEREN</button>
-                {adminUsersLoaded&&(
-                  <>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
-                      {[['👤','Gesamt',adminUsers.length],['🟢','Heute aktiv',adminUsers.filter(u=>u.last_seen&&(Date.now()-new Date(u.last_seen).getTime())<86400000).length],['📅','Diese Woche',adminUsers.filter(u=>u.last_seen&&(Date.now()-new Date(u.last_seen).getTime())<604800000).length],['🚫','Gesperrt',adminUsers.filter(u=>u.banned).length]].map(([icon,label,val])=>(
-                        <div key={label} className='adm-card' style={{textAlign:'center',padding:'14px 8px'}}>
-                          <div style={{fontSize:22}}>{icon}</div>
-                          <div style={{color:'#c0392b',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:28}}>{val}</div>
-                          <div style={{color:'#888',fontSize:10}}>{label}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className='adm-card'>
-                      <div className='adm-label'>Neue User heute</div>
-                      {adminUsers.filter(u=>u.created_at&&(Date.now()-new Date(u.created_at).getTime())<86400000).length===0
-                        ?<div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'12px'}}>Keine neuen User heute</div>
-                        :adminUsers.filter(u=>u.created_at&&(Date.now()-new Date(u.created_at).getTime())<86400000).map((u,i)=>(
-                          <div key={i} className='adm-user-row' onClick={()=>{setShowAdmin(false);setViewProfile(u);}} style={{cursor:'pointer'}}>
-                            {u.avatar_url?<img src={u.avatar_url} style={{width:32,height:32,borderRadius:8,objectFit:'cover'}} alt=''/>:<div style={{width:32,height:32,borderRadius:8,background:'#c0392b',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:700,fontSize:13}}>{(u.name||'?')[0]}</div>}
-                            <div style={{flex:1}}><div style={{fontWeight:600,fontSize:13,color:darkMode?'#fff':'#1a1a1a'}}>{u.name||'?'}</div><div style={{fontSize:11,color:'#888'}}>{u.style} · {u.city}</div></div>
-                            <div style={{fontSize:10,color:'#aaa'}}>{u.created_at?new Date(u.created_at).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):''}</div>
-                          </div>
-                        ))
-                      }
-                    </div>
-                    <div className='adm-card'>
-                      <div className='adm-label'>Alle User ({adminUsers.length})</div>
-                      {adminUsers.map((u,i)=>(
-                        <div key={i} className='adm-user-row' onClick={()=>{setShowAdmin(false);setViewProfile(u);}} style={{cursor:'pointer',opacity:u.banned?0.5:1}}>
-                          {u.avatar_url?<img src={u.avatar_url} style={{width:32,height:32,borderRadius:8,objectFit:'cover'}} alt=''/>:<div style={{width:32,height:32,borderRadius:8,background:'#c0392b',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:700,fontSize:13}}>{(u.name||'?')[0]}</div>}
-                          <div style={{flex:1}}><div style={{fontWeight:600,fontSize:13,color:darkMode?'#fff':'#1a1a1a'}}>{u.name||'?'} {u.banned&&'🚫'}</div><div style={{fontSize:11,color:'#888'}}>{u.style} · {u.city}</div></div>
-                          <div style={{fontSize:10,color:'#aaa'}}>{u.created_at?new Date(u.created_at).toLocaleDateString('de-DE'):''}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
+                    await fetch(SUPA_URL+'/rest/v1/broadcasts',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({message:adminBroadcast,created_by:session.userId,active:true})});
+                    showMsg('✅ Nachricht gesendet!');setAdminBroadcast('');
+                  }catch{showMsg('Fehler — broadcasts Tabelle anlegen');}
+                  setAdminSaving(false);
+                }} style={{width:'100%',padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,cursor:'pointer',letterSpacing:2}}>📢 SENDEN</button>
               </div>
             )}
 
-            {/* ── SCANNER ── */}
+            {/* ── STATISTIKEN ── */}
             {adminTab==='scanner'&&(
               <div>
-                <div className='adm-label'>Fehlende Städte & Gyms finden</div>
-                <button className='adm-btn adm-red' style={{width:'100%',marginBottom:16}} onClick={async()=>{
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>🔍 STÄDTE & GYMS SCANNER</div>
+                <button onClick={async()=>{
                   showMsg('Scanne alle Profile...');
                   try{
+                    // Alle Profile laden
                     const resp=await fetch(SUPA_URL+'/rest/v1/profiles?select=city,gym&limit=500',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                     const profiles=await resp.json();
+                    // Bekannte Städte aus DB — mit Session Token
                     const gymResp=await fetch(SUPA_URL+'/rest/v1/gyms?select=city,name',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                     const existingGyms=await gymResp.json();
                     const norm=s=>(s||'').toLowerCase().trim().replace(/ü/g,'ue').replace(/ö/g,'oe').replace(/ä/g,'ae').replace(/ß/g,'ss');
                     const existingCities=new Set();
                     const existingGymNames=new Set();
-                    if(Array.isArray(existingGyms))existingGyms.forEach(g=>{if(g.city)existingCities.add(norm(g.city));if(g.name)existingGymNames.add(norm(g.name));});
+                    if(Array.isArray(existingGyms))existingGyms.forEach(g=>{
+                      if(g.city)existingCities.add(norm(g.city));
+                      if(g.name)existingGymNames.add(norm(g.name));
+                    });
+                    // Hardcoded Städte auch ausschließen
                     Object.keys(GYMS).forEach(c=>existingCities.add(norm(c)));
+                    // Alle hardcoded Gym-Namen
                     Object.values(GYMS).flat().forEach(g=>{if(g.name)existingGymNames.add(norm(g.name));});
-                    const newCities={};const newGyms={};
+                    // Neue Städte finden
+                    const newCities={};
+                    const newGyms={};
                     if(Array.isArray(profiles)){
                       profiles.forEach(p=>{
-                        if(p.city&&!existingCities.has(norm(p.city)))newCities[p.city]=(newCities[p.city]||0)+1;
-                        if(p.gym&&!existingGymNames.has(norm(p.gym))){if(!newGyms[p.gym])newGyms[p.gym]={city:p.city,count:0};newGyms[p.gym].count++;}
+                        if(p.city&&!existingCities.has(norm(p.city))){
+                          newCities[p.city]=(newCities[p.city]||0)+1;
+                        }
+                        if(p.gym&&!existingGymNames.has(norm(p.gym))){
+                          if(!newGyms[p.gym])newGyms[p.gym]={city:p.city,count:0};
+                          newGyms[p.gym].count++;
+                        }
                       });
                     }
                     setScanResult({cities:Object.entries(newCities).sort((a,b)=>b[1]-a[1]),gyms:Object.entries(newGyms).sort((a,b)=>b[1].count-a[1].count)});
-                    showMsg('Scan fertig!');
+                    showMsg('Scan abgeschlossen!');
                   }catch(e){showMsg('Fehler: '+e.message);}
-                }}>🔍 JETZT SCANNEN</button>
-
+                }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:16}}>
+                  🔍 JETZT SCANNEN
+                </button>
                 {scanResult&&(
                   <>
+                    {/* Fehlende Städte */}
                     {scanResult.cities.length>0&&(
-                      <div className='adm-card'>
-                        <div className='adm-label'>Fehlende Städte ({scanResult.cities.length})</div>
+                      <div style={{marginBottom:16}}>
+                        <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>FEHLENDE STÄDTE ({scanResult.cities.length})</div>
                         {scanResult.cities.map(([city,count])=>(
-                          <div key={city} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
-                            <div style={{flex:1}}><div style={{fontWeight:600,fontSize:13,color:darkMode?'#fff':'#1a1a1a'}}>{city}</div><div style={{fontSize:11,color:'#888'}}>{count} User</div></div>
-                            <button className='adm-btn adm-green' style={{padding:'5px 10px',fontSize:11}} onClick={async()=>{
-                              const gymName=window.prompt('Gym Name für '+city+':') || ('Kampfsport '+city);
+                          <div key={city} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,marginBottom:6,border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                            <div style={{flex:1}}>
+                              <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:600}}>{city}</div>
+                              <div style={{color:'#aaa',fontSize:11}}>{count} User</div>
+                            </div>
+                            <button onClick={async()=>{
                               try{
-                                await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:gymName,city,code:gymName.replace(/[^A-Z0-9]/gi,'-').toUpperCase().slice(0,15)+'-'+Date.now().toString().slice(-4),emoji:'🥊',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})});
+                                // Nur Stadt hinzufügen — User kann danach Gym Namen eingeben
+                                const gymName=window.prompt('Gym Name für '+city+' (oder leer lassen):');
+                                const name=gymName&&gymName.trim()?gymName.trim():'Kampfsport '+city;
+                                await fetch(SUPA_URL+'/rest/v1/gyms',{
+                                  method:'POST',
+                                  headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
+                                  body:JSON.stringify({name,city,code:name.toUpperCase().replace(/[^A-Z0-9]/g,'-').slice(0,20)+'-'+Date.now().toString().slice(-4),emoji:'🥊',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})
+                                });
                                 setScanResult(prev=>({...prev,cities:prev.cities.filter(([c])=>c!==city)}));
                                 await loadDbGyms(session);
                                 showMsg('✅ '+city+' hinzugefügt');
                               }catch(e){showMsg('Fehler: '+e.message);}
-                            }}>+ Hinzufügen</button>
+                            }} style={{background:'#27ae60',border:'none',borderRadius:6,padding:'6px 10px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>+ Hinzufügen</button>
                           </div>
                         ))}
                       </div>
                     )}
+                    {/* Fehlende Gyms */}
                     {scanResult.gyms.length>0&&(
-                      <div className='adm-card'>
-                        <div className='adm-label'>Fehlende Gyms ({scanResult.gyms.length})</div>
+                      <div>
+                        <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>FEHLENDE GYMS ({scanResult.gyms.length})</div>
                         {scanResult.gyms.map(([gym,data])=>(
-                          <div key={gym} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
-                            <div style={{flex:1}}><div style={{fontWeight:600,fontSize:13,color:darkMode?'#fff':'#1a1a1a'}}>{gym}</div><div style={{fontSize:11,color:'#888'}}>{data.city||'?'} · {data.count} User</div></div>
-                            <button className='adm-btn adm-green' style={{padding:'5px 10px',fontSize:11}} onClick={async()=>{
+                          <div key={gym} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,marginBottom:6,border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                            <div style={{flex:1}}>
+                              <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:600}}>{gym}</div>
+                              <div style={{color:'#aaa',fontSize:11}}>{data.city||'?'} · {data.count} User</div>
+                            </div>
+                            <button onClick={async()=>{
                               try{
-                                await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:gym,city:data.city||'Unbekannt',code:gym.replace(/[^A-Z0-9]/gi,'-').toUpperCase().slice(0,15)+'-'+Date.now().toString().slice(-4),emoji:'🥊',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})});
+                                await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({name:gym,city:data.city||'Unbekannt',code:gym.toUpperCase().replace(/\s/g,'-').slice(0,20),emoji:'🥊',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})});
                                 setScanResult(prev=>({...prev,gyms:prev.gyms.filter(([g])=>g!==gym)}));
                                 await loadDbGyms(session);
                                 showMsg('✅ '+gym+' hinzugefügt');
                               }catch(e){showMsg('Fehler: '+e.message);}
-                            }}>+ Hinzufügen</button>
+                            }} style={{background:'#27ae60',border:'none',borderRadius:6,padding:'6px 10px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>+ Hinzufügen</button>
                           </div>
                         ))}
                       </div>
                     )}
                     {scanResult.cities.length===0&&scanResult.gyms.length===0&&(
-                      <div style={{textAlign:'center',padding:'40px',color:'#aaa'}}><div style={{fontSize:32,marginBottom:8}}>✅</div>Alles erfasst!</div>
+                      <div style={{textAlign:'center',padding:'30px',color:darkMode?'#555':'#bbb'}}>
+                        <div style={{fontSize:32,marginBottom:8}}>✅</div>
+                        <div style={{fontSize:14}}>Alle Städte und Gyms sind bereits erfasst!</div>
+                      </div>
                     )}
                   </>
                 )}
               </div>
             )}
 
+            {adminTab==='stats'&&(
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>📊 ECHTZEIT STATISTIKEN</div>
+                <button onClick={async()=>{
+                  try{
+                    const resp=await fetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=500',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                    const data=await resp.json();
+                    if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
+                  }catch(e){showMsg('Fehler: '+e.message);}
+                }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:12}}>
+                  🔄 STATS AKTUALISIEREN
+                </button>
+                {adminUsersLoaded&&(
+                  <>
+                    {/* Haupt-Stats */}
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
+                      {[
+                        ['👤','Gesamt User',adminUsers.length],
+                        ['🟢','Heute aktiv',adminUsers.filter(u=>u.last_seen&&(Date.now()-new Date(u.last_seen).getTime())<86400000).length],
+                        ['⚡','Diese Woche',adminUsers.filter(u=>u.last_seen&&(Date.now()-new Date(u.last_seen).getTime())<604800000).length],
+                        ['🚫','Gesperrt',adminUsers.filter(u=>u.banned).length],
+                      ].map(([icon,label,val])=>(
+                        <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px 12px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),textAlign:'center'}}>
+                          <div style={{fontSize:22}}>{icon}</div>
+                          <div style={{color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:28,lineHeight:1}}>{val}</div>
+                          <div style={{color:darkMode?'#aaa':'#888',fontSize:10,marginTop:2}}>{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Neue User heute */}
+                    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:8}}>
+                      <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>NEUE USER HEUTE</div>
+                      {adminUsers.filter(u=>u.created_at&&(Date.now()-new Date(u.created_at).getTime())<86400000).length===0
+                        ?<div style={{color:darkMode?'#555':'#bbb',fontSize:12,textAlign:'center',padding:'8px 0'}}>Noch keine neuen User heute</div>
+                        :adminUsers.filter(u=>u.created_at&&(Date.now()-new Date(u.created_at).getTime())<86400000).map((u,i)=>(
+                          <div key={i} onClick={()=>{setShowAdmin(false);setViewProfile(u);}} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
+                            {u.avatar_url?<img src={u.avatar_url} style={{width:28,height:28,borderRadius:'50%',objectFit:'cover',flexShrink:0}} alt=''/>:<div style={{width:28,height:28,borderRadius:'50%',background:RED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,color:'#fff',fontWeight:700,flexShrink:0}}>{u.name?u.name[0].toUpperCase():'?'}</div>}
+                            <div style={{flex:1}}>
+                              <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:600}}>{u.name||'Unbekannt'}</div>
+                              <div style={{color:darkMode?'#666':'#aaa',fontSize:10}}>{u.style||'?'} · {u.city||'?'}</div>
+                            </div>
+                            <div style={{color:darkMode?'#555':'#bbb',fontSize:10}}>{u.created_at?new Date(u.created_at).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'?'}</div>
+                          </div>
+                        ))
+                      }
+                    </div>
+                    {/* Alle User */}
+                    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:8}}>
+                      <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>ALLE USER ({adminUsers.length})</div>
+                      {adminUsers.map((u,i)=>(
+                        <div key={i} onClick={()=>{setShowAdmin(false);setViewProfile(u);}} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
+                          {u.avatar_url?<img src={u.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover',flexShrink:0,opacity:u.banned?0.4:1}} alt=''/>:<div style={{width:32,height:32,borderRadius:'50%',background:u.banned?'#555':RED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#fff',fontWeight:700,flexShrink:0}}>{u.name?u.name[0].toUpperCase():'?'}</div>}
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{color:u.banned?'#e74c3c':(darkMode?'#fff':'#1a1a1a'),fontSize:12,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{u.name||'Unbekannt'} {u.banned&&'🚫'}</div>
+                            <div style={{color:darkMode?'#666':'#aaa',fontSize:10}}>{u.style||'?'} · {u.city||'?'}</div>
+                          </div>
+                          <div style={{color:darkMode?'#555':'#888',fontSize:10,flexShrink:0}}>{u.created_at?new Date(u.created_at).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}):'?'}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Top Städte */}
+                    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:8}}>
+                      <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>TOP STÄDTE</div>
+                      {(()=>{const cnt={};adminUsers.forEach(u=>{if(u.city)cnt[u.city]=(cnt[u.city]||0)+1;});return Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([city,count],i)=>(
+                        <div key={city} style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5')}}>
+                          <span style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13}}>{i===0?'🥇':i===1?'🥈':i===2?'🥉':'  '} {city}</span>
+                          <span style={{color:RED,fontWeight:700,fontSize:13}}>{count}</span>
+                        </div>
+                      ))})()}
+                    </div>
+                    {/* Top Kampfstile */}
+                    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                      <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>TOP KAMPFSTILE</div>
+                      {(()=>{const cnt={};adminUsers.forEach(u=>{if(u.style)cnt[u.style]=(cnt[u.style]||0)+1;});return Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([style,count],i)=>(
+                        <div key={style} style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5')}}>
+                          <span style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13}}>{style}</span>
+                          <span style={{color:RED,fontWeight:700,fontSize:13}}>{count}</span>
+                        </div>
+                      ))})()}
+                    </div>
+                  </>
+                )}
+                {!adminUsersLoaded&&<div style={{color:darkMode?'#555':'#bbb',fontSize:13,textAlign:'center',padding:'20px 0'}}>Klicke auf "Stats aktualisieren" um die Daten zu laden</div>}
+              </div>
+            )}
+
           </div>
         </div>
-      )}}
+      )}
       {showImgEditor&&imgEditorSrc&&(
         <ImgPositionEditor
           src={imgEditorSrc}
