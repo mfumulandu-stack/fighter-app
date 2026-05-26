@@ -1813,7 +1813,7 @@ export default function App(){
   const kr=stats.wins>0?Math.round((stats.ko/stats.wins)*100):0;
   const allF=profile.name?[{id:0,name:profile.name,age:profile.age,city:profile.city,gym:profile.gym,weight_class:profile.weightClass,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'🥊',accent:RED,isMe:true,avatar_url:avatarUrl}].concat(FIGHTERS):FIGHTERS;
   const proRanked=[...PRO_FIGHTERS].filter(f=>rankF==='All'||f.style===rankF).sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
-  // Rangliste: ALLE angemeldeten User aus Datenbank
+  // Rangliste: ALLE angemeldeten User aus Datenbank — kein Fallback mehr
   const userOnly=(()=>{
     const me=profile.name?[{id:0,name:profile.name,city:profile.city,gym:profile.gym,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'🥊',accent:RED,isMe:true,avatar_url:avatarUrl}]:[];
     if(allProfiles.length>0){
@@ -1824,11 +1824,8 @@ export default function App(){
       }));
       return [...me,...others];
     }
-    // Fallback: cards + matches
-    const fallback=[...cards,...dbMatches.map(m=>m.profile_a_id===myProfile?.id?m.profile_b:m.profile_a).filter(Boolean)];
-    const seen=new Set();
-    const unique=fallback.filter(f=>{if(!f||!f.id||seen.has(f.id))return false;seen.add(f.id);return true;});
-    return [...me,...unique];
+    // Noch am Laden — nur ich anzeigen
+    return me;
   })();
   const ranked=rankMode==='pro'?proRanked:[...userOnly].filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF)))).sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
