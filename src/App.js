@@ -1415,8 +1415,10 @@ export default function App(){
       }
       if(!Array.isArray(all))return;
       const swiped=await dbSelect('swipes','swiper_id=eq.'+myP.id,s.token);
+      // Also filter out matches — no need to show already matched people
+      const matchedIds=dbMatches.map(m=>m.profile_a_id===myP.id?m.profile_b_id:m.profile_a_id);
       const swipedIds=Array.isArray(swiped)?swiped.map(x=>x.target_id):[];
-      const fresh=all.filter(f=>!swipedIds.includes(f.id)&&!f.banned);
+      const fresh=all.filter(f=>!swipedIds.includes(f.id)&&!f.banned&&!matchedIds.includes(f.id));
       // Immer setzen — auch wenn wenige übrig, damit neue User direkt erscheinen
       setCards([...fresh]);
     }catch{}
@@ -2250,13 +2252,10 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
           <div style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:8}}>
             {/* WER HAT MICH GELIKET Banner */}
             {whoLikedMe.length>0&&(
-              <div onClick={()=>{setWhoLikedTab(true);setNewLikesCount(0);try{const now=new Date().toISOString();localStorage.setItem('fighter_likes_check',now);setLastLikesCheck(now);}catch{}}} style={{width:'calc(100% - 24px)',maxWidth:420,marginBottom:8,background:darkMode?'#1a0808':'#fff5f5',border:'1px solid '+RED+'55',borderRadius:12,padding:'10px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer'}}>
-                <div style={{fontSize:20}}>❤️</div>
-                <div style={{flex:1}}>
-                  <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{whoLikedMe.length} Fighter interessieren sich für dich</div>
-                  <div style={{color:RED,fontSize:11,marginTop:1}}>Tippe um zu sehen wer — vielleicht dein nächster Fight</div>
-                </div>
-                {newLikesCount>0&&<div style={{background:RED,color:'#fff',borderRadius:'50%',width:22,height:22,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,flexShrink:0}}>{newLikesCount}</div>}
+              <div onClick={()=>{setWhoLikedTab(true);setNewLikesCount(0);try{const now=new Date().toISOString();localStorage.setItem('fighter_likes_check',now);setLastLikesCheck(now);}catch{}}} style={{width:'calc(100% - 24px)',maxWidth:420,marginBottom:6,background:'transparent',border:'1px solid '+RED+'33',borderRadius:8,padding:'6px 12px',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
+                <div style={{fontSize:14}}>❤️</div>
+                <div style={{flex:1,color:darkMode?'#aaa':'#888',fontSize:11}}>{whoLikedMe.length} Fighter interessieren sich für dich</div>
+                {newLikesCount>0&&<div style={{background:RED,color:'#fff',borderRadius:'50%',width:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,flexShrink:0}}>{newLikesCount}</div>}
               </div>
             )}
             <div style={{width:'calc(100% - 24px)',maxWidth:380,margin:'0 0 8px',background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'9px 12px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
