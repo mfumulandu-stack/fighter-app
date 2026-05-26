@@ -1419,8 +1419,15 @@ export default function App(){
       const matchedIds=dbMatches.map(m=>m.profile_a_id===myP.id?m.profile_b_id:m.profile_a_id);
       const swipedIds=Array.isArray(swiped)?swiped.map(x=>x.target_id):[];
       const fresh=all.filter(f=>!swipedIds.includes(f.id)&&!f.banned&&!matchedIds.includes(f.id));
-      // Immer setzen — auch wenn wenige übrig, damit neue User direkt erscheinen
-      setCards([...fresh]);
+      // Nur neue Fighter hinzufügen — bestehende Karten nicht überschreiben
+      setCards(prev=>{
+        const existingIds=new Set(prev.map(c=>c.id));
+        const newOnes=fresh.filter(f=>!existingIds.has(f.id));
+        // Wenn keine Karten mehr oder erste Ladung — alles setzen
+        if(prev.length===0)return [...fresh];
+        // Sonst nur neue hinzufügen am Ende
+        return newOnes.length>0?[...prev,...newOnes]:prev;
+      });
     }catch{}
   }
 
