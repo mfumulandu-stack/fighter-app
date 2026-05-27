@@ -1068,10 +1068,6 @@ export default function App(){
   const [lastAct,setLastAct]=useState(null);
   const [lastSwiped,setLastSwiped]=useState(null);
   const [lightboxImg,setLightboxImg]=useState(null);
-  const [imgPosition,setImgPosition]=useState({x:50,y:50}); // % position
-  const [showImgEditor,setShowImgEditor]=useState(false);
-  const [imgEditorSrc,setImgEditorSrc]=useState(null);
-  const [imgEditorCallback,setImgEditorCallback]=useState(null);
   const [recentSwiped,setRecentSwiped]=useState([]);
   const [whoLikedMe,setWhoLikedMe]=useState([]);
   const [adminMessages,setAdminMessages]=useState([]);
@@ -1350,7 +1346,7 @@ export default function App(){
     const interval=setInterval(async()=>{
       await loadRealFighters(session,myProfile);
       await loadAllProfiles(session);
-    },60000); // alle 60 Sekunden — weniger Sprünge // alle 60 Sekunden
+    },30000); // alle 30 Sekunden für schnellere Updates // alle 60 Sekunden
     return()=>clearInterval(interval);
   },[session?.userId,myProfile?.id]);
 
@@ -1425,14 +1421,12 @@ export default function App(){
       const fresh=all.filter(f=>!swipedIds.includes(f.id)&&!f.banned&&!matchedIds.includes(f.id));
       // Nur neue Fighter hinzufügen — bestehende Karten nicht überschreiben
       setCards(prev=>{
-        // Wenn leer — alles setzen
-        if(prev.length===0)return [...fresh];
-        // Bestehende IDs merken
         const existingIds=new Set(prev.map(c=>c.id));
-        // Nur wirklich neue Fighter hinzufügen — NIE bestehende entfernen oder sortieren
         const newOnes=fresh.filter(f=>!existingIds.has(f.id));
-        if(newOnes.length>0)return [...prev,...newOnes];
-        return prev; // Keine Änderung wenn nichts Neues
+        // Wenn keine Karten mehr oder erste Ladung — alles setzen
+        if(prev.length===0)return [...fresh];
+        // Sonst nur neue hinzufügen am Ende
+        return newOnes.length>0?[...prev,...newOnes]:prev;
       });
     }catch{}
   }
@@ -1489,12 +1483,7 @@ export default function App(){
         headers:{apikey:SUPA_KEY,Authorization:'Bearer '+token}
       });
       const data=await resp.json();
-      if(Array.isArray(data)&&data.length>0){
-        setDbGyms(data);
-        // Setze erste verfügbare Stadt
-        const firstCity=data[0]?.city;
-        if(firstCity)setCity(c=>c==='Berlin'?firstCity:c);
-      }
+      if(Array.isArray(data)){setDbGyms(data);}
     }catch(e){console.log('loadDbGyms error',e);}
   }
 
@@ -1693,31 +1682,16 @@ export default function App(){
 
   async function handlePhoto(e){
     const file=e.target.files[0];if(!file||!session)return;
-    // Erst Editor zeigen
-    const reader=new FileReader();
-    reader.onload=ev=>{
-      setImgEditorSrc(ev.target.result);
-      setImgEditorCallback(()=>async(pos)=>{
-        setShowImgEditor(false);
-        setImgPosition(pos);
-        setUploading(true);
-        setAvatarPreview(ev.target.result);
-        showMsg('Foto wird komprimiert...');
-        const compressed=await compressImage(file,800,0.82);
-        const sizeMB=(compressed.size/1024/1024).toFixed(1);
-        const path='fighter_'+session.userId+'_'+Date.now()+'.jpg';
-        const url=await uploadPhoto(compressed,path,session.token);
-        if(url){
-          setAvatarUrl(url);
-          setProfile(p=>({...p,avatar_url:url,img_pos_x:pos.x,img_pos_y:pos.y}));
-          showMsg('Foto hochgeladen! ('+sizeMB+'MB)');
-        } else showMsg('Upload fehlgeschlagen');
-        setUploading(false);
-      });
-      setShowImgEditor(true);
-    };
-    reader.readAsDataURL(file);
-    // dummy to match closing braces
+    setUploading(true);
+    setAvatarPreview(URL.createObjectURL(file));
+    showMsg('Foto wird komprimiert...');
+    const compressed=await compressImage(file,800,0.82);
+    const sizeMB=(compressed.size/1024/1024).toFixed(1);
+    const path='fighter_'+session.userId+'_'+Date.now()+'.jpg';
+    const url=await uploadPhoto(compressed,path,session.token);
+    if(url){setAvatarUrl(url);showMsg('Foto hochgeladen! ('+sizeMB+'MB)');}
+    else showMsg('Upload fehlgeschlagen');
+    setUploading(false);
   }
 
   const myWeightClass=myProfile?.weight_class||profile?.weightClass||'';
@@ -1998,14 +1972,6 @@ export default function App(){
           </button>
         </div>
       </div>
-      {showImgEditor&&imgEditorSrc&&(
-        <ImgPositionEditor
-          src={imgEditorSrc}
-          onSave={imgEditorCallback}
-          onCancel={()=>setShowImgEditor(false)}
-          darkMode={darkMode}
-        />
-      )}
       {lightboxImg&&(
         <div onClick={()=>setLightboxImg(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.97)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',cursor:'zoom-out'}}>
           <img src={lightboxImg} style={{maxWidth:'100%',maxHeight:'100%',objectFit:'contain'}} alt=''/>
@@ -2078,9 +2044,6 @@ export default function App(){
   if(screen==='setup')return(
     <div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'0 0 40px'}}>
       <style>{css}</style>
-      {showImgEditor&&imgEditorSrc&&(
-        <ImgPositionEditor src={imgEditorSrc} onSave={imgEditorCallback} onCancel={()=>setShowImgEditor(false)} darkMode={darkMode}/>
-      )}
       <div style={{width:'100%',maxWidth:420,padding:'32px 24px 0',textAlign:'center'}}>
         <div className='rj fadeUp' style={{fontSize:64,color:'#1a1a1a',letterSpacing:6,lineHeight:1}}>FIGHTER</div>
         <div style={{color:RED,fontSize:11,letterSpacing:7,marginTop:5,fontWeight:600}}>FINDE DEINEN GEGNER</div>
@@ -2097,7 +2060,7 @@ export default function App(){
                 <div style={{position:'relative',display:'inline-block'}}>
                   <div style={{width:110,height:110,borderRadius:'50%',background:avatarPreview?'#000':'#fdf0ef',border:'3px solid '+(avatarPreview?RED:'#e74c3c'),display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',margin:'0 auto',animation:avatarPreview?'none':'pulse 1.8s infinite',boxShadow:avatarPreview?'0 4px 16px rgba(192,57,43,0.3)':'0 0 0 6px rgba(231,76,60,0.15)'}}>
                     {uploading?<div style={{fontSize:28}} className='spin'>⏳</div>
-                      :avatarPreview?<img src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:(profile.img_pos_x||50)+'% '+(profile.img_pos_y||50)+'%'}} alt='avatar'/>
+                      :avatarPreview?<img src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='avatar'/>
                       :<div style={{textAlign:'center'}}><div style={{fontSize:36}}>📸</div><div style={{color:RED,fontSize:10,marginTop:4,fontWeight:700}}>FOTO</div></div>}
                   </div>
                   {!avatarPreview&&<div style={{position:'absolute',top:-4,right:-4,background:RED,borderRadius:10,padding:'2px 6px',fontSize:9,color:'#fff',fontWeight:700,fontFamily:'Rajdhani,sans-serif',letterSpacing:1}}>PFLICHT</div>}
@@ -2623,7 +2586,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <label style={{cursor:'pointer'}}>
                   <input type='file' accept='image/*' onChange={handlePhoto} style={{display:'none'}}/>
                   <div style={{width:160,height:160,borderRadius:16,background:'#f0f0f0',border:'3px solid '+(avatarPreview?RED:'#ddd'),overflow:'hidden',margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                    {uploading?<div style={{fontSize:24}} className='spin'>⏳</div>:avatarPreview?<img src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:(profile.img_pos_x||50)+'% '+(profile.img_pos_y||50)+'%'}} alt='avatar'/>:<div style={{fontSize:32}}>👤</div>}
+                    {uploading?<div style={{fontSize:24}} className='spin'>⏳</div>:avatarPreview?<img src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='avatar'/>:<div style={{fontSize:32}}>👤</div>}
                   </div>
                   <div style={{position:'absolute',bottom:0,right:0,background:RED,borderRadius:'50%',width:24,height:24,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12}}>📷</div>
                 </label>
@@ -2896,15 +2859,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             })()}
 
             <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
-              {(()=>{
-  const normalize=s=>(s||'').toLowerCase().trim().replace(/ü/g,'ue').replace(/ö/g,'oe').replace(/ä/g,'ae').replace(/ß/g,'ss');
-  const seen=new Set();
-  // DB Gyms haben Vorrang — originale Namen behalten
-  const dbCities=dbGyms.map(g=>g.city).filter(Boolean);
-  const hardCities=Object.keys(GYMS).filter(c=>!dbCities.some(d=>normalize(d)===normalize(c)));
-  const allCities=[...dbCities,...hardCities];
-  return allCities.filter(c=>{const k=normalize(c);if(seen.has(k))return false;seen.add(k);return true;}).sort();
-})().map(c=>(<button key={c} onClick={()=>setCity(c)} style={{flexShrink:0,padding:'6px 13px',borderRadius:20,background:city===c?RED:'#fff',border:'1px solid '+(city===c?RED:'#e0e0e0'),color:city===c?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{c}</button>))}
+              {[...new Set([...Object.keys(GYMS),...dbGyms.map(g=>g.city).filter(Boolean)])].sort().map(c=>(<button key={c} onClick={()=>setCity(c)} style={{flexShrink:0,padding:'6px 13px',borderRadius:20,background:city===c?RED:'#fff',border:'1px solid '+(city===c?RED:'#e0e0e0'),color:city===c?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{c}</button>))}
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:8}}>
               {(dbGyms.filter(g=>g.city===city).length>0?dbGyms.filter(g=>g.city===city):(GYMS[city]||[])).map((gym,i)=>(
@@ -3395,11 +3350,6 @@ ${blCode}`;
                             showMsg('✅ User gesperrt + Daten gelöscht (Auth-Account bleibt)');
                           }
                           setAdminUsers(prev=>prev.filter(x=>x.id!==u.id));
-                          // Aus allen lokalen States entfernen
-                          setCards(prev=>prev.filter(x=>x.id!==u.id));
-                          setAllProfiles(prev=>prev.filter(x=>x.id!==u.id));
-                          setDbMatches(prev=>prev.filter(m=>m.profile_a_id!==u.id&&m.profile_b_id!==u.id));
-                          setWhoLikedMe(prev=>prev.filter(x=>x.id!==u.id));
                         }catch(e){
                           showMsg('Fehler: '+e.message);
                         }
@@ -3517,28 +3467,20 @@ ${blCode}`;
                     // Bekannte Städte aus DB — mit Session Token
                     const gymResp=await fetch(SUPA_URL+'/rest/v1/gyms?select=city,name',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                     const existingGyms=await gymResp.json();
-                    const norm=s=>(s||'').toLowerCase().trim().replace(/ü/g,'ue').replace(/ö/g,'oe').replace(/ä/g,'ae').replace(/ß/g,'ss');
-                    const existingCities=new Set();
-                    const existingGymNames=new Set();
-                    if(Array.isArray(existingGyms))existingGyms.forEach(g=>{
-                      if(g.city)existingCities.add(norm(g.city));
-                      if(g.name)existingGymNames.add(norm(g.name));
-                    });
-                    // Hardcoded Städte auch ausschließen
-                    Object.keys(GYMS).forEach(c=>existingCities.add(norm(c)));
-                    // Alle hardcoded Gym-Namen
-                    Object.values(GYMS).flat().forEach(g=>{if(g.name)existingGymNames.add(norm(g.name));});
+                    const existingCities=new Set((Array.isArray(existingGyms)?existingGyms:[]).map(g=>g.city?.toLowerCase().trim()));
+                    const existingGymNames=new Set((Array.isArray(existingGyms)?existingGyms:[]).map(g=>g.name?.toLowerCase().trim()));
+                    // Hardcoded Städte auch
+                    Object.keys(GYMS).forEach(c=>existingCities.add(c.toLowerCase()));
                     // Neue Städte finden
                     const newCities={};
                     const newGyms={};
                     if(Array.isArray(profiles)){
                       profiles.forEach(p=>{
-                        if(p.city&&!existingCities.has(norm(p.city))){
+                        if(p.city&&!existingCities.has(p.city.toLowerCase().trim())){
                           newCities[p.city]=(newCities[p.city]||0)+1;
                         }
-                        if(p.gym&&!existingGymNames.has(norm(p.gym))){
-                          if(!newGyms[p.gym])newGyms[p.gym]={city:p.city,count:0};
-                          newGyms[p.gym].count++;
+                        if(p.gym&&!existingGymNames.has(p.gym.toLowerCase().trim())){
+                          newGyms[p.gym]={city:p.city,count:(newGyms[p.gym]?.count||0)+1};
                         }
                       });
                     }
@@ -3701,14 +3643,6 @@ ${blCode}`;
           </div>
         </div>
       )}
-      {showImgEditor&&imgEditorSrc&&(
-        <ImgPositionEditor
-          src={imgEditorSrc}
-          onSave={imgEditorCallback}
-          onCancel={()=>setShowImgEditor(false)}
-          darkMode={darkMode}
-        />
-      )}
       {lightboxImg&&(
         <div onClick={()=>setLightboxImg(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.97)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',cursor:'zoom-out'}}>
           <img src={lightboxImg} style={{maxWidth:'100%',maxHeight:'100%',objectFit:'contain'}} alt=''/>
@@ -3729,48 +3663,6 @@ ${blCode}`;
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function ImgPositionEditor({src,onSave,onCancel,darkMode}){
-  const [pos,setPos]=React.useState({x:50,y:50});
-  const [dragging,setDragging]=React.useState(false);
-  const [startPos,setStartPos]=React.useState({x:0,y:0});
-  const containerRef=React.useRef(null);
-
-  const handleStart=(clientX,clientY)=>{
-    setDragging(true);
-    setStartPos({x:clientX,y:clientY});
-  };
-  const handleMove=(clientX,clientY)=>{
-    if(!dragging||!containerRef.current)return;
-    const rect=containerRef.current.getBoundingClientRect();
-    const dx=(clientX-startPos.x)/rect.width*100;
-    const dy=(clientY-startPos.y)/rect.height*100;
-    setPos(p=>({x:Math.max(0,Math.min(100,p.x-dx)),y:Math.max(0,Math.min(100,p.y-dy))}));
-    setStartPos({x:clientX,y:clientY});
-  };
-
-  return(
-    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.95)',zIndex:1001,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20}}>
-      <div style={{color:'#fff',fontFamily:'Rajdhani,sans-serif',fontSize:18,fontWeight:700,letterSpacing:2,marginBottom:12}}>BILDAUSSCHNITT WÄHLEN</div>
-      <div style={{color:'#aaa',fontSize:12,marginBottom:16,textAlign:'center'}}>Ziehe das Bild um den Ausschnitt anzupassen</div>
-      <div ref={containerRef}
-        style={{width:280,height:280,borderRadius:'50%',overflow:'hidden',border:'3px solid #c0392b',cursor:'grab',userSelect:'none',position:'relative',boxShadow:'0 0 0 3000px rgba(0,0,0,0.5)'}}
-        onMouseDown={e=>{e.preventDefault();handleStart(e.clientX,e.clientY);}}
-        onMouseMove={e=>{if(dragging)handleMove(e.clientX,e.clientY);}}
-        onMouseUp={()=>setDragging(false)}
-        onTouchStart={e=>{e.preventDefault();handleStart(e.touches[0].clientX,e.touches[0].clientY);}}
-        onTouchMove={e=>{e.preventDefault();if(dragging)handleMove(e.touches[0].clientX,e.touches[0].clientY);}}
-        onTouchEnd={()=>setDragging(false)}
-      >
-        <img src={src} style={{width:'150%',height:'150%',objectFit:'cover',objectPosition:pos.x+'% '+pos.y+'%',pointerEvents:'none',transform:'translate(-17%,-17%)'}} alt=''/>
-      </div>
-      <div style={{display:'flex',gap:12,marginTop:24,width:'100%',maxWidth:280}}>
-        <button onClick={onCancel} style={{flex:1,padding:'12px',borderRadius:10,background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.2)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>ABBRECHEN</button>
-        <button onClick={()=>onSave(pos)} style={{flex:1,padding:'12px',borderRadius:10,background:'#c0392b',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>SPEICHERN ✓</button>
-      </div>
     </div>
   );
 }
