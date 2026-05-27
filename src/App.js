@@ -1178,6 +1178,9 @@ export default function App(){
   },[]);
   const [showImpressum,setShowImpressum]=useState(false);
   const [showDatenschutz,setShowDatenschutz]=useState(false);
+  const [showPwChange,setShowPwChange]=useState(false);
+  const [newPassword,setNewPassword]=useState('');
+  const [pwChangeMsg,setPwChangeMsg]=useState('');
   const [showAGB,setShowAGB]=useState(false);
   const [rankMode,setRankMode]=useState('user');
   const [filterStyle,setFilterStyle]=useState('Alle');
@@ -2776,6 +2779,10 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <span style={{color:'#e74c3c',fontSize:14,fontWeight:600}}>🗑️ Account löschen</span>
                 <span style={{color:'#e74c3c',fontSize:16}}>›</span>
               </div>
+              <div onClick={()=>setShowPwChange(true)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',cursor:'pointer',borderTop:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
+                <span style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>🔑 Passwort ändern</span>
+                <span style={{color:'#aaa',fontSize:16}}>›</span>
+              </div>
               <div onClick={handleLogout} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',cursor:'pointer'}}>
                 <div style={{color:'#c0392b',fontSize:14,fontWeight:600}}>🚪 Ausloggen</div>
                 <div style={{color:'#aaa',fontSize:16}}>›</div>
@@ -3102,6 +3109,42 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             }} style={{width:'100%',padding:'12px',borderRadius:10,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginTop:4}}>
               VERSTANDEN ✓
             </button>
+          </div>
+        </div>
+      )}
+      {showPwChange&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+          <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:16,padding:24,width:'100%',maxWidth:360,boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+            <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,color:darkMode?'#fff':'#1a1a1a',letterSpacing:2,marginBottom:4}}>🔑 PASSWORT ÄNDERN</div>
+            <div style={{color:'#aaa',fontSize:12,marginBottom:16}}>Mindestens 6 Zeichen</div>
+            <input
+              type='password'
+              placeholder='Neues Passwort'
+              value={newPassword}
+              onChange={e=>setNewPassword(e.target.value)}
+              style={{width:'100%',padding:'12px',borderRadius:10,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',marginBottom:8,outline:'none'}}
+            />
+            {pwChangeMsg&&<div style={{color:pwChangeMsg.includes('✅')?'#27ae60':'#e74c3c',fontSize:12,marginBottom:8}}>{pwChangeMsg}</div>}
+            <div style={{display:'flex',gap:10,marginTop:8}}>
+              <button onClick={()=>{setShowPwChange(false);setNewPassword('');setPwChangeMsg('');}} style={{flex:1,padding:'12px',borderRadius:10,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>ABBRECHEN</button>
+              <button onClick={async()=>{
+                if(!newPassword||newPassword.length<6){setPwChangeMsg('Mindestens 6 Zeichen!');return;}
+                try{
+                  const resp=await fetch(SUPA_URL+'/auth/v1/user',{
+                    method:'PUT',
+                    headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token},
+                    body:JSON.stringify({password:newPassword})
+                  });
+                  const data=await resp.json();
+                  if(data.id){
+                    setPwChangeMsg('✅ Passwort geändert!');
+                    setTimeout(()=>{setShowPwChange(false);setNewPassword('');setPwChangeMsg('');},1500);
+                  } else {
+                    setPwChangeMsg('Fehler: '+(data.message||'Unbekannt'));
+                  }
+                }catch(e){setPwChangeMsg('Fehler: '+e.message);}
+              }} style={{flex:1,padding:'12px',borderRadius:10,background:'#c0392b',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>SPEICHERN</button>
+            </div>
           </div>
         </div>
       )}
@@ -3451,6 +3494,39 @@ ${blCode}`;
                   }catch{showMsg('Fehler — broadcasts Tabelle anlegen');}
                   setAdminSaving(false);
                 }} style={{width:'100%',padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,cursor:'pointer',letterSpacing:2}}>📢 SENDEN</button>
+
+                <div style={{marginTop:20,paddingTop:16,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                  <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,letterSpacing:2,marginBottom:6}}>✉️ AKTIVIERUNGS-MAILS</div>
+                  <div style={{color:'#aaa',fontSize:11,marginBottom:10,lineHeight:1.6}}>Schickt eine E-Mail an alle User die sich noch nicht bestätigt haben damit sie sich einloggen können.</div>
+                  <button onClick={async()=>{
+                    if(!window.confirm('Aktivierungs-E-Mail an alle unbestätigten User senden?'))return;
+                    showMsg('Sende E-Mails...');
+                    try{
+                      const resp=await fetch(SUPA_URL+'/auth/v1/admin/users?page=1&per_page=100',{
+                        headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
+                      });
+                      const data=await resp.json();
+                      const unconfirmed=(data.users||[]).filter(u=>!u.email_confirmed_at);
+                      let sent=0;
+                      for(const u of unconfirmed){
+                        try{
+                          await fetch('https://api.resend.com/emails',{
+                            method:'POST',
+                            headers:{'Content-Type':'application/json','Authorization':'Bearer re_Y2CAV2io_E166bEXwLZVym2yHXoiYq3dg'},
+                            body:JSON.stringify({
+                              from:'Fighter App <noreply@fighterapp.de>',
+                              to:u.email,
+                              subject:'Dein Fighter Account ist jetzt aktiv 🥊',
+                              html:'<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#0d0d0d;color:#fff;border-radius:12px"><h1 style="color:#c0392b;font-size:28px;letter-spacing:4px;margin:0 0 16px">FIGHTER</h1><p style="font-size:15px;line-height:1.6">Hey Fighter,<br><br>dein Account ist jetzt aktiviert — du kannst dich sofort einloggen!</p><a href="https://fighterapp.de" style="display:inline-block;background:#c0392b;color:#fff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:16px;margin:16px 0">👊 Jetzt einloggen</a><p style="color:#888;font-size:13px;margin-top:16px">Finde Sparringpartner & Gegner in deiner Nähe.<br>Swipe. Match. Fight.</p><p style="color:#444;font-size:11px;margin-top:24px;border-top:1px solid #222;padding-top:12px">© 2026 Fighter App · fighterapp.de</p></div>'
+                            })
+                          });
+                          sent++;
+                        }catch{}
+                      }
+                      showMsg('✅ '+sent+'/'+unconfirmed.length+' E-Mails gesendet!');
+                    }catch(e){showMsg('Fehler: '+e.message);}
+                  }} style={{width:'100%',padding:'12px',borderRadius:10,background:'#2980b9',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:1}}>✉️ AKTIVIERUNGS-MAILS SENDEN</button>
+                </div>
               </div>
             )}
 
