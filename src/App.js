@@ -2078,6 +2078,9 @@ export default function App(){
   if(screen==='setup')return(
     <div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'0 0 40px'}}>
       <style>{css}</style>
+      {showImgEditor&&imgEditorSrc&&(
+        <ImgPositionEditor src={imgEditorSrc} onSave={imgEditorCallback} onCancel={()=>setShowImgEditor(false)} darkMode={darkMode}/>
+      )}
       <div style={{width:'100%',maxWidth:420,padding:'32px 24px 0',textAlign:'center'}}>
         <div className='rj fadeUp' style={{fontSize:64,color:'#1a1a1a',letterSpacing:6,lineHeight:1}}>FIGHTER</div>
         <div style={{color:RED,fontSize:11,letterSpacing:7,marginTop:5,fontWeight:600}}>FINDE DEINEN GEGNER</div>
