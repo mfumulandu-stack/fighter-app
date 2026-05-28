@@ -1505,7 +1505,7 @@ export default function App(){
         data=await resp.json();
       }
       if(Array.isArray(data)){
-        setDbGyms(data);
+        setDbGyms(data.map(g=>({...g,city:(g.city||'').trim(),name:(g.name||'').trim()})));
         // Erste Stadt setzen falls noch Berlin
         if(data.length>0){
           setCity(c=>{
