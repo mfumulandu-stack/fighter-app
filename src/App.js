@@ -1791,29 +1791,18 @@ export default function App(){
 
   async function handlePhoto(e){
     const file=e.target.files[0];if(!file||!session)return;
-    const reader=new FileReader();
-    reader.onload=ev=>{
-      setImgEditorSrc(ev.target.result);
-      setImgEditorCallback(()=>async(pos)=>{
-        setShowImgEditor(false);
-        setImgEditorPos(pos);
-        setUploading(true);
-        setAvatarPreview(ev.target.result);
-        showMsg('Foto wird komprimiert...');
-        const compressed=await compressImage(file,800,0.82);
-        const sizeMB=(compressed.size/1024/1024).toFixed(1);
-        const path='fighter_'+session.userId+'_'+Date.now()+'.jpg';
-        const url=await uploadPhoto(compressed,path,session.token);
-        if(url){
-          setAvatarUrl(url);
-          setProfile(p=>({...p,avatar_url:url,img_pos_x:pos.x,img_pos_y:pos.y}));
-          showMsg('Foto hochgeladen! ('+sizeMB+'MB)');
-        } else showMsg('Upload fehlgeschlagen');
-        setUploading(false);
-      });
-      setShowImgEditor(true);
-    };
-    reader.readAsDataURL(file);
+    setUploading(true);
+    setAvatarPreview(URL.createObjectURL(file));
+    showMsg('Foto wird komprimiert...');
+    try{
+      const compressed=await compressImage(file,800,0.82);
+      const sizeMB=(compressed.size/1024/1024).toFixed(1);
+      const path='fighter_'+session.userId+'_'+Date.now()+'.jpg';
+      const url=await uploadPhoto(compressed,path,session.token);
+      if(url){setAvatarUrl(url);showMsg('Foto hochgeladen! ('+sizeMB+'MB)');}
+      else showMsg('Upload fehlgeschlagen');
+    }catch{showMsg('Upload fehlgeschlagen');}
+    setUploading(false);
     // dummy
   }
 
