@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const SUPA_URL = 'https://uykdrmymjvqgebsmndme.supabase.co';
 const ADMIN_ID = '1a697731-458d-4559-a4cf-a89d3150bfa5';
@@ -245,7 +245,6 @@ textarea{resize:none}
 
 
 function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUpdate,rateGym,onClose,darkMode}){
-  const {useState,useRef}=React;
   if(!gym)return(<div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:250,display:'flex',alignItems:'center',justifyContent:'center'}}><button onClick={onClose} style={{padding:'12px 24px',background:'#c0392b',color:'#fff',border:'none',borderRadius:10,fontSize:16,cursor:'pointer'}}>← Zurück</button></div>);
   const isDark=darkMode===true;
   const bg=isDark?'#0d0d0d':'#f5f5f7';
