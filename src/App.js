@@ -712,7 +712,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
           {/* Hero-Bild */}
           <div style={{position:'relative',height:280,flexShrink:0,background:'#111'}}>
             {other?.avatar_url
-              ?<img src={other.avatar_url} style={{width:'100%',height:'100%',objectFit:'contain',objectPosition:'center top',background:'#111',opacity:0.85}} alt=''/>
+              ?<img src={other.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'center top',opacity:0.85}} alt=''/>
               :<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:90}}>🥊</div>}
             <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0.15) 0%,rgba(0,0,0,0.8) 100%)'}}/>
             <button onClick={()=>setShowProfilePanel(false)}
@@ -3312,7 +3312,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                             const style=document.getElementById('gs'+gym.id)?.value?.trim();
                             if(!name||!city)return;
                             try{
-                              await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({name,city,address,style})});
+                              await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name,city,address,style})});
                               await loadDbGyms(session);
                               setEditGymId(null);
                               showMsg('✅ Gespeichert');
@@ -3322,7 +3322,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                           <button onClick={async()=>{
                             if(!window.confirm('Gym löschen?'))return;
                             try{
-                              await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                              await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                               await loadDbGyms(session);
                               setEditGymId(null);
                               showMsg('✅ Gelöscht');
@@ -3361,7 +3361,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     try{
                       const trimmedName=adminGymName.trim();
                       const trimmedCity=adminGymCity.trim();
-                      await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({name:trimmedName,city:trimmedCity,styles:adminGymStyles,phone:adminGymPhone,hours:adminGymHours,description:adminGymDesc,code,verified:false,members:0,rating:0})});
+                      await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:trimmedName,city:trimmedCity,styles:adminGymStyles,phone:adminGymPhone,hours:adminGymHours,description:adminGymDesc,code,verified:false,members:0,rating:0})});
                       await loadDbGyms(session);
                       showMsg('✅ '+trimmedName+' in '+trimmedCity+' hinzugefügt!');
                       setAdminGymName('');setAdminGymCity('');setAdminGymStyles('');setAdminGymPhone('');setAdminGymHours('');setAdminGymDesc('');
@@ -3390,7 +3390,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   try{
                     const resp=await fetch(SUPA_URL+'/rest/v1/gyms',{
                       method:'POST',
-                      headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
+                      headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
                       body:JSON.stringify({name:gymName,city,code:gymName.replace(/[^A-Z0-9]/gi,'-').toUpperCase().slice(0,15)+'-'+Date.now().toString().slice(-4),emoji:'🥊',members:0,rating:0,style:'Kampfsport',styles:['Kampfsport']})
                     });
                     if(resp.ok||resp.status===201){
@@ -3679,7 +3679,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                             </div>
                             <button onClick={async()=>{
                               try{
-                                await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({name:gym,city:data.city||'Unbekannt',code:gym.toUpperCase().replace(/\s/g,'-').slice(0,20),emoji:'🥊',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})});
+                                await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:gym,city:data.city||'Unbekannt',code:gym.toUpperCase().replace(/\s/g,'-').slice(0,20),emoji:'🥊',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})});
                                 setScanResult(prev=>({...prev,gyms:prev.gyms.filter(([g])=>g!==gym)}));
                                 await loadDbGyms(session);
                                 showMsg('✅ '+gym+' hinzugefügt');
