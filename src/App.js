@@ -1068,6 +1068,10 @@ export default function App(){
   const [lastAct,setLastAct]=useState(null);
   const [lastSwiped,setLastSwiped]=useState(null);
   const [lightboxImg,setLightboxImg]=useState(null);
+  const [imgEditorSrc,setImgEditorSrc]=useState(null);
+  const [imgEditorPos,setImgEditorPos]=useState({x:50,y:50});
+  const [imgEditorCallback,setImgEditorCallback]=useState(null);
+  const [showImgEditor,setShowImgEditor]=useState(false);
   const [recentSwiped,setRecentSwiped]=useState([]);
   const [whoLikedMe,setWhoLikedMe]=useState([]);
   const [adminMessages,setAdminMessages]=useState([]);
@@ -1717,16 +1721,30 @@ export default function App(){
 
   async function handlePhoto(e){
     const file=e.target.files[0];if(!file||!session)return;
-    setUploading(true);
-    setAvatarPreview(URL.createObjectURL(file));
-    showMsg('Foto wird komprimiert...');
-    const compressed=await compressImage(file,800,0.82);
-    const sizeMB=(compressed.size/1024/1024).toFixed(1);
-    const path='fighter_'+session.userId+'_'+Date.now()+'.jpg';
-    const url=await uploadPhoto(compressed,path,session.token);
-    if(url){setAvatarUrl(url);showMsg('Foto hochgeladen! ('+sizeMB+'MB)');}
-    else showMsg('Upload fehlgeschlagen');
-    setUploading(false);
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      setImgEditorSrc(ev.target.result);
+      setImgEditorCallback(()=>async(pos)=>{
+        setShowImgEditor(false);
+        setImgEditorPos(pos);
+        setUploading(true);
+        setAvatarPreview(ev.target.result);
+        showMsg('Foto wird komprimiert...');
+        const compressed=await compressImage(file,800,0.82);
+        const sizeMB=(compressed.size/1024/1024).toFixed(1);
+        const path='fighter_'+session.userId+'_'+Date.now()+'.jpg';
+        const url=await uploadPhoto(compressed,path,session.token);
+        if(url){
+          setAvatarUrl(url);
+          setProfile(p=>({...p,avatar_url:url,img_pos_x:pos.x,img_pos_y:pos.y}));
+          showMsg('Foto hochgeladen! ('+sizeMB+'MB)');
+        } else showMsg('Upload fehlgeschlagen');
+        setUploading(false);
+      });
+      setShowImgEditor(true);
+    };
+    reader.readAsDataURL(file);
+    // dummy
   }
 
   const myWeightClass=myProfile?.weight_class||profile?.weightClass||'';
@@ -1937,7 +1955,7 @@ export default function App(){
       <style>{css}</style>
       <div style={{position:'relative',width:'100%',height:340,overflow:'hidden',flexShrink:0}}>
         {viewProfile.avatar_url
-          ?<img src={viewProfile.avatar_url} onClick={()=>setLightboxImg(viewProfile.avatar_url)} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'center top',cursor:'zoom-in'}} alt=''/>
+          ?<img src={viewProfile.avatar_url} onClick={()=>setLightboxImg(viewProfile.avatar_url)} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:(viewProfile.img_pos_x||50)+'% '+(viewProfile.img_pos_y||30)+'%',cursor:'zoom-in'}} alt=''/>
           :<div style={{width:'100%',height:'100%',background:'#222',display:'flex',alignItems:'center',justifyContent:'center',fontSize:80}}>🥊</div>}
         <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0.2) 0%,rgba(0,0,0,0.75) 100%)'}}/>
         <button onClick={()=>{setViewProfile(null);}} style={{position:'absolute',top:14,left:14,background:'rgba(0,0,0,0.45)',border:'none',color:'#fff',fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700,borderRadius:8,padding:'4px 12px'}}>← Zurück</button>
@@ -2079,6 +2097,7 @@ export default function App(){
   if(screen==='setup')return(
     <div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'0 0 40px'}}>
       <style>{css}</style>
+      {showImgEditor&&imgEditorSrc&&<ImgPositionEditor src={imgEditorSrc} onSave={imgEditorCallback} onCancel={()=>setShowImgEditor(false)}/>}
       <div style={{width:'100%',maxWidth:420,padding:'32px 24px 0',textAlign:'center'}}>
         <div className='rj fadeUp' style={{fontSize:64,color:'#1a1a1a',letterSpacing:6,lineHeight:1}}>FIGHTER</div>
         <div style={{color:RED,fontSize:11,letterSpacing:7,marginTop:5,fontWeight:600}}>FINDE DEINEN GEGNER</div>
@@ -2347,7 +2366,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     }}
                     style={{position:'absolute',inset:0,borderRadius:16,background:'#111',boxShadow:isTop?'0 8px 32px rgba(0,0,0,0.2)':'none',cursor:isTop?'grab':'default',zIndex:isTop?10:isSec?5:1,transform:isTop?cStyle.transform:isSec?'scale(0.96) translateY(10px)':'scale(0.92) translateY(20px)',transition:isTop?cStyle.transition:'none',overflow:'hidden',userSelect:'none'}}>
                     {f.avatar_url
-                      ?<img src={f.avatar_url} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:'center top'}} alt={f.name}/>
+                      ?<img src={f.avatar_url} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:(f.img_pos_x||50)+'% '+(f.img_pos_y||30)+'%'}} alt={f.name}/>
                       :<div style={{position:'absolute',inset:0,background:`linear-gradient(160deg,${fA}55 0%,#111 100%)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:120}}>{f.emoji||'🥊'}</div>
                     }
                     <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0) 30%,rgba(0,0,0,0.95) 100%)'}}/>
@@ -3855,6 +3874,41 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ImgPositionEditor({src,onSave,onCancel}){
+  const [pos,setPos]=React.useState({x:50,y:50});
+  const drag=React.useRef(false);
+  const last=React.useRef({x:0,y:0});
+  const ref=React.useRef(null);
+  const move=(cx,cy)=>{
+    if(!drag.current||!ref.current)return;
+    const r=ref.current.getBoundingClientRect();
+    const dx=(cx-last.current.x)/r.width*100;
+    const dy=(cy-last.current.y)/r.height*100;
+    setPos(p=>({x:Math.max(0,Math.min(100,p.x-dx)),y:Math.max(0,Math.min(100,p.y-dy))}));
+    last.current={x:cx,y:cy};
+  };
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.96)',zIndex:2000,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20}}>
+      <div style={{color:'#fff',fontFamily:'Rajdhani,sans-serif',fontSize:18,fontWeight:700,letterSpacing:2,marginBottom:8}}>BILDAUSSCHNITT WÄHLEN</div>
+      <div style={{color:'#aaa',fontSize:12,marginBottom:16,textAlign:'center'}}>Bild verschieben für Ausschnitt</div>
+      <div ref={ref} style={{width:260,height:260,borderRadius:'50%',overflow:'hidden',border:'3px solid #c0392b',cursor:'grab',position:'relative',flexShrink:0}}
+        onMouseDown={e=>{drag.current=true;last.current={x:e.clientX,y:e.clientY};}}
+        onMouseMove={e=>{if(drag.current)move(e.clientX,e.clientY);}}
+        onMouseUp={()=>{drag.current=false;}}
+        onTouchStart={e=>{drag.current=true;last.current={x:e.touches[0].clientX,y:e.touches[0].clientY};}}
+        onTouchMove={e=>{e.preventDefault();if(drag.current)move(e.touches[0].clientX,e.touches[0].clientY);}}
+        onTouchEnd={()=>{drag.current=false;}}
+      >
+        <img src={src} style={{width:'150%',height:'150%',objectFit:'cover',objectPosition:pos.x+'% '+pos.y+'%',pointerEvents:'none',transform:'translate(-17%,-17%)'}} alt=''/>
+      </div>
+      <div style={{display:'flex',gap:12,marginTop:20,width:'100%',maxWidth:260}}>
+        <button onClick={onCancel} style={{flex:1,padding:'12px',borderRadius:10,background:'rgba(255,255,255,0.1)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>ABBRECHEN</button>
+        <button onClick={()=>onSave(pos)} style={{flex:1,padding:'12px',borderRadius:10,background:'#c0392b',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>SPEICHERN ✓</button>
+      </div>
     </div>
   );
 }
