@@ -1075,6 +1075,7 @@ export default function App(){
   const [allProfiles,setAllProfiles]=useState([]);
   const [rankingLoading,setRankingLoading]=useState(false);
   const [scanResult,setScanResult]=useState(null);
+  const [editGymId,setEditGymId]=useState(null);
   const [whoLikedTab,setWhoLikedTab]=useState(false);
   const [newLikesCount,setNewLikesCount]=useState(0);
   const [lastLikesCheck,setLastLikesCheck]=useState(()=>{try{return localStorage.getItem('fighter_likes_check')||'2000-01-01'}catch{return '2000-01-01'}});
