@@ -245,6 +245,7 @@ textarea{resize:none}
 
 
 function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUpdate,rateGym,onClose,darkMode}){
+  const {useState,useRef}=React;
   if(!gym)return(<div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:250,display:'flex',alignItems:'center',justifyContent:'center'}}><button onClick={onClose} style={{padding:'12px 24px',background:'#c0392b',color:'#fff',border:'none',borderRadius:10,fontSize:16,cursor:'pointer'}}>← Zurück</button></div>);
   const isDark=darkMode===true;
   const bg=isDark?'#0d0d0d':'#f5f5f7';
@@ -252,15 +253,15 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUp
   const text=isDark?'#fff':'#1a1a1a';
   const sub=isDark?'#aaa':'#666';
   const border=isDark?'#2a2a2a':'#eee';
-  const [editMode,setEditMode]=React.useState(false);
-  const [editName,setEditName]=React.useState(gym.name||'');
-  const [editCity,setEditCity]=React.useState(gym.city||'');
-  const [editAddress,setEditAddress]=React.useState(gym.address||'');
-  const [editStyle,setEditStyle]=React.useState(gym.style||'');
-  const [editDesc,setEditDesc]=React.useState(gym.desc||gym.description||'');
-  const [editPhone,setEditPhone]=React.useState(gym.phone||'');
-  const [editHours,setEditHours]=React.useState(gym.hours||'');
-  const [saving,setSaving]=React.useState(false);
+  const [editMode,setEditMode]=useState(false);
+  const [editName,setEditName]=useState(gym.name||'');
+  const [editCity,setEditCity]=useState(gym.city||'');
+  const [editAddress,setEditAddress]=useState(gym.address||'');
+  const [editStyle,setEditStyle]=useState(gym.style||'');
+  const [editDesc,setEditDesc]=useState(gym.desc||gym.description||'');
+  const [editPhone,setEditPhone]=useState(gym.phone||'');
+  const [editHours,setEditHours]=useState(gym.hours||'');
+  const [saving,setSaving]=useState(false);
   const SUPA_URL='https://uykdrmymjvqgebsmndme.supabase.co';
   const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk';
   const r=gymRatings[gymKey];
@@ -3973,10 +3974,10 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
 }
 
 function ImgPositionEditor({src,onSave,onCancel}){
-  const [pos,setPos]=React.useState({x:50,y:50});
-  const drag=React.useRef(false);
-  const last=React.useRef({x:0,y:0});
-  const ref=React.useRef(null);
+  const [pos,setPos]=useState({x:50,y:50});
+  const drag=useRef(false);
+  const last=useRef({x:0,y:0});
+  const ref=useRef(null);
   const move=(cx,cy)=>{
     if(!drag.current||!ref.current)return;
     const r=ref.current.getBoundingClientRect();
