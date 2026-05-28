@@ -1492,11 +1492,29 @@ export default function App(){
   async function loadDbGyms(s){
     try{
       const token=(s?.token)||session?.token;
-      const resp=await fetch(SUPA_URL+'/rest/v1/gyms?order=city.asc,name.asc',{
+      // Versuche mit Session Token
+      let resp=await fetch(SUPA_URL+'/rest/v1/gyms?order=city.asc,name.asc',{
         headers:{apikey:SUPA_KEY,Authorization:'Bearer '+(token||SUPA_KEY)}
       });
-      const data=await resp.json();
-      if(Array.isArray(data)){setDbGyms(data);}
+      let data=await resp.json();
+      // Falls Fehler — versuche ohne Auth
+      if(!Array.isArray(data)){
+        resp=await fetch(SUPA_URL+'/rest/v1/gyms?order=city.asc,name.asc',{
+          headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+        });
+        data=await resp.json();
+      }
+      if(Array.isArray(data)){
+        setDbGyms(data);
+        // Erste Stadt setzen falls noch Berlin
+        if(data.length>0){
+          setCity(c=>{
+            const norm=s=>(s||'').toLowerCase().trim();
+            const hasBerlin=data.some(g=>norm(g.city)==='berlin');
+            return (c==='Berlin'&&!hasBerlin)?data[0].city:c;
+          });
+        }
+      }
     }catch(e){console.log('loadDbGyms error',e);}
   }
 
