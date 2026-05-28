@@ -1467,16 +1467,24 @@ export default function App(){
       // Alle die mich geliket haben
       const likes=await dbSelect('swipes','target_id=eq.'+myP.id+'&direction=eq.like',s.token);
       if(!Array.isArray(likes)||likes.length===0){setWhoLikedMe([]);return;}
+      // Meine eigenen Swipes laden — damit ich weiss wen ich schon geliket habe
+      const mySwipes=await dbSelect('swipes','swiper_id=eq.'+myP.id,s.token);
+      const iAlreadyLiked=new Set(Array.isArray(mySwipes)?mySwipes.filter(x=>x.direction==='like').map(x=>x.target_id):[]);
       // Profile dazu laden
       const ids=likes.map(l=>l.swiper_id);
       const profiles=await dbSelect('profiles','id=in.('+ids.join(',')+')'+'&banned=neq.true',s.token);
       if(!Array.isArray(profiles))return;
-      // Bereits gematchte rausfiltern (die sind schon im Chat)
-      const matchedIds=dbMatches.map(m=>m.profile_a_id===myP.id?m.profile_b_id:m.profile_a_id);
-      const notYetMatched=profiles.filter(p=>!matchedIds.includes(p.id));
+      // Bereits gematchte UND bereits von mir gelikte rausfiltern
+      const matchedIds=new Set(dbMatches.map(m=>m.profile_a_id===myP.id?m.profile_b_id:m.profile_a_id));
+      // Nur zeigen: hat mich geliket, ich habe sie NICHT geliket, kein Match
+      const notYetMatched=profiles.filter(p=>
+        !matchedIds.has(p.id)&&
+        !iAlreadyLiked.has(p.id)&&
+        p.id!==myP.id
+      );
       setWhoLikedMe(notYetMatched);
       // Neue Likes seit letztem Check
-      const newLikes=likes.filter(l=>l.created_at&&l.created_at>lastLikesCheck);
+      const newLikes=likes.filter(l=>l.created_at&&l.created_at>lastLikesCheck&&!iAlreadyLiked.has(l.swiper_id)&&!matchedIds.has(l.swiper_id));
       if(newLikes.length>0){
         setNewLikesCount(newLikes.length);
         sendLocalNotification('🥊 '+newLikes.length+' neue Fighter interessieren sich für dich!','Schau nach wer dich geliket hat');
@@ -1990,6 +1998,7 @@ export default function App(){
                   setMatched(p);
                   setWhoLikedTab(false);
                   loadMatches(session,myProfile);
+                  loadWhoLikedMe(session,myProfile);
                   sendLocalNotification('🥊 MATCH!',p.name+' — ihr könnt jetzt chatten!');
                 }catch(e){showMsg('Fehler: '+e.message);}
               }} style={{background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',borderRadius:10,padding:'10px 14px',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',flexShrink:0}}>
