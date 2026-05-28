@@ -244,7 +244,7 @@ textarea{resize:none}
 `;
 
 
-function GymDetailScreen({gym,gymKey,gymRatings,rateGym,onClose,darkMode}){
+function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,rateGym,onClose,darkMode}){
   if(!gym)return(<div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:250,display:'flex',alignItems:'center',justifyContent:'center'}}><button onClick={onClose} style={{padding:'12px 24px',background:'#c0392b',color:'#fff',border:'none',borderRadius:10,fontSize:16,cursor:'pointer'}}>← Zurück</button></div>);
   const isDark=darkMode===true;
   const bg=isDark?'#0d0d0d':'#f5f5f7';
@@ -273,7 +273,9 @@ function GymDetailScreen({gym,gymKey,gymRatings,rateGym,onClose,darkMode}){
         </div>
         <div style={{padding:'16px 20px 0',textAlign:'center'}}>
           <div style={{width:72,height:72,borderRadius:14,background:'rgba(255,255,255,0.15)',border:'2px solid rgba(255,255,255,0.3)',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:8,overflow:'hidden'}}>
-            {gym.logo_url?<img src={gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'rgba(255,255,255,0.7)',fontSize:13,fontWeight:700,textAlign:'center',lineHeight:1.3}}>{gym.name.split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
+            {(gymLogos&&gymLogos[gym.code]?.logo_url)||gym.logo_url
+              ?<img src={(gymLogos&&gymLogos[gym.code]?.logo_url)||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>
+              :<div style={{color:'rgba(255,255,255,0.7)',fontSize:13,fontWeight:700,textAlign:'center',lineHeight:1.3}}>{(gym.name||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
           </div>
           <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:26,color:'#fff',letterSpacing:1,lineHeight:1.2}}>{gym.name}</div>
           <div style={{color:'rgba(255,255,255,0.6)',fontSize:12,marginTop:6}}>📍 {gym.city} · gegründet {gym.founded}</div>
@@ -1906,7 +1908,7 @@ export default function App(){
     }).catch(()=>{});
   },[viewProfile?.id]);
 
-  if(viewGym)return(<><style>{css}</style><GymDetailScreen gym={viewGym.gym} gymKey={viewGym.key} gymRatings={gymRatings} rateGym={(k,s)=>{rateGym(k,s);}} onClose={()=>setViewGym(null)} darkMode={darkMode===true}/></>);
+  if(viewGym)return(<><style>{css}</style><GymDetailScreen gym={viewGym.gym} gymKey={viewGym.key} gymRatings={gymRatings} gymLogos={gymLogos} rateGym={(k,s)=>{rateGym(k,s);}} onClose={()=>setViewGym(null)} darkMode={darkMode===true}/></>);
 
   if(whoLikedTab)return(
     <div style={{minHeight:'100vh',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column'}}> 
@@ -3347,13 +3349,15 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                                 try{
                                   const url=await uploadPhoto(file,'gyms/'+gym.code+'_'+Date.now()+'.png',session.token);
                                   if(url){
+                                    // Delete old logo first, then insert new
+                                    await fetch(SUPA_URL+'/rest/v1/gym_logos?gym_code=eq.'+gym.code,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                                     await fetch(SUPA_URL+'/rest/v1/gym_logos',{
                                       method:'POST',
-                                      headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'resolution=merge-duplicates,return=minimal'},
+                                      headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
                                       body:JSON.stringify({gym_code:gym.code,logo_url:url,verified:true})
                                     });
-                                    setGymLogos(prev=>({...prev,[gym.code]:{logo_url:url}}));
-                                    await loadDbGyms(session);
+                                    setGymLogos(prev=>({...prev,[gym.code]:{logo_url:url,verified:true}}));
+                                    await loadGymLogos();
                                     showMsg('✅ Logo gespeichert!');
                                   }
                                 }catch(e){showMsg('Fehler: '+e.message);}
@@ -3371,8 +3375,9 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                             try{
                               await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name,city,address,style})});
                               await loadDbGyms(session);
+                              await loadGymLogos();
                               setEditGymId(null);
-                              showMsg('✅ Gespeichert — App aktualisiert');
+                              showMsg('✅ Gespeichert — sofort in App aktiv');
                             }catch(e){showMsg('Fehler: '+e.message);}
                           }} style={{flex:1,padding:'7px',borderRadius:8,background:'#27ae60',border:'none',color:'#fff',fontWeight:700,fontSize:12,cursor:'pointer'}}>✓ SPEICHERN</button>
                           <button onClick={()=>setEditGymId(null)} style={{flex:1,padding:'7px',borderRadius:8,background:darkMode?'#2a2a2a':'#eee',border:'none',color:darkMode?'#fff':'#666',fontWeight:700,fontSize:12,cursor:'pointer'}}>✕ ABBRECHEN</button>
