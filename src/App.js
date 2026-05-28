@@ -244,7 +244,7 @@ textarea{resize:none}
 `;
 
 
-function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,rateGym,onClose,darkMode}){
+function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUpdate,rateGym,onClose,darkMode}){
   if(!gym)return(<div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:250,display:'flex',alignItems:'center',justifyContent:'center'}}><button onClick={onClose} style={{padding:'12px 24px',background:'#c0392b',color:'#fff',border:'none',borderRadius:10,fontSize:16,cursor:'pointer'}}>← Zurück</button></div>);
   const isDark=darkMode===true;
   const bg=isDark?'#0d0d0d':'#f5f5f7';
@@ -252,6 +252,17 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,rateGym,onClose,darkMod
   const text=isDark?'#fff':'#1a1a1a';
   const sub=isDark?'#aaa':'#666';
   const border=isDark?'#2a2a2a':'#eee';
+  const [editMode,setEditMode]=React.useState(false);
+  const [editName,setEditName]=React.useState(gym.name||'');
+  const [editCity,setEditCity]=React.useState(gym.city||'');
+  const [editAddress,setEditAddress]=React.useState(gym.address||'');
+  const [editStyle,setEditStyle]=React.useState(gym.style||'');
+  const [editDesc,setEditDesc]=React.useState(gym.desc||gym.description||'');
+  const [editPhone,setEditPhone]=React.useState(gym.phone||'');
+  const [editHours,setEditHours]=React.useState(gym.hours||'');
+  const [saving,setSaving]=React.useState(false);
+  const SUPA_URL='https://uykdrmymjvqgebsmndme.supabase.co';
+  const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk';
   const r=gymRatings[gymKey];
   const userRating=r?.userRating||0;
   const avgRating=r&&r.count>0?(r.total/r.count):gym.rating;
@@ -264,6 +275,7 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,rateGym,onClose,darkMod
         <div style={{display:'flex',alignItems:'center',padding:'14px 16px 0',gap:10}}>
           <button onClick={onClose} style={{background:'rgba(255,255,255,0.1)',border:'none',color:'#fff',fontSize:18,cursor:'pointer',borderRadius:8,padding:'6px 12px',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
           <div style={{flex:1}}/>
+          {isAdmin&&<button onClick={()=>setEditMode(e=>!e)} style={{background:editMode?'#27ae60':'rgba(255,255,255,0.15)',border:'none',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',borderRadius:8,padding:'6px 12px',fontFamily:'Rajdhani,sans-serif',letterSpacing:1}}>{editMode?'✓ MODUS':'✏️ BEARBEITEN'}</button>}
           <div style={{background:'rgba(255,255,255,0.08)',borderRadius:8,padding:'4px 10px'}}>
             <div style={{color:'#d4a017',fontSize:12,fontWeight:700,display:'flex',alignItems:'center',gap:4}}>
               <span style={{fontSize:16}}>★</span>
@@ -277,13 +289,62 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,rateGym,onClose,darkMod
               ?<img src={(gymLogos&&gymLogos[gym.code]?.logo_url)||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>
               :<div style={{color:'rgba(255,255,255,0.7)',fontSize:13,fontWeight:700,textAlign:'center',lineHeight:1.3}}>{(gym.name||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
           </div>
-          <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:26,color:'#fff',letterSpacing:1,lineHeight:1.2}}>{gym.name}</div>
-          <div style={{color:'rgba(255,255,255,0.6)',fontSize:12,marginTop:6}}>📍 {gym.city} · gegründet {gym.founded}</div>
+          {editMode?(
+            <div style={{width:'100%',padding:'12px 16px 0',display:'flex',flexDirection:'column',gap:8}}>
+              {[['Name',editName,setEditName],['Stadt',editCity,setEditCity],['Adresse',editAddress,setEditAddress],['Stil',editStyle,setEditStyle],['Telefon',editPhone,setEditPhone],['Öffnungszeiten',editHours,setEditHours]].map(([lbl,val,set])=>(
+                <div key={lbl} style={{display:'flex',gap:8,alignItems:'center'}}>
+                  <div style={{color:'rgba(255,255,255,0.5)',fontSize:10,width:70,flexShrink:0}}>{lbl}</div>
+                  <input value={val} onChange={e=>set(e.target.value)} style={{flex:1,padding:'6px 8px',borderRadius:6,border:'1px solid rgba(255,255,255,0.2)',background:'rgba(255,255,255,0.1)',color:'#fff',fontSize:12,outline:'none'}}/>
+                </div>
+              ))}
+              <textarea value={editDesc} onChange={e=>setEditDesc(e.target.value)} rows={3} placeholder='Beschreibung' style={{padding:'6px 8px',borderRadius:6,border:'1px solid rgba(255,255,255,0.2)',background:'rgba(255,255,255,0.1)',color:'#fff',fontSize:12,outline:'none',resize:'none',marginTop:4}}/>
+              {/* Logo Upload */}
+              <label style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',borderRadius:8,border:'2px dashed rgba(255,255,255,0.3)',cursor:'pointer',color:'rgba(255,255,255,0.7)',fontSize:12}}>
+                📷 Logo hochladen
+                <input type='file' accept='image/*' style={{display:'none'}} onChange={async(e)=>{
+                  const file=e.target.files?.[0];if(!file||!session)return;
+                  try{
+                    const reader=new FileReader();
+                    reader.onload=async ev=>{
+                      const resp=await fetch('https://uykdrmymjvqgebsmndme.supabase.co/storage/v1/object/avatars/gyms/'+gym.code+'_'+Date.now()+'.png',{method:'POST',headers:{'Content-Type':file.type,Authorization:'Bearer '+session.token},body:file}).catch(()=>null);
+                      // Use uploadPhoto via Supabase storage
+                      const formData=new FormData();formData.append('file',file);
+                      const path='gyms/'+gym.code+'_logo.png';
+                      const up=await fetch(SUPA_URL+'/storage/v1/object/avatars/'+path,{method:'POST',headers:{Authorization:'Bearer '+session.token,'x-upsert':'true'},body:file});
+                      if(up.ok){
+                        const url=SUPA_URL+'/storage/v1/object/public/avatars/'+path;
+                        await fetch(SUPA_URL+'/rest/v1/gym_logos?gym_code=eq.'+gym.code,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                        await fetch(SUPA_URL+'/rest/v1/gym_logos',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({gym_code:gym.code,logo_url:url,verified:true})});
+                        if(onGymUpdate)await onGymUpdate();
+                        alert('✅ Logo gespeichert!');
+                      }
+                    };reader.readAsDataURL(file);
+                  }catch(err){alert('Fehler: '+err.message);}
+                }}/>
+              </label>
+              <button disabled={saving} onClick={async()=>{
+                if(!gym.id)return;
+                setSaving(true);
+                try{
+                  await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:editName,city:editCity,address:editAddress,style:editStyle,phone:editPhone,hours:editHours,description:editDesc})});
+                  if(onGymUpdate)await onGymUpdate();
+                  setEditMode(false);
+                  alert('✅ Gespeichert!');
+                }catch(e){alert('Fehler: '+e.message);}
+                setSaving(false);
+              }} style={{padding:'10px',borderRadius:10,background:saving?'#888':'#27ae60',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:1}}>
+                {saving?'SPEICHERT...':'✓ ÄNDERUNGEN SPEICHERN'}
+              </button>
+            </div>
+          ):(
+          <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:26,color:'#fff',letterSpacing:1,lineHeight:1.2}}>{editName||gym.name}</div>
+          <div style={{color:'rgba(255,255,255,0.6)',fontSize:12,marginTop:6}}>📍 {editCity||gym.city} · gegründet {gym.founded}</div>
           <div style={{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'center',marginTop:10}}>
             {gym.styles.map(s=>(
               <div key={s} style={{padding:'4px 10px',borderRadius:20,background:(styleColors[s]||'#555')+'33',border:'1px solid '+(styleColors[s]||'#555')+'66',color:styleColors[s]||'#fff',fontSize:11,fontWeight:700}}>{s}</div>
             ))}
           </div>
+          )}
         </div>
       </div>
 
@@ -1908,7 +1969,7 @@ export default function App(){
     }).catch(()=>{});
   },[viewProfile?.id]);
 
-  if(viewGym)return(<><style>{css}</style><GymDetailScreen gym={viewGym.gym} gymKey={viewGym.key} gymRatings={gymRatings} gymLogos={gymLogos} rateGym={(k,s)=>{rateGym(k,s);}} onClose={()=>setViewGym(null)} darkMode={darkMode===true}/></>);
+  if(viewGym)return(<><style>{css}</style><GymDetailScreen gym={viewGym.gym} gymKey={viewGym.key} gymRatings={gymRatings} gymLogos={gymLogos} isAdmin={isAdmin} session={session} onGymUpdate={async()=>{await loadDbGyms(session);await loadGymLogos();}} rateGym={(k,s)=>{rateGym(k,s);}} onClose={()=>setViewGym(null)} darkMode={darkMode===true}/></>);
 
   if(whoLikedTab)return(
     <div style={{minHeight:'100vh',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column'}}> 
