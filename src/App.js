@@ -57,7 +57,7 @@ const WEIGHT_CLASSES = [
   'Halbweltergewicht (bis 77 kg)','Weltergewicht (bis 83 kg)','Halbmittelgewicht (bis 87 kg)',
   'Mittelgewicht (bis 93 kg)','Halbschwergewicht (bis 100 kg)','Cruisergewicht (bis 90 kg)','Schwergewicht (ueber 100 kg)'
 ];
-const STYLES = ['Boxing','Kickboxing','MMA','Muay Thai','Grappling','BJJ','Wrestling'];
+const STYLES = ['Boxing','Kickboxing','MMA','Muay Thai','Grappling','BJJ','Wrestling','Kung Fu','Karate'];
 const PRO_FIGHTERS = [];
 
 const FIGHTERS=[];
@@ -2228,9 +2228,17 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               </div>
             )}
             <Lbl>Ueber dich</Lbl><Inp placeholder='z.B. 5 Jahre Boxing Erfahrung…' value={profile.bio} onChange={v=>{setShowGymSuggestions(false);setProfile(p=>({...p,bio:v}));}} onFocus={()=>setShowGymSuggestions(false)}/>
-            <Lbl>Kampfstil</Lbl>
+            <Lbl>Kampfstil (mehrere möglich)</Lbl>
             <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
-              {STYLES.map(s=>(<button key={s} onClick={()=>setProfile(p=>({...p,style:s}))} style={{padding:'7px 13px',borderRadius:4,border:'1px solid '+(profile.style===s?RED:'#ddd'),background:profile.style===s?'#fdf0ef':'#fff',color:profile.style===s?RED:'#666',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:700,cursor:'pointer',transition:'all 0.2s'}}>{s}</button>))}
+              {STYLES.map(s=>{
+                const selected=(profile.style||'').split(',').map(x=>x.trim()).filter(Boolean);
+                const isSelected=selected.includes(s);
+                return(<button key={s} onClick={()=>{
+                  const cur=(profile.style||'').split(',').map(x=>x.trim()).filter(Boolean);
+                  const next=isSelected?cur.filter(x=>x!==s):[...cur,s];
+                  setProfile(p=>({...p,style:next.join(', ')}));
+                }} style={{padding:'7px 13px',borderRadius:4,border:'1px solid '+(isSelected?RED:'#ddd'),background:isSelected?'#fdf0ef':'#fff',color:isSelected?RED:'#666',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:700,cursor:'pointer',transition:'all 0.2s'}}>{s}</button>);
+              })}
             </div>
           </div>
         )}
@@ -3285,52 +3293,58 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             {/* ── GYM LOGOS ── */}
             {adminTab==='gyms'&&(
               <div>
-                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>🏋️ GYM LOGOS</div>
-                <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
-                  {[['GYM CODE',adminGymCode,setAdminGymCode,'z.B. TGB-2847']].map(([lbl,val,set,ph])=>(
-                    <div key={lbl}><div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:4}}>{lbl}</div>
-                    <input value={val} onChange={e=>set(e.target.value)} placeholder={ph} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box'}}/></div>
-                  ))}
-                  <label style={{cursor:'pointer'}}>
-                    <input type='file' accept='image/*' style={{display:'none'}} onChange={async(e)=>{
-                      const file=e.target.files[0];if(!file)return;
-                      setAdminSaving(true);
-                      const compressed=await compressImage(file,400,0.9);
-                      const path='gym_logos/'+(adminGymCode||'gym')+'_'+Date.now()+'.jpg';
-                      const url=await uploadPhoto(compressed,path,session.token);
-                      if(url){setAdminGymLogoUrl(url);showMsg('✅ Logo hochgeladen!');}
-                      setAdminSaving(false);
-                    }}/>
-                    <div style={{padding:'12px',borderRadius:8,border:'1.5px dashed '+(adminGymLogoUrl?RED:'#ccc'),textAlign:'center',background:darkMode?'#111':'#f9f9f9'}}>
-                      {adminGymLogoUrl?<img src={adminGymLogoUrl} style={{width:60,height:60,objectFit:'cover',borderRadius:8}} alt=''/>:<div style={{color:'#aaa',fontSize:12}}>📷 Logo hochladen</div>}
-                    </div>
-                  </label>
-                  <button onClick={async()=>{
-                    if(!adminGymCode||!adminGymLogoUrl){showMsg('Code + Logo eingeben');return;}
-                    setAdminSaving(true);
-                    try{
-                      await fetch(SUPA_URL+'/rest/v1/gym_logos',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'resolution=merge-duplicates'},body:JSON.stringify({gym_code:adminGymCode,logo_url:adminGymLogoUrl,verified:true})});
-                      showMsg('✅ Logo gespeichert!');setAdminGymCode('');setAdminGymLogoUrl('');loadGymLogos();
-                    }catch{showMsg('Fehler');}
-                    setAdminSaving(false);
-                  }} style={{padding:'11px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer',letterSpacing:2}}>SPEICHERN</button>
-                </div>
-                <div className='rj' style={{color:'#888',fontSize:11,letterSpacing:2,marginBottom:8}}>VORHANDENE LOGOS ({Object.keys(gymLogos).length})</div>
-                {Object.entries(gymLogos).map(([code,g])=>(
-                  <div key={code} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:6}}>
-                    {g.logo_url&&<img src={g.logo_url} style={{width:36,height:36,borderRadius:6,objectFit:'cover'}} alt=''/>}
-                    <div style={{flex:1}}><div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700}}>{code}</div><div style={{color:'#27ae60',fontSize:10}}>✅ Verifiziert</div></div>
-                    <button onClick={async()=>{
-                      await fetch(SUPA_URL+'/rest/v1/gym_logos?gym_code=eq.'+code,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
-                      showMsg('Gelöscht');loadGymLogos();
-                    }} style={{background:'none',border:'none',color:'#e74c3c',fontSize:16,cursor:'pointer'}}>🗑️</button>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:8}}>🏋️ GYM MANAGER</div>
+                <button className='adm-btn adm-red' style={{width:'100%',marginBottom:12}} onClick={()=>loadDbGyms(session)}>🔄 GYMS NEU LADEN</button>
+                <div style={{color:'#aaa',fontSize:11,marginBottom:10}}>{dbGyms.length} Gyms in Datenbank</div>
+                {dbGyms.map((gym,i)=>(
+                  <div key={gym.id||i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 12px',marginBottom:8,border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                    {editGymId===gym.id?(
+                      <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                        <input defaultValue={gym.name} id={'gn'+gym.id} style={{padding:'6px 8px',borderRadius:6,border:'1px solid #c0392b',background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:13,width:'100%',boxSizing:'border-box'}} placeholder='Name'/>
+                        <input defaultValue={gym.city} id={'gc'+gym.id} style={{padding:'6px 8px',borderRadius:6,border:'1px solid #ddd',background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:13,width:'100%',boxSizing:'border-box'}} placeholder='Stadt'/>
+                        <input defaultValue={gym.address||''} id={'ga'+gym.id} style={{padding:'6px 8px',borderRadius:6,border:'1px solid #ddd',background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:13,width:'100%',boxSizing:'border-box'}} placeholder='Adresse'/>
+                        <input defaultValue={gym.style||''} id={'gs'+gym.id} style={{padding:'6px 8px',borderRadius:6,border:'1px solid #ddd',background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:13,width:'100%',boxSizing:'border-box'}} placeholder='Stil z.B. MMA, Boxing'/>
+                        <div style={{display:'flex',gap:6}}>
+                          <button onClick={async()=>{
+                            const name=document.getElementById('gn'+gym.id)?.value?.trim();
+                            const city=document.getElementById('gc'+gym.id)?.value?.trim();
+                            const address=document.getElementById('ga'+gym.id)?.value?.trim();
+                            const style=document.getElementById('gs'+gym.id)?.value?.trim();
+                            if(!name||!city)return;
+                            try{
+                              await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({name,city,address,style})});
+                              await loadDbGyms(session);
+                              setEditGymId(null);
+                              showMsg('✅ Gespeichert');
+                            }catch(e){showMsg('Fehler: '+e.message);}
+                          }} style={{flex:1,padding:'7px',borderRadius:8,background:'#27ae60',border:'none',color:'#fff',fontWeight:700,fontSize:12,cursor:'pointer'}}>✓ SPEICHERN</button>
+                          <button onClick={()=>setEditGymId(null)} style={{flex:1,padding:'7px',borderRadius:8,background:darkMode?'#2a2a2a':'#eee',border:'none',color:darkMode?'#fff':'#666',fontWeight:700,fontSize:12,cursor:'pointer'}}>✕ ABBRECHEN</button>
+                          <button onClick={async()=>{
+                            if(!window.confirm('Gym löschen?'))return;
+                            try{
+                              await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                              await loadDbGyms(session);
+                              setEditGymId(null);
+                              showMsg('✅ Gelöscht');
+                            }catch(e){showMsg('Fehler: '+e.message);}
+                          }} style={{padding:'7px 10px',borderRadius:8,background:'#e74c3c',border:'none',color:'#fff',fontWeight:700,fontSize:12,cursor:'pointer'}}>🗑️</button>
+                        </div>
+                      </div>
+                    ):(
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:13,color:darkMode?'#fff':'#1a1a1a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{gym.name}</div>
+                          <div style={{fontSize:11,color:'#888'}}>{gym.city}{gym.style?' · '+gym.style:''}</div>
+                        </div>
+                        <button onClick={()=>setEditGymId(gym.id)} style={{padding:'5px 10px',borderRadius:6,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontSize:11,cursor:'pointer'}}>✏️ Bearbeiten</button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             )}
 
-            {/* ── NEUES GYM HINZUFÜGEN ── */}
-            {adminTab==='addgym'&&(
+                        {adminTab==='addgym'&&(
               <div>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>➕ NEUES GYM</div>
                 <div style={{display:'flex',flexDirection:'column',gap:8}}>
