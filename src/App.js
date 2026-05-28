@@ -1076,6 +1076,9 @@ export default function App(){
   const [rankingLoading,setRankingLoading]=useState(false);
   const [scanResult,setScanResult]=useState(null);
   const [editGymId,setEditGymId]=useState(null);
+  const [adminGymWebsite,setAdminGymWebsite]=useState('');
+  const [gymSearchLoading,setGymSearchLoading]=useState(false);
+  const [gymSearchQuery,setGymSearchQuery]=useState('');
   const [whoLikedTab,setWhoLikedTab]=useState(false);
   const [newLikesCount,setNewLikesCount]=useState(0);
   const [lastLikesCheck,setLastLikesCheck]=useState(()=>{try{return localStorage.getItem('fighter_likes_check')||'2000-01-01'}catch{return '2000-01-01'}});
@@ -3347,9 +3350,51 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
 
                         {adminTab==='addgym'&&(
               <div>
-                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>➕ NEUES GYM</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:8}}>➕ NEUES GYM</div>
+                {/* KI Suche */}
+                <div style={{background:darkMode?'#111d2a':'#e8f4fd',borderRadius:10,padding:'12px',marginBottom:12,border:'1px solid #2980b944'}}>
+                  <div style={{color:'#2980b9',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>🤖 KI SUCHE — Gym-Infos automatisch laden</div>
+                  <div style={{display:'flex',gap:8}}>
+                    <input value={gymSearchQuery||''} onChange={e=>setGymSearchQuery(e.target.value)} placeholder='z.B. Triple One Gym Düsseldorf' style={{flex:1,padding:'8px 10px',borderRadius:8,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:13,outline:'none'}} onKeyDown={e=>{if(e.key==='Enter')document.getElementById('gymAIBtn')?.click();}}/>
+                    <button id='gymAIBtn' onClick={async()=>{
+                      if(!gymSearchQuery?.trim())return;
+                      setGymSearchLoading(true);
+                      try{
+                        const r=await fetch('https://api.anthropic.com/v1/messages',{
+                          method:'POST',
+                          headers:{'Content-Type':'application/json'},
+                          body:JSON.stringify({
+                            model:'claude-sonnet-4-20250514',
+                            max_tokens:800,
+                            tools:[{type:'web_search_20250305',name:'web_search'}],
+                            messages:[{role:'user',content:'Suche im Internet nach dem Kampfsport-Gym: "'+gymSearchQuery.trim()+'". Antworte NUR mit einem JSON-Objekt (kein Markdown, kein Text) mit diesen Feldern: name (vollständiger Name), city (nur Stadtname), address (Straße + Hausnummer + PLZ + Stadt), style (Hauptkampfstil), phone, hours (Öffnungszeiten), website, description (kurze Beschreibung auf Deutsch, max 80 Wörter). Falls ein Feld unbekannt ist, leerer String.'}]
+                          })
+                        });
+                        const d=await r.json();
+                        const txt=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+                        const clean=txt.replace(/```json|```/g,'').trim();
+                        const start=clean.indexOf('{');
+                        const end=clean.lastIndexOf('}');
+                        if(start>=0&&end>start){
+                          const gym=JSON.parse(clean.slice(start,end+1));
+                          if(gym.name)setAdminGymName(gym.name);
+                          if(gym.city)setAdminGymCity(gym.city);
+                          if(gym.address)setAdminGymAddress(gym.address);
+                          if(gym.style)setAdminGymStyles(gym.style);
+                          if(gym.phone)setAdminGymPhone(gym.phone);
+                          if(gym.hours)setAdminGymHours(gym.hours);
+                          if(gym.description)setAdminGymDesc(gym.description);
+                          showMsg('✅ Infos geladen — bitte prüfen und speichern');
+                        }else{showMsg('Keine Infos gefunden');}
+                      }catch(e){showMsg('Fehler: '+e.message);}
+                      setGymSearchLoading(false);
+                    }} style={{padding:'8px 14px',borderRadius:8,background:'#2980b9',border:'none',color:'#fff',fontWeight:700,fontSize:13,cursor:'pointer',flexShrink:0}}>
+                      {gymSearchLoading?'⏳':'🔍 Suchen'}
+                    </button>
+                  </div>
+                </div>
                 <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                  {[['GYM NAME *',adminGymName,setAdminGymName,'z.B. Tiger Gym Berlin'],['STADT *',adminGymCity,setAdminGymCity,'z.B. Berlin'],['KAMPFSTILE',adminGymStyles,setAdminGymStyles,'z.B. Boxing, MMA, BJJ'],['TELEFON',adminGymPhone,setAdminGymPhone,'+49 ...'],['ÖFFNUNGSZEITEN',adminGymHours,setAdminGymHours,'Mo-Fr 17:00-22:00']].map(([lbl,val,set,ph])=>(
+                  {[['GYM NAME *',adminGymName,setAdminGymName,'z.B. Tiger Gym Berlin'],['STADT *',adminGymCity,setAdminGymCity,'z.B. Berlin'],['ADRESSE',adminGymAddress||'',setAdminGymAddress,'z.B. Hauptstr. 1, 40000 Düsseldorf'],['KAMPFSTILE',adminGymStyles,setAdminGymStyles,'z.B. Boxing, MMA, BJJ'],['TELEFON',adminGymPhone,setAdminGymPhone,'+49 ...'],['ÖFFNUNGSZEITEN',adminGymHours,setAdminGymHours,'Mo-Fr 17:00-22:00']].map(([lbl,val,set,ph])=>(
                     <div key={lbl}><div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:4}}>{lbl}</div>
                     <input value={val} onChange={e=>set(e.target.value)} placeholder={ph} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/></div>
                   ))}
@@ -3362,7 +3407,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     try{
                       const trimmedName=adminGymName.trim();
                       const trimmedCity=adminGymCity.trim();
-                      await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:trimmedName,city:trimmedCity,styles:adminGymStyles,phone:adminGymPhone,hours:adminGymHours,description:adminGymDesc,code,verified:false,members:0,rating:0})});
+                      await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:trimmedName,city:trimmedCity,address:(adminGymAddress||'').trim(),style:adminGymStyles,styles:adminGymStyles?[adminGymStyles]:[],phone:adminGymPhone,hours:adminGymHours,description:adminGymDesc,code,verified:false,members:0,rating:0})});
                       await loadDbGyms(session);
                       showMsg('✅ '+trimmedName+' in '+trimmedCity+' hinzugefügt!');
                       setAdminGymName('');setAdminGymCity('');setAdminGymStyles('');setAdminGymPhone('');setAdminGymHours('');setAdminGymDesc('');
