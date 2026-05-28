@@ -1491,10 +1491,9 @@ export default function App(){
 
   async function loadDbGyms(s){
     try{
-      const token=(s?.token)||session?.token||SUPA_KEY;
-      const key=token===SUPA_KEY?SUPA_KEY:SUPA_KEY;
+      const token=(s?.token)||session?.token;
       const resp=await fetch(SUPA_URL+'/rest/v1/gyms?order=city.asc,name.asc',{
-        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+token}
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+(token||SUPA_KEY)}
       });
       const data=await resp.json();
       if(Array.isArray(data)){setDbGyms(data);}
@@ -2183,18 +2182,18 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                             try{
                               await fetch(SUPA_URL+'/rest/v1/gyms',{
                                 method:'POST',
-                                headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+                                headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
                                 body:JSON.stringify({
                                   name:newGymData.name,
                                   city:newGymData.city,
                                   address:newGymData.address||'',
                                   style:newGymData.style||'',
                                   styles:newGymData.style?[newGymData.style]:[],
-                                  code:newGymData.name.replace(/\s+/g,'-').toUpperCase()+'-'+Math.floor(Math.random()*9000+1000),
-                                  emoji:'🥊'
+                                  code:newGymData.name.replace(/[^A-Z0-9]/gi,'-').toUpperCase().slice(0,20)+'-'+Math.floor(Math.random()*9000+1000),
+                                  emoji:'🥊',members:0,rating:0
                                 })
                               });
-                              await loadDbGyms();
+                              await loadDbGyms(session);
                               showMsg('✅ Gym gespeichert!');
                             }catch(e){showMsg('Fehler: '+e.message);}
                             setProfile(p=>({...p,gym:newGymData.name}));
