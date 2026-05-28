@@ -2999,8 +2999,14 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 {(()=>{const allG=[...dbGyms,...Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,city:ct})))].filter((g,i,arr)=>g.name&&g.name.trim().length>2&&arr.findIndex(x=>x.name===g.name)===i);return allG.sort((a,b)=>{
   const keyA=(a.city||'')+'-'+(a.name||'');
   const keyB=(b.city||'')+'-'+(b.name||'');
-  const rA=gymRatings[keyA]?.count>0?gymRatings[keyA].total/gymRatings[keyA].count:(a.rating||0);
-  const rB=gymRatings[keyB]?.count>0?gymRatings[keyB].total/gymRatings[keyB].count:(b.rating||0);
+  // Also try alternate keys (umlaut variations)
+  const norm=s=>s.replace(/ü/g,'ue').replace(/ö/g,'oe').replace(/ä/g,'ae').replace(/ß/g,'ss');
+  const keyAnorm=norm(a.city||'')+'-'+norm(a.name||'');
+  const keyBnorm=norm(b.city||'')+'-'+norm(b.name||'');
+  const ratA=gymRatings[keyA]||gymRatings[keyAnorm]||{};
+  const ratB=gymRatings[keyB]||gymRatings[keyBnorm]||{};
+  const rA=ratA.count>0?ratA.total/ratA.count:(a.rating||0);
+  const rB=ratB.count>0?ratB.total/ratB.count:(b.rating||0);
   const cntA=gymRatings[keyA]?.count||0;
   const cntB=gymRatings[keyB]?.count||0;
   // Gyms ohne Bewertung ganz unten
@@ -3017,10 +3023,17 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       <div style={{fontWeight:700,fontSize:14,color:darkMode?'#fff':'#1a1a1a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{gym.name||''}</div>
                       <div style={{color:'#888',fontSize:11}}>{gym.city} · {gym.members||0} Mitglieder</div>
                     </div>
-                    <div style={{textAlign:'right',flexShrink:0}}>
-                      <div style={{color:'#f1c40f',fontSize:12}}>{'⭐'.repeat(Math.min(5,Math.round(gym.rating||0)))}</div>
-                      <div style={{color:'#aaa',fontSize:11,fontWeight:700}}>{(gym.rating||0).toFixed(1)}</div>
-                    </div>
+                    <div style={{textAlign:'right',flexShrink:0}}>{(()=>{
+                      const norm=s=>(s||'').replace(/ü/g,'ue').replace(/ö/g,'oe').replace(/ä/g,'ae').replace(/ß/g,'ss');
+                      const k=(gym.city||'')+'-'+(gym.name||'');
+                      const kn=norm(gym.city||'')+'-'+norm(gym.name||'');
+                      const rat=gymRatings[k]||gymRatings[kn]||{};
+                      const avg=rat.count>0?rat.total/rat.count:(gym.rating||0);
+                      return(<>
+                        <div style={{color:'#f1c40f',fontSize:12}}>{'⭐'.repeat(Math.min(5,Math.round(avg)))}</div>
+                        <div style={{color:'#aaa',fontSize:11,fontWeight:700}}>{avg>0?avg.toFixed(1):'–'}</div>
+                      </>);
+                    })()}</div>
                   </div>
                 ))}
               </div>
