@@ -2994,7 +2994,18 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             {gymRankMode?(
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 <div style={{color:'#aaa',fontSize:10,letterSpacing:2,fontWeight:700,marginBottom:4}}>RANGLISTE NACH USER-BEWERTUNG</div>
-                {(()=>{const allG=[...dbGyms,...Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,city:ct})))].filter((g,i,arr)=>g.name&&g.name.trim().length>2&&arr.findIndex(x=>x.name===g.name)===i);return allG.sort((a,b)=>{const keyA=(a.city||'')+'-'+(a.name||'');const keyB=(b.city||'')+'-'+(b.name||'');const rA=gymRatings[keyA]?.count>0?gymRatings[keyA].total/gymRatings[keyA].count:(a.rating||0);const rB=gymRatings[keyB]?.count>0?gymRatings[keyB].total/gymRatings[keyB].count:(b.rating||0);return rB-rA;});})().map((gym,i)=>(
+                {(()=>{const allG=[...dbGyms,...Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,city:ct})))].filter((g,i,arr)=>g.name&&g.name.trim().length>2&&arr.findIndex(x=>x.name===g.name)===i);return allG.sort((a,b)=>{
+  const keyA=(a.city||'')+'-'+(a.name||'');
+  const keyB=(b.city||'')+'-'+(b.name||'');
+  const rA=gymRatings[keyA]?.count>0?gymRatings[keyA].total/gymRatings[keyA].count:(a.rating||0);
+  const rB=gymRatings[keyB]?.count>0?gymRatings[keyB].total/gymRatings[keyB].count:(b.rating||0);
+  const cntA=gymRatings[keyA]?.count||0;
+  const cntB=gymRatings[keyB]?.count||0;
+  // Gyms ohne Bewertung ganz unten
+  if(rA===0&&rB>0)return 1;
+  if(rB===0&&rA>0)return -1;
+  return rB-rA;
+});})().map((gym,i)=>(
                   <div key={i} onClick={()=>{if(!gym.name||gym.name.length<2)return;setViewGym({gym:{...gym,name:gym.name,city:gym.city||'',members:gym.members||0,rating:gym.rating||0,styles:gym.styles||[gym.style||'Kampfsport'],address:gym.address||gym.city||'',desc:gym.description||''},key:(gym.city||'')+'-'+gym.name});}} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'12px 14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:12,cursor:'pointer'}}>
                     <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:20,color:i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'#aaa',width:30,textAlign:'center'}}>#{i+1}</div>
                     <div style={{width:42,height:42,borderRadius:8,background:darkMode?'#2a2a2a':'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0,overflow:'hidden'}}>
