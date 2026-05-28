@@ -1159,6 +1159,13 @@ export default function App(){
     }
   },[tab]);
 
+  // Admin Änderungen sofort übernehmen — dbGyms reload nach Admin-Aktionen
+  useEffect(()=>{
+    if(!showAdmin&&session&&dbGyms.length===0){
+      loadDbGyms(session);
+    }
+  },[showAdmin]);
+
   // Rangliste neu laden wenn Tab geöffnet wird
   useEffect(()=>{
     if(tab==='ranking'&&session){
@@ -3327,6 +3334,33 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         <input defaultValue={gym.city} id={'gc'+gym.id} style={{padding:'6px 8px',borderRadius:6,border:'1px solid #ddd',background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:13,width:'100%',boxSizing:'border-box'}} placeholder='Stadt'/>
                         <input defaultValue={gym.address||''} id={'ga'+gym.id} style={{padding:'6px 8px',borderRadius:6,border:'1px solid #ddd',background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:13,width:'100%',boxSizing:'border-box'}} placeholder='Adresse'/>
                         <input defaultValue={gym.style||''} id={'gs'+gym.id} style={{padding:'6px 8px',borderRadius:6,border:'1px solid #ddd',background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:13,width:'100%',boxSizing:'border-box'}} placeholder='Stil z.B. MMA, Boxing'/>
+                        {/* Logo Upload */}
+                        <div style={{marginBottom:6}}>
+                          <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:4}}>LOGO</div>
+                          <div style={{display:'flex',alignItems:'center',gap:8}}>
+                            {(gymLogos[gym.code]?.logo_url||gym.logo_url)&&<img src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:36,height:36,borderRadius:6,objectFit:'cover',border:'1px solid #ddd'}} alt=''/>}
+                            <label style={{flex:1,padding:'6px 10px',borderRadius:8,border:'2px dashed '+(darkMode?'#333':'#ddd'),color:'#aaa',fontSize:11,cursor:'pointer',textAlign:'center'}}>
+                              📷 Logo hochladen
+                              <input type='file' accept='image/*' style={{display:'none'}} onChange={async(e)=>{
+                                const file=e.target.files?.[0];if(!file)return;
+                                showMsg('Logo wird hochgeladen...');
+                                try{
+                                  const url=await uploadPhoto(file,'gyms/'+gym.code+'_'+Date.now()+'.png',session.token);
+                                  if(url){
+                                    await fetch(SUPA_URL+'/rest/v1/gym_logos',{
+                                      method:'POST',
+                                      headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'resolution=merge-duplicates,return=minimal'},
+                                      body:JSON.stringify({gym_code:gym.code,logo_url:url,verified:true})
+                                    });
+                                    setGymLogos(prev=>({...prev,[gym.code]:{logo_url:url}}));
+                                    await loadDbGyms(session);
+                                    showMsg('✅ Logo gespeichert!');
+                                  }
+                                }catch(e){showMsg('Fehler: '+e.message);}
+                              }}/>
+                            </label>
+                          </div>
+                        </div>
                         <div style={{display:'flex',gap:6}}>
                           <button onClick={async()=>{
                             const name=document.getElementById('gn'+gym.id)?.value?.trim();
@@ -3338,7 +3372,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                               await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name,city,address,style})});
                               await loadDbGyms(session);
                               setEditGymId(null);
-                              showMsg('✅ Gespeichert');
+                              showMsg('✅ Gespeichert — App aktualisiert');
                             }catch(e){showMsg('Fehler: '+e.message);}
                           }} style={{flex:1,padding:'7px',borderRadius:8,background:'#27ae60',border:'none',color:'#fff',fontWeight:700,fontSize:12,cursor:'pointer'}}>✓ SPEICHERN</button>
                           <button onClick={()=>setEditGymId(null)} style={{flex:1,padding:'7px',borderRadius:8,background:darkMode?'#2a2a2a':'#eee',border:'none',color:darkMode?'#fff':'#666',fontWeight:700,fontSize:12,cursor:'pointer'}}>✕ ABBRECHEN</button>
