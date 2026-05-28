@@ -1417,11 +1417,21 @@ export default function App(){
         }catch{}
       }
       if(!Array.isArray(all))return;
+      // Swipes mit beiden möglichen IDs abfragen
       const swiped=await dbSelect('swipes','swiper_id=eq.'+myP.id,s.token);
-      // Also filter out matches — no need to show already matched people
-      const matchedIds=dbMatches.map(m=>m.profile_a_id===myP.id?m.profile_b_id:m.profile_a_id);
-      const swipedIds=Array.isArray(swiped)?swiped.map(x=>x.target_id):[];
-      const fresh=all.filter(f=>!swipedIds.includes(f.id)&&!f.banned&&!matchedIds.includes(f.id));
+      const swipedIds=new Set(Array.isArray(swiped)?swiped.map(x=>x.target_id):[]);
+      // Matches auch filtern
+      const matchedIds=new Set(dbMatches.map(m=>m.profile_a_id===myP.id?m.profile_b_id:m.profile_a_id));
+      // Geblockte User
+      const blockedSet=new Set(blockedUsers||[]);
+      const fresh=all.filter(f=>
+        f.id&&
+        !swipedIds.has(f.id)&&
+        !matchedIds.has(f.id)&&
+        !blockedSet.has(f.id)&&
+        !f.banned&&
+        f.id!==myP.id
+      );
       // Nur neue Fighter hinzufügen — bestehende Karten nicht überschreiben
       setCards(prev=>{
         const existingIds=new Set(prev.map(c=>c.id));
