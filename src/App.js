@@ -2902,8 +2902,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             {gymRankMode?(
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 <div style={{color:'#aaa',fontSize:10,letterSpacing:2,fontWeight:700,marginBottom:4}}>RANGLISTE NACH USER-BEWERTUNG</div>
-                {[...dbGyms,...Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,city:ct})))].filter((g,i,arr)=>arr.findIndex(x=>x.name===g.name)===i).sort((a,b)=>(b.rating||0)-(a.rating||0)).map((gym,i)=>(
-                  <div key={i} onClick={()=>setViewGym({gym:{...gym,name:gym.name,city:gym.city,members:gym.members||0,rating:gym.rating||0,styles:gym.styles||[gym.style||'Kampfsport'],address:gym.address||gym.city,desc:gym.description||''},key:gym.city+'-'+gym.name})} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'12px 14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:12,cursor:'pointer'}}>
+                {[...dbGyms,...Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,city:ct})))].filter((g,i,arr)=>g.name&&g.name.trim().length>2&&arr.findIndex(x=>x.name===g.name)===i).sort((a,b)=>(b.rating||0)-(a.rating||0)).map((gym,i)=>(
+                  <div key={i} onClick={()=>{if(!gym.name||gym.name.length<2)return;setViewGym({gym:{...gym,name:gym.name,city:gym.city||'',members:gym.members||0,rating:gym.rating||0,styles:gym.styles||[gym.style||'Kampfsport'],address:gym.address||gym.city||'',desc:gym.description||''},key:(gym.city||'')+'-'+gym.name});}} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'12px 14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:12,cursor:'pointer'}}>
                     <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:20,color:i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'#aaa',width:30,textAlign:'center'}}>#{i+1}</div>
                     <div style={{width:42,height:42,borderRadius:8,background:darkMode?'#2a2a2a':'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0,overflow:'hidden'}}>
                       {(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} alt=''/>:(gym.emoji||'🥊')}
@@ -3347,7 +3347,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     try{
                       const trimmedName=adminGymName.trim();
                       const trimmedCity=adminGymCity.trim();
-                      await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:trimmedName,city:trimmedCity,styles:adminGymStyles,phone:adminGymPhone,hours:adminGymHours,description:adminGymDesc,code,verified:false,members:0,rating:0})});
+                      await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({name:trimmedName,city:trimmedCity,styles:adminGymStyles,phone:adminGymPhone,hours:adminGymHours,description:adminGymDesc,code,verified:false,members:0,rating:0})});
                       await loadDbGyms(session);
                       showMsg('✅ '+trimmedName+' in '+trimmedCity+' hinzugefügt!');
                       setAdminGymName('');setAdminGymCity('');setAdminGymStyles('');setAdminGymPhone('');setAdminGymHours('');setAdminGymDesc('');
@@ -3376,7 +3376,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   try{
                     const resp=await fetch(SUPA_URL+'/rest/v1/gyms',{
                       method:'POST',
-                      headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+                      headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
                       body:JSON.stringify({name:gymName,city,code:gymName.replace(/[^A-Z0-9]/gi,'-').toUpperCase().slice(0,15)+'-'+Date.now().toString().slice(-4),emoji:'🥊',members:0,rating:0,style:'Kampfsport',styles:['Kampfsport']})
                     });
                     if(resp.ok||resp.status===201){
@@ -3665,7 +3665,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                             </div>
                             <button onClick={async()=>{
                               try{
-                                await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:gym,city:data.city||'Unbekannt',code:gym.toUpperCase().replace(/\s/g,'-').slice(0,20),emoji:'🥊',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})});
+                                await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({name:gym,city:data.city||'Unbekannt',code:gym.toUpperCase().replace(/\s/g,'-').slice(0,20),emoji:'🥊',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})});
                                 setScanResult(prev=>({...prev,gyms:prev.gyms.filter(([g])=>g!==gym)}));
                                 await loadDbGyms(session);
                                 showMsg('✅ '+gym+' hinzugefügt');
