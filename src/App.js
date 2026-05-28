@@ -407,7 +407,7 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUp
               <div style={{width:34,height:34,borderRadius:8,background:'#27ae6018',border:'1px solid #27ae6033',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0}}>📞</div>
               <div>
                 <div style={{color:sub,fontSize:10,letterSpacing:1,marginBottom:2}}>TELEFON</div>
-                <div style={{color:text,fontSize:13,fontWeight:600}}>{gym.phone}</div>
+                <div style={{color:text,fontSize:13,fontWeight:600}}>{gym.phone||''}</div>
               </div>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:12}}>
@@ -433,14 +433,14 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUp
         {/* ÖFFNUNGSZEITEN */}
         <div style={{background:card,borderRadius:14,padding:'16px',border:'1px solid '+border}}>
           <div style={{fontFamily:'Rajdhani,sans-serif',color:text,fontSize:13,letterSpacing:2,marginBottom:12}}>ÖFFNUNGSZEITEN</div>
-          {gym.hours.split(', ').map((h,i)=>{
+          {(gym.hours||'').split(', ').filter(Boolean).map((h,i)=>{
             const [days,time]=h.split(' ').reduce((acc,w,idx)=>{
               if(idx===0||w.includes('-')&&!w.includes(':'))acc[0]+=(acc[0]?' ':'')+w;
               else acc[1]+=(acc[1]?' ':'')+w;
               return acc;
             },['','']);
             return(
-              <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:i<gym.hours.split(', ').length-1?'1px solid '+border:'none'}}>
+              <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:i<(gym.hours||'').split(', ').length-1?'1px solid '+border:'none'}}>
                 <div style={{color:sub,fontSize:12}}>{h.split(' ')[0]}</div>
                 <div style={{color:text,fontSize:12,fontWeight:600}}>{h.split(' ').slice(1).join(' ')}</div>
               </div>
