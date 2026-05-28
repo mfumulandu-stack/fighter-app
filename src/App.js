@@ -3345,8 +3345,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     const code=adminGymName.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,3)+'-'+Math.floor(1000+Math.random()*9000);
                     setAdminSaving(true);
                     try{
-                      await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:adminGymName,city:adminGymCity,styles:adminGymStyles,phone:adminGymPhone,hours:adminGymHours,description:adminGymDesc,code,verified:false})});
-                      showMsg('✅ Gym hinzugefügt! Code: '+code);
+                      const trimmedName=adminGymName.trim();
+                      const trimmedCity=adminGymCity.trim();
+                      await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:trimmedName,city:trimmedCity,styles:adminGymStyles,phone:adminGymPhone,hours:adminGymHours,description:adminGymDesc,code,verified:false,members:0,rating:0})});
+                      await loadDbGyms(session);
+                      showMsg('✅ '+trimmedName+' in '+trimmedCity+' hinzugefügt!');
                       setAdminGymName('');setAdminGymCity('');setAdminGymStyles('');setAdminGymPhone('');setAdminGymHours('');setAdminGymDesc('');
                     }catch(e){showMsg('Fehler: '+e.message);}
                     setAdminSaving(false);
@@ -3358,49 +3361,38 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             {/* ── STADT HINZUFÜGEN ── */}
             {adminTab==='addcity'&&(
               <div>
-                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:8}}>🌍 NEUE STADT</div>
-                <div style={{color:'#aaa',fontSize:11,marginBottom:12,lineHeight:1.6}}>Koordinaten findest du bei Google Maps — Rechtsklick auf die Stadt → "Was ist hier?"</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:8}}>🌍 NEUE STADT + GYM</div>
+                <div style={{color:'#aaa',fontSize:11,marginBottom:12}}>Stadt wird sofort im Gym-Reiter sichtbar.</div>
                 <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
-                  {[['STADTNAME *',adminCityName,setAdminCityName,'z.B. Dortmund'],['BUNDESLAND / KANTON *',adminCityBL,setAdminCityBL,'z.B. Nordrhein-Westfalen'],['BREITENGRAD (lat) *',adminCityLat,setAdminCityLat,'z.B. 51.514'],['LÄNGENGRAD (lon) *',adminCityLon,setAdminCityLon,'z.B. 7.468']].map(([lbl,val,set,ph])=>(
-                    <div key={lbl}><div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:4}}>{lbl}</div>
-                    <input value={val} onChange={e=>set(e.target.value)} placeholder={ph} style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box'}}/></div>
-                  ))}
-                </div>
-                <div style={{background:darkMode?'#1a1a1a':'#f5f5f5',borderRadius:8,padding:'10px 12px',marginBottom:12,fontSize:11,color:'#aaa',lineHeight:1.8}}>
-                  <div style={{color:darkMode?'#fff':'#555',fontWeight:700,marginBottom:4}}>Code der in App.js eingefügt wird:</div>
-                  <div style={{fontFamily:'monospace',fontSize:12,color:'#27ae60',wordBreak:'break-all'}}>
-                    {adminCityName&&adminCityLat&&adminCityLon?(
-                      `COORDS: '${adminCityName}':{lat:${adminCityLat},lon:${adminCityLon}}
-BUNDESLAND: '${adminCityName}':'${adminCityBL}'`
-                    ):'Felder ausfüllen → Code erscheint hier'}
-                  </div>
+                  <div><div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:4}}>STADTNAME *</div>
+                  <input value={adminCityName||''} onChange={e=>setAdminCityName(e.target.value)} placeholder='z.B. Neuss' style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box'}}/></div>
+                  <div><div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:4}}>GYM NAME (optional)</div>
+                  <input value={adminCityGymName||''} onChange={e=>setAdminCityGymName(e.target.value)} placeholder='z.B. Kampfsport Neuss' style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box'}}/></div>
                 </div>
                 <button onClick={async()=>{
-                  if(!adminCityName||!adminCityLat||!adminCityLon||!adminCityBL){showMsg('Alle Felder ausfüllen');return;}
-                  // In Supabase city_requests speichern
+                  const city=(adminCityName||'').trim();
+                  if(!city){showMsg('Stadtname eingeben');return;}
+                  const gymName=(adminCityGymName||('Kampfsport '+city)).trim();
                   try{
-                    await fetch(SUPA_URL+'/rest/v1/city_requests',{
+                    const resp=await fetch(SUPA_URL+'/rest/v1/gyms',{
                       method:'POST',
                       headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
-                      body:JSON.stringify({city:adminCityName,lat:parseFloat(adminCityLat),lon:parseFloat(adminCityLon),bundesland:adminCityBL,added_by:session.userId})
+                      body:JSON.stringify({name:gymName,city,code:gymName.replace(/[^A-Z0-9]/gi,'-').toUpperCase().slice(0,15)+'-'+Date.now().toString().slice(-4),emoji:'🥊',members:0,rating:0,style:'Kampfsport',styles:['Kampfsport']})
                     });
-                  }catch{}
-                  // Code in Zwischenablage kopieren
-                  const coordsCode=`  '${adminCityName}':{lat:${adminCityLat},lon:${adminCityLon}},`;
-                  const blCode=`  '${adminCityName}':'${adminCityBL}',`;
-                  const fullCode=`COORDS:
-${coordsCode}
-
-BUNDESLAND:
-${blCode}`;
-                  navigator.clipboard?.writeText(fullCode);
-                  showMsg(`✅ Code kopiert! In App.js bei CITY_COORDS und CITY_BUNDESLAND einfügen.`);
-                  setAdminCityName('');setAdminCityLat('');setAdminCityLon('');setAdminCityBL('');
-                }} style={{width:'100%',padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer',letterSpacing:2}}>CODE KOPIEREN</button>
+                    if(resp.ok||resp.status===201){
+                      await loadDbGyms(session);
+                      showMsg('✅ '+city+' hinzugefügt!');
+                      setAdminCityName('');setAdminCityGymName('');
+                    } else {
+                      const err=await resp.text();
+                      showMsg('Fehler: '+err);
+                    }
+                  }catch(e){showMsg('Fehler: '+e.message);}
+                }} style={{width:'100%',padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer',letterSpacing:2}}>STADT HINZUFÜGEN</button>
               </div>
             )}
 
-            {/* ── USER VERWALTEN ── */}
+                        {/* ── USER VERWALTEN ── */}
             {adminTab==='users'&&(
               <div>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>👤 USER ({adminUsers.length})</div>
