@@ -1363,6 +1363,8 @@ export default function App(){
           });
         }
       }catch(e){console.error('rateGym Supabase error',e);}
+      // Reload from DB to sync all ratings
+      setTimeout(()=>loadGymRatings(session),500);
     }
   }
 
