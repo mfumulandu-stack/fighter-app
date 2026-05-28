@@ -1130,6 +1130,7 @@ export default function App(){
   const [joined,setJoined]=useState({});
   const [gymRatings,setGymRatings]=useState(()=>{try{return JSON.parse(localStorage.getItem('gymRatings')||'{}')}catch{return {}}});
   const [dbGyms,setDbGyms]=useState([]);
+  const [gymRankMode,setGymRankMode]=useState(false);
   const [gymRatingInput,setGymRatingInput]=useState({});
   const [gymSuggestions,setGymSuggestions]=useState([]);
   const [showGymSuggestions,setShowGymSuggestions]=useState(false);
@@ -2875,11 +2876,47 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               );
             })()}
 
-            <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
-              {[...new Set([...Object.keys(GYMS),...dbGyms.map(g=>g.city).filter(Boolean)])].sort().map(c=>(<button key={c} onClick={()=>setCity(c)} style={{flexShrink:0,padding:'6px 13px',borderRadius:20,background:city===c?RED:'#fff',border:'1px solid '+(city===c?RED:'#e0e0e0'),color:city===c?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{c}</button>))}
+            {/* TOP GYMS Toggle */}
+            <div style={{display:'flex',gap:8,marginBottom:10}}>
+              <button onClick={()=>setGymRankMode(false)} style={{flex:1,padding:'7px',borderRadius:20,background:!gymRankMode?RED:'transparent',border:'1px solid '+(gymRankMode?'#ddd':RED),color:gymRankMode?'#888':'#fff',fontSize:13,fontWeight:600,cursor:'pointer'}}>🏙️ Städte</button>
+              <button onClick={()=>setGymRankMode(true)} style={{flex:1,padding:'7px',borderRadius:20,background:gymRankMode?RED:'transparent',border:'1px solid '+(gymRankMode?RED:'#ddd'),color:gymRankMode?'#fff':'#888',fontSize:13,fontWeight:600,cursor:'pointer'}}>🏆 TOP GYMS</button>
             </div>
+
+            {gymRankMode?(
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                <div style={{color:'#aaa',fontSize:10,letterSpacing:2,fontWeight:700,marginBottom:4}}>RANGLISTE NACH USER-BEWERTUNG</div>
+                {[...dbGyms,...Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,city:ct})))].filter((g,i,arr)=>arr.findIndex(x=>x.name===g.name)===i).sort((a,b)=>(b.rating||0)-(a.rating||0)).map((gym,i)=>(
+                  <div key={i} onClick={()=>setViewGym({gym,key:gym.city+'-'+gym.name})} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'12px 14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:12,cursor:'pointer'}}>
+                    <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:20,color:i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'#aaa',width:30,textAlign:'center'}}>#{i+1}</div>
+                    <div style={{width:42,height:42,borderRadius:8,background:darkMode?'#2a2a2a':'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0,overflow:'hidden'}}>
+                      {(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} alt=''/>:(gym.emoji||'🥊')}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:14,color:darkMode?'#fff':'#1a1a1a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{gym.name}</div>
+                      <div style={{color:'#888',fontSize:11}}>{gym.city} · {gym.members||0} Mitglieder</div>
+                    </div>
+                    <div style={{textAlign:'right',flexShrink:0}}>
+                      <div style={{color:'#f1c40f',fontSize:12}}>{'⭐'.repeat(Math.min(5,Math.round(gym.rating||0)))}</div>
+                      <div style={{color:'#aaa',fontSize:11,fontWeight:700}}>{(gym.rating||0).toFixed(1)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ):(
+            <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
+              {(()=>{
+                const norm=s=>(s||'').toLowerCase().trim().replace(/ü/g,'ue').replace(/ö/g,'oe').replace(/ä/g,'ae').replace(/ß/g,'ss');
+                const seen=new Set();const result=[];
+                [...dbGyms.map(g=>g.city).filter(Boolean),...Object.keys(GYMS)].forEach(c=>{
+                  const k=norm(c);
+                  if(!seen.has(k)){seen.add(k);result.push(c);}
+                });
+                return result.sort((a,b)=>a.localeCompare(b,'de'));
+              })().map(c=>(<button key={c} onClick={()=>setCity(c)} style={{flexShrink:0,padding:'6px 13px',borderRadius:20,background:city===c?RED:'#fff',border:'1px solid '+(city===c?RED:'#e0e0e0'),color:city===c?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{c}</button>))}
+            </div>
+            )}
             <div style={{display:'flex',flexDirection:'column',gap:8}}>
-              {(dbGyms.filter(g=>g.city===city).length>0?dbGyms.filter(g=>g.city===city):(GYMS[city]||[])).map((gym,i)=>(
+              {!gymRankMode&&(dbGyms.filter(g=>g.city===city).length>0?dbGyms.filter(g=>g.city===city):(GYMS[city]||[])).map((gym,i)=>(
                 <div key={i} onClick={()=>setViewGym({gym,key:city+'-'+gym.name})} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'13px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),boxShadow:'0 1px 4px rgba(0,0,0,0.05)',cursor:'pointer'}}>
                   <div style={{display:'flex',gap:11,alignItems:'flex-start'}}>
                     <div style={{width:46,height:46,borderRadius:9,background:darkMode?'#2a2a2a':'#f0f0f0',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>{(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#aaa',fontSize:10,fontWeight:700,textAlign:'center',lineHeight:1.2}}>{gym.name.split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}</div>
