@@ -340,7 +340,7 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUp
           <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:26,color:'#fff',letterSpacing:1,lineHeight:1.2}}>{editName||gym.name}</div>
           <div style={{color:'rgba(255,255,255,0.6)',fontSize:12,marginTop:6}}>📍 {editCity||gym.city} · gegründet {gym.founded}</div>
           <div style={{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'center',marginTop:10}}>
-            {gym.styles.map(s=>(
+            {(gym.styles||[gym.style||'Kampfsport']).filter(Boolean).map(s=>(
               <div key={s} style={{padding:'4px 10px',borderRadius:20,background:(styleColors[s]||'#555')+'33',border:'1px solid '+(styleColors[s]||'#555')+'66',color:styleColors[s]||'#fff',fontSize:11,fontWeight:700}}>{s}</div>
             ))}
           </div>
@@ -1512,14 +1512,7 @@ export default function App(){
         f.id!==myP.id
       );
       // Nur neue Fighter hinzufügen — bestehende Karten nicht überschreiben
-      setCards(prev=>{
-        const existingIds=new Set(prev.map(c=>c.id));
-        const newOnes=fresh.filter(f=>!existingIds.has(f.id));
-        // Wenn keine Karten mehr oder erste Ladung — alles setzen
-        if(prev.length===0)return [...fresh];
-        // Sonst nur neue hinzufügen am Ende
-        return newOnes.length>0?[...prev,...newOnes]:prev;
-      });
+      setCards([...fresh]);
     }catch{}
   }
 
