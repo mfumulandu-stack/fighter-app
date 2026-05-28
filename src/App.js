@@ -3408,10 +3408,13 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                                 const file=e.target.files?.[0];if(!file)return;
                                 showMsg('Logo wird hochgeladen...');
                                 try{
-                                  const url=await uploadPhoto(file,'gyms/'+gym.code+'_'+Date.now()+'.png',session.token);
+                                  const path='gyms/logo_'+gym.code+'_'+Date.now()+'.png';
+                                  const url=await uploadPhoto(file,path,session.token);
                                   if(url){
                                     // Delete old logo first, then insert new
                                     await fetch(SUPA_URL+'/rest/v1/gym_logos?gym_code=eq.'+gym.code,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                                    // Delete old + insert new logo
+                                    try{await fetch(SUPA_URL+'/rest/v1/gym_logos?gym_code=eq.'+gym.code,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});}catch{}
                                     await fetch(SUPA_URL+'/rest/v1/gym_logos',{
                                       method:'POST',
                                       headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
