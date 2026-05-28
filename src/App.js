@@ -338,7 +338,7 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUp
             </div>
           ):(<>
           <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:26,color:'#fff',letterSpacing:1,lineHeight:1.2}}>{editName||gym.name}</div>
-          <div style={{color:'rgba(255,255,255,0.6)',fontSize:12,marginTop:6}}>📍 {editCity||gym.city} · gegründet {gym.founded}</div>
+          <div style={{color:'rgba(255,255,255,0.6)',fontSize:12,marginTop:6}}>📍 {editCity||gym.city} · gegründet {gym.founded||''}</div>
           <div style={{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'center',marginTop:10}}>
             {(gym.styles||[gym.style||'Kampfsport']).filter(Boolean).map(s=>(
               <div key={s} style={{padding:'4px 10px',borderRadius:20,background:(styleColors[s]||'#555')+'33',border:'1px solid '+(styleColors[s]||'#555')+'66',color:styleColors[s]||'#fff',fontSize:11,fontWeight:700}}>{s}</div>
@@ -374,7 +374,7 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUp
         {/* ÜBER DAS GYM */}
         <div style={{background:card,borderRadius:14,padding:'16px',border:'1px solid '+border,marginBottom:12}}>
           <div style={{fontFamily:'Rajdhani,sans-serif',color:text,fontSize:13,letterSpacing:2,marginBottom:10}}>ÜBER DAS GYM</div>
-          <div style={{color:sub,fontSize:13,lineHeight:1.7}}>{gym.desc}</div>
+          <div style={{color:sub,fontSize:13,lineHeight:1.7}}>{gym.desc||gym.description||''}</div>
         </div>
 
         {/* STATS */}
@@ -3001,7 +3001,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       {(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} alt=''/>:(gym.emoji||'🥊')}
                     </div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:14,color:darkMode?'#fff':'#1a1a1a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{gym.name}</div>
+                      <div style={{fontWeight:700,fontSize:14,color:darkMode?'#fff':'#1a1a1a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{gym.name||''}</div>
                       <div style={{color:'#888',fontSize:11}}>{gym.city} · {gym.members||0} Mitglieder</div>
                     </div>
                     <div style={{textAlign:'right',flexShrink:0}}>
@@ -3030,13 +3030,13 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   <div style={{display:'flex',gap:11,alignItems:'flex-start'}}>
                     <div style={{width:46,height:46,borderRadius:9,background:darkMode?'#2a2a2a':'#f0f0f0',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>{(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#aaa',fontSize:10,fontWeight:700,textAlign:'center',lineHeight:1.2}}>{gym.name.split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}</div>
                     <div style={{flex:1}}>
-                      <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15}}>{gym.name}</div>
-                      <div style={{color:darkMode?'#aaa':'#888',fontSize:11,marginTop:1}}>📍 {gym.address}</div>
-                      <div style={{display:'flex',gap:4,marginTop:6,flexWrap:'wrap'}}>{gym.styles.map(s=><Tag key={s} text={s} accent={RED}/>)}</div>
+                      <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15}}>{gym.name||''}</div>
+                      <div style={{color:darkMode?'#aaa':'#888',fontSize:11,marginTop:1}}>📍 {gym.address||gym.city||''}</div>
+                      <div style={{display:'flex',gap:4,marginTop:6,flexWrap:'wrap'}}>{(gym.styles||[gym.style||'Kampfsport']).filter(Boolean).map(s=><Tag key={s} text={s} accent={RED}/>)}</div>
                     </div>
                   </div>
                   <div style={{marginTop:9,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <div style={{color:'#888',fontSize:12}}>👥 {gym.members} Mitglieder</div>
+                    <div style={{color:'#888',fontSize:12}}>👥 {gym.members||0} Mitglieder</div>
                     <div style={{display:'flex',alignItems:'center',gap:3}}><span style={{color:'#d4a017'}}>★</span><span style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14}}>{gym.rating}</span></div>
                   </div>
                   <div style={{marginTop:6,height:3,background:'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:((gym.rating-4)/1*100)+'%',background:`linear-gradient(90deg,${RED},#e67e22)`,borderRadius:2}}/></div>
@@ -3450,7 +3450,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     ):(
                       <div style={{display:'flex',alignItems:'center',gap:8}}>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontWeight:700,fontSize:13,color:darkMode?'#fff':'#1a1a1a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{gym.name}</div>
+                          <div style={{fontWeight:700,fontSize:13,color:darkMode?'#fff':'#1a1a1a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{gym.name||''}</div>
                           <div style={{fontSize:11,color:'#888'}}>{gym.city}{gym.style?' · '+gym.style:''}</div>
                         </div>
                         <button onClick={()=>setEditGymId(gym.id)} style={{padding:'5px 10px',borderRadius:6,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontSize:11,cursor:'pointer'}}>✏️ Bearbeiten</button>
