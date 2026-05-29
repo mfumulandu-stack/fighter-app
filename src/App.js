@@ -4,7 +4,7 @@ const SUPA_URL = 'https://uykdrmymjvqgebsmndme.supabase.co';
 
 const T={
   de:{
-    fight:'FIGHT',chat:'CHAT',rank:appLang==='en'?'RANK':'RANG',gyms:'GYMS',profile:appLang==='en'?'PROFILE':'PROFIL',
+    fight:'FIGHT',chat:'CHAT',rank:'RANG',gyms:'GYMS',profile:'PROFIL',
     swipe_empty:'Keine weiteren Fighter',swipe_reload:'NEUE FIGHTER',
     match:"IT'S A MATCH!",match_sub:"Ihr könnt jetzt chatten",
     send:'Senden',back:'Zurück',save:'Speichern',cancel:'Abbrechen',
@@ -2418,7 +2418,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
     </div>
   );
 
-  const tabs=[['swipe','🥊',appLang==='en'?'FIGHT':'FIGHT'],['chat','unread',appLang==='en'?'CHAT':'CHAT'],['ranking','🏆',appLang==='en'?'RANK':'RANG'],['gyms','🏋️','GYMS'],['stats','👤',appLang==='en'?'PROFILE':'PROFIL']];
+  const tabs=[['swipe','🥊','FIGHT'],['chat','unread','CHAT'],['ranking','🏆',appLang==='en'?'RANK':'RANG'],['gyms','🏋️','GYMS'],['stats','👤',appLang==='en'?'PROFILE':'PROFIL']];
 
   return(
     <div style={{minHeight:'100vh',background:darkMode?'#1a1a1a':'#f5f5f7',fontFamily:'DM Sans,sans-serif',display:'flex',flexDirection:'column'}} onMouseMove={dragMove} onMouseUp={dragEnd} onTouchMove={dragMove} onTouchEnd={dragEnd}>
