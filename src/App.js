@@ -6,7 +6,7 @@ const T={
   de:{
     fight:'FIGHT',chat:'CHAT',rank:appLang==='en'?'RANK':'RANG',gyms:'GYMS',profile:appLang==='en'?'PROFILE':'PROFIL',
     swipe_empty:'Keine weiteren Fighter',swipe_reload:'NEUE FIGHTER',
-    match:'IT'S A MATCH!',match_sub:'Ihr könnt jetzt chatten',
+    match:"IT'S A MATCH!",match_sub:"Ihr könnt jetzt chatten",
     send:'Senden',back:'Zurück',save:'Speichern',cancel:'Abbrechen',
     logout:'Ausloggen',delete_account:'Account löschen',
     settings:'EINSTELLUNGEN',dark_mode:'Dark Mode',
@@ -27,7 +27,7 @@ const T={
   en:{
     fight:'FIGHT',chat:'CHAT',rank:'RANK',gyms:'GYMS',profile:'PROFILE',
     swipe_empty:'No more fighters',swipe_reload:'NEW FIGHTERS',
-    match:'IT'S A MATCH!',match_sub:'You can now chat',
+    match:"IT'S A MATCH!",match_sub:"You can now chat",
     send:'Send',back:'Back',save:'Save',cancel:'Cancel',
     logout:'Log out',delete_account:'Delete account',
     settings:'SETTINGS',dark_mode:'Dark Mode',
