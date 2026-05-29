@@ -588,23 +588,18 @@ function AuthScreen({ onSession }) {
         }else{
           setErr(r.error.message||'Registrierung fehlgeschlagen');
         }
-      }else if(r.session&&r.session.access_token){
-        // Direkt einloggen (E-Mail Bestätigung deaktiviert)
-        onSession({token:r.session.access_token,userId:r.user.id,refresh_token:r.session.refresh_token||null,expires_at:Date.now()+(3600*1000)});
+      }else if(r.session?.access_token){
+        // E-Mail Bestätigung AUS — direkt einloggen
+        onSession({token:r.session.access_token,userId:r.user?.id||r.session.user?.id,refresh_token:r.session.refresh_token||null,expires_at:Date.now()+(3600*1000)});
       }else if(r.access_token){
-        onSession({token:r.access_token,userId:r.user?.id});
-      }else if(r.user&&r.user.id){
-        // E-Mail Bestätigung aktiv → Hinweis zeigen
+        // Altes Format
+        onSession({token:r.access_token,userId:r.user?.id,refresh_token:r.refresh_token||null,expires_at:Date.now()+(3600*1000)});
+      }else if(r.user?.id||r.id){
+        // E-Mail Bestätigung AN — Hinweis zeigen
         setInfo('✅ Fast fertig! Wir haben eine Bestätigungsmail an '+email+' gesendet. Bitte öffne sie und klicke auf den Link, dann kannst du dich hier einloggen.');
         setMode('login');
-      }else if(r.id&&r.aud==='authenticated'){
-        // Supabase gibt User direkt zurück — E-Mail Bestätigung nötig
-        setInfo('✅ Fast fertig! Wir haben eine Bestätigungsmail an '+email+' gesendet. Bitte öffne sie und klicke auf den Link, dann kannst du dich hier einloggen.');
-        setMode('login');
-      }else if(r.error){
-        setErr(r.error.message||'Registrierung fehlgeschlagen');
       }else{
-        setInfo('✅ Registrierung erfolgreich! Bitte bestätige deine E-Mail und logge dich dann ein.');
+        setInfo('✅ Registrierung erfolgreich! Bitte einloggen.');
         setMode('login');
       }
     }else{
