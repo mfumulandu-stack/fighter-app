@@ -1,51 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 const SUPA_URL = 'https://uykdrmymjvqgebsmndme.supabase.co';
-
-const T={
-  de:{
-    fight:'FIGHT',chat:'CHAT',rank:'RANG',gyms:'GYMS',profile:'PROFIL',
-    swipe_empty:'Keine weiteren Fighter',swipe_reload:'NEUE FIGHTER',
-    match:"IT'S A MATCH!",match_sub:"Ihr könnt jetzt chatten",
-    send:'Senden',back:'Zurück',save:'Speichern',cancel:'Abbrechen',
-    logout:'Ausloggen',delete_account:'Account löschen',
-    settings:'EINSTELLUNGEN',dark_mode:'Dark Mode',
-    language:'Sprache',country:'Land',
-    ranking:appLang==='en'?'WORLD RANKING':'WELTRANGLISTE',amateurs:appLang==='en'?'AMATEURS':'AMATEURE',pros:appLang==='en'?'PROS':'PROFIS',trainers:appLang==='en'?'TRAINERS':'TRAINER',
-    top_gyms:'TOP GYMS',cities:'Städte',
-    edit_profile:'Profil bearbeiten',
-    fight_request:'FIGHT REQUEST',accept:'Annehmen',decline:'Ablehnen',
-    liked_you:'interessieren sich für dich',
-    register:'REGISTRIEREN',login:'EINLOGGEN',
-    name:'Name',city:'Stadt',weight:'Gewichtsklasse',style:'Kampfstil',country_label:'Land',
-    bio:'Bio',gym:'Gym',
-    wins:'Siege',losses:'Niederlagen',draws:'Unentschieden',kos:'KOs',
-    verified:'Verifiziert',
-    rate_gym:'Gym bewerten',
-    no_fighters:'Keine Fighter in dieser Kategorie',
-  },
-  en:{
-    fight:'FIGHT',chat:'CHAT',rank:'RANK',gyms:'GYMS',profile:'PROFILE',
-    swipe_empty:'No more fighters',swipe_reload:'NEW FIGHTERS',
-    match:"IT'S A MATCH!",match_sub:"You can now chat",
-    send:'Send',back:'Back',save:'Save',cancel:'Cancel',
-    logout:'Log out',delete_account:'Delete account',
-    settings:'SETTINGS',dark_mode:'Dark Mode',
-    language:'Language',country:'Country',
-    ranking:'WORLD RANKING',amateurs:'AMATEURS',pros:'PROS',trainers:'TRAINERS',
-    top_gyms:'TOP GYMS',cities:'Cities',
-    edit_profile:'Edit profile',
-    fight_request:'FIGHT REQUEST',accept:'Accept',decline:'Decline',
-    liked_you:'are interested in you',
-    register:'REGISTER',login:'LOGIN',
-    name:'Name',city:'City',weight:'Weight class',style:'Combat style',country_label:'Country',
-    bio:'Bio',gym:'Gym',
-    wins:'Wins',losses:'Losses',draws:'Draws',kos:'KOs',
-    verified:'Verified',
-    rate_gym:'Rate gym',
-    no_fighters:'No fighters in this category',
-  }
-};
 const ADMIN_ID = '1a697731-458d-4559-a4cf-a89d3150bfa5';
 const SUPA_SERVICE_KEY = process.env.REACT_APP_SUPA_SERVICE_KEY||'sb_secret_N0bkvRQt1mqBwGdbH3fwIw_nidJ7iX_';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk';
@@ -1255,8 +1210,6 @@ export default function App(){
   const [gymRegSent,setGymRegSent]=useState(false);
   const ALL_GYMS_FLAT=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct})));
   const [darkMode,setDarkMode]=useState(()=>{try{return localStorage.getItem('fighter_dark')==='true'}catch{return false}});
-  const [appLang,setAppLang]=useState(()=>{try{return localStorage.getItem('fighter_lang')||'de'}catch{return 'de'}});
-  const COUNTRIES=[{code:'DE',flag:'🇩🇪',name:'Deutschland',nameEn:'Germany'},{code:'FR',flag:'🇫🇷',name:'Frankreich',nameEn:'France'},{code:'IT',flag:'🇮🇹',name:'Italien',nameEn:'Italy'},{code:'GB',flag:'🇬🇧',name:'England',nameEn:'England'},{code:'ES',flag:'🇪🇸',name:'Spanien',nameEn:'Spain'}];
   useEffect(()=>{
     document.body.classList.toggle('dark',darkMode);
     try{localStorage.setItem('fighter_dark',String(darkMode));}catch{}
@@ -2236,15 +2189,7 @@ export default function App(){
             </div>
             <Lbl>Dein Name</Lbl><Inp placeholder='z.B. Max Mueller' value={profile.name} onChange={v=>setProfile(p=>({...p,name:v}))}/>
             <Lbl>Alter</Lbl><Inp placeholder='z.B. 25' type='number' value={profile.age} onChange={v=>setProfile(p=>({...p,age:v}))}/>
-            <Lbl>{appLang==='en'?'Location':'Standort'}</Lbl><Inp placeholder={appLang==='en'?'e.g. London':'z.B. Berlin'} value={profile.city} onChange={v=>setProfile(p=>({...p,city:v}))}/>
-            <Lbl>{appLang==='en'?'Country':'Land'}</Lbl>
-            <div style={{display:'flex',flexWrap:'wrap',gap:7,marginBottom:4}}>
-              {[{code:'DE',flag:'🇩🇪',name:appLang==='en'?'Germany':'Deutschland'},{code:'FR',flag:'🇫🇷',name:appLang==='en'?'France':'Frankreich'},{code:'IT',flag:'🇮🇹',name:appLang==='en'?'Italy':'Italien'},{code:'GB',flag:'🇬🇧',name:appLang==='en'?'England':'England'},{code:'ES',flag:'🇪🇸',name:appLang==='en'?'Spain':'Spanien'}].map(c=>(
-                <button key={c.code} onClick={()=>setProfile(p=>({...p,country:c.code}))} style={{padding:'6px 12px',borderRadius:8,border:'1px solid '+(profile.country===c.code?RED:'#ddd'),background:profile.country===c.code?'#fdf0ef':'#fff',color:profile.country===c.code?RED:'#555',fontSize:13,cursor:'pointer'}}>
-                  {c.flag} {c.name}
-                </button>
-              ))}
-            </div>
+            <Lbl>Standort</Lbl><Inp placeholder='z.B. Berlin' value={profile.city} onChange={v=>setProfile(p=>({...p,city:v}))}/>
           </div>
         )}
         {step===2&&(
@@ -2418,7 +2363,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
     </div>
   );
 
-  const tabs=[['swipe','🥊','FIGHT'],['chat','unread','CHAT'],['ranking','🏆',appLang==='en'?'RANK':'RANG'],['gyms','🏋️','GYMS'],['stats','👤',appLang==='en'?'PROFILE':'PROFIL']];
+  const tabs=[['swipe','🥊','FIGHT'],['chat','unread','CHAT'],['ranking','🏆','RANG'],['gyms','🏋️','GYMS'],['stats','👤','PROFIL']];
 
   return(
     <div style={{minHeight:'100vh',background:darkMode?'#1a1a1a':'#f5f5f7',fontFamily:'DM Sans,sans-serif',display:'flex',flexDirection:'column'}} onMouseMove={dragMove} onMouseUp={dragEnd} onTouchMove={dragMove} onTouchEnd={dragEnd}>
@@ -2919,18 +2864,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             </div>
             {/* EINSTELLUNGEN */}
             <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginTop:10}}>
-              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:2,marginBottom:12}}>{appLang==='en'?'SETTINGS':'EINSTELLUNGEN'}</div>
-              {/* Sprache */}
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
-                <span style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>🌍 {appLang==='en'?'Language':'Sprache'}</span>
-                <div style={{display:'flex',gap:6}}>
-                  {['de','en'].map(l=>(
-                    <button key={l} onClick={()=>{setAppLang(l);try{localStorage.setItem('fighter_lang',l);}catch{}}} style={{padding:'4px 10px',borderRadius:6,border:'1px solid '+(appLang===l?RED:'#ddd'),background:appLang===l?RED:'transparent',color:appLang===l?'#fff':'#888',fontSize:12,fontWeight:700,cursor:'pointer'}}>
-                      {l==='de'?'🇩🇪 DE':'🇬🇧 EN'}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:2,marginBottom:12}}>EINSTELLUNGEN</div>
               <div onClick={()=>setDarkMode(d=>!d)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
                 <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>🌙 Dark Mode</div>
                 <div style={{width:48,height:26,borderRadius:13,background:darkMode?'#c0392b':'#ddd',position:'relative',cursor:'pointer'}}>
