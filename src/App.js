@@ -2498,39 +2498,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 )}
               </div>
             )}
-            {dbMatches.length>3&&(
-              <div style={{marginTop:11,width:'calc(100% - 24px)',maxWidth:380}}>
-                <div style={{color:'#bbb',fontSize:9,letterSpacing:2,marginBottom:6,fontWeight:700}}>FIGHT REQUESTS – tippe für Chat</div>
-                <div style={{display:'flex',gap:7,overflowX:'auto'}}>
-                  {dbMatches.map(m=>{
-                    const other=m.profile_a_id===myProfile?.id?m.profile_b:m.profile_a;
-                    if(!other)return null;
-                    const ac=other.accent||'#c0392b';
-                    return(
-                      <div key={m.id} style={{textAlign:'center',flexShrink:0}}>
-                        <div onClick={()=>setActiveChat(m)} style={{cursor:'pointer',width:54,height:54,borderRadius:8,overflow:'hidden',border:'2px solid '+ac}}>
-                          {other.avatar_url?<img src={other.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} alt={other.name}/>
-                          :<div style={{width:'100%',height:'100%',background:'#2a2a2a',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>🥊</div>}
-                        </div>
-                        <div onClick={()=>setViewProfile(other)} style={{color:ac,fontSize:9,marginTop:3,cursor:'pointer',fontWeight:700,maxWidth:54,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{other.name?.split(' ')[0]}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {chatSearch&&dbMatches.filter(m=>{
-                  const other=m.profile_a_id===myProfile?.id?m.profile_b:m.profile_a;
-                  if(!other)return false;
-                  const q=chatSearch.toLowerCase();
-                  return (other.name||'').toLowerCase().includes(q)||(other.city||'').toLowerCase().includes(q)||(other.style||'').toLowerCase().includes(q);
-                }).length===0&&(
-                  <div style={{textAlign:'center',padding:'32px 0',color:'#aaa'}}>
-                    <div style={{fontSize:36,marginBottom:8}}>🔍</div>
-                    <div style={{fontSize:14,fontWeight:700,color:darkMode?'#fff':'#1a1a1a'}}>Kein Fighter gefunden</div>
-                    <div style={{fontSize:12,marginTop:4}}>Keine Matches für "{chatSearch}"</div>
-                  </div>
-                )}
-              </div>
-            )}
+
           </div>
         )}
 
