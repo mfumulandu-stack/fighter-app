@@ -1177,6 +1177,8 @@ export default function App(){
   const [adminGymPhone,setAdminGymPhone]=useState('');
   const [adminGymHours,setAdminGymHours]=useState('');
   const [adminGymDesc,setAdminGymDesc]=useState('');
+  const [adminGymAddress,setAdminGymAddress]=useState('');
+  const [adminCityGymName,setAdminCityGymName]=useState('');
   const [adminBroadcast,setAdminBroadcast]=useState('');
   const [adminCityName,setAdminCityName]=useState('');
   const [adminCityLat,setAdminCityLat]=useState('');
@@ -3596,6 +3598,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         const ban=!u.banned;
                         await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({banned:ban})});
                         setAdminUsers(prev=>prev.map(x=>x.id===u.id?{...x,banned:ban}:x));
+                        if(ban) setAllProfiles(prev=>prev.filter(x=>x.id!==u.id));
                         showMsg(ban?'User gesperrt 🚫':'User entsperrt ✅');
                       }} style={{background:u.banned?'#27ae60':'#e74c3c',border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:10,fontWeight:700,cursor:'pointer'}}>{u.banned?'Freig.':'Sperren'}</button>
                       <button onClick={async()=>{
@@ -3630,6 +3633,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                             showMsg('✅ User gesperrt + Daten gelöscht (Auth-Account bleibt)');
                           }
                           setAdminUsers(prev=>prev.filter(x=>x.id!==u.id));
+                          setAllProfiles(prev=>prev.filter(x=>x.id!==u.id));
                         }catch(e){
                           showMsg('Fehler: '+e.message);
                         }
@@ -3726,11 +3730,27 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   if(!adminBroadcast.trim()){showMsg('Nachricht eingeben');return;}
                   setAdminSaving(true);
                   try{
-                    await fetch(SUPA_URL+'/rest/v1/broadcasts',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({message:adminBroadcast,created_by:session.userId,active:true})});
-                    showMsg('✅ Nachricht gesendet!');setAdminBroadcast('');
-                  }catch{showMsg('Fehler — broadcasts Tabelle anlegen');}
+                    // Alle User laden
+                    const resp=await fetch(SUPA_URL+'/rest/v1/profiles?select=id&banned=neq.true&limit=500',{headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                    const users=await resp.json();
+                    if(!Array.isArray(users)||users.length===0){showMsg('Keine User gefunden');setAdminSaving(false);return;}
+                    // Für jeden User eine admin_message anlegen
+                    let sent=0;
+                    for(const u of users){
+                      try{
+                        await fetch(SUPA_URL+'/rest/v1/admin_messages',{
+                          method:'POST',
+                          headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
+                          body:JSON.stringify({user_id:u.id,message:adminBroadcast,from_admin:true,read:false})
+                        });
+                        sent++;
+                      }catch{}
+                    }
+                    showMsg('✅ Nachricht an '+sent+' User gesendet!');
+                    setAdminBroadcast('');
+                  }catch(e){showMsg('Fehler: '+e.message);}
                   setAdminSaving(false);
-                }} style={{width:'100%',padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,cursor:'pointer',letterSpacing:2}}>📢 SENDEN</button>
+                }} style={{width:'100%',padding:'12px',borderRadius:10,background:adminSaving?'#aaa':`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,cursor:adminSaving?'not-allowed':'pointer',letterSpacing:2}}>{adminSaving?'Sende...':'📢 AN ALLE SENDEN'}</button>
 
                 <div style={{marginTop:20,paddingTop:16,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
                   <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,letterSpacing:2,marginBottom:6}}>✉️ AKTIVIERUNGS-MAILS</div>
