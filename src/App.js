@@ -2902,168 +2902,138 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         {tab==='gyms'&&(
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:11}}>GYMS FINDEN</div>
-            {/* TOP GYMS */}
             {(()=>{
+              // Unified ranked list - no duplicates
               const hardcoded=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct,city:ct})));
               const dbOnly=dbGyms.filter(dg=>!hardcoded.some(h=>h.name.toLowerCase()===dg.name.toLowerCase()));
-              const all=[...hardcoded,...dbOnly];
-              const ranked=all.map(g=>{
+              const allGyms=[...hardcoded,...dbOnly];
+              const norm=s=>(s||'').replace(/ü/g,'ue').replace(/ö/g,'oe').replace(/ä/g,'ae').replace(/ß/g,'ss');
+              const allRanked=allGyms.map(g=>{
                 const k=(g.city||g.ct||'')+'-'+g.name;
-                const r=gymRatings[k];
-                const userAvg=r&&r.count>0?r.total/r.count:0;
-                const avg=userAvg>0?userAvg:(g.rating||0);
-                const cnt=r?r.count:0;
-                return{...g,k,avg,cnt,userAvg};
+                const kn=norm(g.city||g.ct||'')+'-'+norm(g.name||'');
+                const r=gymRatings[k]||gymRatings[kn]||{};
+                const avg=r.count>0?r.total/r.count:(g.rating||0);
+                const cnt=r.count||0;
+                return{...g,k,avg,cnt};
               }).sort((a,b)=>{
                 if(b.cnt!==a.cnt)return b.cnt-a.cnt;
                 return b.avg-a.avg;
               });
+              const top5=allRanked.slice(0,5);
+              const rest=allRanked.slice(5);
               const medal=['🥇','🥈','🥉'];
-              const medalColor=['#d4a017','#95a5a6','#cd7f32'];
-              return(
-                <div style={{marginBottom:16}}>
+              const openGym=(g)=>{
+                const hard=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(gx=>({...gx,ct}))).find(gx=>gx.name===g.name);
+                const db=dbGyms.find(dg=>dg.name===g.name);
+                const base=hard||db||g;
+                setViewGym({gym:{styles:[],...base,city:base.city||base.ct||'',members:base.members||0,rating:base.rating||0,styles:base.styles||[base.style||'Kampfsport'],address:base.address||base.city||'',desc:base.desc||base.description||'',street:base.street||base.address||'',zip:base.zip||'',founded:base.founded||''},key:g.k});
+              };
+              return(<>
+                {/* TOP 5 */}
+                <div style={{marginBottom:12}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
                     <div className='rj' style={{color:'#d4a017',fontSize:15,letterSpacing:2}}>🏆 GYM RANKING</div>
                     <div style={{color:'#aaa',fontSize:10}}>Nach Bewertungen sortiert</div>
                   </div>
-                  {ranked.slice(0,5).map((g,i)=>{
+                  {top5.map((g,i)=>{
                     const isTop3=i<3;
                     return(
-                      <div key={g.k} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:12,marginBottom:6,border:'1px solid '+(isTop3?'#d4a01744':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.12)':'none',cursor:'pointer'}} onClick={()=>{
-  const hardFound=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(gx=>({...gx,ct}))).find(gx=>gx.name===g.name);
-  const dbFound=dbGyms.find(dg=>dg.name===g.name);
-  const gymData=hardFound||dbFound;
-  if(gymData)setViewGym({gym:{styles:[],...gymData,city:gymData.city||gymData.ct||'',members:gymData.members||0,rating:gymData.rating||0,styles:gymData.styles||[gymData.style||'Kampfsport'],address:gymData.address||gymData.city||'',desc:gymData.description||gymData.desc||'',street:gymData.street||gymData.address||'',zip:gymData.zip||'',founded:gymData.founded||''},key:g.k});
-}}>
+                      <div key={g.k} onClick={()=>openGym(g)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:12,marginBottom:6,border:'1px solid '+(isTop3?'#d4a01744':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.12)':'none',cursor:'pointer'}}>
                         <div style={{fontSize:isTop3?26:18,width:32,textAlign:'center',flexShrink:0}}>{isTop3?medal[i]:<span className='rj' style={{color:'#bbb'}}>#{i+1}</span>}</div>
                         <div style={{width:38,height:38,borderRadius:8,background:darkMode?'#2a2a2a':'#f5f5f5',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>
-                          {(gymLogos[g.code]?.logo_url||g.logo_url)?<img src={gymLogos[g.code]?.logo_url||g.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#bbb',fontSize:9,textAlign:'center',fontWeight:700,lineHeight:1.2}}>{g.name.split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
+                          {(gymLogos[g.code]?.logo_url||g.logo_url)?<img src={gymLogos[g.code]?.logo_url||g.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#bbb',fontSize:9,textAlign:'center',fontWeight:700,lineHeight:1.2}}>{(g.name||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
                         </div>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{color:isTop3?(darkMode?'#ffd700':'#b8860b'):(darkMode?'#fff':'#1a1a1a'),fontWeight:700,fontSize:13,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{g.name}</div>
-                          <div style={{color:'#888',fontSize:10,marginTop:1}}>📍 {g.city||g.ct} · {g.members} Mitglieder</div>
+                          <div style={{color:'#888',fontSize:10,marginTop:1}}>📍 {g.city||g.ct} · {g.members||0} Mitglieder</div>
                           <div style={{display:'flex',gap:1,marginTop:3}}>
-                            {[1,2,3,4,5].map(s=>(
-                              <button key={s} onClick={()=>rateGym(g.k,s)} style={{background:'none',border:'none',cursor:'pointer',padding:'0 1px',fontSize:14,color:s<=Math.round(g.avg)?'#d4a017':'#ddd',lineHeight:1}}>
-                                {s<=Math.round(g.avg)?'★':'☆'}
-                              </button>
-                            ))}
+                            {[1,2,3,4,5].map(s=>(<button key={s} onClick={e=>{e.stopPropagation();rateGym(g.k,s);}} style={{background:'none',border:'none',cursor:'pointer',padding:'0 1px',fontSize:14,color:s<=Math.round(g.avg)?'#d4a017':'#ddd',lineHeight:1}}>{s<=Math.round(g.avg)?'★':'☆'}</button>))}
                             <span style={{color:'#aaa',fontSize:10,marginLeft:3,alignSelf:'center'}}>{g.cnt>0?g.cnt+' Bew.':'bewerten →'}</span>
                           </div>
                         </div>
                         <div style={{textAlign:'right',flexShrink:0}}>
-                          <div style={{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}}>
-                            <span style={{color:'#d4a017',fontSize:14}}>★</span>
-                            <span style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontWeight:700,fontSize:16}}>{g.avg.toFixed(1)}</span>
-                          </div>
+                          <div style={{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}}><span style={{color:'#d4a017',fontSize:14}}>★</span><span style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontWeight:700,fontSize:16}}>{g.avg>0?g.avg.toFixed(1):'–'}</span></div>
                           <div style={{color:'#bbb',fontSize:9,marginTop:2}}>{g.cnt>0?'User-Rating':'Basis'}</div>
                         </div>
                       </div>
                     );
                   })}
-                  <div style={{color:'#bbb',fontSize:10,textAlign:'center',marginTop:4}}>Bewerte Gyms unten → Ranking aktualisiert sich sofort</div>
                 </div>
-              );
+
+                {/* Toggle Städte / TOP GYMS */}
+                <div style={{display:'flex',gap:8,marginBottom:10}}>
+                  <button onClick={()=>setGymRankMode(false)} style={{flex:1,padding:'7px',borderRadius:20,background:!gymRankMode?RED:'transparent',border:'1px solid '+(gymRankMode?'#ddd':RED),color:gymRankMode?'#888':'#fff',fontSize:13,fontWeight:600,cursor:'pointer'}}>🏙️ Städte</button>
+                  <button onClick={()=>setGymRankMode(true)} style={{flex:1,padding:'7px',borderRadius:20,background:gymRankMode?RED:'transparent',border:'1px solid '+(gymRankMode?RED:'#ddd'),color:gymRankMode?'#fff':'#888',fontSize:13,fontWeight:600,cursor:'pointer'}}>🏆 TOP GYMS</button>
+                </div>
+
+                {gymRankMode?(
+                  /* REST DES RANKINGS ab #6 */
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    <div style={{color:'#aaa',fontSize:10,letterSpacing:2,fontWeight:700,marginBottom:4}}>PLÄTZE #6 UND WEITER</div>
+                    {rest.map((gym,i)=>(
+                      <div key={gym.k} onClick={()=>openGym(gym)} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'12px 14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:12,cursor:'pointer'}}>
+                        <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,color:'#aaa',width:30,textAlign:'center'}}>#{i+6}</div>
+                        <div style={{width:42,height:42,borderRadius:8,background:darkMode?'#2a2a2a':'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0,overflow:'hidden'}}>
+                          {(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} alt=''/>:(gym.emoji||'🥊')}
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:14,color:darkMode?'#fff':'#1a1a1a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{gym.name||''}</div>
+                          <div style={{color:'#888',fontSize:11}}>{gym.city||gym.ct} · {gym.members||0} Mitglieder</div>
+                        </div>
+                        <div style={{textAlign:'right',flexShrink:0}}>
+                          <div style={{color:'#f1c40f',fontSize:12}}>{'⭐'.repeat(Math.min(5,Math.round(gym.avg)))}</div>
+                          <div style={{color:'#aaa',fontSize:11,fontWeight:700}}>{gym.avg>0?gym.avg.toFixed(1):'–'}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ):(
+                  /* STÄDTE ANSICHT */
+                  <>
+                  <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
+                    {(()=>{
+                      const normC=s=>(s||'').toLowerCase().trim().replace(/ü/g,'ue').replace(/ö/g,'oe').replace(/ä/g,'ae').replace(/ß/g,'ss');
+                      const seen=new Set();const result=[];
+                      [...dbGyms.map(g=>g.city).filter(Boolean),...Object.keys(GYMS)].forEach(c=>{
+                        const k=normC(c);
+                        if(!seen.has(k)){seen.add(k);result.push(c);}
+                      });
+                      return result.sort((a,b)=>a.localeCompare(b,'de'));
+                    })().map(c=>(<button key={c} onClick={()=>setCity(c)} style={{flexShrink:0,padding:'6px 13px',borderRadius:20,background:city===c?RED:'#fff',border:'1px solid '+(city===c?RED:'#e0e0e0'),color:city===c?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{c}</button>))}
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {(dbGyms.filter(g=>g.city===city).length>0?dbGyms.filter(g=>g.city===city):(GYMS[city]||[])).map((gym,i)=>(
+                      <div key={i} onClick={()=>openGym(gym)} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'13px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),boxShadow:'0 1px 4px rgba(0,0,0,0.05)',cursor:'pointer'}}>
+                        <div style={{display:'flex',gap:11,alignItems:'flex-start'}}>
+                          <div style={{width:46,height:46,borderRadius:9,background:darkMode?'#2a2a2a':'#f0f0f0',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>{(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#aaa',fontSize:10,fontWeight:700,textAlign:'center',lineHeight:1.2}}>{(gym.name||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}</div>
+                          <div style={{flex:1}}>
+                            <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15}}>{gym.name||''}</div>
+                            <div style={{color:darkMode?'#aaa':'#888',fontSize:11,marginTop:1}}>📍 {gym.address||gym.city||''}</div>
+                            <div style={{display:'flex',gap:4,marginTop:6,flexWrap:'wrap'}}>{(gym.styles||[gym.style||'Kampfsport']).filter(Boolean).map(s=><Tag key={s} text={s} accent={RED}/>)}</div>
+                          </div>
+                        </div>
+                        <div style={{marginTop:9,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <div style={{color:'#888',fontSize:12}}>👥 {gym.members||0} Mitglieder</div>
+                          <div style={{display:'flex',alignItems:'center',gap:3}}><span style={{color:'#d4a017'}}>★</span><span style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14}}>{gym.rating||0}</span></div>
+                        </div>
+                        <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
+                          <div style={{color:darkMode?'#666':'#aaa',fontSize:10,marginBottom:4}}>Gym bewerten:</div>
+                          <div style={{display:'flex',gap:2,alignItems:'center'}}>
+                            {[1,2,3,4,5].map(star=>{
+                              const k=(city||gym.city)+'-'+gym.name;
+                              const mine=gymRatings[k]?.userRating||0;
+                              return <button key={star} onClick={e=>{e.stopPropagation();rateGym(k,star);}} style={{background:'none',border:'none',cursor:'pointer',fontSize:24,color:star<=mine?'#d4a017':'#ddd',padding:'0 1px'}}>{star<=mine?'★':'☆'}</button>;
+                            })}
+                            {gymRatings[(city||gym.city)+'-'+gym.name]?.count>0&&<span style={{color:'#aaa',fontSize:10,marginLeft:4}}>{gymRatings[(city||gym.city)+'-'+gym.name].count} Bew.</span>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  </>
+                )}
+              </>);
             })()}
-
-            {/* TOP GYMS Toggle */}
-            <div style={{display:'flex',gap:8,marginBottom:10}}>
-              <button onClick={()=>setGymRankMode(false)} style={{flex:1,padding:'7px',borderRadius:20,background:!gymRankMode?RED:'transparent',border:'1px solid '+(gymRankMode?'#ddd':RED),color:gymRankMode?'#888':'#fff',fontSize:13,fontWeight:600,cursor:'pointer'}}>🏙️ Städte</button>
-              <button onClick={()=>setGymRankMode(true)} style={{flex:1,padding:'7px',borderRadius:20,background:gymRankMode?RED:'transparent',border:'1px solid '+(gymRankMode?RED:'#ddd'),color:gymRankMode?'#fff':'#888',fontSize:13,fontWeight:600,cursor:'pointer'}}>🏆 TOP GYMS</button>
-            </div>
-
-            {gymRankMode?(
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                <div style={{color:'#aaa',fontSize:10,letterSpacing:2,fontWeight:700,marginBottom:4}}>RANGLISTE NACH USER-BEWERTUNG</div>
-                {(()=>{const allG=[...dbGyms,...Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,city:ct})))].filter((g,i,arr)=>g.name&&g.name.trim().length>2&&arr.findIndex(x=>x.name===g.name)===i);return allG.sort((a,b)=>{
-  const keyA=(a.city||'')+'-'+(a.name||'');
-  const keyB=(b.city||'')+'-'+(b.name||'');
-  // Also try alternate keys (umlaut variations)
-  const norm=s=>s.replace(/ü/g,'ue').replace(/ö/g,'oe').replace(/ä/g,'ae').replace(/ß/g,'ss');
-  const keyAnorm=norm(a.city||'')+'-'+norm(a.name||'');
-  const keyBnorm=norm(b.city||'')+'-'+norm(b.name||'');
-  const ratA=gymRatings[keyA]||gymRatings[keyAnorm]||{};
-  const ratB=gymRatings[keyB]||gymRatings[keyBnorm]||{};
-  const rA=ratA.count>0?ratA.total/ratA.count:(a.rating||0);
-  const rB=ratB.count>0?ratB.total/ratB.count:(b.rating||0);
-  const cntA=gymRatings[keyA]?.count||0;
-  const cntB=gymRatings[keyB]?.count||0;
-  // Gyms ohne Bewertung ganz unten
-  if(rA===0&&rB>0)return 1;
-  if(rB===0&&rA>0)return -1;
-  return rB-rA;
-});})().map((gym,i)=>(
-                  <div key={i} onClick={()=>{
-  if(!gym.name||gym.name.length<2)return;
-  const hardFound=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct}))).find(g=>g.name===gym.name);
-  const base=hardFound||gym;
-  setViewGym({gym:{styles:[],...base,city:base.city||base.ct||gym.city||'',members:base.members||gym.members||0,rating:base.rating||gym.rating||0,styles:base.styles||gym.styles||[base.style||gym.style||'Kampfsport'],address:base.address||gym.address||gym.city||'',desc:base.desc||base.description||gym.description||'',street:base.street||base.address||gym.address||'',zip:base.zip||gym.zip||'',founded:base.founded||gym.founded||''},key:(gym.city||'')+'-'+gym.name});
-}} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'12px 14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:12,cursor:'pointer'}}>
-                    <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:20,color:i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'#aaa',width:30,textAlign:'center'}}>#{i+1}</div>
-                    <div style={{width:42,height:42,borderRadius:8,background:darkMode?'#2a2a2a':'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0,overflow:'hidden'}}>
-                      {(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} alt=''/>:(gym.emoji||'🥊')}
-                    </div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:14,color:darkMode?'#fff':'#1a1a1a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{gym.name||''}</div>
-                      <div style={{color:'#888',fontSize:11}}>{gym.city} · {gym.members||0} Mitglieder</div>
-                    </div>
-                    <div style={{textAlign:'right',flexShrink:0}}>{(()=>{
-                      const norm=s=>(s||'').replace(/ü/g,'ue').replace(/ö/g,'oe').replace(/ä/g,'ae').replace(/ß/g,'ss');
-                      const k=(gym.city||'')+'-'+(gym.name||'');
-                      const kn=norm(gym.city||'')+'-'+norm(gym.name||'');
-                      const rat=gymRatings[k]||gymRatings[kn]||{};
-                      const avg=rat.count>0?rat.total/rat.count:(gym.rating||0);
-                      return(<>
-                        <div style={{color:'#f1c40f',fontSize:12}}>{'⭐'.repeat(Math.min(5,Math.round(avg)))}</div>
-                        <div style={{color:'#aaa',fontSize:11,fontWeight:700}}>{avg>0?avg.toFixed(1):'–'}</div>
-                      </>);
-                    })()}</div>
-                  </div>
-                ))}
-              </div>
-            ):(
-            <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
-              {(()=>{
-                const norm=s=>(s||'').toLowerCase().trim().replace(/ü/g,'ue').replace(/ö/g,'oe').replace(/ä/g,'ae').replace(/ß/g,'ss');
-                const seen=new Set();const result=[];
-                [...dbGyms.map(g=>g.city).filter(Boolean),...Object.keys(GYMS)].forEach(c=>{
-                  const k=norm(c);
-                  if(!seen.has(k)){seen.add(k);result.push(c);}
-                });
-                return result.sort((a,b)=>a.localeCompare(b,'de'));
-              })().map(c=>(<button key={c} onClick={()=>setCity(c)} style={{flexShrink:0,padding:'6px 13px',borderRadius:20,background:city===c?RED:'#fff',border:'1px solid '+(city===c?RED:'#e0e0e0'),color:city===c?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{c}</button>))}
-            </div>
-            )}
-            <div style={{display:'flex',flexDirection:'column',gap:8}}>
-              {!gymRankMode&&(dbGyms.filter(g=>g.city===city).length>0?dbGyms.filter(g=>g.city===city):(GYMS[city]||[])).map((gym,i)=>(
-                <div key={i} onClick={()=>setViewGym({gym,key:city+'-'+gym.name})} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'13px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),boxShadow:'0 1px 4px rgba(0,0,0,0.05)',cursor:'pointer'}}>
-                  <div style={{display:'flex',gap:11,alignItems:'flex-start'}}>
-                    <div style={{width:46,height:46,borderRadius:9,background:darkMode?'#2a2a2a':'#f0f0f0',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>{(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#aaa',fontSize:10,fontWeight:700,textAlign:'center',lineHeight:1.2}}>{gym.name.split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}</div>
-                    <div style={{flex:1}}>
-                      <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15}}>{gym.name||''}</div>
-                      <div style={{color:darkMode?'#aaa':'#888',fontSize:11,marginTop:1}}>📍 {gym.address||gym.city||''}</div>
-                      <div style={{display:'flex',gap:4,marginTop:6,flexWrap:'wrap'}}>{(gym.styles||[gym.style||'Kampfsport']).filter(Boolean).map(s=><Tag key={s} text={s} accent={RED}/>)}</div>
-                    </div>
-                  </div>
-                  <div style={{marginTop:9,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <div style={{color:'#888',fontSize:12}}>👥 {gym.members||0} Mitglieder</div>
-                    <div style={{display:'flex',alignItems:'center',gap:3}}><span style={{color:'#d4a017'}}>★</span><span style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14}}>{gym.rating}</span></div>
-                  </div>
-                  <div style={{marginTop:6,height:3,background:'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:((gym.rating-4)/1*100)+'%',background:`linear-gradient(90deg,${RED},#e67e22)`,borderRadius:2}}/></div>
-                  <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
-                    <div style={{color:darkMode?'#666':'#aaa',fontSize:10,marginBottom:4}}>Gym bewerten:</div>
-                    <div style={{display:'flex',gap:2,alignItems:'center'}}>
-                      {[1,2,3,4,5].map(star=>{
-                        const k=city+'-'+gym.name;
-                        const mine=gymRatings[k]?.userRating||0;
-                        return <button key={star} onClick={()=>rateGym(k,star)} style={{background:'none',border:'none',cursor:'pointer',fontSize:24,color:star<=mine?'#d4a017':'#ddd',padding:'0 1px'}}>{star<=mine?'★':'☆'}</button>;
-                      })}
-                      {gymRatings[city+'-'+gym.name]?.count>0&&<span style={{color:'#aaa',fontSize:10,marginLeft:4}}>{gymRatings[city+'-'+gym.name].count} Bew.</span>}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 
