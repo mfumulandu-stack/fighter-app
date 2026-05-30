@@ -246,6 +246,8 @@ textarea{resize:none}
 
 function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUpdate,rateGym,onClose,darkMode}){
   if(!gym)return(<div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:250,display:'flex',alignItems:'center',justifyContent:'center'}}><button onClick={onClose} style={{padding:'12px 24px',background:'#c0392b',color:'#fff',border:'none',borderRadius:10,fontSize:16,cursor:'pointer'}}>← Zurück</button></div>);
+  // Normalize gym data to avoid crashes with DB gyms missing fields
+  gym={styles:[],members:0,rating:0,founded:'',street:'',zip:'',phone:'',website:'',hours:'',desc:'',code:'',...gym,styles:gym.styles&&gym.styles.length>0?gym.styles:[gym.style||'Kampfsport'],desc:gym.desc||gym.description||''};
   const isDark=darkMode===true;
   const bg=isDark?'#0d0d0d':'#f5f5f7';
   const card=isDark?'#1a1a1a':'#fff';
@@ -2900,12 +2902,14 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:11}}>GYMS FINDEN</div>
             {/* TOP GYMS */}
             {(()=>{
-              const all=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct})));
+              const hardcoded=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct,city:ct})));
+              const dbOnly=dbGyms.filter(dg=>!hardcoded.some(h=>h.name.toLowerCase()===dg.name.toLowerCase()));
+              const all=[...hardcoded,...dbOnly];
               const ranked=all.map(g=>{
-                const k=g.ct+'-'+g.name;
+                const k=(g.city||g.ct||'')+'-'+g.name;
                 const r=gymRatings[k];
                 const userAvg=r&&r.count>0?r.total/r.count:0;
-                const avg=userAvg>0?userAvg:g.rating;
+                const avg=userAvg>0?userAvg:(g.rating||0);
                 const cnt=r?r.count:0;
                 return{...g,k,avg,cnt,userAvg};
               }).sort((a,b)=>{
@@ -2923,7 +2927,12 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   {ranked.slice(0,5).map((g,i)=>{
                     const isTop3=i<3;
                     return(
-                      <div key={g.k} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:12,marginBottom:6,border:'1px solid '+(isTop3?'#d4a01744':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.12)':'none',cursor:'pointer'}} onClick={()=>{const found=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(gx=>({...gx,ct}))).find(gx=>gx.name===g.name);if(found)setViewGym({gym:found,key:g.k});}}>
+                      <div key={g.k} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:12,marginBottom:6,border:'1px solid '+(isTop3?'#d4a01744':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.12)':'none',cursor:'pointer'}} onClick={()=>{
+  const hardFound=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(gx=>({...gx,ct}))).find(gx=>gx.name===g.name);
+  const dbFound=dbGyms.find(dg=>dg.name===g.name);
+  const gymData=hardFound||dbFound;
+  if(gymData)setViewGym({gym:{styles:[],...gymData,city:gymData.city||gymData.ct||'',members:gymData.members||0,rating:gymData.rating||0,styles:gymData.styles||[gymData.style||'Kampfsport'],address:gymData.address||gymData.city||'',desc:gymData.description||gymData.desc||'',street:gymData.street||gymData.address||'',zip:gymData.zip||'',founded:gymData.founded||''},key:g.k});
+}}>
                         <div style={{fontSize:isTop3?26:18,width:32,textAlign:'center',flexShrink:0}}>{isTop3?medal[i]:<span className='rj' style={{color:'#bbb'}}>#{i+1}</span>}</div>
                         <div style={{width:38,height:38,borderRadius:8,background:darkMode?'#2a2a2a':'#f5f5f5',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>
                           {(gymLogos[g.code]?.logo_url||g.logo_url)?<img src={gymLogos[g.code]?.logo_url||g.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#bbb',fontSize:9,textAlign:'center',fontWeight:700,lineHeight:1.2}}>{g.name.split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
@@ -2982,7 +2991,12 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
   if(rB===0&&rA>0)return -1;
   return rB-rA;
 });})().map((gym,i)=>(
-                  <div key={i} onClick={()=>{if(!gym.name||gym.name.length<2)return;setViewGym({gym:{...gym,name:gym.name,city:gym.city||'',members:gym.members||0,rating:gym.rating||0,styles:gym.styles||[gym.style||'Kampfsport'],address:gym.address||gym.city||'',desc:gym.description||''},key:(gym.city||'')+'-'+gym.name});}} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'12px 14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:12,cursor:'pointer'}}>
+                  <div key={i} onClick={()=>{
+  if(!gym.name||gym.name.length<2)return;
+  const hardFound=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct}))).find(g=>g.name===gym.name);
+  const base=hardFound||gym;
+  setViewGym({gym:{styles:[],...base,city:base.city||base.ct||gym.city||'',members:base.members||gym.members||0,rating:base.rating||gym.rating||0,styles:base.styles||gym.styles||[base.style||gym.style||'Kampfsport'],address:base.address||gym.address||gym.city||'',desc:base.desc||base.description||gym.description||'',street:base.street||base.address||gym.address||'',zip:base.zip||gym.zip||'',founded:base.founded||gym.founded||''},key:(gym.city||'')+'-'+gym.name});
+}} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'12px 14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:12,cursor:'pointer'}}>
                     <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:20,color:i===0?'#FFD700':i===1?'#C0C0C0':i===2?'#CD7F32':'#aaa',width:30,textAlign:'center'}}>#{i+1}</div>
                     <div style={{width:42,height:42,borderRadius:8,background:darkMode?'#2a2a2a':'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0,overflow:'hidden'}}>
                       {(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} alt=''/>:(gym.emoji||'🥊')}
