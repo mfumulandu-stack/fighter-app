@@ -1121,7 +1121,7 @@ export default function App(){
   const [saving,setSaving]=useState(false);
   const [msg,setMsg]=useState('');
   const [myProfile,setMyProfile]=useState(null);
-  const [profile,setProfile]=useState({name:'',age:'',city:'',gym:'',height:'',weight:'',weightClass:'',style:'',bio:''});
+  const [profile,setProfile]=useState({name:'',age:'',city:'',gym:'',height:'',weight:'',weightClass:'',style:'',bio:'',isPro:false});
   const [stats,setStats]=useState({wins:0,losses:0,draws:0,ko:0});
   const [avatarUrl,setAvatarUrl]=useState(null);
   const [avatarPreview,setAvatarPreview]=useState(null);
@@ -1387,7 +1387,7 @@ export default function App(){
           return;
         }
         setMyProfile(p);
-        setProfile({name:p.name||'',age:p.age||'',city:p.city||'',gym:p.gym||'',height:p.height||'',weight:p.weight||'',weightClass:p.weight_class||'',style:p.style||'',bio:p.bio||''});
+        setProfile({name:p.name||'',age:p.age||'',city:p.city||'',gym:p.gym||'',height:p.height||'',weight:p.weight||'',weightClass:p.weight_class||'',style:p.style||'',bio:p.bio||'',isPro:p.is_pro===true});
         setStats({wins:p.wins||0,losses:p.losses||0,draws:p.draws||0,ko:p.ko||0});
         if(p.avatar_url){setAvatarUrl(p.avatar_url);setAvatarPreview(p.avatar_url);}
         setAuthReady(true);
@@ -1739,6 +1739,7 @@ export default function App(){
           weight_class:editProfile.weightClass||profile.weightClass,
           height:editProfile.height||profile.height,
           weight:editProfile.weight||profile.weight,
+          is_pro:editProfile.isPro!==undefined?editProfile.isPro:profile.isPro,
         })
       });
       setProfile(p=>({...p,...editProfile}));
@@ -1757,7 +1758,7 @@ export default function App(){
   async function saveProfile(){
     if(!session)return;
     setSaving(true);
-    const d={user_id:session.userId,name:profile.name,age:parseInt(profile.age)||null,city:profile.city,gym:profile.gym,height:parseInt(profile.height)||null,weight:parseInt(profile.weight)||null,weight_class:profile.weightClass,style:profile.style,bio:profile.bio,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,avatar_url:avatarUrl};
+    const d={user_id:session.userId,name:profile.name,age:parseInt(profile.age)||null,city:profile.city,gym:profile.gym,height:parseInt(profile.height)||null,weight:parseInt(profile.weight)||null,weight_class:profile.weightClass,style:profile.style,bio:profile.bio,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,avatar_url:avatarUrl,is_pro:profile.isPro===true};
     try{
       if(myProfile){
         const res=await dbUpdate('profiles',d,'user_id=eq.'+session.userId,session.token);
@@ -1946,7 +1947,18 @@ export default function App(){
     // Noch am Laden — nur ich anzeigen
     return me;
   })();
-  const ranked=rankMode==='pro'?proRanked:[...userOnly].filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF)))).sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
+  const ranked=rankMode==='pro'
+    ?proRanked
+    :rankMode==='trainer'
+    ?[]
+    :[...userOnly]
+      .filter(f=>{
+        // Profi Tab: nur is_pro === true, Amateur Tab: alle anderen
+        if(rankMode==='pro') return f.isMe?(profile.isPro===true):(f.is_pro===true);
+        return f.isMe?(profile.isPro!==true):(f.is_pro!==true||f.is_pro===undefined||f.is_pro===null);
+      })
+      .filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF))))
+      .sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
   const filteredT=TRAINERS.filter(t=>trainerF==='All'||t.style.includes(trainerF)).sort((a,b)=>b.rating-a.rating);
 
@@ -2194,6 +2206,17 @@ export default function App(){
             <Lbl>Dein Name</Lbl><Inp placeholder='z.B. Max Mueller' value={profile.name} onChange={v=>setProfile(p=>({...p,name:v}))}/>
             <Lbl>Alter</Lbl><Inp placeholder='z.B. 25' type='number' value={profile.age} onChange={v=>setProfile(p=>({...p,age:v}))}/>
             <Lbl>Standort</Lbl><Inp placeholder='z.B. Berlin' value={profile.city} onChange={v=>setProfile(p=>({...p,city:v}))}/>
+            <Lbl>Level</Lbl>
+            <div style={{display:'flex',gap:10,marginTop:2}}>
+              {[['Amateur','🥋',false],['Profi','⭐',true]].map(([label,icon,val])=>(
+                <button key={label} onClick={()=>setProfile(p=>({...p,isPro:val}))}
+                  style={{flex:1,padding:'14px 10px',borderRadius:10,border:'2px solid '+(profile.isPro===val?RED:'#e0e0e0'),background:profile.isPro===val?'#fdf0ef':'#fff',cursor:'pointer',textAlign:'center',transition:'all 0.2s'}}>
+                  <div style={{fontSize:26,marginBottom:4}}>{icon}</div>
+                  <div style={{color:profile.isPro===val?RED:'#555',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:1}}>{label}</div>
+                  <div style={{color:'#aaa',fontSize:10,marginTop:2}}>{val?'Wettkampf-Erfahrung':'Einsteiger / Hobbyist'}</div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {step===2&&(
@@ -2463,7 +2486,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                           <div style={{display:'flex',gap:5,marginTop:6,flexWrap:'wrap'}}>
                             {f.style&&<div style={{background:fA,borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{f.style}</div>}
                             {(f.weight_class||f.weightClass)&&<div style={{background:(f.weight_class||f.weightClass)===myWeightClass?'rgba(211,84,0,0.7)':'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:(f.weight_class||f.weightClass)===myWeightClass?700:400}}>⚖️ {(f.weight_class||f.weightClass||'').split(' (')[0]}{(f.weight_class||f.weightClass)===myWeightClass?' ✓':''}</div>}
-                            {f.city&&<div style={{background:'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>📍 {f.city}{myCity&&f.city&&f.city.toLowerCase()!==myCity.toLowerCase()&&getDistanceKm(myCity,f.city)<500?' · '+getDistanceKm(myCity,f.city)+'km':''}</div>}
+                            {f.is_pro&&<div style={{background:'#d4a01733',borderRadius:20,padding:'2px 10px',color:'#d4a017',fontSize:11,fontWeight:700}}>⭐ PROFI</div>}
+                          {f.city&&<div style={{background:'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>📍 {f.city}{myCity&&f.city&&f.city.toLowerCase()!==myCity.toLowerCase()&&getDistanceKm(myCity,f.city)<500?' · '+getDistanceKm(myCity,f.city)+'km':''}</div>}
                           </div>
                           {f.bio&&<div style={{color:'rgba(255,255,255,0.5)',fontSize:10,marginTop:5,fontStyle:'italic'}}>"{f.bio}"</div>}
                         </div>
@@ -2658,6 +2682,18 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         {WEIGHT_CLASSES.map(w=><option key={w} value={w}>{w}</option>)}
                       </select>
                     </div>
+                    <div>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>LEVEL</div>
+                      <div style={{display:'flex',gap:8}}>
+                        {[['Amateur','🥋',false],['Profi','⭐',true]].map(([label,icon,val])=>(
+                          <button key={label} onClick={()=>setEditProfile(p=>({...p,isPro:val}))}
+                            style={{flex:1,padding:'10px',borderRadius:10,border:'2px solid '+((editProfile.isPro!==undefined?editProfile.isPro:profile.isPro)===val?RED:(darkMode?'#333':'#e0e0e0')),background:(editProfile.isPro!==undefined?editProfile.isPro:profile.isPro)===val?'#fdf0ef':'transparent',cursor:'pointer'}}>
+                            <div style={{fontSize:18}}>{icon}</div>
+                            <div style={{color:(editProfile.isPro!==undefined?editProfile.isPro:profile.isPro)===val?RED:(darkMode?'#aaa':'#555'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13}}>{label}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <button onClick={saveEditProfile} disabled={savingEdit}
                       style={{width:'100%',marginTop:6,padding:'14px',borderRadius:12,background:savingEdit?'#eee':`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:savingEdit?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:savingEdit?'not-allowed':'pointer'}}>
                       {savingEdit?'Speichern...':'SPEICHERN'}
@@ -2691,6 +2727,9 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:2}}>{profile.name}</div>
               <div style={{color:RED,fontSize:13,fontWeight:600,marginTop:2}}>{profile.style} - {profile.weightClass?profile.weightClass.split(' (')[0]:''}</div>
               <div style={{color:darkMode?'#666':'#999',fontSize:11,marginTop:3}}>📍 {profile.city} - 🏋️ {profile.gym}</div>
+              <div style={{display:'inline-flex',alignItems:'center',gap:5,background:profile.isPro?'#d4a01718':'#2980b918',border:'1px solid '+(profile.isPro?'#d4a01744':'#2980b944'),borderRadius:20,padding:'3px 10px',marginTop:6,marginRight:4}}>
+                <span style={{color:profile.isPro?'#d4a017':'#2980b9',fontSize:11,fontWeight:700}}>{profile.isPro?'⭐ PROFI':'🥋 AMATEUR'}</span>
+              </div>
               {gymVerified&&(
                 <div style={{display:'inline-flex',alignItems:'center',gap:5,background:'#27ae6018',border:'1px solid #27ae6044',borderRadius:20,padding:'3px 10px',marginTop:6}}>
                   <span style={{fontSize:13}}>{gymVerified.gymEmoji}</span>
