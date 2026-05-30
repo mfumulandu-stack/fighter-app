@@ -1121,7 +1121,7 @@ export default function App(){
   const [saving,setSaving]=useState(false);
   const [msg,setMsg]=useState('');
   const [myProfile,setMyProfile]=useState(null);
-  const [profile,setProfile]=useState({name:'',age:'',city:'',gym:'',height:'',weight:'',weightClass:'',style:'',bio:'',isPro:false});
+  const [profile,setProfile]=useState({name:'',age:'',city:'',gym:'',height:'',weight:'',weightClass:'',style:'',bio:'',isPro:false,country:'DE'});
   const [stats,setStats]=useState({wins:0,losses:0,draws:0,ko:0});
   const [avatarUrl,setAvatarUrl]=useState(null);
   const [avatarPreview,setAvatarPreview]=useState(null);
@@ -1206,6 +1206,7 @@ export default function App(){
   const [gymRatings,setGymRatings]=useState(()=>{try{return JSON.parse(localStorage.getItem('gymRatings')||'{}')}catch{return {}}});
   const [dbGyms,setDbGyms]=useState([]);
   const [gymRankMode,setGymRankMode]=useState(false);
+  const [countryFilter,setCountryFilter]=useState('mine'); // 'mine' | 'world'
   const [gymRatingInput,setGymRatingInput]=useState({});
   const [gymSuggestions,setGymSuggestions]=useState([]);
   const [showGymSuggestions,setShowGymSuggestions]=useState(false);
@@ -1387,7 +1388,7 @@ export default function App(){
           return;
         }
         setMyProfile(p);
-        setProfile({name:p.name||'',age:p.age||'',city:p.city||'',gym:p.gym||'',height:p.height||'',weight:p.weight||'',weightClass:p.weight_class||'',style:p.style||'',bio:p.bio||'',isPro:p.is_pro===true});
+        setProfile({name:p.name||'',age:p.age||'',city:p.city||'',gym:p.gym||'',height:p.height||'',weight:p.weight||'',weightClass:p.weight_class||'',style:p.style||'',bio:p.bio||'',isPro:p.is_pro===true,country:p.country||'DE'});
         setStats({wins:p.wins||0,losses:p.losses||0,draws:p.draws||0,ko:p.ko||0});
         if(p.avatar_url){setAvatarUrl(p.avatar_url);setAvatarPreview(p.avatar_url);}
         setAuthReady(true);
@@ -1740,6 +1741,7 @@ export default function App(){
           height:editProfile.height||profile.height,
           weight:editProfile.weight||profile.weight,
           is_pro:editProfile.isPro!==undefined?editProfile.isPro:profile.isPro,
+          country:editProfile.country||profile.country||'DE',
         })
       });
       setProfile(p=>({...p,...editProfile}));
@@ -1758,7 +1760,7 @@ export default function App(){
   async function saveProfile(){
     if(!session)return;
     setSaving(true);
-    const d={user_id:session.userId,name:profile.name,age:parseInt(profile.age)||null,city:profile.city,gym:profile.gym,height:parseInt(profile.height)||null,weight:parseInt(profile.weight)||null,weight_class:profile.weightClass,style:profile.style,bio:profile.bio,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,avatar_url:avatarUrl,is_pro:profile.isPro===true};
+    const d={user_id:session.userId,name:profile.name,age:parseInt(profile.age)||null,city:profile.city,gym:profile.gym,height:parseInt(profile.height)||null,weight:parseInt(profile.weight)||null,weight_class:profile.weightClass,style:profile.style,bio:profile.bio,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,avatar_url:avatarUrl,is_pro:profile.isPro===true,country:profile.country||'DE'};
     try{
       if(myProfile){
         const res=await dbUpdate('profiles',d,'user_id=eq.'+session.userId,session.token);
@@ -1823,6 +1825,7 @@ export default function App(){
     .filter(f=>!blockedUsers.includes(f.id))
     .filter(f=>!f.banned)
     .filter(f=>filterStyle==='Alle'||f.style===filterStyle)
+    .filter(f=>countryFilter==='world'||!f.country||!profile.country||f.country===profile.country||f.country==='OTHER')
     // Kein harter Stadt-Filter — alle User werden angezeigt, nähere zuerst sortiert
     .map(f=>({
       ...f,
@@ -1953,10 +1956,10 @@ export default function App(){
     ?[]
     :[...userOnly]
       .filter(f=>{
-        // Profi Tab: nur is_pro === true, Amateur Tab: alle anderen
         if(rankMode==='pro') return f.isMe?(profile.isPro===true):(f.is_pro===true);
         return f.isMe?(profile.isPro!==true):(f.is_pro!==true||f.is_pro===undefined||f.is_pro===null);
       })
+      .filter(f=>countryFilter==='world'||f.isMe||!f.country||f.country===(profile.country||'DE'))
       .filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF))))
       .sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
@@ -2217,6 +2220,16 @@ export default function App(){
                 </button>
               ))}
             </div>
+            <Lbl>Land</Lbl>
+            <div style={{display:'flex',flexWrap:'wrap',gap:7,marginTop:2}}>
+              {[['🇩🇪','DE','Deutschland'],['🇦🇹','AT','Österreich'],['🇨🇭','CH','Schweiz'],['🇫🇷','FR','Frankreich'],['🇬🇧','GB','UK'],['🇺🇸','US','USA'],['🇳🇱','NL','Niederlande'],['🇧🇪','BE','Belgien'],['🇮🇹','IT','Italien'],['🇪🇸','ES','Spanien'],['🌍','OTHER','Andere']].map(([flag,code,name])=>(
+                <button key={code} onClick={()=>setProfile(p=>({...p,country:code}))}
+                  style={{padding:'8px 12px',borderRadius:10,border:'2px solid '+(profile.country===code?RED:'#e0e0e0'),background:profile.country===code?'#fdf0ef':'#fff',cursor:'pointer',display:'flex',alignItems:'center',gap:5,transition:'all 0.2s'}}>
+                  <span style={{fontSize:18}}>{flag}</span>
+                  <span style={{color:profile.country===code?RED:'#555',fontWeight:700,fontSize:12}}>{name}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {step===2&&(
@@ -2406,6 +2419,15 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
 
         {tab==='swipe'&&(
           <div style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:8}}>
+            {/* LAND FILTER */}
+            <div style={{display:'flex',gap:6,marginBottom:6,width:'calc(100% - 24px)',maxWidth:420}}>
+              <button onClick={()=>setCountryFilter('mine')} style={{flex:1,padding:'7px',borderRadius:20,background:countryFilter==='mine'?RED:'transparent',border:'1px solid '+(countryFilter==='mine'?RED:(darkMode?'#333':'#ddd')),color:countryFilter==='mine'?'#fff':(darkMode?'#aaa':'#666'),fontSize:12,fontWeight:700,cursor:'pointer'}}>
+                {({'DE':'🇩🇪','AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[profile.country||'DE']||'🌍')} Mein Land
+              </button>
+              <button onClick={()=>setCountryFilter('world')} style={{flex:1,padding:'7px',borderRadius:20,background:countryFilter==='world'?'#2980b9':'transparent',border:'1px solid '+(countryFilter==='world'?'#2980b9':(darkMode?'#333':'#ddd')),color:countryFilter==='world'?'#fff':(darkMode?'#aaa':'#666'),fontSize:12,fontWeight:700,cursor:'pointer'}}>
+                🌍 Weltweit
+              </button>
+            </div>
             {/* WER HAT MICH GELIKET Banner */}
             {whoLikedMe.length>0&&(
               <div onClick={()=>{setWhoLikedTab(true);setNewLikesCount(0);try{const now=new Date().toISOString();localStorage.setItem('fighter_likes_check',now);setLastLikesCheck(now);}catch{}}} style={{width:'calc(100% - 24px)',maxWidth:420,marginBottom:6,background:'transparent',border:'1px solid '+RED+'33',borderRadius:8,padding:'6px 12px',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
@@ -2487,6 +2509,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                             {f.style&&<div style={{background:fA,borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{f.style}</div>}
                             {(f.weight_class||f.weightClass)&&<div style={{background:(f.weight_class||f.weightClass)===myWeightClass?'rgba(211,84,0,0.7)':'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:(f.weight_class||f.weightClass)===myWeightClass?700:400}}>⚖️ {(f.weight_class||f.weightClass||'').split(' (')[0]}{(f.weight_class||f.weightClass)===myWeightClass?' ✓':''}</div>}
                             {f.is_pro&&<div style={{background:'#d4a01733',borderRadius:20,padding:'2px 10px',color:'#d4a017',fontSize:11,fontWeight:700}}>⭐ PROFI</div>}
+                          {f.country&&f.country!=='DE'&&f.country!=='OTHER'&&<div style={{background:'rgba(255,255,255,0.15)',borderRadius:20,padding:'2px 8px',color:'#fff',fontSize:13}}>{{'AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[f.country]||'🌍'}</div>}
                           {f.city&&<div style={{background:'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>📍 {f.city}{myCity&&f.city&&f.city.toLowerCase()!==myCity.toLowerCase()&&getDistanceKm(myCity,f.city)<500?' · '+getDistanceKm(myCity,f.city)+'km':''}</div>}
                           </div>
                           {f.bio&&<div style={{color:'rgba(255,255,255,0.5)',fontSize:10,marginTop:5,fontStyle:'italic'}}>"{f.bio}"</div>}
@@ -2726,7 +2749,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               </div>
               <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:2}}>{profile.name}</div>
               <div style={{color:RED,fontSize:13,fontWeight:600,marginTop:2}}>{profile.style} - {profile.weightClass?profile.weightClass.split(' (')[0]:''}</div>
-              <div style={{color:darkMode?'#666':'#999',fontSize:11,marginTop:3}}>📍 {profile.city} - 🏋️ {profile.gym}</div>
+              <div style={{color:darkMode?'#666':'#999',fontSize:11,marginTop:3}}>📍 {profile.city} - 🏋️ {profile.gym} · {({'DE':'🇩🇪','AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[profile.country||'DE']||'🌍')}</div>
               <div style={{display:'inline-flex',alignItems:'center',gap:5,background:profile.isPro?'#d4a01718':'#2980b918',border:'1px solid '+(profile.isPro?'#d4a01744':'#2980b944'),borderRadius:20,padding:'3px 10px',marginTop:6,marginRight:4}}>
                 <span style={{color:profile.isPro?'#d4a017':'#2980b9',fontSize:11,fontWeight:700}}>{profile.isPro?'⭐ PROFI':'🥋 AMATEUR'}</span>
               </div>
@@ -3084,6 +3107,16 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               <button onClick={()=>setRankMode('pro')} style={{flex:1,padding:'7px',borderRadius:8,background:rankMode==='pro'?'#d4a017':'transparent',border:'1px solid '+(rankMode==='pro'?'#d4a017':(darkMode?'#333':'#ddd')),color:rankMode==='pro'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>🌍 PROFIS</button>
               <button onClick={()=>setRankMode('trainer')} style={{flex:1,padding:'7px',borderRadius:8,background:rankMode==='trainer'?'#8e44ad':'transparent',border:'1px solid '+(rankMode==='trainer'?'#8e44ad':(darkMode?'#333':'#ddd')),color:rankMode==='trainer'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>🎓 TRAINER</button>
             </div>
+            {rankMode!=='trainer'&&(
+              <div style={{display:'flex',gap:6,marginBottom:8}}>
+                <button onClick={()=>setCountryFilter('mine')} style={{flex:1,padding:'6px',borderRadius:20,background:countryFilter==='mine'?RED:'transparent',border:'1px solid '+(countryFilter==='mine'?RED:(darkMode?'#333':'#ddd')),color:countryFilter==='mine'?'#fff':(darkMode?'#aaa':'#666'),fontSize:11,fontWeight:700,cursor:'pointer'}}>
+                  {({'DE':'🇩🇪','AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[profile.country||'DE']||'🌍')} Mein Land
+                </button>
+                <button onClick={()=>setCountryFilter('world')} style={{flex:1,padding:'6px',borderRadius:20,background:countryFilter==='world'?'#2980b9':'transparent',border:'1px solid '+(countryFilter==='world'?'#2980b9':(darkMode?'#333':'#ddd')),color:countryFilter==='world'?'#fff':(darkMode?'#aaa':'#666'),fontSize:11,fontWeight:700,cursor:'pointer'}}>
+                  🌍 Weltweit
+                </button>
+              </div>
+            )}
             {rankMode!=='trainer'&&(
               <div style={{display:'flex',gap:5,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
                 {['All',...STYLES].map(s=>(<button key={s} onClick={()=>setRankF(s)} style={{flexShrink:0,padding:'5px 11px',borderRadius:16,background:rankF===s?RED:'#fff',border:'1px solid '+(rankF===s?RED:'#e0e0e0'),color:rankF===s?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:12,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{s==='All'?'Alle':s}</button>))}
