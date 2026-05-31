@@ -2104,13 +2104,15 @@ export default function App(){
           ))}
         </div>
         {/* BLOCK / MELDEN */}
-        {/* TRAININGS-HISTORIE auf fremdem Profil */}
-        {viewProfileHistory.length>0&&(
-          <div style={{padding:'0 12px',marginTop:12}}>
-            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
-              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,letterSpacing:2}}>🤝 TRAININGS-HISTORIE</div>
-              <div style={{background:viewProfile.history_public?'#27ae6018':'#88888818',border:'1px solid '+(viewProfile.history_public?'#27ae6044':'#88888844'),borderRadius:10,padding:'1px 7px',color:viewProfile.history_public?'#27ae60':'#888888',fontSize:9,fontWeight:700}}>{viewProfile.history_public?'ÖFFENTLICH':'PRIVAT'}</div>
+        {/* TRAININGS-HISTORIE auf fremdem Profil — immer anzeigen */}
+        <div style={{padding:'0 12px',marginTop:12}}>
+          <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,letterSpacing:2}}>🤝 TRAININGS-HISTORIE</div>
+            <div style={{background:viewProfile.history_public?'#27ae6018':'#88888818',border:'1px solid '+(viewProfile.history_public?'#27ae6044':'#88888844'),borderRadius:10,padding:'1px 7px',color:viewProfile.history_public?'#27ae60':'#888888',fontSize:9,fontWeight:700}}>
+              {viewProfile.history_public?'ÖFFENTLICH':'PRIVAT'}
             </div>
+          </div>
+          {viewProfile.history_public&&viewProfileHistory.length>0?(
             <div style={{display:'flex',flexDirection:'column',gap:5}}>
               {viewProfileHistory.map((f,i)=>(
                 <div key={f.id||i} style={{background:darkMode?'#1a1a1a':'#f9f9f9',borderRadius:8,padding:'9px 11px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:9}}>
@@ -2123,8 +2125,36 @@ export default function App(){
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ):viewProfile.history_public&&viewProfileHistory.length===0?(
+            <div style={{background:darkMode?'#1a1a1a':'#f9f9f9',borderRadius:8,padding:'12px',textAlign:'center',border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+              <div style={{fontSize:20,marginBottom:4}}>🤝</div>
+              <div style={{color:'#aaa',fontSize:12}}>Noch keine Trainings-Einträge</div>
+            </div>
+          ):(
+            /* PRIVAT — ausgeblendet anzeigen */
+            <div style={{position:'relative',overflow:'hidden',borderRadius:8}}>
+              {/* Verschwommene Vorschau */}
+              <div style={{filter:'blur(4px)',pointerEvents:'none',opacity:0.4}}>
+                {[1,2,3].map(i=>(
+                  <div key={i} style={{background:darkMode?'#1a1a1a':'#f9f9f9',borderRadius:8,padding:'9px 11px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:9,marginBottom:5}}>
+                    <div style={{width:30,height:30,borderRadius:7,background:'#2980b918',border:'1px solid #2980b933',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13}}>🥊</div>
+                    <div style={{flex:1}}>
+                      <div style={{background:darkMode?'#333':'#e0e0e0',height:12,borderRadius:4,width:'60%',marginBottom:6}}/>
+                      <div style={{background:darkMode?'#2a2a2a':'#eee',height:9,borderRadius:4,width:'40%'}}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Lock Overlay */}
+              <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,background:'rgba(0,0,0,0.05)'}}>
+                <div style={{fontSize:24}}>🔒</div>
+                <div style={{color:darkMode?'#aaa':'#888',fontSize:12,fontWeight:700,textAlign:'center'}}>Trainings-Historie ist privat</div>
+                <div style={{color:darkMode?'#666':'#bbb',fontSize:10,textAlign:'center'}}>Dieser User hat seine Historie
+nicht öffentlich gemacht</div>
+              </div>
+            </div>
+          )}
+        </div>
         <div style={{display:'flex',gap:8,marginTop:14,padding:'0 12px'}}>
           <button onClick={()=>{
             const isBlocked=blockedUsers.includes(viewProfile.id);
