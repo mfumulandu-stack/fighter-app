@@ -1154,7 +1154,7 @@ export default function App(){
   const [saving,setSaving]=useState(false);
   const [msg,setMsg]=useState('');
   const [myProfile,setMyProfile]=useState(null);
-  const [profile,setProfile]=useState({name:'',age:'',city:'',gym:'',height:'',weight:'',weightClass:'',style:'',bio:'',isPro:false,country:'DE'});
+  const [profile,setProfile]=useState({name:'',age:'',city:'',gym:'',height:'',weight:'',weightClass:'',style:'',bio:'',isPro:false,country:'DE',gender:'male'});
   const [stats,setStats]=useState({wins:0,losses:0,draws:0,ko:0});
   const [avatarUrl,setAvatarUrl]=useState(null);
   const [avatarPreview,setAvatarPreview]=useState(null);
@@ -1421,7 +1421,7 @@ export default function App(){
           return;
         }
         setMyProfile(p);
-        setProfile({name:p.name||'',age:p.age||'',city:p.city||'',gym:p.gym||'',height:p.height||'',weight:p.weight||'',weightClass:p.weight_class||'',style:p.style||'',bio:p.bio||'',isPro:p.is_pro===true,country:p.country||'DE'});
+        setProfile({name:p.name||'',age:p.age||'',city:p.city||'',gym:p.gym||'',height:p.height||'',weight:p.weight||'',weightClass:p.weight_class||'',style:p.style||'',bio:p.bio||'',isPro:p.is_pro===true,country:p.country||'DE',gender:p.gender||'male'});
         setStats({wins:p.wins||0,losses:p.losses||0,draws:p.draws||0,ko:p.ko||0});
         if(p.avatar_url){setAvatarUrl(p.avatar_url);setAvatarPreview(p.avatar_url);}
         setAuthReady(true);
@@ -1780,6 +1780,7 @@ export default function App(){
           weight:editProfile.weight||profile.weight,
           is_pro:editProfile.isPro!==undefined?editProfile.isPro:profile.isPro,
           country:editProfile.country||profile.country||'DE',
+          gender:editProfile.gender||profile.gender||'male',
         })
       });
       setProfile(p=>({...p,...editProfile}));
@@ -1798,7 +1799,7 @@ export default function App(){
   async function saveProfile(){
     if(!session)return;
     setSaving(true);
-    const d={user_id:session.userId,name:profile.name,age:parseInt(profile.age)||null,city:profile.city,gym:profile.gym,height:parseInt(profile.height)||null,weight:parseInt(profile.weight)||null,weight_class:profile.weightClass,style:profile.style,bio:profile.bio,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,avatar_url:avatarUrl,is_pro:profile.isPro===true,country:profile.country||'DE'};
+    const d={user_id:session.userId,name:profile.name,age:parseInt(profile.age)||null,city:profile.city,gym:profile.gym,height:parseInt(profile.height)||null,weight:parseInt(profile.weight)||null,weight_class:profile.weightClass,style:profile.style,bio:profile.bio,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,avatar_url:avatarUrl,is_pro:profile.isPro===true,country:profile.country||'DE',gender:profile.gender||'male'};
     try{
       if(myProfile){
         const res=await dbUpdate('profiles',d,'user_id=eq.'+session.userId,session.token);
@@ -1863,6 +1864,13 @@ export default function App(){
     .filter(f=>!blockedUsers.includes(f.id))
     .filter(f=>!f.banned)
     .filter(f=>filterStyle==='Alle'||f.style===filterStyle)
+    .map(f=>({...f,_sameGender:(!f.gender||!profile.gender||f.gender===profile.gender||f.gender==='other'||profile.gender==='other')}))
+    .sort((a,b)=>{
+      // Same gender first — then by distance
+      if(a._sameGender&&!b._sameGender)return -1;
+      if(!a._sameGender&&b._sameGender)return 1;
+      return 0;
+    })
     .filter(f=>countryFilter==='world'||!f.country||!profile.country||f.country===profile.country||f.country==='OTHER')
     // Kein harter Stadt-Filter — alle User werden angezeigt, nähere zuerst sortiert
     .map(f=>({
@@ -2277,6 +2285,16 @@ nicht öffentlich gemacht</div>
             <Lbl>Dein Name</Lbl><Inp placeholder='z.B. Max Mueller' value={profile.name} onChange={v=>setProfile(p=>({...p,name:v}))}/>
             <Lbl>Alter</Lbl><Inp placeholder='z.B. 25' type='number' value={profile.age} onChange={v=>setProfile(p=>({...p,age:v}))}/>
             <Lbl>Standort</Lbl><Inp placeholder='z.B. Berlin' value={profile.city} onChange={v=>setProfile(p=>({...p,city:v}))}/>
+            <Lbl>Ich bin</Lbl>
+            <div style={{display:'flex',gap:10,marginTop:2,marginBottom:4}}>
+              {[['Mann','♂️','male'],['Frau','♀️','female'],['Divers','⚧️','other']].map(([label,icon,val])=>(
+                <button key={val} onClick={()=>setProfile(p=>({...p,gender:val}))}
+                  style={{flex:1,padding:'12px 6px',borderRadius:10,border:'2px solid '+(profile.gender===val?RED:'#e0e0e0'),background:profile.gender===val?'#fdf0ef':'#fff',cursor:'pointer',textAlign:'center',transition:'all 0.2s'}}>
+                  <div style={{fontSize:22,marginBottom:3}}>{icon}</div>
+                  <div style={{color:profile.gender===val?RED:'#555',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1}}>{label}</div>
+                </button>
+              ))}
+            </div>
             <Lbl>Level</Lbl>
             <div style={{display:'flex',gap:10,marginTop:2}}>
               {[['Amateur','🥋',false],['Profi','⭐',true]].map(([label,icon,val])=>(
@@ -2774,6 +2792,18 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       </select>
                     </div>
                     <div>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>GESCHLECHT</div>
+                      <div style={{display:'flex',gap:8,marginBottom:12}}>
+                        {[['Mann','♂️','male'],['Frau','♀️','female'],['Divers','⚧️','other']].map(([label,icon,val])=>(
+                          <button key={val} onClick={()=>setEditProfile(p=>({...p,gender:val}))}
+                            style={{flex:1,padding:'8px 4px',borderRadius:10,border:'2px solid '+((editProfile.gender!==undefined?editProfile.gender:(profile.gender||'male'))===val?RED:(darkMode?'#333':'#e0e0e0')),background:(editProfile.gender!==undefined?editProfile.gender:(profile.gender||'male'))===val?'#fdf0ef':'transparent',cursor:'pointer',textAlign:'center'}}>
+                            <div style={{fontSize:18}}>{icon}</div>
+                            <div style={{color:(editProfile.gender!==undefined?editProfile.gender:(profile.gender||'male'))===val?RED:(darkMode?'#aaa':'#555'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12}}>{label}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
                       <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>LEVEL</div>
                       <div style={{display:'flex',gap:8}}>
                         {[['Amateur','🥋',false],['Profi','⭐',true]].map(([label,icon,val])=>(
@@ -2816,7 +2846,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 </label>
               </div>
               <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:2}}>{profile.name}</div>
-              <div style={{color:RED,fontSize:13,fontWeight:600,marginTop:2}}>{profile.style} - {profile.weightClass?profile.weightClass.split(' (')[0]:''}</div>
+              <div style={{display:'flex',alignItems:'center',gap:6,marginTop:2,justifyContent:'center',flexWrap:'wrap'}}><span style={{color:RED,fontSize:13,fontWeight:600}}>{profile.style}</span>{profile.style&&profile.weightClass&&<span style={{color:'#aaa',fontSize:13}}>·</span>}<span style={{color:RED,fontSize:13,fontWeight:600}}>{profile.weightClass?profile.weightClass.split(' (')[0]:''}</span>{profile.gender&&profile.gender!=='male'&&<span style={{background:profile.gender==='female'?'#e8197818':'#8e44ad18',borderRadius:20,padding:'2px 8px',color:profile.gender==='female'?'#e81978':'#8e44ad',fontSize:11,fontWeight:700}}>{profile.gender==='female'?'♀️ Frau':'⚧️ Divers'}</span>}</div>
               <div style={{color:darkMode?'#666':'#999',fontSize:11,marginTop:3}}>📍 {profile.city} - 🏋️ {profile.gym} · {({'DE':'🇩🇪','AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[profile.country||'DE']||'🌍')}</div>
               <div style={{display:'inline-flex',alignItems:'center',gap:5,background:profile.isPro?'#d4a01718':'#2980b918',border:'1px solid '+(profile.isPro?'#d4a01744':'#2980b944'),borderRadius:20,padding:'3px 10px',marginTop:6,marginRight:4}}>
                 <span style={{color:profile.isPro?'#d4a017':'#2980b9',fontSize:11,fontWeight:700}}>{profile.isPro?'⭐ PROFI':'🥋 AMATEUR'}</span>
