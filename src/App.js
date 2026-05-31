@@ -713,35 +713,59 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
       });
     }catch{}
   }
-  async function loadMsgs(){
-    try{const msgs=await dbSelect('messages','match_id=eq.'+match.id+'&order=created_at.asc',token);if(Array.isArray(msgs)){setMessages(msgs);markAsRead();}}catch{}
+  const lastMsgTime=useRef(null);
+
+  async function loadMsgs(onlyNew=false){
+    try{
+      let query='match_id=eq.'+match.id+'&order=created_at.asc';
+      if(onlyNew&&lastMsgTime.current){
+        query+='&created_at=gt.'+encodeURIComponent(lastMsgTime.current);
+      }
+      const msgs=await dbSelect('messages',query,token);
+      if(Array.isArray(msgs)&&msgs.length>0){
+        if(onlyNew){
+          setMessages(prev=>{
+            const existingIds=new Set(prev.map(m=>m.id));
+            const fresh=msgs.filter(m=>!existingIds.has(m.id));
+            if(fresh.length>0){
+              // Push für neue Nachrichten vom anderen
+              const newest=fresh[fresh.length-1];
+              if(newest.sender_id!==myProfileId){
+                sendLocalNotification('💬 Neue Nachricht',other?.name+': '+newest.content?.slice(0,60));
+              }
+              const updated=[...prev,...fresh];
+              lastMsgTime.current=updated[updated.length-1].created_at;
+              return updated;
+            }
+            return prev;
+          });
+        }else{
+          setMessages(msgs);
+          lastMsgTime.current=msgs[msgs.length-1]?.created_at||null;
+        }
+        markAsRead();
+      }
+    }catch{}
     setLoading(false);
   }
+
   useEffect(()=>{
-    loadMsgs();
+    loadMsgs(false);
+    // Schnelles Polling: 600ms für sofortige Reaktion
     pollRef.current=setInterval(async()=>{
-      const prevCount=msgs.length;
-      await loadMsgs();
-      // Push bei neuer Nachricht
-      if(msgs.length>prevCount){
-        const newest=msgs[msgs.length-1];
-        if(newest&&newest.sender_id!==myProfileId){
-          sendLocalNotification('💬 Neue Nachricht',other?.name+': '+newest.content?.slice(0,60));
-        }
-      }
-      // Typing status prüfen
+      await loadMsgs(true);
+      // Typing status
       try{
         const r=await fetch(SUPA_URL+'/rest/v1/typing_status?match_id=eq.'+match.id+'&user_id=neq.'+myProfileId,{
           headers:{apikey:SUPA_KEY,Authorization:'Bearer '+token}
         });
         const data=await r.json();
         if(Array.isArray(data)&&data[0]){
-          const t=data[0];
-          const age=Date.now()-new Date(t.updated_at).getTime();
-          setOtherTyping(age<4000&&t.is_typing===true);
+          const age=Date.now()-new Date(data[0].updated_at).getTime();
+          setOtherTyping(age<4000&&data[0].is_typing===true);
         }else{setOtherTyping(false);}
       }catch{}
-    },1500);
+    },600);
     return()=>clearInterval(pollRef.current);
   },[match.id]);
   useEffect(()=>{endRef.current?.scrollIntoView({behavior:'smooth'});},[messages]);
@@ -761,9 +785,18 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
     const text=input.trim();setInput('');
     sendTypingStatus(false);
     clearTimeout(typingRef.current);
-    const tmp={id:'tmp_'+Date.now(),match_id:match.id,sender_id:myProfileId,content:text,created_at:new Date().toISOString()};
+    // Sofort optimistisch anzeigen
+    const tmpId='tmp_'+Date.now();
+    const tmp={id:tmpId,match_id:match.id,sender_id:myProfileId,content:text,created_at:new Date().toISOString()};
     setMessages(m=>[...m,tmp]);
-    try{await dbInsert('messages',{match_id:match.id,sender_id:myProfileId,content:text},token);}catch{}
+    try{
+      const saved=await dbInsert('messages',{match_id:match.id,sender_id:myProfileId,content:text},token);
+      // tmp durch echte Nachricht ersetzen
+      if(Array.isArray(saved)&&saved[0]){
+        setMessages(m=>m.map(msg=>msg.id===tmpId?saved[0]:msg));
+        lastMsgTime.current=saved[0].created_at;
+      }
+    }catch{}
   }
 
   const wins=other?.wins||0;const losses=other?.losses||0;const draws=other?.draws||0;const ko=other?.ko||0;
@@ -2072,11 +2105,11 @@ export default function App(){
         </div>
         {/* BLOCK / MELDEN */}
         {/* TRAININGS-HISTORIE auf fremdem Profil */}
-        {viewProfile.history_public&&viewProfileHistory.length>0&&(
+        {viewProfileHistory.length>0&&(
           <div style={{padding:'0 12px',marginTop:12}}>
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
               <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,letterSpacing:2}}>🤝 TRAININGS-HISTORIE</div>
-              <div style={{background:'#27ae6018',border:'1px solid #27ae6044',borderRadius:10,padding:'1px 7px',color:'#27ae60',fontSize:9,fontWeight:700}}>ÖFFENTLICH</div>
+              <div style={{background:viewProfile.history_public?'#27ae6018':'#88888818',border:'1px solid '+(viewProfile.history_public?'#27ae6044':'#88888844'),borderRadius:10,padding:'1px 7px',color:viewProfile.history_public?'#27ae60':'#888888',fontSize:9,fontWeight:700}}>{viewProfile.history_public?'ÖFFENTLICH':'PRIVAT'}</div>
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:5}}>
               {viewProfileHistory.map((f,i)=>(
