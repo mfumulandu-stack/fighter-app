@@ -3498,9 +3498,65 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             {adminTab==='gyms'&&(
               <div>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:8}}>🏋️ GYM MANAGER</div>
-                <button className='adm-btn adm-red' style={{width:'100%',marginBottom:12}} onClick={()=>loadDbGyms(session)}>🔄 GYMS NEU LADEN</button>
-                <div style={{color:'#aaa',fontSize:11,marginBottom:10}}>{dbGyms.length} Gyms in Datenbank</div>
-                {dbGyms.map((gym,i)=>(
+                <button style={{width:'100%',marginBottom:8,padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}} onClick={()=>loadDbGyms(session)}>🔄 GYMS NEU LADEN</button>
+
+                {/* DUPLIKATE ERKENNEN */}
+                {(()=>{
+                  const nameCount={};
+                  dbGyms.forEach(g=>{const k=(g.name||'').trim().toLowerCase();if(k)nameCount[k]=(nameCount[k]||[]); nameCount[k].push(g);});
+                  const dupes=Object.values(nameCount).filter(arr=>arr.length>1);
+                  const invalid=dbGyms.filter(g=>!g.name||g.name.trim().length<=1);
+                  if(dupes.length===0&&invalid.length===0)return null;
+                  return(
+                    <div style={{background:'#2a1010',borderRadius:10,padding:'12px',marginBottom:12,border:'1px solid #c0392b44'}}>
+                      <div style={{color:'#e74c3c',fontWeight:700,fontSize:13,marginBottom:8}}>⚠️ {dupes.length} Duplikate · {invalid.length} ungültige Namen</div>
+                      {invalid.map(gym=>(
+                        <div key={gym.id} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 8px',background:'#1a1a1a',borderRadius:8,marginBottom:5,border:'1px solid #e74c3c44'}}>
+                          <div style={{flex:1}}>
+                            <span style={{color:'#e74c3c',fontSize:12,fontWeight:700}}>"{gym.name||'(leer)'}"</span>
+                            <span style={{color:'#666',fontSize:11}}> · {gym.city}</span>
+                          </div>
+                          <button onClick={async()=>{
+                            if(!window.confirm('Löschen: "'+gym.name+'"?'))return;
+                            await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                            await loadDbGyms(session);showMsg('✅ Gelöscht');
+                          }} style={{padding:'4px 10px',borderRadius:6,background:'#e74c3c',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>🗑️ Löschen</button>
+                        </div>
+                      ))}
+                      {dupes.map(arr=>(
+                        <div key={arr[0].name} style={{marginBottom:8}}>
+                          <div style={{color:'#d4a017',fontSize:11,fontWeight:700,marginBottom:4}}>📋 Duplikat: "{arr[0].name}" ({arr.length}x)</div>
+                          {arr.map((gym,i)=>(
+                            <div key={gym.id} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 8px',background:'#1a1a1a',borderRadius:8,marginBottom:4,border:'1px solid '+(i===0?'#27ae6044':'#e74c3c44')}}>
+                              <div style={{width:16,height:16,borderRadius:'50%',background:i===0?'#27ae60':'#e74c3c',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                                <span style={{color:'#fff',fontSize:9,fontWeight:700}}>{i===0?'✓':'×'}</span>
+                              </div>
+                              <div style={{flex:1,minWidth:0}}>
+                                <span style={{color:i===0?'#27ae60':'#aaa',fontSize:12,fontWeight:700}}>{gym.name}</span>
+                                <span style={{color:'#555',fontSize:11}}> · {gym.city} · {gym.style||'kein Stil'}</span>
+                              </div>
+                              {i>0&&<button onClick={async()=>{
+                                if(!window.confirm('Duplikat löschen: "'+gym.name+'" ('+gym.city+')?'))return;
+                                await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                                await loadDbGyms(session);showMsg('✅ Duplikat gelöscht');
+                              }} style={{padding:'4px 10px',borderRadius:6,background:'#e74c3c',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',flexShrink:0}}>🗑️ Löschen</button>}
+                              {i===0&&<span style={{color:'#27ae60',fontSize:10,flexShrink:0}}>✓ Behalten</span>}
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {/* SUCHE */}
+                <div style={{position:'relative',marginBottom:8}}>
+                  <input placeholder='🔍 Gym suchen...' onChange={e=>setGymSearchQuery(e.target.value)} value={gymSearchQuery||''}
+                    style={{width:'100%',padding:'8px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
+                </div>
+
+                <div style={{color:'#aaa',fontSize:11,marginBottom:8}}>{dbGyms.filter(g=>!gymSearchQuery||(g.name||'').toLowerCase().includes(gymSearchQuery.toLowerCase())||(g.city||'').toLowerCase().includes(gymSearchQuery.toLowerCase())).length} / {dbGyms.length} Gyms</div>
+                {dbGyms.filter(g=>!gymSearchQuery||(g.name||'').toLowerCase().includes(gymSearchQuery.toLowerCase())||(g.city||'').toLowerCase().includes(gymSearchQuery.toLowerCase())).map((gym,i)=>(
                   <div key={gym.id||i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 12px',marginBottom:8,border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
                     {editGymId===gym.id?(
                       <div style={{display:'flex',flexDirection:'column',gap:6}}>
@@ -3569,11 +3625,19 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       </div>
                     ):(
                       <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <div style={{width:36,height:36,borderRadius:8,background:darkMode?'#2a2a2a':'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden',fontSize:14}}>
+                          {(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:(gym.name||'?').slice(0,2).toUpperCase()}
+                        </div>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontWeight:700,fontSize:13,color:darkMode?'#fff':'#1a1a1a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{gym.name||''}</div>
+                          <div style={{fontWeight:700,fontSize:13,color:darkMode?'#fff':'#1a1a1a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{gym.name||'(kein Name)'}</div>
                           <div style={{fontSize:11,color:'#888'}}>{gym.city}{gym.style?' · '+gym.style:''}</div>
                         </div>
-                        <button onClick={()=>setEditGymId(gym.id)} style={{padding:'5px 10px',borderRadius:6,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontSize:11,cursor:'pointer'}}>✏️ Bearbeiten</button>
+                        <button onClick={()=>setEditGymId(gym.id)} style={{padding:'5px 8px',borderRadius:6,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontSize:11,cursor:'pointer'}}>✏️</button>
+                        <button onClick={async()=>{
+                          if(!window.confirm('Gym löschen: "'+gym.name+'"?'))return;
+                          await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                          await loadDbGyms(session);showMsg('✅ Gelöscht');
+                        }} style={{padding:'5px 8px',borderRadius:6,background:'#e74c3c22',border:'1px solid #e74c3c44',color:'#e74c3c',fontSize:11,cursor:'pointer'}}>🗑️</button>
                       </div>
                     )}
                   </div>
