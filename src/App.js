@@ -1429,13 +1429,12 @@ export default function App(){
     }
   }
 
-  // Neue Fighter automatisch nachladen
+  // Rangliste Profile nachladen — KEINE Karten-Reload
   useEffect(()=>{
     if(!session||!myProfile)return;
     const interval=setInterval(async()=>{
-      await loadRealFighters(session,myProfile);
       await loadAllProfiles(session);
-    },30000); // alle 30 Sekunden für schnellere Updates // alle 60 Sekunden
+    },120000); // alle 2 Minuten
     return()=>clearInterval(interval);
   },[session?.userId,myProfile?.id]);
 
@@ -1526,8 +1525,14 @@ export default function App(){
         !f.banned&&
         f.id!==myP.id
       );
-      // Nur neue Fighter hinzufügen — bestehende Karten nicht überschreiben
-      setCards([...fresh]);
+      // Bestehende Karten behalten — nur neue hinzufügen die noch nicht vorhanden sind
+      setCards(prev=>{
+        const existingIds=new Set(prev.map(c=>c.id));
+        const newCards=fresh.filter(f=>!existingIds.has(f.id));
+        if(prev.length===0)return fresh; // Erster Load
+        if(newCards.length===0)return prev; // Nichts Neues
+        return [...prev,...newCards]; // Neue hinzufügen
+      });
     }catch{}
   }
 
