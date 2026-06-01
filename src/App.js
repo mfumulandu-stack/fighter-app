@@ -1860,32 +1860,49 @@ export default function App(){
   const myBundesland=getBundesland(myCity);
 
   // Smart Matching — erst gleiche Stadt + Klasse, dann Bundesland, dann alle
+  // SMART MATCHING — Priorität: 1=Stil+Stadt, 2=Stil+Region, 3=Stil+Land, 4=Stil, 5=Stadt, 6=Region, 7=alle
+  const myStyles=(profile.style||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+  function sameStyle(f){
+    if(!myStyles.length)return true;
+    const fStyles=(f.style||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+    return fStyles.some(s=>myStyles.includes(s));
+  }
+  function sameGender(f){
+    if(!profile.gender||profile.gender==='other')return true;
+    if(!f.gender||f.gender==='other')return true;
+    return f.gender===profile.gender;
+  }
   const filteredCards=cards
     .filter(f=>!blockedUsers.includes(f.id))
     .filter(f=>!f.banned)
     .filter(f=>filterStyle==='Alle'||f.style===filterStyle)
-    .map(f=>({...f,_sameGender:(!f.gender||!profile.gender||f.gender===profile.gender||f.gender==='other'||profile.gender==='other')}))
-    .sort((a,b)=>{
-      // Same gender first — then by distance
-      if(a._sameGender&&!b._sameGender)return -1;
-      if(!a._sameGender&&b._sameGender)return 1;
-      return 0;
+    .map(f=>{
+      const dist=getDistanceKm(myCity,f.city||'');
+      const fCity=(f.city||'').toLowerCase().trim();
+      const mCity=(myCity||'').toLowerCase().trim();
+      const sameCityBool=fCity===mCity&&fCity!=='';
+      const sameRegionBool=getBundesland(f.city||'')===myBundesland&&!!myBundesland;
+      const sameCountryBool=!f.country||!profile.country||f.country===(profile.country||'DE')||f.country==='OTHER';
+      const sameStyleBool=sameStyle(f);
+      const sameGenderBool=sameGender(f);
+      // Matching-Score: niedrig = besser
+      // Stil ist Priorität 1, dann Nähe
+      let score=100;
+      if(sameStyleBool&&sameCityBool)       score=1;  // perfekt: gleicher Stil + gleiche Stadt
+      else if(sameStyleBool&&sameRegionBool) score=2;  // gleicher Stil + gleiche Region
+      else if(sameStyleBool&&sameCountryBool)score=3;  // gleicher Stil + gleiches Land
+      else if(sameStyleBool)                 score=4;  // gleicher Stil, andere Land
+      else if(sameCityBool)                  score=5;  // gleiche Stadt, anderer Stil
+      else if(sameRegionBool)                score=6;  // gleiche Region, anderer Stil
+      else if(sameCountryBool)               score=7;  // gleiches Land, anderer Stil
+      else                                   score=8;  // alles andere
+      // Gender-Bonus: gleisches Geschlecht bekommt leichten Boost
+      if(!sameGenderBool) score+=0.5;
+      return{...f,_score:score,_dist:dist,_sameStyle:sameStyleBool,_sameCity:sameCityBool};
     })
-    .filter(f=>countryFilter==='world'||!f.country||!profile.country||f.country===profile.country||f.country==='OTHER')
-    // Kein harter Stadt-Filter — alle User werden angezeigt, nähere zuerst sortiert
-    .map(f=>({
-      ...f,
-      _dist:getDistanceKm(myCity,f.city||''),
-      _sameCity:(f.city||'').toLowerCase()===(myCity||'').toLowerCase(),
-      _sameBL:getBundesland(f.city||'')===myBundesland&&!!myBundesland,
-      _sameWC:(f.weight_class||f.weightClass||'')===(myWeightClass||''),
-    }))
     .sort((a,b)=>{
-      // Priorität: 1=gleiche Stadt+Klasse, 2=gleiches BL+Klasse, 3=gleiche Klasse, 4=gleiche Stadt, 5=gleiches BL, 6=alle
-      const pa=a._sameCity&&a._sameWC?1:a._sameBL&&a._sameWC?2:a._sameWC?3:a._sameCity?4:a._sameBL?5:6;
-      const pb=b._sameCity&&b._sameWC?1:b._sameBL&&b._sameWC?2:b._sameWC?3:b._sameCity?4:b._sameBL?5:6;
-      if(pa!==pb)return pa-pb;
-      return (a._dist||999)-(b._dist||999);
+      if(a._score!==b._score)return a._score-b._score;
+      return (a._dist||9999)-(b._dist||9999); // bei gleichem Score: näher zuerst
     });
   const top=filteredCards[filteredCards.length-1];
   const lastTapRef=useRef(0);
@@ -2591,7 +2608,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                             {(f.weight_class||f.weightClass)&&<div style={{background:(f.weight_class||f.weightClass)===myWeightClass?'rgba(211,84,0,0.7)':'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:(f.weight_class||f.weightClass)===myWeightClass?700:400}}>⚖️ {(f.weight_class||f.weightClass||'').split(' (')[0]}{(f.weight_class||f.weightClass)===myWeightClass?' ✓':''}</div>}
                             {f.is_pro&&<div style={{background:'#d4a01733',borderRadius:20,padding:'2px 10px',color:'#d4a017',fontSize:11,fontWeight:700}}>⭐ PROFI</div>}
                           {f.country&&f.country!=='DE'&&f.country!=='OTHER'&&<div style={{background:'rgba(255,255,255,0.15)',borderRadius:20,padding:'2px 8px',color:'#fff',fontSize:13}}>{{'AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[f.country]||'🌍'}</div>}
-                          {f.city&&<div style={{background:'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>📍 {f.city}{myCity&&f.city&&f.city.toLowerCase()!==myCity.toLowerCase()&&getDistanceKm(myCity,f.city)<500?' · '+getDistanceKm(myCity,f.city)+'km':''}</div>}
+                          {f.city&&<div style={{background:f._sameCity?'rgba(39,174,96,0.3)':'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>📍 {f.city}{f._dist&&f._dist<500&&!f._sameCity?' · '+f._dist+'km':''}{f._sameCity?' · Deine Stadt':''}</div>}
+                          {f._sameStyle&&<div style={{background:'rgba(192,57,43,0.5)',border:'1px solid rgba(192,57,43,0.7)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>🥊 Gleicher Stil</div>}
                           </div>
                           {f.bio&&<div style={{color:'rgba(255,255,255,0.5)',fontSize:10,marginTop:5,fontStyle:'italic'}}>"{f.bio}"</div>}
                         </div>
