@@ -553,6 +553,36 @@ function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,set
   );
 }
 
+class ErrorBoundary extends React.Component {
+  constructor(props){
+    super(props);
+    this.state={hasError:false,error:null};
+  }
+  static getDerivedStateFromError(error){
+    return {hasError:true,error};
+  }
+  componentDidCatch(error,info){
+    console.error('FighterApp Error:',error,info);
+  }
+  render(){
+    if(this.state.hasError){
+      return(
+        <div style={{minHeight:'100vh',background:'#0d0d0d',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'20px',fontFamily:'DM Sans,sans-serif'}}>
+          <div style={{fontSize:48,marginBottom:16}}>🥊</div>
+          <div style={{fontFamily:'Rajdhani,sans-serif',color:'#fff',fontSize:24,letterSpacing:3,marginBottom:8}}>KURZE PAUSE</div>
+          <div style={{color:'#aaa',fontSize:13,textAlign:'center',marginBottom:24,lineHeight:1.6}}>Etwas ist schiefgelaufen. Bitte lade die App neu.</div>
+          <button onClick={()=>{this.setState({hasError:false,error:null});window.location.reload();}}
+            style={{background:'#c0392b',border:'none',borderRadius:10,padding:'14px 32px',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
+            APP NEU LADEN 🔄
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+
 function AuthScreen({ onSession, appLang }) {
   const T_AUTH = {
     DE: {login:'Einloggen',register:'Registrieren',loginBtn:'LOGIN',registerBtn:'REGISTRIEREN',forgotPw:'Passwort vergessen?',sendLink:'LINK SENDEN',cancel:'Abbrechen',pwReset:'PASSWORT RESET',pwResetSub:'Wir senden dir einen Reset-Link per E-Mail.'},
@@ -2220,14 +2250,16 @@ export default function App(){
   const lastTapRef=useRef(0);
   function dragStart(e){
     if(e.touches)e.preventDefault();
-    const p=e.touches?e.touches[0]:e;
+    const p=e.touches&&e.touches[0]?e.touches[0]:e;
+    if(!p||p.clientX===undefined)return;
     setStart({x:p.clientX,y:p.clientY});
     setDrag(true);
   }
   function dragMove(e){
     if(!drag)return;
     if(e.touches)e.preventDefault();
-    const p=e.touches?e.touches[0]:e;
+    const p=e.touches&&e.touches[0]?e.touches[0]:e;
+    if(!p||p.clientX===undefined)return;
     const dx=p.clientX-start.x;
     const dy=p.clientY-start.y;
     if(Math.abs(dx)>Math.abs(dy))setOffset({x:dx,y:dy*0.3});
@@ -2819,6 +2851,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
   const tabs=[['swipe','🥊',t.fight],['chat','unread',t.chat],['ranking','🏆',t.rang],['gyms','🏋️',t.gyms],['stats','👤',t.profil]];
 
   return(
+    <ErrorBoundary>
     <div style={{minHeight:'100vh',background:darkMode?'#1a1a1a':'#f5f5f7',fontFamily:'DM Sans,sans-serif',display:'flex',flexDirection:'column'}} onMouseMove={dragMove} onMouseUp={dragEnd} onTouchMove={dragMove} onTouchEnd={dragEnd}>
       <style>{css}</style>
       {msg&&<div style={{position:'fixed',top:60,left:'50%',transform:'translateX(-50%)',background:'#fff',border:'1px solid '+RED,borderRadius:20,padding:'8px 20px',color:'#1a1a1a',fontSize:13,zIndex:200,fontWeight:600,boxShadow:'0 4px 20px rgba(0,0,0,0.1)',whiteSpace:'nowrap'}}>{msg}</div>}
@@ -3065,6 +3098,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 return(
                   <div key={f.id} onMouseDown={isTop?dragStart:undefined} onTouchStart={e=>{
                       if(isTop){
+                        if(!e.touches||!e.touches[0])return;
                         const now=Date.now();
                         if(now-lastTapRef.current<300){setViewProfile(f);lastTapRef.current=0;}
                         else{lastTapRef.current=now;dragStart(e);}
@@ -4981,6 +5015,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         </div>
       )}
     </div>
+    </ErrorBoundary>
   );
 }
 
