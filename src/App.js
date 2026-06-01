@@ -2685,11 +2685,12 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         {tab==='swipe'&&(
           <div style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:8}}>
             {/* LAND FILTER */}
-            <div style={{display:'flex',gap:6,marginBottom:6,width:'calc(100% - 24px)',maxWidth:420}}>
-              <button onClick={()=>setCountryFilter('mine')} style={{flex:1,padding:'7px',borderRadius:20,background:countryFilter==='mine'?RED:'transparent',border:'1px solid '+(countryFilter==='mine'?RED:(darkMode?'#333':'#ddd')),color:countryFilter==='mine'?'#fff':(darkMode?'#aaa':'#666'),fontSize:12,fontWeight:700,cursor:'pointer'}}>
+            <div style={{display:'flex',gap:4,marginBottom:6,width:'calc(100% - 24px)',maxWidth:420,justifyContent:'center'}}>
+              <button onClick={()=>setCountryFilter('mine')} style={{padding:'3px 12px',borderRadius:20,background:'transparent',border:'none',color:countryFilter==='mine'?(darkMode?'#fff':'#1a1a1a'):(darkMode?'#444':'#ccc'),fontSize:11,fontWeight:countryFilter==='mine'?700:400,cursor:'pointer',transition:'all 0.2s'}}>
                 {({'DE':'🇩🇪','AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[profile.country||'DE']||'🌍')} Mein Land
               </button>
-              <button onClick={()=>setCountryFilter('world')} style={{flex:1,padding:'7px',borderRadius:20,background:countryFilter==='world'?'#2980b9':'transparent',border:'1px solid '+(countryFilter==='world'?'#2980b9':(darkMode?'#333':'#ddd')),color:countryFilter==='world'?'#fff':(darkMode?'#aaa':'#666'),fontSize:12,fontWeight:700,cursor:'pointer'}}>
+              <div style={{width:1,background:darkMode?'#333':'#e0e0e0',margin:'4px 0'}}/>
+              <button onClick={()=>setCountryFilter('world')} style={{padding:'3px 12px',borderRadius:20,background:'transparent',border:'none',color:countryFilter==='world'?(darkMode?'#fff':'#1a1a1a'):(darkMode?'#444':'#ccc'),fontSize:11,fontWeight:countryFilter==='world'?700:400,cursor:'pointer',transition:'all 0.2s'}}>
                 🌍 Weltweit
               </button>
             </div>
