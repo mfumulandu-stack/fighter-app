@@ -2631,9 +2631,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <div style={{flex:1,overflowY:'auto',padding:'8px 0'}}>
               {[
                 {icon:'📅',label:'Events',action:()=>{setTab('events');setShowMenu(false);}},
-                {icon:'🏆',label:'Rangliste',action:()=>{setTab('ranking');setShowMenu(false);}},
                 {icon:'👤',label:'Mein Profil',action:()=>{setTab('stats');setShowMenu(false);}},
-                {icon:'🏋️',label:'Gyms',action:()=>{setTab('gyms');setShowMenu(false);}},
               ].map(item=>(
                 <div key={item.label} onClick={item.action} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',cursor:'pointer',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5'),transition:'background 0.15s'}}
                   onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
@@ -2642,14 +2640,34 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,fontWeight:600}}>{item.label}</div>
                 </div>
               ))}
-              {isAdmin&&(
-                <div onClick={()=>{setShowAdmin(true);setShowMenu(false);}} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',cursor:'pointer',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5')}}
-                  onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
-                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                  <div style={{fontSize:20,width:28,textAlign:'center'}}>⚙️</div>
-                  <div style={{color:RED,fontSize:15,fontWeight:700}}>Admin Panel</div>
+
+              {/* BENACHRICHTIGUNGEN TOGGLE */}
+              <div onClick={async()=>{
+                if(!('Notification' in window)){showMsg('Benachrichtigungen nicht unterstützt');return;}
+                if(Notification.permission==='granted'){
+                  showMsg('Benachrichtigungen sind bereits aktiv 🔔');
+                }else if(Notification.permission==='denied'){
+                  showMsg('Bitte in den Browser-Einstellungen erlauben');
+                }else{
+                  const perm=await Notification.requestPermission();
+                  if(perm==='granted'){showMsg('Benachrichtigungen aktiviert! 🔔');}
+                  else{showMsg('Benachrichtigungen abgelehnt');}
+                }
+              }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',cursor:'pointer',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5')}}
+                onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
+                onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <div style={{display:'flex',alignItems:'center',gap:14}}>
+                  <div style={{fontSize:20,width:28,textAlign:'center'}}>🔔</div>
+                  <div>
+                    <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,fontWeight:600}}>Benachrichtigungen</div>
+                    <div style={{color:'#aaa',fontSize:11,marginTop:1}}>{typeof Notification!=='undefined'&&Notification.permission==='granted'?'Aktiv':'Nicht aktiv'}</div>
+                  </div>
                 </div>
-              )}
+                <div style={{width:40,height:22,borderRadius:11,background:typeof Notification!=='undefined'&&Notification.permission==='granted'?'#27ae60':'#ccc',position:'relative',flexShrink:0}}>
+                  <div style={{position:'absolute',top:3,left:typeof Notification!=='undefined'&&Notification.permission==='granted'?21:3,width:16,height:16,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
+                </div>
+              </div>
+
               {/* DARK MODE TOGGLE */}
               <div onClick={()=>setDarkMode(d=>!d)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',cursor:'pointer',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5')}}
                 onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
@@ -2662,6 +2680,15 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   <div style={{position:'absolute',top:3,left:darkMode?21:3,width:16,height:16,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
                 </div>
               </div>
+
+              {isAdmin&&(
+                <div onClick={()=>{setShowAdmin(true);setShowMenu(false);}} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',cursor:'pointer',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5')}}
+                  onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
+                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                  <div style={{fontSize:20,width:28,textAlign:'center'}}>⚙️</div>
+                  <div style={{color:RED,fontSize:15,fontWeight:700}}>Admin Panel</div>
+                </div>
+              )}
             </div>
             {/* Logout */}
             <div onClick={handleLogout} style={{padding:'16px 20px',borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:14,cursor:'pointer'}}
