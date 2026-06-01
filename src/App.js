@@ -1220,7 +1220,7 @@ export default function App(){
   const [adminCityBL,setAdminCityBL]=useState('');
   const [adminSaving,setAdminSaving]=useState(false);
   const [adminUsersLoaded,setAdminUsersLoaded]=useState(false);
-  const isAdmin=session?.userId===ADMIN_ID;
+  const isAdmin=session?.userId===ADMIN_ID||myProfile?.id===ADMIN_ID;
   const [fightHistory,setFightHistory]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_history')||'[]')}catch{return []}});
   const [historyPublic,setHistoryPublic]=useState(()=>{try{return localStorage.getItem('fighter_history_public')==='true'}catch{return false}});
   const [editMode,setEditMode]=useState(false);
