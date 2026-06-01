@@ -354,7 +354,7 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUp
 
         {/* BEWERTUNG */}
         <div style={{background:card,borderRadius:14,padding:'16px',border:'1px solid '+border,marginBottom:12,textAlign:'center'}}>
-          <div style={{fontFamily:'Rajdhani,sans-serif',color:text,fontSize:13,letterSpacing:2,marginBottom:10}}>BEWERTE DIESES GYM</div>
+          <div style={{fontFamily:'Rajdhani,sans-serif',color:text,fontSize:13,letterSpacing:2,marginBottom:10}}>{t.rateThisGym}</div>
           <div style={{display:'flex',justifyContent:'center',gap:6,marginBottom:8}}>
             {[1,2,3,4,5].map(star=>(
               <button key={star} onClick={()=>rateGym(gymKey,star)}
@@ -635,7 +635,7 @@ function AuthScreen({ onSession }) {
             {['login','register'].map(m=>(
               <button key={m} onClick={()=>{setMode(m);setErr('');setInfo('');}}
                 style={{flex:1,padding:'9px',borderRadius:6,background:mode===m?'#fff':'transparent',border:mode===m?'1px solid #eee':'none',color:mode===m?'#1a1a1a':'#aaa',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',boxShadow:mode===m?'0 1px 4px rgba(0,0,0,0.08)':'none',transition:'all 0.2s'}}>
-                {m==='login'?'Einloggen':'Registrieren'}
+                {m==='login'?t.login:t.register}
               </button>
             ))}
           </div>
@@ -659,9 +659,9 @@ function AuthScreen({ onSession }) {
           {info&&<div style={{color:'#27ae60',fontSize:12,marginTop:10,textAlign:'center'}}>{info}</div>}
           <button onClick={submit} disabled={loading}
             style={{width:'100%',marginTop:16,padding:'13px',borderRadius:8,background:loading?'#eee':`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:loading?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:loading?'not-allowed':'pointer'}}>
-            {loading?'...':mode==='login'?'LOGIN':'REGISTRIEREN'}
+            {loading?'...':(mode==='login'?t.loginBtn:t.registerBtn)}
           </button>
-          {mode==='login'&&<div onClick={()=>{setShowForgot(true);setErr('');setInfo('');}} style={{textAlign:'center',marginTop:12,color:'#aaa',fontSize:12,cursor:'pointer',textDecoration:'underline'}}>Passwort vergessen?</div>}
+          {mode==='login'&&<div onClick={()=>{setShowForgot(true);setErr('');setInfo('');}} style={{textAlign:'center',marginTop:12,color:'#aaa',fontSize:12,cursor:'pointer',textDecoration:'underline'}}>{t.forgotPw}</div>}
         </div>
       </div>
       {showForgot&&(
@@ -893,7 +893,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
         <div style={{position:'absolute',inset:0,zIndex:11,background:'#f5f5f7',overflowY:'auto',display:'flex',flexDirection:'column'}}>
           <div style={{background:'linear-gradient(135deg,#1a1a1a,#c0392b)',padding:'14px 16px',flexShrink:0,display:'flex',alignItems:'center',gap:10}}>
             <button onClick={()=>setShowFightRequest(false)} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',fontSize:18,cursor:'pointer',borderRadius:8,padding:'5px 12px',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
-            <div className='rj' style={{color:'#fff',fontSize:20,letterSpacing:2,flex:1}}>FIGHT REQUEST</div>
+            <div className='rj' style={{color:'#fff',fontSize:20,letterSpacing:2,flex:1}}>{t.fightRequest}</div>
             <div style={{fontSize:22}}>⚔️</div>
           </div>
           <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%',display:'flex',flexDirection:'column',gap:12}}>
@@ -903,7 +903,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
               <div style={{color:'#888',fontSize:12,marginTop:2}}>{other?.style} · {other?.weight_class||other?.weightClass||''}</div>
             </div>
             <div style={{background:'#fff',borderRadius:12,padding:'14px',border:'1px solid #eee'}}>
-              <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:10}}>FIGHT TYP</div>
+              <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:10}}>{t.fightType}</div>
               <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                 {['Sparring','Amateur Wettkampf','Profi Wettkampf','Freundschaftskampf'].map(t=>(
                   <button key={t} onClick={()=>setFightType(t)} style={{padding:'7px 12px',borderRadius:20,background:fightType===t?'#c0392b':'#f5f5f5',border:'1px solid '+(fightType===t?'#c0392b':'#ddd'),color:fightType===t?'#fff':'#666',fontSize:12,fontWeight:700,cursor:'pointer'}}>
@@ -913,19 +913,19 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
               </div>
             </div>
             <div style={{background:'#fff',borderRadius:12,padding:'14px',border:'1px solid #eee'}}>
-              <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>DATUM</div>
+              <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>{t.date}</div>
               <input type='date' value={fightDate} onChange={e=>setFightDate(e.target.value)}
                 style={{width:'100%',background:'#f5f5f7',border:'1px solid #e0e0e0',borderRadius:8,padding:'10px 12px',fontSize:14,color:'#1a1a1a',fontFamily:'DM Sans,sans-serif'}}/>
             </div>
             <div style={{background:'#fff',borderRadius:12,padding:'14px',border:'1px solid #eee'}}>
-              <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>ORT / GYM</div>
-              <input type='text' value={fightLocation} onChange={e=>setFightLocation(e.target.value)} placeholder='z.B. Tiger Gym Berlin, Mitte'
+              <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>{t.placeGym}</div>
+              <input type='text' value={fightLocation} onChange={e=>setFightLocation(e.target.value)} placeholder={t.placePlaceholder}
                 style={{width:'100%',background:'#f5f5f7',border:'1px solid #e0e0e0',borderRadius:8,padding:'10px 12px',fontSize:14,color:'#1a1a1a',fontFamily:'DM Sans,sans-serif'}}/>
             </div>
             {fightSent?(
               <div style={{background:'#f0faf0',border:'1px solid #27ae6044',borderRadius:12,padding:'16px',textAlign:'center'}}>
                 <div style={{fontSize:32,marginBottom:6}}>✅</div>
-                <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18}}>FIGHT REQUEST GESENDET!</div>
+                <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18}}>{t.fightSent}</div>
                 <div style={{color:'#888',fontSize:12,marginTop:4}}>Warte auf Antwort von {other?.name}</div>
               </div>
             ):(
@@ -1051,7 +1051,7 @@ Leider kann ich diesen Termin nicht wahrnehmen.`;
                         </button>
                       </div>
                     )}
-                    {isMe&&<div style={{color:'#aaa',fontSize:11,textAlign:'center',marginTop:6}}>Warte auf Antwort…</div>}
+                    {isMe&&<div style={{color:'#aaa',fontSize:11,textAlign:'center',marginTop:6}}>{t.waitingResponse}</div>}
                   </div>
                   <div style={{padding:'4px 14px 8px',textAlign:'right'}}>
                     <span style={{color:'#ccc',fontSize:9}}>{new Date(m.created_at).toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'})}</span>
@@ -1131,7 +1131,7 @@ Leider kann ich diesen Termin nicht wahrnehmen.`;
                 }else{sendTypingStatus(false);}
               }}
           onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}}
-          placeholder='Nachricht…' rows={1}
+          placeholder={t.message} rows={1}
           style={{flex:1,background:'#f5f5f7',border:'1px solid #e0e0e0',borderRadius:20,padding:'10px 14px',fontSize:14,color:'#1a1a1a',maxHeight:80}}/>
         <button onClick={send} disabled={!input.trim()}
           style={{width:42,height:42,borderRadius:'50%',background:input.trim()?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#eee',border:'none',color:input.trim()?'#fff':'#aaa',fontSize:17,cursor:input.trim()?'pointer':'not-allowed',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
@@ -1243,6 +1243,211 @@ export default function App(){
   const [countryFilter,setCountryFilter]=useState('mine'); // 'mine' | 'world'
   const [gymRatingInput,setGymRatingInput]=useState({});
   const [showMenu,setShowMenu]=useState(false);
+  const T = {
+    DE: {
+      // Navigation
+      fight:'FIGHT', chat:'CHAT', rang:'RANG', gyms:'GYMS', profil:'PROFIL',
+      // Auth
+      login:'Einloggen', register:'Registrieren', email:'E-Mail', password:'Passwort (min. 6 Zeichen)',
+      loginBtn:'LOGIN', registerBtn:'REGISTRIEREN', forgotPw:'Passwort vergessen?',
+      privacyAgree:'Ich stimme der', agbAgree:'Ich akzeptiere die',
+      pwReset:'PASSWORT RESET', pwResetSub:'Wir senden dir einen Reset-Link per E-Mail.',
+      sendLink:'LINK SENDEN', cancel:'Abbrechen',
+      // Setup
+      yourName:'Dein Name', age:'Alter', location:'Standort', photo:'FOTO',
+      photoRequired:'Profilbild hochladen (Pflicht)', photoUploaded:'Foto hochgeladen ✓',
+      yourGym:'Dein Gym', aboutYou:'Über dich', fightStyle:'Kampfstil (mehrere möglich)',
+      height:'Größe (cm)', fightWeight:'Kampfgewicht (kg)', weightClass:'Gewichtsklasse',
+      chooseWeightClass:'Gewichtsklasse wählen', fightRecord:'Kampfrekord (optional)',
+      back:'Zurück', next:'Weiter', letsGo:'Lets Fight', saving:'Speichern…',
+      // Swipe/Fight Tab
+      profileSeen:'Profil ansehen', justNow:'🟢 Gerade online', minAgo:'Vor', min:'Min',
+      hoursAgo:'Vor', hour:'Std', daysAgo:'Vor', day:'Tag', days:'Tagen', aWhileAgo:'⚪ Vor einer Weile',
+      allFightersSeen:'ALLE FIGHTER', allFightersSeen2:'GESEHEN',
+      noFightersNearby:'Keine Fighter in deiner Nähe gefunden.',
+      allFightersSwiped:'Alle Fighter wurden gesehen! Neue kommen täglich dazu.',
+      newFighters:'🔄 NEUE FIGHTER', goToChats:'💬 CHATS',
+      recentlySeen:'ZULETZT GESEHEN', fightRequests:'FIGHT REQUESTS – tippe für Chat',
+      interestedIn:'Fighter interessieren sich für dich',
+      myCountry:'Mein Land', worldwide:'Weltweit',
+      // Chat Tab
+      messages:'NACHRICHTEN', matches:'Match', matchPlural:'es',
+      noMatches:'NOCH KEINE MATCHES',
+      noMatchesSub:'Swipe rechts auf Fighter die du herausfordern möchtest — bei gegenseitigem Match könnt ihr direkt chatten!',
+      swipeNow:'⚔️ JETZT SWIPEN', newFightersDaily:'Neue Fighter kommen täglich hinzu',
+      noFighterFound:'Kein Fighter gefunden', noMatchesFor:'Keine Matches für',
+      searchFighter:'Fighter suchen...', chatBtn:'CHAT →',
+      // Fight Request
+      fightRequest:'FIGHT REQUEST', fightType:'FIGHT TYP', date:'DATUM', placeGym:'ORT / GYM',
+      placePlaceholder:'z.B. Tiger Gym Berlin, Mitte', waitingResponse:'Warte auf Antwort…',
+      sendFightRequest:'⚔️ FIGHT REQUEST SENDEN', fightSent:'FIGHT REQUEST GESENDET!',
+      waitingFor:'Warte auf Antwort von', accept:'✅ ANNEHMEN', decline:'❌ ABLEHNEN',
+      counterDate:'🔄 GEGEN-TERMIN', backToChat:'💬 ZURÜCK ZUM CHAT',
+      fightAccepted:'FIGHT ANGENOMMEN', fightDeclined:'FIGHT ABGELEHNT', counterTerm:'ALTERNATIVTERMIN',
+      // Ranking
+      worldRanking:'WELTRANGLISTE', amateurs:'🏅 AMATEURE', pros:'🌍 PROFIS', trainer:'🎓 TRAINER',
+      all:'Alle', wins:'SIEGE', losses:'NIEDER', draws:'UNENTSCH', kos:'KOs',
+      points:'Pkt', winRate:'SIEGRATE', fights:'Kämpfe gesamt',
+      rankFormula:'SIEG +3 · UNENTSCH +1 · NIEDERLAGE -2',
+      // Gyms
+      findGyms:'GYMS FINDEN', cities:'🏙️ Städte', topGyms:'🏆 TOP GYMS',
+      gymRanking:'🏆 GYM RANKING', sortedByRatings:'Nach Bewertungen sortiert',
+      rateThisGym:'BEWERTE DIESES GYM', notRatedYet:'Noch nicht bewertet · ',
+      firstToRate:'Sei der Erste!', myRating:'Deine Bewertung:', star:'Stern', stars:'Sterne',
+      ratings:'Bewertung', ratingsPlural:'en', members:'Mitglieder', founded:'Gegründet',
+      contact:'KONTAKT & ADRESSE', address:'ADRESSE', phone:'TELEFON',
+      website:'WEBSITE', fighterCode:'FIGHTER-APP CODE', gymCode:'Diesen Code beim Gym erfragen → Profil verifizieren',
+      openingHours:'ÖFFNUNGSZEITEN', aboutGym:'ÜBER DAS GYM',
+      // Profile/Stats
+      profileView:'PROFIL', editProfile:'PROFIL BEARBEITEN', changePhoto:'Foto ändern',
+      editSave:'SPEICHERN', fightRecordEdit:'REKORD BEARBEITEN', saveProfil:'Profil speichern',
+      verifyRecord:'🏅 KAMPFREKORD VERIFIZIEREN', verifyRecordSub:'Lade ein Foto deiner Urkunde, Medaille oder eines offiziellen Kampfergebnisses hoch. Dein Rekord bekommt dann ein ✅ Verifiziert-Badge.',
+      verified:'REKORD VERIFIZIERT', pending:'WIRD GEPRÜFT', upTo48h:'Bis zu 48 Stunden',
+      uploadProof:'Urkunde / Medaille hochladen', maxSize:'JPG, PNG · max 5MB',
+      gymVerify:'Gym-Mitgliedschaft verifizieren', gymVerified2:'Gym verifiziert ✅',
+      gymCodeEnter:'Gym-Code eingeben → Badge erhalten',
+      trainingHistory:'🤝 TRAININGS-HISTORIE', trainingWith:'Mit wem hast du trainiert?',
+      noHistory:'Noch keine Trainings-Einträge', historyHint:'Nimm einen Fight Request an → wird hier gespeichert',
+      public2:'Öffentlich', private2:'Privat',
+      // Settings
+      settings:'EINSTELLUNGEN', darkMode:'Dark Mode', impressum:'📋 Impressum',
+      privacy:'🔐 Datenschutz', agb:'📜 AGB', deleteAccount:'🗑️ Account löschen',
+      changePw:'🔑 Passwort ändern', logout:'🚪 Ausloggen',
+      // Misc
+      undone:'↩️ Rückgängig!', photoUploading:'Foto wird hochgeladen...',
+      matchConfirmed:'Match bestätigt!', writeFirst:'Schreib die erste Nachricht',
+      message:'Nachricht…', send:'➤',
+      block:'🚫 Blockieren', unblock:'🚫 Entsperren', report:'⚠️ Melden', reported:'✓ Gemeldet',
+      trainingPublic:'Trainings-Historie ist jetzt öffentlich 👁', trainingPrivate:'Trainings-Historie ist jetzt privat 🔒',
+      profileLink:'Profil-Link kopiert! 📋',
+      // Onboarding
+      ob1title:'FINDE DEINEN GEGNER', ob1sub:'Entdecke Kampfsportler in deiner Nähe — egal ob Sparring, Techniktraining oder offizieller Kampf.',
+      ob2title:'MATCH & CHAT', ob2sub:'Wenn beide geliket haben habt ihr ein Match. Schreibt euch, vereinbart Trainings und baut euren Rekord auf.',
+      ob3title:'BAUE DEINEN REKORD AUF', ob3sub:'Trainings-Historie, verifizierter Kampfrekord, Gym-Mitgliedschaft. Zeig der Community wer du bist.',
+      skip:'Überspringen', continueBtn:'WEITER →', startNow:'JETZT STARTEN 🥊',
+      // Interest banner
+      interestBanner:'Fighter interessieren sich für dich',
+      interestTitle:'INTERESSE AN DIR', interestSub:'Fighter haben dich geliket',
+      matchBtn:'⚔️ MATCH',
+      // Gym verify
+      gymVerifyTitle:'GYM VERIFIZIEREN', gymVerifyConfirm:'Bestätige deine Gym-Mitgliedschaft',
+      howToCode:'💡 WIE BEKOMME ICH DEN CODE?',
+      howToCodeText:'Frage an der Rezeption deines Gyms nach dem Fighter-App Code. Der 8-stellige Code (z.B. TGB-2847) wird dir direkt mitgeteilt.',
+      gymCodeLabel:'GYM-CODE EINGEBEN', verifyBtn:'✅ VERIFIZIEREN', invalidCode:'Ungültiger Code. Bitte frage dein Gym nach dem Fighter-Code.',
+      alreadyVerified:'✅ VERIFIZIERTES MITGLIED', verifiedSince:'Seit:', removeVerification:'Verifizierung entfernen',
+      // Gym register
+      gymRegisterTitle:'GYM ANMELDEN', gymRegisterSub:'Dein Gym wird geprüft und hinzugefügt',
+      gymName:'GYM NAME *', city2:'STADT *', gymAddress:'ADRESSE', fightStyleLabel:'KAMPFSTIL',
+      gymRegSentTitle:'ANMELDUNG GESENDET!', gymRegSentSub:'Wir prüfen dein Gym und fügen es innerhalb von 48h hinzu.',
+      close:'SCHLIESSEN', registerGym:'➕ ANMELDEN',
+      // Password change
+      pwChangeTitle:'🔑 PASSWORT ÄNDERN', pwChangeSub:'Mindestens 6 Zeichen', newPw:'Neues Passwort',
+      pwSave:'SPEICHERN', pwError:'Mindestens 6 Zeichen!', pwSuccess:'✅ Passwort geändert!',
+    },
+    EN: {
+      // Navigation
+      fight:'FIGHT', chat:'CHAT', rang:'RANK', gyms:'GYMS', profil:'PROFILE',
+      // Auth
+      login:'Log in', register:'Register', email:'E-Mail', password:'Password (min. 6 chars)',
+      loginBtn:'LOGIN', registerBtn:'REGISTER', forgotPw:'Forgot password?',
+      privacyAgree:'I agree to the', agbAgree:'I accept the',
+      pwReset:'PASSWORD RESET', pwResetSub:'We will send you a reset link by email.',
+      sendLink:'SEND LINK', cancel:'Cancel',
+      // Setup
+      yourName:'Your name', age:'Age', location:'Location', photo:'PHOTO',
+      photoRequired:'Upload profile photo (required)', photoUploaded:'Photo uploaded ✓',
+      yourGym:'Your gym', aboutYou:'About you', fightStyle:'Fighting style (multiple possible)',
+      height:'Height (cm)', fightWeight:'Fight weight (kg)', weightClass:'Weight class',
+      chooseWeightClass:'Choose weight class', fightRecord:'Fight record (optional)',
+      back:'Back', next:'Next', letsGo:'Lets Fight', saving:'Saving…',
+      // Swipe/Fight Tab
+      profileSeen:'View profile', justNow:'🟢 Online now', minAgo:'', min:'min ago',
+      hoursAgo:'', hour:'h ago', daysAgo:'', day:'d ago', days:'', aWhileAgo:'⚪ A while ago',
+      allFightersSeen:'ALL FIGHTERS', allFightersSeen2:'SEEN',
+      noFightersNearby:'No fighters found near you.',
+      allFightersSwiped:'All fighters seen! New ones added daily.',
+      newFighters:'🔄 NEW FIGHTERS', goToChats:'💬 CHATS',
+      recentlySeen:'RECENTLY SEEN', fightRequests:'FIGHT REQUESTS – tap to chat',
+      interestedIn:'Fighters are interested in you',
+      myCountry:'My Country', worldwide:'Worldwide',
+      // Chat Tab
+      messages:'MESSAGES', matches:'Match', matchPlural:'es',
+      noMatches:'NO MATCHES YET',
+      noMatchesSub:'Swipe right on fighters you want to challenge — when both match you can chat directly!',
+      swipeNow:'⚔️ SWIPE NOW', newFightersDaily:'New fighters added daily',
+      noFighterFound:'No fighter found', noMatchesFor:'No matches for',
+      searchFighter:'Search fighter...', chatBtn:'CHAT →',
+      // Fight Request
+      fightRequest:'FIGHT REQUEST', fightType:'FIGHT TYPE', date:'DATE', placeGym:'LOCATION / GYM',
+      placePlaceholder:'e.g. Tiger Gym Berlin, Mitte', waitingResponse:'Waiting for reply…',
+      sendFightRequest:'⚔️ SEND FIGHT REQUEST', fightSent:'FIGHT REQUEST SENT!',
+      waitingFor:'Waiting for reply from', accept:'✅ ACCEPT', decline:'❌ DECLINE',
+      counterDate:'🔄 COUNTER-OFFER', backToChat:'💬 BACK TO CHAT',
+      fightAccepted:'FIGHT ACCEPTED', fightDeclined:'FIGHT DECLINED', counterTerm:'COUNTER-OFFER',
+      // Ranking
+      worldRanking:'WORLD RANKINGS', amateurs:'🏅 AMATEURS', pros:'🌍 PROS', trainer:'🎓 TRAINERS',
+      all:'All', wins:'WINS', losses:'LOSSES', draws:'DRAWS', kos:'KOs',
+      points:'Pts', winRate:'WIN RATE', fights:'fights total',
+      rankFormula:'WIN +3 · DRAW +1 · LOSS -2',
+      // Gyms
+      findGyms:'FIND GYMS', cities:'🏙️ Cities', topGyms:'🏆 TOP GYMS',
+      gymRanking:'🏆 GYM RANKING', sortedByRatings:'Sorted by ratings',
+      rateThisGym:'RATE THIS GYM', notRatedYet:'Not rated yet · ',
+      firstToRate:'Be the first!', myRating:'Your rating:', star:'star', stars:'stars',
+      ratings:'rating', ratingsPlural:'s', members:'Members', founded:'Founded',
+      contact:'CONTACT & ADDRESS', address:'ADDRESS', phone:'PHONE',
+      website:'WEBSITE', fighterCode:'FIGHTER APP CODE', gymCode:'Ask your gym for this code → verify profile',
+      openingHours:'OPENING HOURS', aboutGym:'ABOUT THE GYM',
+      // Profile/Stats
+      profileView:'PROFILE', editProfile:'EDIT PROFILE', changePhoto:'Change photo',
+      editSave:'SAVE', fightRecordEdit:'EDIT RECORD', saveProfil:'Save profile',
+      verifyRecord:'🏅 VERIFY FIGHT RECORD', verifyRecordSub:'Upload a photo of your certificate, medal or official fight result. Your record will then get a ✅ Verified badge.',
+      verified:'RECORD VERIFIED', pending:'BEING REVIEWED', upTo48h:'Up to 48 hours',
+      uploadProof:'Upload certificate / medal', maxSize:'JPG, PNG · max 5MB',
+      gymVerify:'Verify gym membership', gymVerified2:'Gym verified ✅',
+      gymCodeEnter:'Enter gym code → get badge',
+      trainingHistory:'🤝 TRAINING HISTORY', trainingWith:'Who did you train with?',
+      noHistory:'No training entries yet', historyHint:'Accept a Fight Request → saved here',
+      public2:'Public', private2:'Private',
+      // Settings
+      settings:'SETTINGS', darkMode:'Dark Mode', impressum:'📋 Imprint',
+      privacy:'🔐 Privacy Policy', agb:'📜 Terms', deleteAccount:'🗑️ Delete account',
+      changePw:'🔑 Change password', logout:'🚪 Log out',
+      // Misc
+      undone:'↩️ Undone!', photoUploading:'Uploading photo...',
+      matchConfirmed:'Match confirmed!', writeFirst:'Write the first message',
+      message:'Message…', send:'➤',
+      block:'🚫 Block', unblock:'🚫 Unblock', report:'⚠️ Report', reported:'✓ Reported',
+      trainingPublic:'Training history is now public 👁', trainingPrivate:'Training history is now private 🔒',
+      profileLink:'Profile link copied! 📋',
+      // Onboarding
+      ob1title:'FIND YOUR OPPONENT', ob1sub:'Discover combat sports athletes near you — whether sparring, technical training or official fight.',
+      ob2title:'MATCH & CHAT', ob2sub:'When both swipe right you have a match. Message each other, arrange training and build your record.',
+      ob3title:'BUILD YOUR RECORD', ob3sub:'Training history, verified fight record, gym membership. Show the community who you are.',
+      skip:'Skip', continueBtn:'CONTINUE →', startNow:'START NOW 🥊',
+      // Interest banner
+      interestBanner:'Fighters are interested in you',
+      interestTitle:'INTEREST IN YOU', interestSub:'Fighters liked you',
+      matchBtn:'⚔️ MATCH',
+      // Gym verify
+      gymVerifyTitle:'VERIFY GYM', gymVerifyConfirm:'Confirm your gym membership',
+      howToCode:'💡 HOW DO I GET THE CODE?',
+      howToCodeText:'Ask at your gym reception for the Fighter App Code. The 8-digit code (e.g. TGB-2847) will be given to you directly.',
+      gymCodeLabel:'ENTER GYM CODE', verifyBtn:'✅ VERIFY', invalidCode:'Invalid code. Please ask your gym for the Fighter Code.',
+      alreadyVerified:'✅ VERIFIED MEMBER', verifiedSince:'Since:', removeVerification:'Remove verification',
+      // Gym register
+      gymRegisterTitle:'REGISTER GYM', gymRegisterSub:'Your gym will be reviewed and added',
+      gymName:'GYM NAME *', city2:'CITY *', gymAddress:'ADDRESS', fightStyleLabel:'FIGHTING STYLE',
+      gymRegSentTitle:'REGISTRATION SENT!', gymRegSentSub:'We will review your gym and add it within 48h.',
+      close:'CLOSE', registerGym:'➕ REGISTER',
+      // Password change
+      pwChangeTitle:'🔑 CHANGE PASSWORD', pwChangeSub:'At least 6 characters', newPw:'New password',
+      pwSave:'SAVE', pwError:'At least 6 characters!', pwSuccess:'✅ Password changed!',
+    }
+  };
+  const t = T[appLang]||T.DE;
+
+
   const [appLang,setAppLang]=useState(()=>{try{return localStorage.getItem('fighter_lang')||'DE'}catch{return 'DE'}});
   const [showFeedback,setShowFeedback]=useState(false);
   const [feedbackText,setFeedbackText]=useState('');
@@ -2151,8 +2356,8 @@ export default function App(){
       <div style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
         <button onClick={()=>setWhoLikedTab(false)} style={{background:'none',border:'none',color:darkMode?'#fff':'#1a1a1a',fontSize:20,cursor:'pointer',padding:'0 8px 0 0'}}>←</button>
         <div>
-          <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:2}}>INTERESSE AN DIR</div>
-          <div style={{color:'#aaa',fontSize:11}}>{whoLikedMe.length} Fighter haben dich geliket</div>
+          <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:2}}>{t.interestTitle}</div>
+          <div style={{color:'#aaa',fontSize:11}}>{whoLikedMe.length} {t.interestSub}</div>
         </div>
       </div>
       <div style={{flex:1,overflowY:'auto',padding:'12px 16px',display:'flex',flexDirection:'column',gap:10}}>
@@ -2336,9 +2541,9 @@ nicht öffentlich gemacht</div>
   );
   // ONBOARDING
   const onboardSlides=[
-    {icon:'🥊',title:'FINDE DEINEN GEGNER',sub:'Entdecke Kampfsportler in deiner Nähe — egal ob Sparring, Techniktraining oder offizieller Kampf.',bg:'linear-gradient(160deg,#1a0505 0%,#0d0d0d 100%)',accent:'#c0392b'},
-    {icon:'💬',title:'MATCH & CHAT',sub:'Wenn beide geliket haben habt ihr ein Match. Schreibt euch, vereinbart Trainings und baut euren Rekord auf.',bg:'linear-gradient(160deg,#05101a 0%,#0d0d0d 100%)',accent:'#2980b9'},
-    {icon:'🏆',title:'BAUE DEINEN REKORD AUF',sub:'Trainings-Historie, verifizierter Kampfrekord, Gym-Mitgliedschaft. Zeig der Community wer du bist.',bg:'linear-gradient(160deg,#0a0a05 0%,#0d0d0d 100%)',accent:'#d4a017'},
+    {icon:'🥊',title:t.ob1title,sub:t.ob1sub,bg:'linear-gradient(160deg,#1a0505 0%,#0d0d0d 100%)',accent:'#c0392b'},
+    {icon:'💬',title:t.ob2title,sub:t.ob2sub,bg:'linear-gradient(160deg,#05101a 0%,#0d0d0d 100%)',accent:'#2980b9'},
+    {icon:'🏆',title:t.ob3title,sub:t.ob3sub,bg:'linear-gradient(160deg,#0a0a05 0%,#0d0d0d 100%)',accent:'#d4a017'},
   ];
 
   if(showOnboarding&&authReady)return(
@@ -2359,9 +2564,9 @@ nicht öffentlich gemacht</div>
           if(onboardSlide<onboardSlides.length-1){setOnboardSlide(s=>s+1);}
           else{try{localStorage.setItem('fighter_onboarding_done','1');}catch{}setShowOnboarding(false);}
         }} style={{width:'100%',padding:'16px',borderRadius:14,background:onboardSlides[onboardSlide].accent,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:20,letterSpacing:3,cursor:'pointer',boxShadow:'0 4px 20px '+onboardSlides[onboardSlide].accent+'55'}}>
-          {onboardSlide<onboardSlides.length-1?'WEITER →':'JETZT STARTEN 🥊'}
+          {onboardSlide<onboardSlides.length-1?t.continueBtn:t.startNow}
         </button>
-        {onboardSlide===0&&<button onClick={()=>{try{localStorage.setItem('fighter_onboarding_done','1');}catch{}setShowOnboarding(false);}} style={{width:'100%',marginTop:10,padding:'10px',background:'none',border:'none',color:'rgba(255,255,255,0.3)',fontSize:12,cursor:'pointer'}}>Überspringen</button>}
+        {onboardSlide===0&&<button onClick={()=>{try{localStorage.setItem('fighter_onboarding_done','1');}catch{}setShowOnboarding(false);}} style={{width:'100%',marginTop:10,padding:'10px',background:'none',border:'none',color:'rgba(255,255,255,0.3)',fontSize:12,cursor:'pointer'}}>{t.skip}</button>}
       </div>
     </div>
   );
@@ -2606,7 +2811,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
     </div>
   );
 
-  const tabs=[['swipe','🥊','FIGHT'],['chat','unread','CHAT'],['ranking','🏆','RANG'],['gyms','🏋️','GYMS'],['stats','👤','PROFIL']];
+  const tabs=[['swipe','🥊',t.fight],['chat','unread',t.chat],['ranking','🏆',t.rang],['gyms','🏋️',t.gyms],['stats','👤',t.profil]];
 
   return(
     <div style={{minHeight:'100vh',background:darkMode?'#1a1a1a':'#f5f5f7',fontFamily:'DM Sans,sans-serif',display:'flex',flexDirection:'column'}} onMouseMove={dragMove} onMouseUp={dragEnd} onTouchMove={dragMove} onTouchEnd={dragEnd}>
@@ -2715,7 +2920,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
               onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
               <div style={{fontSize:20,width:28,textAlign:'center'}}>📩</div>
-              <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,fontWeight:600}}>{appLang==='EN'?'Send Feedback':'Feedback senden'}</div>
+              <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,fontWeight:600}}>{appLang==='EN'?t.en_feedback||'Send Feedback':t.sendFeedback||'Feedback senden'}</div>
             </div>
 
             {/* Logout */}
@@ -2723,7 +2928,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
               onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
               <div style={{fontSize:20,width:28,textAlign:'center'}}>🚪</div>
-              <div style={{color:'#e74c3c',fontSize:15,fontWeight:600}}>{appLang==='EN'?'Logout':'Ausloggen'}</div>
+              <div style={{color:'#e74c3c',fontSize:15,fontWeight:600}}>{t.logout}</div>
             </div>
           </div>
         </div>
@@ -2799,11 +3004,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             {/* LAND FILTER */}
             <div style={{display:'flex',gap:4,marginBottom:6,width:'calc(100% - 24px)',maxWidth:420,justifyContent:'center'}}>
               <button onClick={()=>setCountryFilter('mine')} style={{padding:'3px 12px',borderRadius:20,background:'transparent',border:'none',color:countryFilter==='mine'?(darkMode?'#fff':'#1a1a1a'):(darkMode?'#444':'#ccc'),fontSize:11,fontWeight:countryFilter==='mine'?700:400,cursor:'pointer',transition:'all 0.2s'}}>
-                {({'DE':'🇩🇪','AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[profile.country||'DE']||'🌍')} Mein Land
+                {({'DE':'🇩🇪','AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[profile.country||'DE']||'🌍')} {t.myCountry}
               </button>
               <div style={{width:1,background:darkMode?'#333':'#e0e0e0',margin:'4px 0'}}/>
               <button onClick={()=>setCountryFilter('world')} style={{padding:'3px 12px',borderRadius:20,background:'transparent',border:'none',color:countryFilter==='world'?(darkMode?'#fff':'#1a1a1a'):(darkMode?'#444':'#ccc'),fontSize:11,fontWeight:countryFilter==='world'?700:400,cursor:'pointer',transition:'all 0.2s'}}>
-                🌍 Weltweit
+                {t.worldwide}
               </button>
             </div>
             {/* WER HAT MICH GELIKET Banner */}
@@ -2816,7 +3021,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 try{localStorage.setItem('fighter_likes_check',now);setLastLikesCheck(now);localStorage.setItem('fighter_banner_seen',now);}catch{}
               }} style={{width:'calc(100% - 24px)',maxWidth:420,marginBottom:6,background:'transparent',border:'1px solid '+RED+'33',borderRadius:8,padding:'6px 12px',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
                 <div style={{fontSize:14}}>❤️</div>
-                <div style={{flex:1,color:darkMode?'#aaa':'#888',fontSize:11}}>{whoLikedMe.length} Fighter interessieren sich für dich</div>
+                <div style={{flex:1,color:darkMode?'#aaa':'#888',fontSize:11}}>{whoLikedMe.length} {t.interestBanner}</div>
                 {newLikesCount>0&&<div style={{background:RED,color:'#fff',borderRadius:'50%',width:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,flexShrink:0}}>{newLikesCount}</div>}
               </div>
             )}
@@ -2837,8 +3042,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               {cards.length===0?(
                 <div style={{width:'100%',height:'100%',borderRadius:20,background:'linear-gradient(160deg,#1a1a1a 0%,#2d1a1a 100%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:'30px 24px',textAlign:'center'}}>
                   <div style={{fontSize:64,marginBottom:4}}>🏆</div>
-                  <div className='rj' style={{color:'#fff',fontSize:26,letterSpacing:3,lineHeight:1}}>ALLE FIGHTER</div>
-                  <div className='rj' style={{color:RED,fontSize:26,letterSpacing:3,lineHeight:1}}>GESEHEN</div>
+                  <div className='rj' style={{color:'#fff',fontSize:26,letterSpacing:3,lineHeight:1}}>{t.allFightersSeen}</div>
+                  <div className='rj' style={{color:RED,fontSize:26,letterSpacing:3,lineHeight:1}}>{t.allFightersSeen2}</div>
                   <div style={{color:'rgba(255,255,255,0.5)',fontSize:13,marginTop:6,lineHeight:1.6}}>{filterWeightClass&&myWeightClass?`Keine Fighter in deiner Nähe gefunden.`:`Alle Fighter wurden gesehen! Neue kommen täglich dazu.`}</div>
                   <div style={{display:'flex',gap:12,marginTop:8,width:'100%'}}>
                     <button onClick={async()=>{setSwStats({ch:0,de:0});if(session&&myProfile){await loadRealFighters(session,myProfile);}}} style={{flex:1,padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1,cursor:'pointer'}}>
@@ -2919,7 +3124,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 </div>
                 {recentSwiped.length>0&&(
                   <div style={{padding:'4px 16px 0',width:'100%',maxWidth:420}}>
-                    <div style={{color:'rgba(255,255,255,0.4)',fontSize:9,letterSpacing:2,marginBottom:6,textAlign:'center',fontWeight:700}}>ZULETZT GESEHEN</div>
+                    <div style={{color:'rgba(255,255,255,0.4)',fontSize:9,letterSpacing:2,marginBottom:6,textAlign:'center',fontWeight:700}}>{t.recentlySeen}</div>
                     <div style={{display:'flex',gap:8,justifyContent:'center'}}>
                       {recentSwiped.map((s,i)=>(
                         <div key={i} onClick={()=>setViewProfile(s.profile)} style={{position:'relative',cursor:'pointer'}}>
@@ -2942,7 +3147,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         {tab==='chat'&&(
           <div style={{padding:'14px',maxWidth:420,margin:'0 auto'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3}}>NACHRICHTEN</div>
+              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3}}>{t.messages}</div>
               {dbMatches.length>0&&<div style={{color:'#aaa',fontSize:11}}>{dbMatches.length} Match{dbMatches.length!==1?'es':''}</div>}
             </div>
             {dbMatches.length>3&&(
@@ -2950,7 +3155,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <input
                   value={chatSearch}
                   onChange={e=>setChatSearch(e.target.value)}
-                  placeholder='Fighter suchen...'
+                  placeholder={t.searchFighter}
                   style={{width:'100%',padding:'9px 12px 9px 36px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#1a1a1a':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontFamily:'DM Sans,sans-serif',boxSizing:'border-box'}}
                 />
                 <div style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'#aaa',fontSize:14}}>🔍</div>
@@ -2972,12 +3177,12 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             ):dbMatches.length===0?(
               <div style={{textAlign:'center',padding:'48px 24px',display:'flex',flexDirection:'column',alignItems:'center',gap:10}}>
                 <div style={{fontSize:70,marginBottom:4}}>🥊</div>
-                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:2}}>NOCH KEINE MATCHES</div>
-                <div style={{color:'#aaa',fontSize:13,lineHeight:1.8,maxWidth:260,textAlign:'center'}}>Swipe rechts auf Fighter die du herausfordern möchtest — bei gegenseitigem Match könnt ihr direkt chatten!</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:2}}>{t.noMatches}</div>
+                <div style={{color:'#aaa',fontSize:13,lineHeight:1.8,maxWidth:260,textAlign:'center'}}>{t.noMatchesSub}</div>
                 <button onClick={()=>setTab('swipe')} style={{marginTop:10,padding:'14px 32px',borderRadius:12,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:17,letterSpacing:2,cursor:'pointer',boxShadow:'0 4px 16px rgba(192,57,43,0.3)'}}>
                   ⚔️ JETZT SWIPEN
                 </button>
-                <div style={{color:'#ddd',fontSize:11,marginTop:2}}>Neue Fighter kommen täglich hinzu</div>
+                <div style={{color:'#ddd',fontSize:11,marginTop:2}}>{t.newFightersDaily}</div>
               </div>
             ):(
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
@@ -3190,7 +3395,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               </div>
             </div>
             <button onClick={saveProfile} disabled={saving} style={{width:'100%',padding:'14px',borderRadius:10,background:saving?'#eee':`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:saving?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:17,letterSpacing:2,cursor:saving?'not-allowed':'pointer',transition:'all 0.2s'}}>
-              {saving?'Speichern...':'Profil speichern'}
+              {saving?t.saving:t.saveProfil}
             </button>
             {/* VERIFIZIERTER KAMPFREKORD */}
             <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginTop:8,marginBottom:8}}>
@@ -3229,8 +3434,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 {gymVerified?gymVerified.gymEmoji:'🏅'}
               </div>
               <div style={{flex:1}}>
-                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{gymVerified?'Gym verifiziert ✅':'Gym-Mitgliedschaft verifizieren'}</div>
-                <div style={{color:gymVerified?'#27ae60':'#aaa',fontSize:11,marginTop:1}}>{gymVerified?gymVerified.gymName+' · '+gymVerified.gymCity:'Gym-Code eingeben → Badge erhalten'}</div>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{gymVerified?t.gymVerified2:t.gymVerify}</div>
+                <div style={{color:gymVerified?'#27ae60':'#aaa',fontSize:11,marginTop:1}}>{gymVerified?gymVerified.gymName+' · '+gymVerified.gymCity:t.gymCodeEnter}</div>
               </div>
               <div style={{color:'#bbb',fontSize:18}}>›</div>
             </div>
@@ -3238,8 +3443,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:10}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
                 <div>
-                  <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,letterSpacing:2}}>🤝 TRAININGS-HISTORIE</div>
-                  <div style={{color:'#aaa',fontSize:10,marginTop:2}}>Mit wem hast du trainiert?</div>
+                  <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,letterSpacing:2}}>{t.trainingHistory}</div>
+                  <div style={{color:'#aaa',fontSize:10,marginTop:2}}>{t.trainingWith}</div>
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:7}}>
                   <div style={{color:'#aaa',fontSize:9,textAlign:'right'}}>{historyPublic?'Öffentlich':'Privat'}</div>
@@ -3272,8 +3477,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               {fightHistory.length===0?(
                 <div style={{textAlign:'center',padding:'12px 0'}}>
                   <div style={{fontSize:28,marginBottom:6}}>🤝</div>
-                  <div style={{color:'#bbb',fontSize:12}}>Noch keine Trainings-Einträge</div>
-                  <div style={{color:'#ccc',fontSize:10,marginTop:3}}>Nimm einen Fight Request an → wird hier gespeichert</div>
+                  <div style={{color:'#bbb',fontSize:12}}>{t.noHistory}</div>
+                  <div style={{color:'#ccc',fontSize:10,marginTop:3}}>{t.historyHint}</div>
                 </div>
               ):(
                 <div style={{display:'flex',flexDirection:'column',gap:7}}>
@@ -3295,23 +3500,23 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             </div>
             {/* EINSTELLUNGEN */}
             <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginTop:10}}>
-              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:2,marginBottom:12}}>EINSTELLUNGEN</div>
+              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:2,marginBottom:12}}>{t.settings}</div>
               <div onClick={()=>setDarkMode(d=>!d)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
-                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>🌙 Dark Mode</div>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>{t.darkMode}</div>
                 <div style={{width:48,height:26,borderRadius:13,background:darkMode?'#c0392b':'#ddd',position:'relative',cursor:'pointer'}}>
                   <div style={{width:20,height:20,borderRadius:'50%',background:'#fff',position:'absolute',top:3,left:darkMode?24:4,transition:'all 0.3s'}}/>
                 </div>
               </div>
               <div onClick={()=>setShowImpressum(true)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
-                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>📋 Impressum</div>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>{t.impressum}</div>
                 <div style={{color:'#aaa',fontSize:16}}>›</div>
               </div>
               <div onClick={()=>setShowDatenschutz(true)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
-                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>🔐 Datenschutz</div>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>{t.privacy}</div>
                 <div style={{color:'#aaa',fontSize:16}}>›</div>
               </div>
               <div onClick={()=>setShowAGB(true)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
-                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>📜 AGB</div>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>{t.agb}</div>
                 <div style={{color:'#aaa',fontSize:16}}>›</div>
               </div>
 
@@ -3329,15 +3534,15 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   alert('Dein Account wurde gelöscht.');
                 }catch(e){alert('Fehler beim Löschen: '+e.message);}
               }} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',cursor:'pointer',borderTop:'1px solid #e74c3c22'}}>
-                <span style={{color:'#e74c3c',fontSize:14,fontWeight:600}}>🗑️ Account löschen</span>
+                <span style={{color:'#e74c3c',fontSize:14,fontWeight:600}}>{t.deleteAccount}</span>
                 <span style={{color:'#e74c3c',fontSize:16}}>›</span>
               </div>
               <div onClick={()=>setShowPwChange(true)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',cursor:'pointer',borderTop:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
-                <span style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>🔑 Passwort ändern</span>
+                <span style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>{t.changePw}</span>
                 <span style={{color:'#aaa',fontSize:16}}>›</span>
               </div>
               <div onClick={handleLogout} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',cursor:'pointer'}}>
-                <div style={{color:'#c0392b',fontSize:14,fontWeight:600}}>🚪 Ausloggen</div>
+                <div style={{color:'#c0392b',fontSize:14,fontWeight:600}}>{t.logout}</div>
                 <div style={{color:'#aaa',fontSize:16}}>›</div>
               </div>
             </div>
@@ -3360,7 +3565,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
 
         {tab==='gyms'&&(
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
-            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:11}}>GYMS FINDEN</div>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:11}}>{t.findGyms}</div>
             {(()=>{
               // Unified ranked list - no duplicates
               const hardcoded=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct,city:ct})));
@@ -3392,7 +3597,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <div style={{marginBottom:12}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
                     <div className='rj' style={{color:'#d4a017',fontSize:15,letterSpacing:2}}>🏆 GYM RANKING</div>
-                    <div style={{color:'#aaa',fontSize:10}}>Nach Bewertungen sortiert</div>
+                    <div style={{color:'#aaa',fontSize:10}}>{t.sortedByRatings}</div>
                   </div>
                   {top5.map((g,i)=>{
                     const isTop3=i<3;
@@ -3421,8 +3626,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
 
                 {/* Toggle Städte / TOP GYMS */}
                 <div style={{display:'flex',gap:8,marginBottom:10}}>
-                  <button onClick={()=>setGymRankMode(false)} style={{flex:1,padding:'7px',borderRadius:20,background:!gymRankMode?RED:'transparent',border:'1px solid '+(gymRankMode?'#ddd':RED),color:gymRankMode?'#888':'#fff',fontSize:13,fontWeight:600,cursor:'pointer'}}>🏙️ Städte</button>
-                  <button onClick={()=>setGymRankMode(true)} style={{flex:1,padding:'7px',borderRadius:20,background:gymRankMode?RED:'transparent',border:'1px solid '+(gymRankMode?RED:'#ddd'),color:gymRankMode?'#fff':'#888',fontSize:13,fontWeight:600,cursor:'pointer'}}>🏆 TOP GYMS</button>
+                  <button onClick={()=>setGymRankMode(false)} style={{flex:1,padding:'7px',borderRadius:20,background:!gymRankMode?RED:'transparent',border:'1px solid '+(gymRankMode?'#ddd':RED),color:gymRankMode?'#888':'#fff',fontSize:13,fontWeight:600,cursor:'pointer'}}>{t.cities}</button>
+                  <button onClick={()=>setGymRankMode(true)} style={{flex:1,padding:'7px',borderRadius:20,background:gymRankMode?RED:'transparent',border:'1px solid '+(gymRankMode?RED:'#ddd'),color:gymRankMode?'#fff':'#888',fontSize:13,fontWeight:600,cursor:'pointer'}}>{t.topGyms}</button>
                 </div>
 
                 {gymRankMode?(
@@ -3697,11 +3902,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
 
         {tab==='ranking'&&(
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
-            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:8}}>WELTRANGLISTE</div>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:8}}>{t.worldRanking}</div>
             <div style={{display:'flex',gap:6,marginBottom:11}}>
               <button onClick={()=>setRankMode('user')} style={{flex:1,padding:'7px',borderRadius:8,background:rankMode==='user'?RED:'transparent',border:'1px solid '+(rankMode==='user'?RED:(darkMode?'#333':'#ddd')),color:rankMode==='user'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>🏅 ALLE</button>
               <button onClick={()=>setRankMode('pro')} style={{flex:1,padding:'7px',borderRadius:8,background:rankMode==='pro'?'#d4a017':'transparent',border:'1px solid '+(rankMode==='pro'?'#d4a017':(darkMode?'#333':'#ddd')),color:rankMode==='pro'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>⭐ PROFIS</button>
-              <button onClick={()=>setRankMode('trainer')} style={{flex:1,padding:'7px',borderRadius:8,background:rankMode==='trainer'?'#8e44ad':'transparent',border:'1px solid '+(rankMode==='trainer'?'#8e44ad':(darkMode?'#333':'#ddd')),color:rankMode==='trainer'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>🎓 TRAINER</button>
+              <button onClick={()=>setRankMode('trainer')} style={{flex:1,padding:'7px',borderRadius:8,background:rankMode==='trainer'?'#8e44ad':'transparent',border:'1px solid '+(rankMode==='trainer'?'#8e44ad':(darkMode?'#333':'#ddd')),color:rankMode==='trainer'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>{t.trainer}</button>
             </div>
             {rankMode!=='trainer'&&(
               <div style={{display:'flex',gap:6,marginBottom:8}}>
@@ -3809,7 +4014,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 </div>);
               })}
             </div>
-            <div style={{color:'#ddd',fontSize:9,textAlign:'center',marginTop:11,letterSpacing:1}}>SIEG +3 - UNENTSCH +1 - NIEDERLAGE -2</div>
+            <div style={{color:'#ddd',fontSize:9,textAlign:'center',marginTop:11,letterSpacing:1}}>{t.rankFormula}</div>
           </div>
         )}
 
@@ -3919,11 +4124,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
       {showPwChange&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
           <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:16,padding:24,width:'100%',maxWidth:360,boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
-            <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,color:darkMode?'#fff':'#1a1a1a',letterSpacing:2,marginBottom:4}}>🔑 PASSWORT ÄNDERN</div>
-            <div style={{color:'#aaa',fontSize:12,marginBottom:16}}>Mindestens 6 Zeichen</div>
+            <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,color:darkMode?'#fff':'#1a1a1a',letterSpacing:2,marginBottom:4}}>{t.pwChangeTitle}</div>
+            <div style={{color:'#aaa',fontSize:12,marginBottom:16}}>{t.pwChangeSub}</div>
             <input
               type='password'
-              placeholder='Neues Passwort'
+              placeholder={t.newPw}
               value={newPassword}
               onChange={e=>setNewPassword(e.target.value)}
               style={{width:'100%',padding:'12px',borderRadius:10,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',marginBottom:8,outline:'none'}}
