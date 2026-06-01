@@ -1184,6 +1184,7 @@ export default function App(){
   const [whoLikedTab,setWhoLikedTab]=useState(false);
   const [newLikesCount,setNewLikesCount]=useState(0);
   const [lastLikesCheck,setLastLikesCheck]=useState(()=>{try{return localStorage.getItem('fighter_likes_check')||'2000-01-01'}catch{return '2000-01-01'}});
+  const [likesBannerSeen,setLikesBannerSeen]=useState(()=>{try{return localStorage.getItem('fighter_banner_seen')||''}catch{return ''}});
   const [matched,setMatched]=useState(null);
   const [swStats,setSwStats]=useState({ch:0,de:0});
   const [dbMatches,setDbMatches]=useState([]);
@@ -1538,6 +1539,8 @@ export default function App(){
       const newLikes=likes.filter(l=>l.created_at&&l.created_at>lastLikesCheck&&!iAlreadyLiked.has(l.swiper_id)&&!matchedIds.has(l.swiper_id));
       if(newLikes.length>0){
         setNewLikesCount(newLikes.length);
+        setLikesBannerSeen(''); // Banner wieder zeigen bei neuen Likes
+        try{localStorage.removeItem('fighter_banner_seen');}catch{}
         sendLocalNotification('🥊 '+newLikes.length+' neue Fighter interessieren sich für dich!','Schau nach wer dich geliket hat');
       }
     }catch{}
@@ -2691,8 +2694,14 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               </button>
             </div>
             {/* WER HAT MICH GELIKET Banner */}
-            {whoLikedMe.length>0&&(
-              <div onClick={()=>{setWhoLikedTab(true);setNewLikesCount(0);try{const now=new Date().toISOString();localStorage.setItem('fighter_likes_check',now);setLastLikesCheck(now);}catch{}}} style={{width:'calc(100% - 24px)',maxWidth:420,marginBottom:6,background:'transparent',border:'1px solid '+RED+'33',borderRadius:8,padding:'6px 12px',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
+            {whoLikedMe.length>0&&(newLikesCount>0||!likesBannerSeen)&&(
+              <div onClick={()=>{
+                setWhoLikedTab(true);
+                setNewLikesCount(0);
+                const now=new Date().toISOString();
+                setLikesBannerSeen(now);
+                try{localStorage.setItem('fighter_likes_check',now);setLastLikesCheck(now);localStorage.setItem('fighter_banner_seen',now);}catch{}
+              }} style={{width:'calc(100% - 24px)',maxWidth:420,marginBottom:6,background:'transparent',border:'1px solid '+RED+'33',borderRadius:8,padding:'6px 12px',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
                 <div style={{fontSize:14}}>❤️</div>
                 <div style={{flex:1,color:darkMode?'#aaa':'#888',fontSize:11}}>{whoLikedMe.length} Fighter interessieren sich für dich</div>
                 {newLikesCount>0&&<div style={{background:RED,color:'#fff',borderRadius:'50%',width:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,flexShrink:0}}>{newLikesCount}</div>}
