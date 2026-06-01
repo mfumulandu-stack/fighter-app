@@ -1440,7 +1440,7 @@ export default function App(){
         setTimeout(()=>requestPushPermission(),2000);
         // last_seen updaten
         try{fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+s.userId,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+s.token,Prefer:'return=minimal'},body:JSON.stringify({last_seen:new Date().toISOString()})});}catch{}
-        loadRealFighters(s,p);
+        loadRealFighters(s,p,true);
         loadMatches(s,p);
         loadGymRatings(s);
         loadFightHistory(s);
@@ -1525,10 +1525,12 @@ export default function App(){
       if(!Array.isArray(profiles))return;
       // Bereits gematchte UND bereits von mir gelikte rausfiltern
       const matchedIds=new Set(dbMatches.map(m=>m.profile_a_id===myP.id?m.profile_b_id:m.profile_a_id));
-      // Nur zeigen: hat mich geliket, ich habe sie NICHT geliket, kein Match
+      // Alle meine Swipes (egal ob like oder pass) — wer bereits von mir gesehen wurde, raus
+      const iAlreadySwiped=new Set(Array.isArray(mySwipes)?mySwipes.map(x=>x.target_id):[]);
+      // Nur zeigen: hat mich geliket, ich hab sie NOCH NIE geswiped, kein Match
       const notYetMatched=profiles.filter(p=>
         !matchedIds.has(p.id)&&
-        !iAlreadyLiked.has(p.id)&&
+        !iAlreadySwiped.has(p.id)&&
         p.id!==myP.id
       );
       setWhoLikedMe(notYetMatched);
@@ -1541,24 +1543,26 @@ export default function App(){
     }catch{}
   }
 
-  async function loadRealFighters(s,myP){
+  // IDs die in dieser Session bereits geswiped wurden — verhindert Karten-Reset bei Reload
+  const sessionSwipedRef=React.useRef(new Set());
+
+  async function loadRealFighters(s,myP,isInitial=false){
     try{
-      // Versuche erst mit Session Token, dann mit anon key als Fallback
       let all = await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true',s.token);
       if(!Array.isArray(all)||all.length===0){
-        // Fallback: anon key
         try{
           const r=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=neq.'+s.userId+'&banned=neq.true',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
           all=await r.json();
         }catch{}
       }
       if(!Array.isArray(all))return;
-      // Swipes mit beiden möglichen IDs abfragen
+      // Alle Swipes aus DB laden
       const swiped=await dbSelect('swipes','swiper_id=eq.'+myP.id,s.token);
       const swipedIds=new Set(Array.isArray(swiped)?swiped.map(x=>x.target_id):[]);
-      // Matches auch filtern
+      // Session-Swipes auch rausfiltern (sofortige Reaktion ohne DB-Runde)
+      sessionSwipedRef.current.forEach(id=>swipedIds.add(id));
+      // Matches filtern
       const matchedIds=new Set(dbMatches.map(m=>m.profile_a_id===myP.id?m.profile_b_id:m.profile_a_id));
-      // Geblockte User
       const blockedSet=new Set(blockedUsers||[]);
       const fresh=all.filter(f=>
         f.id&&
@@ -1568,13 +1572,14 @@ export default function App(){
         !f.banned&&
         f.id!==myP.id
       );
-      // Bestehende Karten behalten — nur neue hinzufügen die noch nicht vorhanden sind
       setCards(prev=>{
+        if(isInitial||prev.length===0)return fresh;
+        // Bei Hintergrund-Reload: nur wirklich neue Profile hinzufügen
+        // Bestehende Karten NIEMALS überschreiben
         const existingIds=new Set(prev.map(c=>c.id));
-        const newCards=fresh.filter(f=>!existingIds.has(f.id));
-        if(prev.length===0)return fresh; // Erster Load
-        if(newCards.length===0)return prev; // Nichts Neues
-        return [...prev,...newCards]; // Neue hinzufügen
+        const brandNew=fresh.filter(f=>!existingIds.has(f.id)&&!swipedIds.has(f.id));
+        if(brandNew.length===0)return prev;
+        return [...prev,...brandNew];
       });
     }catch{}
   }
@@ -2035,6 +2040,7 @@ export default function App(){
       setSwStats(s=>({...s,ch:s.ch+1}));
       setLastSwiped({profile:top,dir:'like'});
       setRecentSwiped(prev=>[{profile:top,dir:'like'},...prev].slice(0,4));
+      sessionSwipedRef.current.add(top.id);
       if(session&&myProfile&&!String(top.id).startsWith('demo_')){
         try{
           await dbInsert('swipes',{swiper_id:myProfile.id,target_id:top.id,direction:'like'},session.token);
@@ -2059,6 +2065,7 @@ export default function App(){
       setSwStats(s=>({...s,de:s.de+1}));
       setLastSwiped({profile:top,dir:'pass'});
       setRecentSwiped(prev=>[{profile:top,dir:'pass'},...prev].slice(0,4));
+      sessionSwipedRef.current.add(top.id);
       if(session&&myProfile&&!String(top.id).startsWith('demo_')){try{await dbInsert('swipes',{swiper_id:myProfile.id,target_id:top.id,direction:'pass'},session.token);}catch{}}
     }
     setTimeout(()=>{setCards(prev=>prev.slice(0,-1));setLastAct(null);},260);
