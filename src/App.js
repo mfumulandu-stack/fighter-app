@@ -2327,6 +2327,7 @@ const T = {
         if(rankMode==='pro') return f.isMe?(profile.isPro===true):(f.is_pro===true);
         return true; // 'alle' zeigt wirklich alle
       })
+      .filter(f=>(f.wins||0)+(f.losses||0)+(f.draws||0)>0) // nur User mit mind. 1 Kampf
       .filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF))))
       .sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
