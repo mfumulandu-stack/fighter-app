@@ -354,7 +354,7 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUp
 
         {/* BEWERTUNG */}
         <div style={{background:card,borderRadius:14,padding:'16px',border:'1px solid '+border,marginBottom:12,textAlign:'center'}}>
-          <div style={{fontFamily:'Rajdhani,sans-serif',color:text,fontSize:13,letterSpacing:2,marginBottom:10}}>{t.rateThisGym}</div>
+          <div style={{fontFamily:'Rajdhani,sans-serif',color:text,fontSize:13,letterSpacing:2,marginBottom:10}}>BEWERTE DIESES GYM</div>
           <div style={{display:'flex',justifyContent:'center',gap:6,marginBottom:8}}>
             {[1,2,3,4,5].map(star=>(
               <button key={star} onClick={()=>rateGym(gymKey,star)}
@@ -1243,7 +1243,8 @@ export default function App(){
   const [countryFilter,setCountryFilter]=useState('mine'); // 'mine' | 'world'
   const [gymRatingInput,setGymRatingInput]=useState({});
   const [showMenu,setShowMenu]=useState(false);
-  const T = {
+  const [appLang,setAppLang]=useState(()=>{try{return localStorage.getItem('fighter_lang')||'DE'}catch{return 'DE'}});
+const T = {
     DE: {
       // Navigation
       fight:'FIGHT', chat:'CHAT', rang:'RANG', gyms:'GYMS', profil:'PROFIL',
@@ -1447,8 +1448,6 @@ export default function App(){
   };
   const t = T[appLang]||T.DE;
 
-
-  const [appLang,setAppLang]=useState(()=>{try{return localStorage.getItem('fighter_lang')||'DE'}catch{return 'DE'}});
   const [showFeedback,setShowFeedback]=useState(false);
   const [feedbackText,setFeedbackText]=useState('');
   const [feedbackSent,setFeedbackSent]=useState(false);
