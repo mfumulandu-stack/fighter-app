@@ -1663,7 +1663,14 @@ export default function App(){
   async function loadEvents(s){
     setEventsLoading(true);
     try{
-      const data=await dbSelect('events','order=event_date.asc,event_time.asc',s?.token||session?.token);
+      // Erst mit User-Token, falls RLS blockiert mit anon key versuchen
+      let data=await dbSelect('events','order=event_date.asc,event_time.asc',s?.token||session?.token);
+      if(!Array.isArray(data)||data.error){
+        const r=await fetch(SUPA_URL+'/rest/v1/events?order=event_date.asc,event_time.asc',{
+          headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+        });
+        data=await r.json();
+      }
       if(Array.isArray(data)){
         // Load participants count for each event
         const parts={};
@@ -3389,7 +3396,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
 
             {/* CREATE EVENT MODAL */}
-            {showCreateEvent&&(
+            {showCreateEvent&&isAdmin&&(
               <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.65)',zIndex:500,display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
                 <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:'20px 20px 0 0',width:'100%',maxWidth:480,padding:'20px 20px 40px',maxHeight:'90vh',overflowY:'auto'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
@@ -3467,10 +3474,12 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3}}>EVENTS</div>
                 <div style={{color:'#aaa',fontSize:11,marginTop:2}}>Community Sparrings & Trainings</div>
               </div>
-              <button onClick={()=>setShowCreateEvent(true)}
-                style={{padding:'9px 16px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,letterSpacing:1,cursor:'pointer',display:'flex',alignItems:'center',gap:5}}>
-                ➕ EVENT
-              </button>
+              {isAdmin&&(
+                <button onClick={()=>setShowCreateEvent(true)}
+                  style={{padding:'9px 16px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,letterSpacing:1,cursor:'pointer',display:'flex',alignItems:'center',gap:5}}>
+                  ➕ EVENT
+                </button>
+              )}
             </div>
 
             {eventsLoading?(
@@ -3486,11 +3495,15 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               <div style={{textAlign:'center',padding:'50px 20px'}}>
                 <div style={{fontSize:56,marginBottom:12}}>📅</div>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:2,marginBottom:8}}>NOCH KEINE EVENTS</div>
-                <div style={{color:'#aaa',fontSize:13,lineHeight:1.7,maxWidth:260,margin:'0 auto'}}>Sei der Erste und erstelle ein Community Sparring in deiner Stadt!</div>
-                <button onClick={()=>setShowCreateEvent(true)}
-                  style={{marginTop:16,padding:'13px 28px',borderRadius:12,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
-                  ➕ ERSTES EVENT ERSTELLEN
-                </button>
+                <div style={{color:'#aaa',fontSize:13,lineHeight:1.7,maxWidth:260,margin:'0 auto'}}>
+                  {isAdmin?'Erstelle das erste Community Sparring!':'Bald gibt es hier Events in deiner Stadt. Schau später nochmal rein 🥊'}
+                </div>
+                {isAdmin&&(
+                  <button onClick={()=>setShowCreateEvent(true)}
+                    style={{marginTop:16,padding:'13px 28px',borderRadius:12,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
+                    ➕ ERSTES EVENT ERSTELLEN
+                  </button>
+                )}
               </div>
             ):(
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
