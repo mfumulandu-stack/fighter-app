@@ -1981,10 +1981,9 @@ export default function App(){
   const wr=tf>0?Math.round((stats.wins/tf)*100):0;
   const kr=stats.wins>0?Math.round((stats.ko/stats.wins)*100):0;
   const allF=profile.name?[{id:0,name:profile.name,age:profile.age,city:profile.city,gym:profile.gym,weight_class:profile.weightClass,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'🥊',accent:RED,isMe:true,avatar_url:avatarUrl}].concat(FIGHTERS):FIGHTERS;
-  const proRanked=[...PRO_FIGHTERS].filter(f=>rankF==='All'||f.style===rankF).sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
-  // Rangliste: ALLE angemeldeten User aus Datenbank — kein Fallback mehr
+  // Rangliste: ALLE angemeldeten User aus Datenbank
   const userOnly=(()=>{
-    const me=profile.name?[{id:0,name:profile.name,city:profile.city,gym:profile.gym,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'🥊',accent:RED,isMe:true,avatar_url:avatarUrl}]:[];
+    const me=profile.name?[{id:0,name:profile.name,city:profile.city,gym:profile.gym,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'🥊',accent:RED,isMe:true,avatar_url:avatarUrl,is_pro:profile.isPro===true,country:profile.country||'DE'}]:[];
     if(allProfiles.length>0){
       const others=allProfiles.filter(p=>p.id!==myProfile?.id&&!p.banned).map(p=>({
         ...p,
@@ -1993,17 +1992,15 @@ export default function App(){
       }));
       return [...me,...others];
     }
-    // Noch am Laden — nur ich anzeigen
     return me;
   })();
-  const ranked=rankMode==='pro'
-    ?proRanked
-    :rankMode==='trainer'
+  const ranked=rankMode==='trainer'
     ?[]
     :[...userOnly]
       .filter(f=>{
         if(rankMode==='pro') return f.isMe?(profile.isPro===true):(f.is_pro===true);
-        return f.isMe?(profile.isPro!==true):(f.is_pro!==true||f.is_pro===undefined||f.is_pro===null);
+        // Amateur: alle die NICHT explizit Profi sind
+        return f.isMe?(profile.isPro!==true):(f.is_pro!==true);
       })
       .filter(f=>countryFilter==='world'||f.isMe||!f.country||f.country===(profile.country||'DE'))
       .filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF))))
