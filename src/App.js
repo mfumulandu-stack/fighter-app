@@ -553,7 +553,12 @@ function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,set
   );
 }
 
-function AuthScreen({ onSession }) {
+function AuthScreen({ onSession, appLang }) {
+  const T_AUTH = {
+    DE: {login:'Einloggen',register:'Registrieren',loginBtn:'LOGIN',registerBtn:'REGISTRIEREN',forgotPw:'Passwort vergessen?',sendLink:'LINK SENDEN',cancel:'Abbrechen',pwReset:'PASSWORT RESET',pwResetSub:'Wir senden dir einen Reset-Link per E-Mail.'},
+    EN: {login:'Log in',register:'Register',loginBtn:'LOGIN',registerBtn:'REGISTER',forgotPw:'Forgot password?',sendLink:'SEND LINK',cancel:'Cancel',pwReset:'PASSWORD RESET',pwResetSub:'We will send you a reset link by email.'},
+  };
+  const t = T_AUTH[appLang]||T_AUTH.DE;
   const [mode,setMode]=useState('login');
   const [email,setEmail]=useState('');
   const [password,setPassword]=useState('');
@@ -1244,7 +1249,7 @@ export default function App(){
   const [gymRatingInput,setGymRatingInput]=useState({});
   const [showMenu,setShowMenu]=useState(false);
   const [appLang,setAppLang]=useState(()=>{try{return localStorage.getItem('fighter_lang')||'DE'}catch{return 'DE'}});
-const T = {
+  const T = {
     DE: {
       // Navigation
       fight:'FIGHT', chat:'CHAT', rang:'RANG', gyms:'GYMS', profil:'PROFIL',
@@ -2571,7 +2576,7 @@ nicht öffentlich gemacht</div>
     </div>
   );
 
-  if(!session)return <AuthScreen onSession={handleSession}/>;
+  if(!session)return <AuthScreen onSession={handleSession} appLang={appLang}/>;
   if(activeChat&&myProfile&&!viewProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>{setViewProfile(p);}}/></>);
 
   if(screen==='setup')return(
