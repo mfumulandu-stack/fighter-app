@@ -4929,7 +4929,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     {/* Top Städte */}
                     <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:8}}>
                       <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>TOP STÄDTE</div>
-                      {(()=>{const cnt={};adminUsers.forEach(u=>{if(u.city)cnt[u.city]=(cnt[u.city]||0)+1;});return Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([city,count],i)=>(
+                      {(()=>{const cnt={};const norm=s=>(s||'').trim().toLowerCase().replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ä/g,'ae').replace(/ß/g,'ss');const normMap={};adminUsers.forEach(u=>{if(u.city){const k=norm(u.city);if(!normMap[k])normMap[k]=u.city.trim();cnt[normMap[k]]=(cnt[normMap[k]]||0)+1;}});return Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([city,count],i)=>(
                         <div key={city} style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5')}}>
                           <span style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13}}>{i===0?'🥇':i===1?'🥈':i===2?'🥉':'  '} {city}</span>
                           <span style={{color:RED,fontWeight:700,fontSize:13}}>{count}</span>
