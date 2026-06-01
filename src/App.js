@@ -1241,6 +1241,7 @@ export default function App(){
   const [gymRankMode,setGymRankMode]=useState(false);
   const [countryFilter,setCountryFilter]=useState('mine'); // 'mine' | 'world'
   const [gymRatingInput,setGymRatingInput]=useState({});
+  const [showMenu,setShowMenu]=useState(false);
   const [events,setEvents]=useState([]);
   const [eventsLoading,setEventsLoading]=useState(false);
   const [showCreateEvent,setShowCreateEvent]=useState(false);
@@ -2590,10 +2591,83 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
     <div style={{minHeight:'100vh',background:darkMode?'#1a1a1a':'#f5f5f7',fontFamily:'DM Sans,sans-serif',display:'flex',flexDirection:'column'}} onMouseMove={dragMove} onMouseUp={dragEnd} onTouchMove={dragMove} onTouchEnd={dragEnd}>
       <style>{css}</style>
       {msg&&<div style={{position:'fixed',top:60,left:'50%',transform:'translateX(-50%)',background:'#fff',border:'1px solid '+RED,borderRadius:20,padding:'8px 20px',color:'#1a1a1a',fontSize:13,zIndex:200,fontWeight:600,boxShadow:'0 4px 20px rgba(0,0,0,0.1)',whiteSpace:'nowrap'}}>{msg}</div>}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 18px 8px',flexShrink:0,borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),background:darkMode?'#1a1a1a':'#fff'}}>
-        <div style={{color:'#999',fontSize:11,fontWeight:600}}>Abgelehnt: {swStats.de}</div>
-        <div className='rj' style={{fontSize:28,color:darkMode?'#ff4500':'#1a1a1a',letterSpacing:5}}>FIGHTER</div>
-        <button onClick={()=>setDarkMode(d=>!d)} style={{background:darkMode?'#222':'#f0f0f0',border:'none',cursor:'pointer',fontSize:16,padding:'4px 8px',borderRadius:8,marginRight:6}}>{darkMode?'☀️':'🌙'}</button>{isAdmin&&<button onClick={()=>setShowAdmin(true)} style={{background:RED,border:'none',borderRadius:8,padding:'6px 12px',color:'#fff',fontSize:16,fontWeight:700,cursor:'pointer',marginRight:6,boxShadow:'0 2px 8px rgba(192,57,43,0.5)'}}>⚙️</button>}<button onClick={handleLogout} style={{color:darkMode?'#555':'#aaa',fontSize:11,fontWeight:600,background:'none',border:'none',cursor:'pointer'}}>Logout</button>
+
+      {/* SLIDE-OUT MENU OVERLAY */}
+      {showMenu&&(
+        <div style={{position:'fixed',inset:0,zIndex:800,display:'flex'}}>
+          {/* Backdrop */}
+          <div onClick={()=>setShowMenu(false)} style={{flex:1,background:'rgba(0,0,0,0.5)'}}/>
+          {/* Menu Panel */}
+          <div style={{width:260,background:darkMode?'#1a1a1a':'#fff',height:'100%',display:'flex',flexDirection:'column',boxShadow:'-4px 0 24px rgba(0,0,0,0.2)',animation:'slideInRight 0.25s ease'}}>
+            <style>{`@keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}`}</style>
+            {/* Menu Header */}
+            <div style={{padding:'20px 20px 16px',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:12}}>
+              {avatarPreview
+                ?<img src={avatarPreview} style={{width:44,height:44,borderRadius:'50%',objectFit:'cover',border:'2px solid '+RED}} alt=''/>
+                :<div style={{width:44,height:44,borderRadius:'50%',background:RED+'22',border:'2px solid '+RED+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>🥊</div>}
+              <div>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14}}>{profile.name||'Fighter'}</div>
+                <div style={{color:RED,fontSize:11,marginTop:1}}>{profile.style||''}</div>
+              </div>
+            </div>
+            {/* Menu Items */}
+            <div style={{flex:1,overflowY:'auto',padding:'8px 0'}}>
+              {[
+                {icon:'📅',label:'Events',action:()=>{setTab('events');setShowMenu(false);}},
+                {icon:'🏆',label:'Rangliste',action:()=>{setTab('ranking');setShowMenu(false);}},
+                {icon:'👤',label:'Mein Profil',action:()=>{setTab('stats');setShowMenu(false);}},
+                {icon:'🏋️',label:'Gyms',action:()=>{setTab('gyms');setShowMenu(false);}},
+              ].map(item=>(
+                <div key={item.label} onClick={item.action} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',cursor:'pointer',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5'),transition:'background 0.15s'}}
+                  onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
+                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                  <div style={{fontSize:20,width:28,textAlign:'center'}}>{item.icon}</div>
+                  <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,fontWeight:600}}>{item.label}</div>
+                </div>
+              ))}
+              {isAdmin&&(
+                <div onClick={()=>{setShowAdmin(true);setShowMenu(false);}} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',cursor:'pointer',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5')}}
+                  onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
+                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                  <div style={{fontSize:20,width:28,textAlign:'center'}}>⚙️</div>
+                  <div style={{color:RED,fontSize:15,fontWeight:700}}>Admin Panel</div>
+                </div>
+              )}
+              {/* DARK MODE TOGGLE */}
+              <div onClick={()=>setDarkMode(d=>!d)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',cursor:'pointer',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5')}}
+                onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
+                onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <div style={{display:'flex',alignItems:'center',gap:14}}>
+                  <div style={{fontSize:20,width:28,textAlign:'center'}}>{darkMode?'☀️':'🌙'}</div>
+                  <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,fontWeight:600}}>Dark Mode</div>
+                </div>
+                <div style={{width:40,height:22,borderRadius:11,background:darkMode?RED:'#ddd',position:'relative',flexShrink:0}}>
+                  <div style={{position:'absolute',top:3,left:darkMode?21:3,width:16,height:16,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
+                </div>
+              </div>
+            </div>
+            {/* Logout */}
+            <div onClick={handleLogout} style={{padding:'16px 20px',borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:14,cursor:'pointer'}}
+              onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
+              onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+              <div style={{fontSize:20,width:28,textAlign:'center'}}>🚪</div>
+              <div style={{color:'#e74c3c',fontSize:15,fontWeight:600}}>Ausloggen</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HEADER */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 16px 8px',flexShrink:0,borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),background:darkMode?'#1a1a1a':'#fff'}}>
+        <button onClick={()=>setDarkMode(d=>!d)} style={{background:'none',border:'none',cursor:'pointer',fontSize:20,width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,color:darkMode?'#fff':'#1a1a1a'}}>
+          {darkMode?'☀️':'🌙'}
+        </button>
+        <div className='rj' style={{fontSize:28,color:darkMode?'#ff4500':'#1a1a1a',letterSpacing:5,position:'absolute',left:'50%',transform:'translateX(-50%)'}}>FIGHTER</div>
+        <button onClick={()=>setShowMenu(true)} style={{background:'none',border:'none',cursor:'pointer',width:36,height:36,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5,borderRadius:8,marginLeft:'auto'}}>
+          <div style={{width:20,height:2,background:darkMode?'#fff':'#1a1a1a',borderRadius:2}}/>
+          <div style={{width:20,height:2,background:darkMode?'#fff':'#1a1a1a',borderRadius:2}}/>
+          <div style={{width:20,height:2,background:darkMode?'#fff':'#1a1a1a',borderRadius:2}}/>
+        </button>
       </div>
 
       <div style={{flex:1,overflowY:'auto',paddingBottom:65}}>
