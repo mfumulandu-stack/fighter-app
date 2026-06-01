@@ -736,8 +736,10 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
   const endRef=useRef(null);
   const pollRef=useRef(null);
   const typingRef=useRef(null);
-  const other=match.profile_a_id===myProfileId?match.profile_b:match.profile_a;
+  const other=match.profile_a_id===myProfileId?(match.profile_b||match.profile_a):(match.profile_a||match.profile_b);
   const accent=other?.style==='Boxing'?'#c0392b':other?.style==='MMA'?'#2980b9':other?.style==='Muay Thai'?'#d35400':'#27ae60';
+  // Safety: if other is completely null, show loading
+  if(!other)return(<div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:12}}><div style={{fontSize:32}} className='spin'>⏳</div><div style={{color:'#aaa',fontSize:13}}>Laden...</div><button onClick={onClose} style={{marginTop:8,background:'#c0392b',border:'none',borderRadius:8,padding:'10px 20px',color:'#fff',fontWeight:700,cursor:'pointer'}}>← Zurück</button></div>);
 
   async function markAsRead(){
     try{
@@ -2025,7 +2027,9 @@ export default function App(){
     try{
       const m=await dbSelect('matches','or=(profile_a_id.eq.'+myP.id+',profile_b_id.eq.'+myP.id+')',s.token);
       if(!Array.isArray(m)||m.length===0){setDbMatches([]);return;}
-      const matchProfiles=await dbSelect('profiles','',s.token);
+      // Load profiles only for matched users
+      const matchIds=[...new Set(m.flatMap(x=>[x.profile_a_id,x.profile_b_id]))].filter(Boolean);
+      const matchProfiles=matchIds.length>0?await dbSelect('profiles','id=in.('+matchIds.join(',')+')',s.token):[];
       const profileMap={};
       if(Array.isArray(matchProfiles))matchProfiles.forEach(p=>{profileMap[p.id]=p;});
       // Letzte Nachricht pro Match laden
@@ -3234,7 +3238,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 }).map(m=>{
                   const other=m.profile_a_id===myProfile?.id?m.profile_b:m.profile_a;
                   if(!other)return null;
-                  const ac=other.style==='Boxing'?'#c0392b':other.style==='MMA'?'#2980b9':'#d35400';
+                  const ac=(other?.style||'')===  'Boxing'?'#c0392b':(other?.style||'')==='MMA'?'#2980b9':'#27ae60';
                   return(
                     <div key={m.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:13,border:'1px solid '+ac+'33',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.06)'}}>
                       <div style={{height:3,background:'linear-gradient(90deg,'+ac+',transparent)'}}/>
