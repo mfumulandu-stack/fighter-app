@@ -1243,6 +1243,10 @@ export default function App(){
   const [countryFilter,setCountryFilter]=useState('mine'); // 'mine' | 'world'
   const [gymRatingInput,setGymRatingInput]=useState({});
   const [showMenu,setShowMenu]=useState(false);
+  const [appLang,setAppLang]=useState(()=>{try{return localStorage.getItem('fighter_lang')||'DE'}catch{return 'DE'}});
+  const [showFeedback,setShowFeedback]=useState(false);
+  const [feedbackText,setFeedbackText]=useState('');
+  const [feedbackSent,setFeedbackSent]=useState(false);
   const [events,setEvents]=useState([]);
   const [eventsLoading,setEventsLoading]=useState(false);
   const [showCreateEvent,setShowCreateEvent]=useState(false);
@@ -2690,13 +2694,87 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 </div>
               )}
             </div>
+            {/* SPRACHE */}
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+              <div style={{display:'flex',alignItems:'center',gap:14}}>
+                <div style={{fontSize:20,width:28,textAlign:'center'}}>🌍</div>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,fontWeight:600}}>Sprache</div>
+              </div>
+              <div style={{display:'flex',gap:4,background:darkMode?'#2a2a2a':'#f0f0f0',borderRadius:20,padding:3}}>
+                {['DE','EN'].map(lang=>(
+                  <button key={lang} onClick={()=>{setAppLang(lang);try{localStorage.setItem('fighter_lang',lang);}catch{}showMsg(lang==='DE'?'Sprache: Deutsch 🇩🇪':'Language: English 🇬🇧');}}
+                    style={{padding:'4px 14px',borderRadius:18,background:appLang===lang?(darkMode?'#444':'#fff'):'transparent',border:'none',color:appLang===lang?(darkMode?'#fff':'#1a1a1a'):(darkMode?'#666':'#aaa'),fontSize:13,fontWeight:700,cursor:'pointer',transition:'all 0.2s',boxShadow:appLang===lang?'0 1px 4px rgba(0,0,0,0.15)':'none'}}>
+                    {lang}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* FEEDBACK */}
+            <div onClick={()=>{setShowFeedback(true);setShowMenu(false);}} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',cursor:'pointer',borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}
+              onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
+              onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+              <div style={{fontSize:20,width:28,textAlign:'center'}}>📩</div>
+              <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,fontWeight:600}}>{appLang==='EN'?'Send Feedback':'Feedback senden'}</div>
+            </div>
+
             {/* Logout */}
             <div onClick={handleLogout} style={{padding:'16px 20px',borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:14,cursor:'pointer'}}
               onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
               onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
               <div style={{fontSize:20,width:28,textAlign:'center'}}>🚪</div>
-              <div style={{color:'#e74c3c',fontSize:15,fontWeight:600}}>Ausloggen</div>
+              <div style={{color:'#e74c3c',fontSize:15,fontWeight:600}}>{appLang==='EN'?'Logout':'Ausloggen'}</div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* FEEDBACK MODAL */}
+      {showFeedback&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:900,display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
+          <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:'20px 20px 0 0',width:'100%',maxWidth:480,padding:'24px 20px 40px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:2}}>{appLang==='EN'?'SEND FEEDBACK':'FEEDBACK SENDEN'}</div>
+                <div style={{color:'#aaa',fontSize:11,marginTop:2}}>{appLang==='EN'?'Help us improve FighterApp':'Hilf uns FighterApp besser zu machen'}</div>
+              </div>
+              <button onClick={()=>{setShowFeedback(false);setFeedbackSent(false);setFeedbackText('');}} style={{background:'none',border:'none',fontSize:22,cursor:'pointer',color:'#aaa'}}>✕</button>
+            </div>
+            {feedbackSent?(
+              <div style={{textAlign:'center',padding:'20px 0'}}>
+                <div style={{fontSize:48,marginBottom:12}}>🙏</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:6}}>{appLang==='EN'?'THANK YOU!':'DANKE!'}</div>
+                <div style={{color:'#aaa',fontSize:13}}>{appLang==='EN'?'Your feedback helps us improve.':'Dein Feedback hilft uns die App zu verbessern.'}</div>
+                <button onClick={()=>{setShowFeedback(false);setFeedbackSent(false);setFeedbackText('');}}
+                  style={{marginTop:20,padding:'12px 32px',borderRadius:10,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer'}}>
+                  {appLang==='EN'?'CLOSE':'SCHLIESSEN'}
+                </button>
+              </div>
+            ):(
+              <>
+                <textarea
+                  value={feedbackText}
+                  onChange={e=>setFeedbackText(e.target.value)}
+                  placeholder={appLang==='EN'?'What do you like? What should we improve? Ideas for new features...':'Was gefällt dir? Was sollen wir verbessern? Ideen für neue Features...'}
+                  rows={5}
+                  style={{width:'100%',padding:'12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontFamily:'DM Sans,sans-serif',resize:'none',boxSizing:'border-box',marginBottom:12}}
+                />
+                <button onClick={async()=>{
+                  if(!feedbackText.trim()){showMsg(appLang==='EN'?'Please enter feedback':'Bitte Feedback eingeben');return;}
+                  try{
+                    await fetch(SUPA_URL+'/rest/v1/feedback',{
+                      method:'POST',
+                      headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+                      body:JSON.stringify({user_id:myProfile?.id,user_name:profile.name,message:feedbackText.trim(),lang:appLang,created_at:new Date().toISOString()})
+                    });
+                  }catch{}
+                  setFeedbackSent(true);
+                }} disabled={!feedbackText.trim()}
+                  style={{width:'100%',padding:'14px',borderRadius:10,background:feedbackText.trim()?`linear-gradient(135deg,${RED},#e74c3c)`:'#eee',border:'none',color:feedbackText.trim()?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:feedbackText.trim()?'pointer':'not-allowed'}}>
+                  {appLang==='EN'?'SEND 📩':'SENDEN 📩'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
