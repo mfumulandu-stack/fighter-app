@@ -2926,7 +2926,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <div onClick={handleLogout} style={{padding:'16px 20px',borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:14,cursor:'pointer'}}
               onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
               onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-              <div style={{fontSize:20,width:28,textAlign:'center'}}>🚪</div>
+              <div style={{fontSize:20,width:28,textAlign:'center'}}></div>
               <div style={{color:'#e74c3c',fontSize:15,fontWeight:600}}>{t.logout}</div>
             </div>
           </div>
