@@ -57,7 +57,7 @@ const WEIGHT_CLASSES = [
   'Halbweltergewicht (bis 77 kg)','Weltergewicht (bis 83 kg)','Halbmittelgewicht (bis 87 kg)',
   'Mittelgewicht (bis 93 kg)','Halbschwergewicht (bis 100 kg)','Cruisergewicht (bis 90 kg)','Schwergewicht (ueber 100 kg)'
 ];
-const STYLES = ['Boxing','Kickboxing','MMA','Muay Thai','Grappling','BJJ','Wrestling','Kung Fu','Karate'];
+const STYLES = ['Boxing','Kickboxing','MMA','Muay Thai','Grappling','BJJ','Wrestling','Kung Fu','Karate','Taekwondo','Judo','Sambo'];
 const PRO_FIGHTERS = [];
 
 const FIGHTERS=[];
