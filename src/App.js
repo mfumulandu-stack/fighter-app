@@ -1660,7 +1660,7 @@ export default function App(){
         const parts={};
         await Promise.all(data.map(async ev=>{
           try{
-            const p=await dbSelect('event_participants','event_id=eq.'+ev.id,s?.token||session?.token);
+            const p=await dbSelect('event_participants','event_id=eq.'+ev.id+'&select=*,profiles(name,avatar_url)',s?.token||session?.token);
             parts[ev.id]=Array.isArray(p)?p:[];
           }catch{parts[ev.id]=[];}
         }));
@@ -3807,7 +3807,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <button onClick={()=>setShowAdmin(false)} style={{background:'none',border:'none',color:'#fff',fontSize:22,cursor:'pointer'}}>✕</button>
           </div>
           <div style={{display:'flex',overflowX:'auto',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
-            {[['gyms','🏋️'],['addgym','➕'],['addcity','🌍'],['users','👤'],['reports','🚨'],['records','🏅'],['broadcast','📢'],['stats','📊'],['scanner','🔍']].map(([t,l])=>(
+            {[['gyms','🏋️'],['addgym','➕'],['addcity','🌍'],['events','📅'],['users','👤'],['reports','🚨'],['records','🏅'],['broadcast','📢'],['stats','📊'],['scanner','🔍']].map(([t,l])=>(
               <button key={t} onClick={()=>setAdminTab(t)} style={{flexShrink:0,padding:'10px 14px',background:'none',border:'none',borderBottom:adminTab===t?'2px solid '+RED:'2px solid transparent',color:adminTab===t?RED:(darkMode?'#aaa':'#888'),fontWeight:700,fontSize:16,cursor:'pointer'}}>{l}</button>
             ))}
           </div>
@@ -4065,6 +4065,78 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     }
                   }catch(e){showMsg('Fehler: '+e.message);}
                 }} style={{width:'100%',padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer',letterSpacing:2}}>STADT HINZUFÜGEN</button>
+              </div>
+            )}
+
+
+            {adminTab==='events'&&(
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>📅 EVENTS VERWALTEN</div>
+                <button onClick={()=>loadEvents(session)} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:12}}>🔄 EVENTS LADEN</button>
+                {events.length===0?(
+                  <div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>Keine Events vorhanden</div>
+                ):(
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {[...events].sort((a,b)=>new Date(a.event_date)-new Date(b.event_date)).map(ev=>{
+                      const parts=eventParticipants[ev.id]||[];
+                      const typeColors={'Sparring':RED,'Community Training':'#27ae60','Wettkampf':'#d4a017','Open Mat':'#2980b9','Seminar':'#8e44ad'};
+                      const color=typeColors[ev.event_type]||RED;
+                      const isPast=ev.event_date&&new Date(ev.event_date)<new Date(new Date().toDateString());
+                      return(
+                        <div key={ev.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,border:'1px solid '+(isPast?(darkMode?'#2a2a2a':'#eee'):color+'33'),padding:'12px',opacity:isPast?0.6:1}}>
+                          <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{display:'flex',gap:5,alignItems:'center',flexWrap:'wrap',marginBottom:4}}>
+                                <div style={{background:color+'18',border:'1px solid '+color+'33',borderRadius:20,padding:'1px 7px',color:color,fontSize:9,fontWeight:700}}>{ev.event_type}</div>
+                                {isPast&&<div style={{background:'#88888818',borderRadius:20,padding:'1px 7px',color:'#888',fontSize:9,fontWeight:700}}>VERGANGEN</div>}
+                              </div>
+                              <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ev.title}</div>
+                              <div style={{color:'#aaa',fontSize:11,marginTop:2}}>📍 {ev.city}{ev.address?' · '+ev.address:''}</div>
+                              <div style={{color:'#aaa',fontSize:11,marginTop:1}}>
+                                📅 {ev.event_date?new Date(ev.event_date+'T12:00:00').toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}):''}{ev.event_time?' · 🕐 '+ev.event_time+' Uhr':''}
+                              </div>
+                              <div style={{color:'#888',fontSize:11,marginTop:2}}>👥 {parts.length}/{ev.max_participants||10} Teilnehmer</div>
+                            </div>
+                            <div style={{display:'flex',flexDirection:'column',gap:5,flexShrink:0}}>
+                              <button onClick={async()=>{
+                                if(!window.confirm('Event "'+ev.title+'" wirklich löschen?'))return;
+                                try{
+                                  await fetch(SUPA_URL+'/rest/v1/event_participants?event_id=eq.'+ev.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                                  await fetch(SUPA_URL+'/rest/v1/events?id=eq.'+ev.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                                  await loadEvents(session);
+                                  showMsg('Event gelöscht ✅');
+                                }catch(e){showMsg('Fehler: '+e.message);}
+                              }} style={{padding:'5px 10px',borderRadius:6,background:'#e74c3c22',border:'1px solid #e74c3c44',color:'#e74c3c',fontSize:11,fontWeight:700,cursor:'pointer'}}>🗑️ Löschen</button>
+                              <button onClick={async()=>{
+                                const newTitle=window.prompt('Neuer Titel:',ev.title);
+                                if(!newTitle||!newTitle.trim())return;
+                                try{
+                                  await fetch(SUPA_URL+'/rest/v1/events?id=eq.'+ev.id,{
+                                    method:'PATCH',
+                                    headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
+                                    body:JSON.stringify({title:newTitle.trim()})
+                                  });
+                                  await loadEvents(session);
+                                  showMsg('Titel geändert ✅');
+                                }catch(e){showMsg('Fehler: '+e.message);}
+                              }} style={{padding:'5px 10px',borderRadius:6,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontSize:11,cursor:'pointer'}}>✏️ Bearbeiten</button>
+                            </div>
+                          </div>
+                          {parts.length>0&&(
+                            <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
+                              <div style={{color:'#aaa',fontSize:9,letterSpacing:1,marginBottom:5}}>ANGEMELDETE TEILNEHMER</div>
+                              <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+                                {parts.map((p,i)=>(
+                                  <div key={i} style={{background:darkMode?'#2a2a2a':'#f5f5f5',borderRadius:6,padding:'3px 8px',fontSize:10,color:darkMode?'#aaa':'#555'}}>{p.profiles?.name||p.user_id?.slice(0,8)+'...'}</div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
