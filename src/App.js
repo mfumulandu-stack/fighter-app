@@ -2336,7 +2336,7 @@ export default function App(){
       .filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF))))
       .sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
-  const filteredT=TRAINERS.filter(t=>trainerF==='All'||t.style.includes(trainerF)).sort((a,b)=>b.rating-a.rating);
+  const filteredT=TRAINERS.filter(tr=>trainerF==='All'||tr.style.includes(trainerF)).sort((a,b)=>b.rating-a.rating);
 
 
 
@@ -2925,7 +2925,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
               onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
               <div style={{fontSize:20,width:28,textAlign:'center'}}>📩</div>
-              <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,fontWeight:600}}>{appLang==='EN'?t.en_feedback||'Send Feedback':t.sendFeedback||'Feedback senden'}</div>
+              <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,fontWeight:600}}>{appLang==='EN'?'Send Feedback':'Feedback senden'}</div>
             </div>
 
             {/* Logout */}
@@ -3930,32 +3930,32 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             )}
             {rankMode==='trainer'&&(
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {[...TRAINERS].filter(t=>!myProfile||t.name!==myProfile.name).sort((a,b)=>b.rating-a.rating).map((t,i)=>{
+                {[...TRAINERS].filter(tr=>!myProfile||tr.name!==myProfile.name).sort((a,b)=>b.rating-a.rating).map((tr,i)=>{
                   const medal=['🥇','🥈','🥉'];
                   const medalColor=['#d4a017','#95a5a6','#cd7f32'];
                   const isTop3=i<3;
                   return(
-                    <div key={t.id} style={{background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:13,padding:'12px 13px',border:'1px solid '+(isTop3?'#d4a01733':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.1)':'none',display:'flex',alignItems:'center',gap:11}}>
+                    <div key={tr.id} style={{background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:13,padding:'12px 13px',border:'1px solid '+(isTop3?'#d4a01733':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.1)':'none',display:'flex',alignItems:'center',gap:11}}>
                       <div style={{fontSize:isTop3?26:18,width:32,textAlign:'center',flexShrink:0}}>
                         {isTop3?medal[i]:<span className='rj' style={{color:'#bbb'}}>#{i+1}</span>}
                       </div>
-                      <div style={{width:46,height:46,borderRadius:10,background:t.accent+'22',border:'2px solid '+t.accent+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>{t.emoji}</div>
+                      <div style={{width:46,height:46,borderRadius:10,background:tr.accent+'22',border:'2px solid '+tr.accent+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>{tr.emoji}</div>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{display:'flex',alignItems:'center',gap:5}}>
-                          <div className='rj' style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontSize:15,letterSpacing:0.5}}>{t.name}</div>
+                          <div className='rj' style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontSize:15,letterSpacing:0.5}}>{tr.name}</div>
                           <div style={{background:'#8e44ad22',border:'1px solid #8e44ad44',borderRadius:10,padding:'1px 6px',color:'#8e44ad',fontSize:9,fontWeight:700,flexShrink:0}}>🎓 TRAINER</div>
                         </div>
-                        <div style={{color:t.accent,fontSize:11,fontWeight:700,marginTop:1}}>{t.style} · {t.country}</div>
-                        <div style={{color:darkMode?'#555':'#bbb',fontSize:10,marginTop:1}}>🏋️ {t.gym}</div>
-                        <div style={{color:darkMode?'#444':'#ccc',fontSize:10,marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>👥 {t.pupils}</div>
+                        <div style={{color:tr.accent,fontSize:11,fontWeight:700,marginTop:1}}>{tr.style} · {tr.country}</div>
+                        <div style={{color:darkMode?'#555':'#bbb',fontSize:10,marginTop:1}}>🏋️ {tr.gym}</div>
+                        <div style={{color:darkMode?'#444':'#ccc',fontSize:10,marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>👥 {tr.pupils}</div>
                       </div>
                       <div style={{textAlign:'right',flexShrink:0}}>
                         <div style={{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}}>
                           <span style={{color:'#d4a017',fontSize:13}}>★</span>
-                          <span className='rj' style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontSize:18}}>{t.rating}</span>
+                          <span className='rj' style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontSize:18}}>{tr.rating}</span>
                         </div>
-                        <div style={{color:'#bbb',fontSize:9,marginTop:2}}>{t.exp} Jahre</div>
-                        <div style={{color:'#d4a017',fontSize:9}}>{t.titles} Titel</div>
+                        <div style={{color:'#bbb',fontSize:9,marginTop:2}}>{tr.exp} Jahre</div>
+                        <div style={{color:'#d4a017',fontSize:9}}>{tr.titles} Titel</div>
                       </div>
                     </div>
                   );
@@ -4031,26 +4031,26 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               {trStyles.map(s=>(<button key={s} onClick={()=>setTrainerF(s)} style={{flexShrink:0,padding:'5px 11px',borderRadius:16,background:trainerF===s?'#d4a017':'#fff',border:'1px solid '+(trainerF===s?'#d4a017':'#e0e0e0'),color:trainerF===s?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:12,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{s==='All'?'Alle':s}</button>))}
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:10}}>
-              {filteredT.map((t,i)=>(
-                <div key={t.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:13,border:'1px solid '+t.accent+(darkMode?'55':'33'),overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.06)'}}>
-                  <div style={{height:3,background:`linear-gradient(90deg,${t.accent},transparent)`}}/>
+              {filteredT.map((tr,i)=>(
+                <div key={tr.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:13,border:'1px solid '+tr.accent+(darkMode?'55':'33'),overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.06)'}}>
+                  <div style={{height:3,background:`linear-gradient(90deg,${tr.accent},transparent)`}}/>
                   <div style={{padding:'14px'}}>
                     <div style={{display:'flex',gap:12,alignItems:'flex-start'}}>
                       <div style={{position:'relative',flexShrink:0}}>
-                        <div style={{width:56,height:56,borderRadius:12,background:t.accent+'18',border:'2px solid '+t.accent+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:26}}>{t.emoji}</div>
+                        <div style={{width:56,height:56,borderRadius:12,background:tr.accent+'18',border:'2px solid '+tr.accent+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:26}}>{tr.emoji}</div>
                         <div style={{position:'absolute',bottom:-5,right:-5,background:i===0?'#d4a017':i===1?'#95a5a6':i===2?'#cd7f32':'#eee',borderRadius:10,padding:'1px 5px'}}><div className='rj' style={{color:i<3?'#fff':'#aaa',fontSize:10}}>#{i+1}</div></div>
                       </div>
                       <div style={{flex:1}}>
                         <div style={{display:'flex',justifyContent:'space-between'}}>
-                          <div><div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15}}>{t.name}</div><div style={{color:t.accent,fontSize:11,fontWeight:700,marginTop:1}}>{t.style.toUpperCase()}</div></div>
-                          <div style={{textAlign:'right'}}><div style={{display:'flex',alignItems:'center',gap:2}}><span style={{color:'#d4a017'}}>★</span><span style={{color:'#1a1a1a',fontWeight:700,fontSize:14}}>{t.rating}</span></div><div style={{color:'#aaa',fontSize:10}}>{t.exp} Jahre</div></div>
+                          <div><div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15}}>{tr.name}</div><div style={{color:tr.accent,fontSize:11,fontWeight:700,marginTop:1}}>{tr.style.toUpperCase()}</div></div>
+                          <div style={{textAlign:'right'}}><div style={{display:'flex',alignItems:'center',gap:2}}><span style={{color:'#d4a017'}}>★</span><span style={{color:'#1a1a1a',fontWeight:700,fontSize:14}}>{tr.rating}</span></div><div style={{color:'#aaa',fontSize:10}}>{tr.exp} Jahre</div></div>
                         </div>
-                        <div style={{color:'#888',fontSize:11,marginTop:2}}>{t.country} - {t.gym}</div>
+                        <div style={{color:'#888',fontSize:11,marginTop:2}}>{tr.country} - {tr.gym}</div>
                       </div>
                     </div>
-                    <div style={{marginTop:9,color:darkMode?'#ccc':'#666',fontSize:12,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee'),paddingTop:8}}>{t.bio}</div>
-                    <div style={{marginTop:8,background:darkMode?'#2a2a2a':'#f8f8f8',borderRadius:7,padding:'7px 10px'}}><div style={{color:'#aaa',fontSize:9,letterSpacing:1,marginBottom:3}}>BEKANNTE SCHUELER</div><div style={{color:darkMode?'#ccc':'#666',fontSize:12,fontWeight:600}}>{t.pupils}</div></div>
-                    <div style={{marginTop:8,height:3,background:'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:(t.rating/10*100)+'%',background:`linear-gradient(90deg,${t.accent},${t.accent}66)`,borderRadius:2}}/></div>
+                    <div style={{marginTop:9,color:darkMode?'#ccc':'#666',fontSize:12,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee'),paddingTop:8}}>{tr.bio}</div>
+                    <div style={{marginTop:8,background:darkMode?'#2a2a2a':'#f8f8f8',borderRadius:7,padding:'7px 10px'}}><div style={{color:'#aaa',fontSize:9,letterSpacing:1,marginBottom:3}}>BEKANNTE SCHUELER</div><div style={{color:darkMode?'#ccc':'#666',fontSize:12,fontWeight:600}}>{tr.pupils}</div></div>
+                    <div style={{marginTop:8,height:3,background:'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:(tr.rating/10*100)+'%',background:`linear-gradient(90deg,${tr.accent},${tr.accent}66)`,borderRadius:2}}/></div>
                   </div>
                 </div>
               ))}
