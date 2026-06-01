@@ -1241,6 +1241,12 @@ export default function App(){
   const [gymRankMode,setGymRankMode]=useState(false);
   const [countryFilter,setCountryFilter]=useState('mine'); // 'mine' | 'world'
   const [gymRatingInput,setGymRatingInput]=useState({});
+  const [events,setEvents]=useState([]);
+  const [eventsLoading,setEventsLoading]=useState(false);
+  const [showCreateEvent,setShowCreateEvent]=useState(false);
+  const [eventParticipants,setEventParticipants]=useState({});
+  const [newEvent,setNewEvent]=useState({title:'',description:'',event_type:'Sparring',city:'',address:'',event_date:'',event_time:'',max_participants:10,styles:[]});
+  const [creatingEvent,setCreatingEvent]=useState(false);
   const [gymSuggestions,setGymSuggestions]=useState([]);
   const [showGymSuggestions,setShowGymSuggestions]=useState(false);
   const [showRegisterGym,setShowRegisterGym]=useState(false);
@@ -1257,6 +1263,9 @@ export default function App(){
   useEffect(()=>{
     if(tab==='gyms'&&session){
       loadDbGyms(session);
+    }
+    if(tab==='events'&&session){
+      loadEvents(session);
     }
   },[tab]);
 
@@ -1640,6 +1649,80 @@ export default function App(){
         }
       }
     }catch(e){console.log('loadDbGyms error',e);}
+  }
+
+  async function loadEvents(s){
+    setEventsLoading(true);
+    try{
+      const data=await dbSelect('events','order=event_date.asc,event_time.asc',s?.token||session?.token);
+      if(Array.isArray(data)){
+        // Load participants count for each event
+        const parts={};
+        await Promise.all(data.map(async ev=>{
+          try{
+            const p=await dbSelect('event_participants','event_id=eq.'+ev.id,s?.token||session?.token);
+            parts[ev.id]=Array.isArray(p)?p:[];
+          }catch{parts[ev.id]=[];}
+        }));
+        setEventParticipants(parts);
+        setEvents(data);
+      }
+    }catch(e){console.error('loadEvents',e);}
+    setEventsLoading(false);
+  }
+
+  async function joinEvent(eventId){
+    if(!session||!myProfile)return;
+    try{
+      await fetch(SUPA_URL+'/rest/v1/event_participants',{
+        method:'POST',
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+        body:JSON.stringify({event_id:eventId,user_id:myProfile.id})
+      });
+      await loadEvents(session);
+      showMsg('Du nimmst teil! 🥊');
+    }catch(e){showMsg('Fehler: '+e.message);}
+  }
+
+  async function leaveEvent(eventId){
+    if(!session||!myProfile)return;
+    try{
+      await fetch(SUPA_URL+'/rest/v1/event_participants?event_id=eq.'+eventId+'&user_id=eq.'+myProfile.id,{
+        method:'DELETE',
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
+      });
+      await loadEvents(session);
+      showMsg('Abgemeldet');
+    }catch(e){showMsg('Fehler: '+e.message);}
+  }
+
+  async function createEvent(){
+    if(!session||!myProfile)return;
+    if(!newEvent.title||!newEvent.city||!newEvent.event_date){showMsg('Titel, Stadt und Datum sind Pflicht');return;}
+    setCreatingEvent(true);
+    try{
+      await fetch(SUPA_URL+'/rest/v1/events',{
+        method:'POST',
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+        body:JSON.stringify({
+          creator_id:myProfile.id,
+          title:newEvent.title,
+          description:newEvent.description,
+          event_type:newEvent.event_type,
+          city:newEvent.city,
+          address:newEvent.address,
+          event_date:newEvent.event_date,
+          event_time:newEvent.event_time,
+          max_participants:parseInt(newEvent.max_participants)||10,
+          styles:newEvent.styles
+        })
+      });
+      setShowCreateEvent(false);
+      setNewEvent({title:'',description:'',event_type:'Sparring',city:'',address:'',event_date:'',event_time:'',max_participants:10,styles:[]});
+      await loadEvents(session);
+      showMsg('Event erstellt! 🎉');
+    }catch(e){showMsg('Fehler: '+e.message);}
+    setCreatingEvent(false);
   }
 
   async function loadGymRatings(s){
@@ -2501,7 +2584,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
     </div>
   );
 
-  const tabs=[['swipe','🥊','FIGHT'],['chat','unread','CHAT'],['ranking','🏆','RANG'],['gyms','🏋️','GYMS'],['stats','👤','PROFIL']];
+  const tabs=[['swipe','🥊','FIGHT'],['chat','unread','CHAT'],['events','📅','EVENTS'],['gyms','🏋️','GYMS'],['stats','👤','PROFIL']];
 
   return(
     <div style={{minHeight:'100vh',background:darkMode?'#1a1a1a':'#f5f5f7',fontFamily:'DM Sans,sans-serif',display:'flex',flexDirection:'column'}} onMouseMove={dragMove} onMouseUp={dragEnd} onTouchMove={dragMove} onTouchEnd={dragEnd}>
@@ -3207,6 +3290,199 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 )}
               </>);
             })()}
+          </div>
+        )}
+
+
+        {tab==='events'&&(
+          <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
+
+            {/* CREATE EVENT MODAL */}
+            {showCreateEvent&&(
+              <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.65)',zIndex:500,display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
+                <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:'20px 20px 0 0',width:'100%',maxWidth:480,padding:'20px 20px 40px',maxHeight:'90vh',overflowY:'auto'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                    <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:2}}>EVENT ERSTELLEN</div>
+                    <button onClick={()=>setShowCreateEvent(false)} style={{background:'none',border:'none',fontSize:22,cursor:'pointer',color:'#aaa'}}>✕</button>
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                    <div>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>TYP</div>
+                      <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
+                        {['Sparring','Community Training','Wettkampf','Open Mat','Seminar'].map(t=>(
+                          <button key={t} onClick={()=>setNewEvent(e=>({...e,event_type:t}))}
+                            style={{padding:'7px 12px',borderRadius:20,background:newEvent.event_type===t?RED:'transparent',border:'1px solid '+(newEvent.event_type===t?RED:(darkMode?'#333':'#ddd')),color:newEvent.event_type===t?'#fff':(darkMode?'#aaa':'#666'),fontSize:12,fontWeight:700,cursor:'pointer'}}>
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {[
+                      ['TITEL *','title','text','z.B. Community Sparring Düsseldorf'],
+                      ['STADT *','city','text','z.B. Düsseldorf'],
+                      ['ADRESSE','address','text','z.B. Tiger Gym, Fichtenstraße 12'],
+                    ].map(([lbl,key,type,ph])=>(
+                      <div key={key}>
+                        <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{lbl}</div>
+                        <input type={type} value={newEvent[key]} onChange={e=>setNewEvent(ev=>({...ev,[key]:e.target.value}))} placeholder={ph}
+                          style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
+                      </div>
+                    ))}
+                    <div style={{display:'flex',gap:10}}>
+                      <div style={{flex:1}}>
+                        <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>DATUM *</div>
+                        <input type='date' value={newEvent.event_date} onChange={e=>setNewEvent(ev=>({...ev,event_date:e.target.value}))}
+                          style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
+                      </div>
+                      <div style={{flex:1}}>
+                        <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>UHRZEIT</div>
+                        <input type='time' value={newEvent.event_time} onChange={e=>setNewEvent(ev=>({...ev,event_time:e.target.value}))}
+                          style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>MAX. TEILNEHMER</div>
+                      <input type='number' min='2' max='100' value={newEvent.max_participants} onChange={e=>setNewEvent(ev=>({...ev,max_participants:e.target.value}))}
+                        style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
+                    </div>
+                    <div>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>KAMPFSTILE</div>
+                      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                        {['Boxing','MMA','Muay Thai','BJJ','Kickboxing','Grappling','Wrestling','Karate','Alle'].map(s=>(
+                          <button key={s} onClick={()=>setNewEvent(ev=>({...ev,styles:ev.styles.includes(s)?ev.styles.filter(x=>x!==s):[...ev.styles,s]}))}
+                            style={{padding:'5px 10px',borderRadius:20,background:newEvent.styles.includes(s)?RED:'transparent',border:'1px solid '+(newEvent.styles.includes(s)?RED:(darkMode?'#333':'#ddd')),color:newEvent.styles.includes(s)?'#fff':(darkMode?'#aaa':'#666'),fontSize:11,fontWeight:700,cursor:'pointer'}}>
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>BESCHREIBUNG</div>
+                      <textarea value={newEvent.description} onChange={e=>setNewEvent(ev=>({...ev,description:e.target.value}))} placeholder='Was erwartet die Teilnehmer? Level, Ausrüstung, Besonderheiten...' rows={3}
+                        style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box',resize:'none'}}/>
+                    </div>
+                    <button onClick={createEvent} disabled={creatingEvent}
+                      style={{width:'100%',padding:'14px',borderRadius:12,background:creatingEvent?'#eee':`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:creatingEvent?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:creatingEvent?'not-allowed':'pointer',marginTop:4}}>
+                      {creatingEvent?'ERSTELLT...':'EVENT ERSTELLEN 🥊'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* HEADER */}
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3}}>EVENTS</div>
+                <div style={{color:'#aaa',fontSize:11,marginTop:2}}>Community Sparrings & Trainings</div>
+              </div>
+              <button onClick={()=>setShowCreateEvent(true)}
+                style={{padding:'9px 16px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,letterSpacing:1,cursor:'pointer',display:'flex',alignItems:'center',gap:5}}>
+                ➕ EVENT
+              </button>
+            </div>
+
+            {eventsLoading?(
+              <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                {[1,2,3].map(i=>(
+                  <div key={i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),opacity:1-i*0.25}}>
+                    <div style={{height:14,background:darkMode?'#2a2a2a':'#f0f0f0',borderRadius:7,width:'60%',marginBottom:8}}/>
+                    <div style={{height:10,background:darkMode?'#222':'#f5f5f5',borderRadius:5,width:'40%'}}/>
+                  </div>
+                ))}
+              </div>
+            ):events.length===0?(
+              <div style={{textAlign:'center',padding:'50px 20px'}}>
+                <div style={{fontSize:56,marginBottom:12}}>📅</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:2,marginBottom:8}}>NOCH KEINE EVENTS</div>
+                <div style={{color:'#aaa',fontSize:13,lineHeight:1.7,maxWidth:260,margin:'0 auto'}}>Sei der Erste und erstelle ein Community Sparring in deiner Stadt!</div>
+                <button onClick={()=>setShowCreateEvent(true)}
+                  style={{marginTop:16,padding:'13px 28px',borderRadius:12,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
+                  ➕ ERSTES EVENT ERSTELLEN
+                </button>
+              </div>
+            ):(
+              <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                {events.map(ev=>{
+                  const parts=eventParticipants[ev.id]||[];
+                  const isJoined=parts.some(p=>p.user_id===myProfile?.id);
+                  const isFull=parts.length>=(ev.max_participants||10);
+                  const isOwner=ev.creator_id===myProfile?.id;
+                  const typeColors={'Sparring':RED,'Community Training':'#27ae60','Wettkampf':'#d4a017','Open Mat':'#2980b9','Seminar':'#8e44ad'};
+                  const color=typeColors[ev.event_type]||RED;
+                  const isPast=ev.event_date&&new Date(ev.event_date)<new Date(new Date().toDateString());
+                  return(
+                    <div key={ev.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,border:'1px solid '+(isPast?(darkMode?'#2a2a2a':'#eee'):(isJoined?color+'44':(darkMode?'#2a2a2a':'#eee'))),overflow:'hidden',opacity:isPast?0.6:1,boxShadow:isJoined&&!isPast?'0 2px 12px '+color+'22':'none'}}>
+                      <div style={{height:3,background:isPast?'#555':color}}/>
+                      <div style={{padding:'13px 14px'}}>
+                        {/* TYPE + DATE */}
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+                          <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+                            <div style={{background:color+'18',border:'1px solid '+color+'44',borderRadius:20,padding:'2px 9px',color:color,fontSize:10,fontWeight:700}}>{ev.event_type}</div>
+                            {isJoined&&!isPast&&<div style={{background:'#27ae6018',border:'1px solid #27ae6044',borderRadius:20,padding:'2px 9px',color:'#27ae60',fontSize:10,fontWeight:700}}>✓ Angemeldet</div>}
+                            {isPast&&<div style={{background:'#88888818',borderRadius:20,padding:'2px 9px',color:'#888',fontSize:10,fontWeight:700}}>Vergangen</div>}
+                          </div>
+                          <div style={{textAlign:'right',flexShrink:0}}>
+                            <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:700}}>
+                              {ev.event_date?new Date(ev.event_date+'T12:00:00').toLocaleDateString('de-DE',{day:'2-digit',month:'short',year:'numeric'}):''}
+                            </div>
+                            {ev.event_time&&<div style={{color:'#aaa',fontSize:11,marginTop:1}}>🕐 {ev.event_time} Uhr</div>}
+                          </div>
+                        </div>
+                        {/* TITLE */}
+                        <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:1,marginBottom:4}}>{ev.title}</div>
+                        {/* LOCATION */}
+                        <div style={{color:'#aaa',fontSize:12,marginBottom:6}}>📍 {ev.address||ev.city}</div>
+                        {/* STYLES */}
+                        {ev.styles&&ev.styles.length>0&&(
+                          <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:8}}>
+                            {ev.styles.map(s=><div key={s} style={{background:darkMode?'#2a2a2a':'#f5f5f5',borderRadius:20,padding:'2px 8px',color:darkMode?'#aaa':'#666',fontSize:10,fontWeight:600}}>{s}</div>)}
+                          </div>
+                        )}
+                        {/* DESCRIPTION */}
+                        {ev.description&&<div style={{color:darkMode?'#888':'#666',fontSize:12,lineHeight:1.6,marginBottom:8}}>{ev.description}</div>}
+                        {/* PARTICIPANTS BAR */}
+                        <div style={{marginBottom:10}}>
+                          <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                            <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:600}}>👥 Teilnehmer</div>
+                            <div style={{color:isFull?RED:color,fontSize:11,fontWeight:700}}>{parts.length}/{ev.max_participants||10}{isFull?' · Voll':''}</div>
+                          </div>
+                          <div style={{height:4,background:darkMode?'#2a2a2a':'#f0f0f0',borderRadius:2}}>
+                            <div style={{height:'100%',width:Math.min(100,(parts.length/(ev.max_participants||10))*100)+'%',background:isFull?RED:color,borderRadius:2,transition:'width 0.4s'}}/>
+                          </div>
+                        </div>
+                        {/* ACTION BUTTONS */}
+                        {!isPast&&(
+                          <div style={{display:'flex',gap:8}}>
+                            {isOwner?(
+                              <button onClick={async()=>{
+                                if(!window.confirm('Event löschen?'))return;
+                                try{
+                                  await fetch(SUPA_URL+'/rest/v1/events?id=eq.'+ev.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                                  await loadEvents(session);showMsg('Event gelöscht');
+                                }catch(e){showMsg('Fehler: '+e.message);}
+                              }} style={{flex:1,padding:'10px',borderRadius:10,background:'transparent',border:'1px solid #e74c3c44',color:'#e74c3c',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+                                🗑️ Löschen
+                              </button>
+                            ):isJoined?(
+                              <button onClick={()=>leaveEvent(ev.id)}
+                                style={{flex:1,padding:'10px',borderRadius:10,background:'transparent',border:'1px solid '+(darkMode?'#333':'#ddd'),color:darkMode?'#aaa':'#888',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+                                Abmelden
+                              </button>
+                            ):(
+                              <button onClick={()=>joinEvent(ev.id)} disabled={isFull}
+                                style={{flex:1,padding:'10px',borderRadius:10,background:isFull?'#eee':`linear-gradient(135deg,${color},${color}cc)`,border:'none',color:isFull?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:isFull?'not-allowed':'pointer'}}>
+                                {isFull?'Ausgebucht':'🥊 ANMELDEN'}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
