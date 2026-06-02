@@ -137,6 +137,34 @@ const CITY_BUNDESLAND={
   'Wien':'Wien','Graz':'Steiermark','Linz':'Oberösterreich','Salzburg':'Salzburg','Innsbruck':'Tirol',
   'Zürich':'Zürich','Basel':'Basel','Bern':'Bern','Genf':'Genf','Lausanne':'Waadt',
 };
+// ── STANDORT FUNKTIONEN ──
+async function getLocationByIP(){
+  try{
+    const r=await fetch('https://ipapi.co/json/');
+    const d=await r.json();
+    if(d.city&&d.latitude&&d.longitude){
+      return{city:d.city,lat:d.latitude,lon:d.longitude,source:'ip'};
+    }
+  }catch{}
+  try{
+    const r2=await fetch('https://ip-api.com/json/?fields=city,lat,lon,status');
+    const d2=await r2.json();
+    if(d2.status==='success'&&d2.city){
+      return{city:d2.city,lat:d2.lat,lon:d2.lon,source:'ip'};
+    }
+  }catch{}
+  return null;
+}
+
+function getDistanceKmCoords(lat1,lon1,lat2,lon2){
+  if(!lat1||!lon1||!lat2||!lon2)return 9999;
+  const R=6371;
+  const dLat=(lat2-lat1)*Math.PI/180;
+  const dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
+
 function getBundesland(city){
   if(!city)return null;
   for(const [k,v] of Object.entries(CITY_BUNDESLAND)){
@@ -1279,6 +1307,10 @@ export default function App(){
   const [gymRankMode,setGymRankMode]=useState(false);
   const [countryFilter,setCountryFilter]=useState('mine'); // 'mine' | 'world'
   const [gymRatingInput,setGymRatingInput]=useState({});
+  const [myLat,setMyLat]=useState(null);
+  const [myLon,setMyLon]=useState(null);
+  const [locationSource,setLocationSource]=useState('city'); // 'city' | 'ip' | 'gps'
+  const [locationLoading,setLocationLoading]=useState(false);
   const [showMenu,setShowMenu]=useState(false);
   const [appLang,setAppLang]=useState(()=>{try{return localStorage.getItem('fighter_lang')||'DE'}catch{return 'DE'}});
   const T = {
@@ -1627,6 +1659,50 @@ export default function App(){
     restoreSession().finally(()=>clearTimeout(timeout));
   },[]);
 
+  async function getGPSLocation(){
+    if(!navigator.geolocation){showMsg('GPS nicht verfügbar');return;}
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async(pos)=>{
+        const lat=pos.coords.latitude;
+        const lon=pos.coords.longitude;
+        setMyLat(lat);setMyLon(lon);setLocationSource('gps');
+        // Reverse geocode to get city name
+        try{
+          const r=await fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lon+'&format=json');
+          const d=await r.json();
+          const city=d.address?.city||d.address?.town||d.address?.village||d.address?.county||'';
+          if(city)setProfile(p=>({...p,city}));
+          // Save to DB
+          if(session&&myProfile){
+            await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{
+              method:'PATCH',
+              headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+              body:JSON.stringify({lat,lon,location_source:'gps',city:city||myProfile.city||profile.city})
+            });
+          }
+          showMsg('📍 Standort gespeichert'+(city?' — '+city:'')+'!');
+        }catch{
+          showMsg('📍 GPS Standort gespeichert!');
+          if(session&&myProfile){
+            await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{
+              method:'PATCH',
+              headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+              body:JSON.stringify({lat,lon,location_source:'gps'})
+            });
+          }
+        }
+        setLocationLoading(false);
+      },
+      (err)=>{
+        if(err.code===1)showMsg('Standort-Zugriff verweigert');
+        else showMsg('GPS-Fehler: '+err.message);
+        setLocationLoading(false);
+      },
+      {enableHighAccuracy:true,timeout:10000}
+    );
+  }
+
   async function rateGym(gymKey, stars){
     const newRatings={...gymRatings};
     if(!newRatings[gymKey])newRatings[gymKey]={total:0,count:0,userRating:0};
@@ -1678,6 +1754,7 @@ export default function App(){
         }
         setMyProfile(p);
         setProfile({name:p.name||'',age:p.age||'',city:p.city||'',gym:p.gym||'',height:p.height||'',weight:p.weight||'',weightClass:p.weight_class||'',style:p.style||'',bio:p.bio||'',isPro:p.is_pro===true,country:p.country||'DE',gender:p.gender||'male'});
+        if(p.lat&&p.lon){setMyLat(p.lat);setMyLon(p.lon);setLocationSource(p.location_source||'gps');}
         setStats({wins:p.wins||0,losses:p.losses||0,draws:p.draws||0,ko:p.ko||0});
         if(p.avatar_url){setAvatarUrl(p.avatar_url);setAvatarPreview(p.avatar_url);}
         setAuthReady(true);
@@ -1694,6 +1771,23 @@ export default function App(){
         loadWhoLikedMe(s,p);
         loadAllProfiles(s);
         loadAdminMessages(s);
+        // Standort: GPS falls bereits gespeichert, sonst IP
+        if(p.lat&&p.lon){
+          setMyLat(p.lat);setMyLon(p.lon);
+          setLocationSource(p.location_source||'gps');
+        }else{
+          // IP-basiert automatisch im Hintergrund
+          getLocationByIP().then(loc=>{
+            if(loc){
+              setMyLat(loc.lat);setMyLon(loc.lon);
+              setLocationSource('ip');
+              // Stadt auch setzen falls noch leer
+              if(!p.city&&loc.city){
+                setProfile(prev=>({...prev,city:loc.city}));
+              }
+            }
+          });
+        }
       }else{
         setAuthReady(true);
         setScreen('setup');
@@ -2156,7 +2250,7 @@ export default function App(){
   async function saveProfile(){
     if(!session)return;
     setSaving(true);
-    const d={user_id:session.userId,name:profile.name,age:parseInt(profile.age)||null,city:profile.city,gym:profile.gym,height:parseInt(profile.height)||null,weight:parseInt(profile.weight)||null,weight_class:profile.weightClass,style:profile.style,bio:profile.bio,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,avatar_url:avatarUrl,is_pro:profile.isPro===true,country:profile.country||'DE',gender:profile.gender||'male'};
+    const d={user_id:session.userId,name:profile.name,age:parseInt(profile.age)||null,city:profile.city,gym:profile.gym,height:parseInt(profile.height)||null,weight:parseInt(profile.weight)||null,weight_class:profile.weightClass,style:profile.style,bio:profile.bio,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,avatar_url:avatarUrl,is_pro:profile.isPro===true,country:profile.country||'DE',gender:profile.gender||'male',lat:myLat||null,lon:myLon||null,location_source:locationSource||'city'};
     try{
       if(myProfile){
         const res=await dbUpdate('profiles',d,'user_id=eq.'+session.userId,session.token);
@@ -2234,11 +2328,14 @@ export default function App(){
     .filter(f=>!f.banned)
     .filter(f=>filterStyle==='Alle'||f.style===filterStyle)
     .map(f=>{
-      const dist=getDistanceKm(myCity,f.city||'');
+      // Distanz: GPS wenn verfügbar, sonst Städte-Vergleich
+      const dist=(myLat&&myLon&&f.lat&&f.lon)
+        ?getDistanceKmCoords(myLat,myLon,f.lat,f.lon)
+        :getDistanceKm(myCity,f.city||'');
       const fCity=(f.city||'').toLowerCase().trim();
       const mCity=(myCity||'').toLowerCase().trim();
-      const sameCityBool=fCity===mCity&&fCity!=='';
-      const sameRegionBool=getBundesland(f.city||'')===myBundesland&&!!myBundesland;
+      const sameCityBool=(myLat&&myLon&&f.lat&&f.lon)?dist<20:(fCity===mCity&&fCity!=='');
+      const sameRegionBool=(myLat&&myLon&&f.lat&&f.lon)?dist<100:getBundesland(f.city||'')===myBundesland&&!!myBundesland;
       const sameCountryBool=!f.country||!profile.country||f.country===(profile.country||'DE')||f.country==='OTHER';
       const sameStyleBool=sameStyle(f);
       const sameGenderBool=sameGender(f);
@@ -3483,6 +3580,41 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 </div>
               </label>
             </div>
+            {/* STANDORT */}
+            <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',border:'1px solid '+(locationSource==='gps'?'#27ae6044':locationSource==='ip'?'#2980b944':(darkMode?'#2a2a2a':'#eee')),marginTop:10}}>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <div style={{width:40,height:40,borderRadius:10,background:locationSource==='gps'?'#27ae6018':locationSource==='ip'?'#2980b918':'#f5f5f5',border:'1px solid '+(locationSource==='gps'?'#27ae6044':locationSource==='ip'?'#2980b944':'#eee'),display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>
+                  📍
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>
+                    {locationSource==='gps'?'GPS Standort aktiv ✅':locationSource==='ip'?'Standort via IP 🌐':'Kein Standort'}
+                  </div>
+                  <div style={{color:locationSource==='gps'?'#27ae60':locationSource==='ip'?'#2980b9':'#aaa',fontSize:11,marginTop:1}}>
+                    {locationSource==='gps'?'Genauer Standort — beste Matching-Ergebnisse':locationSource==='ip'?'Ungefährer Standort — GPS für bessere Ergebnisse aktivieren':'GPS aktivieren für besseres Matching'}
+                  </div>
+                  {myLat&&myLon&&<div style={{color:'#ccc',fontSize:10,marginTop:2}}>{myLat.toFixed(4)}, {myLon.toFixed(4)}</div>}
+                </div>
+              </div>
+              {locationSource!=='gps'&&(
+                <button onClick={getGPSLocation} disabled={locationLoading}
+                  style={{width:'100%',marginTop:12,padding:'11px',borderRadius:10,background:locationLoading?'#eee':'linear-gradient(135deg,#27ae60,#2ecc71)',border:'none',color:locationLoading?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:locationLoading?'not-allowed':'pointer'}}>
+                  {locationLoading?'GPS wird ermittelt...':'📍 PRÄZISEN STANDORT AKTIVIEREN'}
+                </button>
+              )}
+              {locationSource==='gps'&&(
+                <button onClick={()=>{
+                  setLocationSource('city');setMyLat(null);setMyLon(null);
+                  if(session&&myProfile){
+                    fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({lat:null,lon:null,location_source:'city'})});
+                  }
+                  showMsg('GPS Standort entfernt');
+                }} style={{width:'100%',marginTop:12,padding:'9px',borderRadius:10,background:'transparent',border:'1px solid #e74c3c44',color:'#e74c3c',fontFamily:'DM Sans,sans-serif',fontSize:12,cursor:'pointer'}}>
+                  GPS zurücksetzen
+                </button>
+              )}
+            </div>
+
             {/* GYM VERIFIZIERUNG */}
             <div onClick={()=>setShowGymVerify(true)} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',border:'1px solid '+(gymVerified?'#27ae6044':(darkMode?'#2a2a2a':'#eee')),marginTop:10,cursor:'pointer',display:'flex',alignItems:'center',gap:12}}>
               <div style={{width:40,height:40,borderRadius:10,background:gymVerified?'#27ae6018':'#f5f5f5',border:'1px solid '+(gymVerified?'#27ae6044':'#eee'),display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>
