@@ -2318,6 +2318,23 @@ export default function App(){
     const fStyles=(f.style||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
     return fStyles.some(s=>myStyles.includes(s));
   }
+
+  function relatedStyle(f){
+    if(sameStyle(f))return false; // gleicher Stil ist schon abgedeckt
+    if(!myStyles.length)return false;
+    // Stil-Gruppen: verwandte Kampfsportarten
+    const GROUPS=[
+      ['boxing','kickboxing','muay thai','savate'],           // Striking
+      ['bjj','grappling','wrestling','judo','sambo'],         // Grappling/Ground
+      ['mma','boxing','kickboxing','muay thai','bjj','grappling','wrestling','judo','sambo'], // MMA = alles verwandt
+      ['karate','taekwondo','kung fu','kickboxing'],          // Traditionell/Treten
+    ];
+    const fStyles=(f.style||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+    return GROUPS.some(group=>
+      myStyles.some(ms=>group.includes(ms)) &&
+      fStyles.some(fs=>group.includes(fs))
+    );
+  }
   function sameGender(f){
     if(!profile.gender||profile.gender==='other')return true;
     if(!f.gender||f.gender==='other')return true;
@@ -2358,17 +2375,37 @@ export default function App(){
       const sameProBool=!!(f.is_pro===true)===myIsPro; // beide Pro oder beide Amateur
 
       // ── SCORE SYSTEM (niedriger = besser) ──
-      // Basis-Score nach Stil + Nähe
+      const relatedStyleBool=relatedStyle(f);
+
       let score;
-      if(sameStyleBool&&sameCityBool)        score=1;   // 🏆 Perfekt: Stil + Stadt
-      else if(sameStyleBool&&nearbyBool)     score=2;   // Stil + nah (<30km)
-      else if(sameStyleBool&&sameRegionBool) score=3;   // Stil + Region
-      else if(sameStyleBool&&sameCountryBool)score=4;   // Stil + Land
-      else if(sameStyleBool)                 score=5;   // Nur Stil
-      else if(sameCityBool)                  score=6;   // Nur Stadt
-      else if(sameRegionBool)                score=7;   // Nur Region
-      else if(sameCountryBool)               score=8;   // Nur Land
-      else                                   score=9;   // Rest
+      // STUFE 1: Gleiche Sportart + Stadt
+      if(sameStyleBool&&sameCityBool)             score=1;
+      // STUFE 2: Verwandte Sportart + Stadt
+      else if(relatedStyleBool&&sameCityBool)     score=2;
+      // STUFE 3: Gleiche Sportart + Nähe (<30km)
+      else if(sameStyleBool&&nearbyBool)          score=3;
+      // STUFE 4: Verwandte Sportart + Nähe
+      else if(relatedStyleBool&&nearbyBool)       score=4;
+      // STUFE 5: Gleiche Sportart + Region
+      else if(sameStyleBool&&sameRegionBool)      score=5;
+      // STUFE 6: Verwandte Sportart + Region
+      else if(relatedStyleBool&&sameRegionBool)   score=6;
+      // STUFE 7: Gleiche Sportart + Land
+      else if(sameStyleBool&&sameCountryBool)     score=7;
+      // STUFE 8: Verwandte Sportart + Land
+      else if(relatedStyleBool&&sameCountryBool)  score=8;
+      // STUFE 9: Nur gleiche Sportart (anderes Land)
+      else if(sameStyleBool)                      score=9;
+      // STUFE 10: Nur verwandte Sportart
+      else if(relatedStyleBool)                   score=10;
+      // STUFE 11: Gleiche Stadt, andere Sportart
+      else if(sameCityBool)                       score=11;
+      // STUFE 12: Gleiche Region
+      else if(sameRegionBool)                     score=12;
+      // STUFE 13: Gleiches Land
+      else if(sameCountryBool)                    score=13;
+      // STUFE 14: Rest (andere Länder, unbekannte Stile)
+      else                                        score=14;
 
       // ── BONUS-PUNKTE (verbessern Score) ──
       // Gleiche Gewichtsklasse: -0.3 (wichtig für echte Kämpfe)
