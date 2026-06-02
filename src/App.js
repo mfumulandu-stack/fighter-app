@@ -2323,40 +2323,81 @@ export default function App(){
     if(!f.gender||f.gender==='other')return true;
     return f.gender===profile.gender;
   }
+  // ── PERFEKTIONIERTES MATCHING SYSTEM ──
+  const myIsPro=myProfile?.is_pro===true||profile.isPro===true;
+  const myWC=(myProfile?.weight_class||profile.weightClass||'').split(' (')[0].trim();
+
   const filteredCards=cards
     .filter(f=>!blockedUsers.includes(f.id))
     .filter(f=>!f.banned)
-    .filter(f=>filterStyle==='Alle'||f.style===filterStyle)
+    // Stil-Filter (wenn manuell gesetzt)
+    .filter(f=>filterStyle==='Alle'||!f.style||(f.style||'').includes(filterStyle))
+    // Land-Filter
+    .filter(f=>{
+      if(countryFilter==='world')return true;
+      if(!f.country||f.country==='OTHER')return true;
+      return f.country===(profile.country||myProfile?.country||'DE');
+    })
     .map(f=>{
-      // Distanz: GPS wenn verfügbar, sonst Städte-Vergleich
+      // ── DISTANZ ──
+      // GPS wenn beide haben, sonst Koordinaten-Tabelle, sonst Städte-Name
       const dist=(myLat&&myLon&&f.lat&&f.lon)
         ?getDistanceKmCoords(myLat,myLon,f.lat,f.lon)
         :getDistanceKm(myCity,f.city||'');
-      const fCity=(f.city||'').toLowerCase().trim();
-      const mCity=(myCity||'').toLowerCase().trim();
-      const sameCityBool=(myLat&&myLon&&f.lat&&f.lon)?dist<20:(fCity===mCity&&fCity!=='');
-      const sameRegionBool=(myLat&&myLon&&f.lat&&f.lon)?dist<100:getBundesland(f.city||'')===myBundesland&&!!myBundesland;
-      const sameCountryBool=!f.country||!profile.country||f.country===(profile.country||'DE')||f.country==='OTHER';
+
+      // ── ÜBEREINSTIMMUNGS-FLAGS ──
+      const hasGPS=myLat&&myLon&&f.lat&&f.lon;
+      const sameCityBool=hasGPS?dist<=15:((f.city||'').toLowerCase().trim()===(myCity||'').toLowerCase().trim()&&myCity!=='');
+      const nearbyBool=hasGPS?dist<=30:sameCityBool;
+      const sameRegionBool=hasGPS?dist<=80:getBundesland(f.city||'')===myBundesland&&!!myBundesland;
+      const sameCountryBool=hasGPS?dist<=600:(!f.country||!profile.country||f.country===(profile.country||myProfile?.country||'DE')||f.country==='OTHER');
       const sameStyleBool=sameStyle(f);
       const sameGenderBool=sameGender(f);
-      // Matching-Score: niedrig = besser
-      // Stil ist Priorität 1, dann Nähe
-      let score=100;
-      if(sameStyleBool&&sameCityBool)       score=1;  // perfekt: gleicher Stil + gleiche Stadt
-      else if(sameStyleBool&&sameRegionBool) score=2;  // gleicher Stil + gleiche Region
-      else if(sameStyleBool&&sameCountryBool)score=3;  // gleicher Stil + gleiches Land
-      else if(sameStyleBool)                 score=4;  // gleicher Stil, andere Land
-      else if(sameCityBool)                  score=5;  // gleiche Stadt, anderer Stil
-      else if(sameRegionBool)                score=6;  // gleiche Region, anderer Stil
-      else if(sameCountryBool)               score=7;  // gleiches Land, anderer Stil
-      else                                   score=8;  // alles andere
-      // Gender-Bonus: gleisches Geschlecht bekommt leichten Boost
-      if(!sameGenderBool) score+=0.5;
-      return{...f,_score:score,_dist:dist,_sameStyle:sameStyleBool,_sameCity:sameCityBool};
+      const fWC=(f.weight_class||'').split(' (')[0].trim();
+      const sameWCBool=!!myWC&&!!fWC&&myWC===fWC;
+      const sameProBool=!!(f.is_pro===true)===myIsPro; // beide Pro oder beide Amateur
+
+      // ── SCORE SYSTEM (niedriger = besser) ──
+      // Basis-Score nach Stil + Nähe
+      let score;
+      if(sameStyleBool&&sameCityBool)        score=1;   // 🏆 Perfekt: Stil + Stadt
+      else if(sameStyleBool&&nearbyBool)     score=2;   // Stil + nah (<30km)
+      else if(sameStyleBool&&sameRegionBool) score=3;   // Stil + Region
+      else if(sameStyleBool&&sameCountryBool)score=4;   // Stil + Land
+      else if(sameStyleBool)                 score=5;   // Nur Stil
+      else if(sameCityBool)                  score=6;   // Nur Stadt
+      else if(sameRegionBool)                score=7;   // Nur Region
+      else if(sameCountryBool)               score=8;   // Nur Land
+      else                                   score=9;   // Rest
+
+      // ── BONUS-PUNKTE (verbessern Score) ──
+      // Gleiche Gewichtsklasse: -0.3 (wichtig für echte Kämpfe)
+      if(sameWCBool) score-=0.3;
+      // Gleicher Pro/Amateur Status: -0.2
+      if(sameProBool) score-=0.2;
+      // Gleiches Geschlecht: -0.15
+      if(sameGenderBool) score-=0.15;
+      // Profil vollständig (hat Foto): -0.1
+      if(f.avatar_url) score-=0.1;
+      // Aktiv in letzten 7 Tagen: -0.2
+      if(f.last_seen&&(Date.now()-new Date(f.last_seen).getTime())<604800000) score-=0.2;
+
+      return{
+        ...f,
+        _score:score,
+        _dist:dist,
+        _sameStyle:sameStyleBool,
+        _sameCity:sameCityBool,
+        _sameWC:sameWCBool,
+        _sameProStatus:sameProBool,
+      };
     })
     .sort((a,b)=>{
-      if(a._score!==b._score)return a._score-b._score;
-      return (a._dist||9999)-(b._dist||9999); // bei gleichem Score: näher zuerst
+      // Primär: Score
+      const scoreDiff=a._score-b._score;
+      if(Math.abs(scoreDiff)>0.01)return scoreDiff;
+      // Sekundär: Distanz
+      return (a._dist||9999)-(b._dist||9999);
     });
   const top=filteredCards[filteredCards.length-1];
   const lastTapRef=useRef(0);
@@ -3252,6 +3293,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                           {f.country&&f.country!=='DE'&&f.country!=='OTHER'&&<div style={{background:'rgba(255,255,255,0.15)',borderRadius:20,padding:'2px 8px',color:'#fff',fontSize:13}}>{{'AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[f.country]||'🌍'}</div>}
                           {f.city&&<div style={{background:f._sameCity?'rgba(39,174,96,0.3)':'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>📍 {f.city}{f._dist&&f._dist<500&&!f._sameCity?' · '+f._dist+'km':''}{f._sameCity?' · Deine Stadt':''}</div>}
                           {f._sameStyle&&<div style={{background:'rgba(192,57,43,0.5)',border:'1px solid rgba(192,57,43,0.7)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>🥊 Gleicher Stil</div>}
+                       {f._sameWC&&<div style={{background:'rgba(212,160,23,0.5)',border:'1px solid rgba(212,160,23,0.7)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>⚖️ Gleiche Klasse</div>}
+                       {f._sameCity&&!f._sameStyle&&<div style={{background:'rgba(39,174,96,0.5)',border:'1px solid rgba(39,174,96,0.7)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>📍 In deiner Nähe</div>}
                           </div>
                           {f.bio&&<div style={{color:'rgba(255,255,255,0.5)',fontSize:10,marginTop:5,fontStyle:'italic'}}>"{f.bio}"</div>}
                         </div>
