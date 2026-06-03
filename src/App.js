@@ -1560,16 +1560,15 @@ export default function App(){
     if(tab==='ranking'&&session){
       setRankingLoading(true);
       // Erst mit Session Token versuchen
-      fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=500',{
+      fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=2000',{
         headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
       }).then(r=>r.json()).then(data=>{
-        if(Array.isArray(data)&&data.length>0){
+        if(Array.isArray(data)){
           setAllProfiles(data);
           setRankingLoading(false);
         } else {
-          // Fallback mit Service Key
-          return fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=500',{
-            headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
+          return fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=2000',{
+            headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
           }).then(r=>r.json()).then(d=>{
             if(Array.isArray(d))setAllProfiles(d);
             setRankingLoading(false);
@@ -1841,12 +1840,21 @@ export default function App(){
   async function loadAllProfiles(s){
     try{
       const token=s?.token||session?.token;
-      const resp=await fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=500',{
+      const resp=await fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=2000',{
         headers:{apikey:SUPA_KEY,Authorization:'Bearer '+token}
       });
       const data=await resp.json();
-      if(Array.isArray(data)&&data.length>0){
+      if(Array.isArray(data)){
         setAllProfiles(data);
+      }else{
+        // Fallback mit anon key
+        try{
+          const r2=await fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=500',{
+            headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+          });
+          const d2=await r2.json();
+          if(Array.isArray(d2))setAllProfiles(d2);
+        }catch{}
       }
     }catch(e){console.log('loadAllProfiles Fehler:',e);}
   }
@@ -1890,7 +1898,7 @@ export default function App(){
 
   async function loadRealFighters(s,myP,isInitial=false){
     try{
-      let all = await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true',s.token);
+      let all = await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true&order=created_at.desc&limit=2000',s.token);
       if(!Array.isArray(all)||all.length===0){
         try{
           const r=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=neq.'+s.userId+'&banned=neq.true',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
