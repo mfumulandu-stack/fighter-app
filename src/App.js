@@ -1284,6 +1284,8 @@ export default function App(){
   const [adminCityLon,setAdminCityLon]=useState('');
   const [adminCityBL,setAdminCityBL]=useState('');
   const [adminSaving,setAdminSaving]=useState(false);
+  const [adminFeedback,setAdminFeedback]=useState([]);
+  const [feedbackFilter,setFeedbackFilter]=useState('alle');
   const [adminUsersLoaded,setAdminUsersLoaded]=useState(false);
   const isAdmin=session?.userId===ADMIN_ID||myProfile?.id===ADMIN_ID;
   const [fightHistory,setFightHistory]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_history')||'[]')}catch{return []}});
@@ -1312,6 +1314,9 @@ export default function App(){
   const [locationSource,setLocationSource]=useState('city'); // 'city' | 'ip' | 'gps'
   const [locationLoading,setLocationLoading]=useState(false);
   const [showMenu,setShowMenu]=useState(false);
+  const [showFeedbackModal,setShowFeedbackModal]=useState(false);
+  const [feedbackType,setFeedbackType]=useState('feedback'); // 'feedback' | 'wunsch'
+  const [showEquipment,setShowEquipment]=useState(false);
   const [appLang,setAppLang]=useState(()=>{try{return localStorage.getItem('fighter_lang')||'DE'}catch{return 'DE'}});
   const T = {
     DE: {
@@ -3085,6 +3090,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               {[
                 {icon:'📅',label:'Events',action:()=>{setTab('events');setShowMenu(false);loadEvents(session);}},
                 {icon:'👤',label:'Mein Profil',action:()=>{setTab('stats');setShowMenu(false);}},
+                {icon:'🛒',label:appLang==='EN'?'Equipment':'Equipment',action:()=>{setShowEquipment(true);setShowMenu(false);}},
+                {icon:'💬',label:appLang==='EN'?'Feedback & Wishes':'Feedback & Wünsche',action:()=>{setShowFeedbackModal(true);setFeedbackType('feedback');setFeedbackSent(false);setFeedbackText('');setShowMenu(false);}},
               ].map(item=>(
                 <div key={item.label} onClick={item.action} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',cursor:'pointer',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5'),transition:'background 0.15s'}}
                   onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
@@ -3224,6 +3231,91 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── FEEDBACK & WÜNSCHE MODAL ── */}
+      {showFeedbackModal&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.65)',zIndex:900,display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
+          <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:'20px 20px 0 0',width:'100%',maxWidth:480,padding:'24px 20px 44px',maxHeight:'90vh',overflowY:'auto'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:2}}>FEEDBACK & WÜNSCHE</div>
+                <div style={{color:'#aaa',fontSize:11,marginTop:2}}>Hilf uns Fighter App besser zu machen</div>
+              </div>
+              <button onClick={()=>setShowFeedbackModal(false)} style={{background:'none',border:'none',fontSize:22,cursor:'pointer',color:'#aaa'}}>✕</button>
+            </div>
+            {feedbackSent?(
+              <div style={{textAlign:'center',padding:'24px 0'}}>
+                <div style={{fontSize:52,marginBottom:12}}>🙏</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:2,marginBottom:6}}>DANKE!</div>
+                <div style={{color:'#aaa',fontSize:13,lineHeight:1.7}}>Dein {feedbackType==='wunsch'?'Wunsch':'Feedback'} wurde gesendet. Wir lesen alles!</div>
+                <button onClick={()=>{setShowFeedbackModal(false);setFeedbackSent(false);setFeedbackText('');}}
+                  style={{marginTop:20,padding:'12px 32px',borderRadius:10,background:`linear-gradient(135deg,#c0392b,#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer'}}>
+                  SCHLIESSEN
+                </button>
+              </div>
+            ):(
+              <div>
+                {/* Type Toggle */}
+                <div style={{display:'flex',gap:8,marginBottom:16,background:darkMode?'#2a2a2a':'#f0f0f0',borderRadius:12,padding:4}}>
+                  {[['feedback','💬 Feedback'],['wunsch','⭐ Wunsch / Idee']].map(([type,label])=>(
+                    <button key={type} onClick={()=>setFeedbackType(type)}
+                      style={{flex:1,padding:'10px',borderRadius:9,background:feedbackType===type?(darkMode?'#1a1a1a':'#fff'):'transparent',border:'none',color:feedbackType===type?(darkMode?'#fff':'#1a1a1a'):(darkMode?'#666':'#aaa'),fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',transition:'all 0.2s',boxShadow:feedbackType===type?'0 1px 4px rgba(0,0,0,0.1)':'none'}}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{color:'#aaa',fontSize:11,marginBottom:8}}>
+                  {feedbackType==='wunsch'?'Was wünschst du dir für die App? Neue Features, Verbesserungen...':'Was läuft gut? Was soll besser werden?'}
+                </div>
+                <textarea value={feedbackText} onChange={e=>setFeedbackText(e.target.value)}
+                  placeholder={feedbackType==='wunsch'?'z.B. Ich wünsche mir eine Funktion für...':'z.B. Das Matching könnte...'}
+                  rows={5} style={{width:'100%',padding:'12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontFamily:'DM Sans,sans-serif',resize:'none',boxSizing:'border-box',marginBottom:12}}/>
+                <button onClick={async()=>{
+                  if(!feedbackText.trim()){showMsg('Bitte Text eingeben');return;}
+                  try{
+                    await fetch(SUPA_URL+'/rest/v1/feedback',{
+                      method:'POST',
+                      headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+(session?.token||SUPA_KEY),Prefer:'return=minimal'},
+                      body:JSON.stringify({user_id:myProfile?.id||null,user_name:profile.name||'Unbekannt',message:feedbackText.trim(),type:feedbackType,lang:appLang,read:false,created_at:new Date().toISOString()})
+                    });
+                  }catch(e){console.error('feedback',e);}
+                  setFeedbackSent(true);
+                }} disabled={!feedbackText.trim()}
+                  style={{width:'100%',padding:'14px',borderRadius:10,background:feedbackText.trim()?`linear-gradient(135deg,#c0392b,#e74c3c)`:'#eee',border:'none',color:feedbackText.trim()?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:feedbackText.trim()?'pointer':'not-allowed'}}>
+                  {feedbackType==='wunsch'?'⭐ WUNSCH SENDEN':'💬 FEEDBACK SENDEN'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── EQUIPMENT MODAL ── */}
+      {showEquipment&&(
+        <div style={{position:'fixed',inset:0,background:darkMode?'#0d0d0d':'#f5f5f7',zIndex:900,display:'flex',flexDirection:'column',overflowY:'auto'}}>
+          <div style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee'),position:'sticky',top:0,zIndex:10}}>
+            <button onClick={()=>setShowEquipment(false)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
+            <div>
+              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:3}}>EQUIPMENT</div>
+              <div style={{color:'#aaa',fontSize:11}}>Top Kampfsport-Ausrüstung</div>
+            </div>
+          </div>
+          <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%'}}>
+            {/* Coming Soon */}
+            <div style={{textAlign:'center',padding:'60px 20px'}}>
+              <div style={{fontSize:64,marginBottom:16}}>🥊</div>
+              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:3,marginBottom:8}}>COMING SOON</div>
+              <div style={{color:'#aaa',fontSize:13,lineHeight:1.7,maxWidth:280,margin:'0 auto'}}>
+                Bald findest du hier die beste Kampfsport-Ausrüstung — kuratiert von echten Athleten. Handschuhe, Bandagen, Schutzausrüstung und mehr.
+              </div>
+              <button onClick={()=>{setFeedbackType('wunsch');setFeedbackText('Equipment Empfehlung: ');setShowEquipment(false);setShowFeedbackModal(true);setFeedbackSent(false);}}
+                style={{marginTop:20,padding:'12px 24px',borderRadius:10,background:`linear-gradient(135deg,#c0392b,#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:'pointer'}}>
+                ⭐ AUSRÜSTUNG VORSCHLAGEN
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -4508,7 +4600,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <button onClick={()=>setShowAdmin(false)} style={{background:'none',border:'none',color:'#fff',fontSize:22,cursor:'pointer'}}>✕</button>
           </div>
           <div style={{display:'flex',overflowX:'auto',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
-            {[['gyms','🏋️'],['addgym','➕'],['addcity','🌍'],['events','📅'],['users','👤'],['reports','🚨'],['records','🏅'],['broadcast','📢'],['stats','📊'],['scanner','🔍']].map(([t,l])=>(
+            {[['gyms','🏋️'],['addgym','➕'],['addcity','🌍'],['events','📅'],['users','👤'],['reports','🚨'],['records','🏅'],['feedback','💬'],['broadcast','📢'],['stats','📊'],['scanner','🔍']].map(([t,l])=>(
               <button key={t} onClick={()=>setAdminTab(t)} style={{flexShrink:0,padding:'10px 14px',background:'none',border:'none',borderBottom:adminTab===t?'2px solid '+RED:'2px solid transparent',color:adminTab===t?RED:(darkMode?'#aaa':'#888'),fontWeight:700,fontSize:16,cursor:'pointer'}}>{l}</button>
             ))}
           </div>
@@ -4987,6 +5079,70 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             )}
 
             {/* ── BROADCAST ── */}
+            {adminTab==='feedback'&&(
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>💬 FEEDBACK & WÜNSCHE</div>
+                <button onClick={async()=>{
+                  try{
+                    const resp=await fetch(SUPA_URL+'/rest/v1/feedback?order=created_at.desc&limit=100',{
+                      headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
+                    });
+                    const data=await resp.json();
+                    if(Array.isArray(data))setAdminFeedback(data);
+                    else setAdminFeedback([]);
+                  }catch(e){showMsg('Fehler: '+e.message);}
+                }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>
+                  🔄 FEEDBACK LADEN
+                </button>
+                {/* Filter Tabs */}
+                <div style={{display:'flex',gap:6,marginBottom:12}}>
+                  {[['alle','Alle'],['feedback','💬 Feedback'],['wunsch','⭐ Wünsche']].map(([type,label])=>(
+                    <button key={type} onClick={()=>setFeedbackFilter(type)}
+                      style={{flex:1,padding:'7px',borderRadius:8,background:feedbackFilter===type?RED:'transparent',border:'1px solid '+(feedbackFilter===type?RED:(darkMode?'#333':'#ddd')),color:feedbackFilter===type?'#fff':(darkMode?'#aaa':'#666'),fontSize:11,fontWeight:700,cursor:'pointer'}}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {adminFeedback.length===0?(
+                  <div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>Noch kein Feedback — Laden drücken</div>
+                ):(
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {adminFeedback.filter(f=>feedbackFilter==='alle'||f.type===feedbackFilter).map((fb,i)=>(
+                      <div key={fb.id||i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'12px 14px',border:'1px solid '+(fb.type==='wunsch'?'#d4a01744':(darkMode?'#2a2a2a':'#eee')),position:'relative'}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+                          <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                            <div style={{background:fb.type==='wunsch'?'#d4a01722':'#2980b922',border:'1px solid '+(fb.type==='wunsch'?'#d4a01744':'#2980b944'),borderRadius:20,padding:'2px 8px',color:fb.type==='wunsch'?'#d4a017':'#2980b9',fontSize:10,fontWeight:700}}>
+                              {fb.type==='wunsch'?'⭐ WUNSCH':'💬 FEEDBACK'}
+                            </div>
+                            {!fb.read&&<div style={{background:RED,borderRadius:20,padding:'2px 8px',color:'#fff',fontSize:9,fontWeight:700}}>NEU</div>}
+                          </div>
+                          <div style={{color:'#aaa',fontSize:10}}>
+                            {fb.created_at?new Date(fb.created_at).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}):''}
+                          </div>
+                        </div>
+                        <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,lineHeight:1.6,marginBottom:6}}>{fb.message}</div>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <div style={{color:'#aaa',fontSize:11}}>👤 {fb.user_name||'Anonym'}</div>
+                          <button onClick={async()=>{
+                            try{
+                              await fetch(SUPA_URL+'/rest/v1/feedback?id=eq.'+fb.id,{
+                                method:'PATCH',
+                                headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
+                                body:JSON.stringify({read:true})
+                              });
+                              setAdminFeedback(prev=>prev.map(f=>f.id===fb.id?{...f,read:true}:f));
+                            }catch{}
+                          }} style={{background:'none',border:'1px solid '+(darkMode?'#333':'#ddd'),borderRadius:6,padding:'3px 8px',color:darkMode?'#666':'#aaa',fontSize:10,cursor:'pointer'}}>
+                            {fb.read?'✓ Gelesen':'Als gelesen markieren'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {adminTab==='broadcast'&&(
               <div>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>📢 NACHRICHT AN ALLE</div>
