@@ -3070,96 +3070,97 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
       {/* SLIDE-OUT MENU OVERLAY */}
       {showMenu&&(
         <div style={{position:'fixed',inset:0,zIndex:800,display:'flex'}}>
-          {/* Backdrop */}
-          <div onClick={()=>setShowMenu(false)} style={{flex:1,background:'rgba(0,0,0,0.5)'}}/>
-          {/* Menu Panel */}
-          <div style={{width:260,background:darkMode?'#1a1a1a':'#fff',height:'100%',display:'flex',flexDirection:'column',boxShadow:'-4px 0 24px rgba(0,0,0,0.2)',animation:'slideInRight 0.25s ease'}}>
+          <div onClick={()=>setShowMenu(false)} style={{flex:1,background:'rgba(0,0,0,0.45)'}}/>
+          <div style={{width:255,background:darkMode?'#141414':'#fafafa',height:'100%',display:'flex',flexDirection:'column',boxShadow:'-8px 0 32px rgba(0,0,0,0.18)',animation:'slideInRight 0.22s ease'}}>
             <style>{`@keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}`}</style>
-            {/* Menu Header */}
-            <div style={{padding:'20px 20px 16px',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:12}}>
+
+            {/* Profil Header */}
+            <div style={{padding:'22px 18px 14px',display:'flex',alignItems:'center',gap:11}}>
               {avatarPreview
-                ?<img src={avatarPreview} style={{width:44,height:44,borderRadius:'50%',objectFit:'cover',border:'2px solid '+RED}} alt=''/>
-                :<div style={{width:44,height:44,borderRadius:'50%',background:RED+'22',border:'2px solid '+RED+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>🥊</div>}
-              <div>
-                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14}}>{profile.name||'Fighter'}</div>
-                <div style={{color:RED,fontSize:11,marginTop:1}}>{profile.style||''}</div>
+                ?<img src={avatarPreview} style={{width:42,height:42,borderRadius:'50%',objectFit:'cover',border:'2px solid '+RED}} alt=''/>
+                :<div style={{width:42,height:42,borderRadius:'50%',background:RED+'18',border:'2px solid '+RED+'33',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🥊</div>}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{color:darkMode?'#fff':'#111',fontWeight:700,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{profile.name||'Fighter'}</div>
+                <div style={{color:RED,fontSize:10,marginTop:1}}>{profile.style||''}</div>
               </div>
+              <button onClick={()=>setShowMenu(false)} style={{background:'none',border:'none',color:darkMode?'#555':'#bbb',fontSize:16,cursor:'pointer',padding:4}}>✕</button>
             </div>
+
+            <div style={{height:1,background:darkMode?'#222':'#efefef',margin:'0 18px'}}/>
+
             {/* Menu Items */}
             <div style={{flex:1,overflowY:'auto',padding:'8px 0'}}>
+
+              {/* Navigations-Items */}
               {[
                 {icon:'📅',label:'Events',action:()=>{setTab('events');setShowMenu(false);loadEvents(session);}},
                 {icon:'👤',label:'Mein Profil',action:()=>{setTab('stats');setShowMenu(false);}},
-                {icon:'🛒',label:appLang==='EN'?'Equipment':'Equipment',action:()=>{setShowEquipment(true);setShowMenu(false);}},
-                {icon:'💬',label:appLang==='EN'?'Feedback & Wishes':'Feedback & Wünsche',action:()=>{setShowFeedbackModal(true);setFeedbackType('feedback');setFeedbackSent(false);setFeedbackText('');setShowMenu(false);}},
+                {icon:'🥊',label:'Equipment',action:()=>{setShowEquipment(true);setShowMenu(false);}},
               ].map(item=>(
-                <div key={item.label} onClick={item.action} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',cursor:'pointer',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5'),transition:'background 0.15s'}}
-                  onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
+                <div key={item.label} onClick={item.action}
+                  style={{display:'flex',alignItems:'center',gap:12,padding:'10px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px',transition:'background 0.15s'}}
+                  onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
                   onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                  <div style={{fontSize:20,width:28,textAlign:'center'}}>{item.icon}</div>
-                  <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,fontWeight:600}}>{item.label}</div>
+                  <div style={{fontSize:17,width:24,textAlign:'center',opacity:0.85}}>{item.icon}</div>
+                  <div style={{color:darkMode?'#e0e0e0':'#222',fontSize:13,fontWeight:600}}>{item.label}</div>
                 </div>
               ))}
 
-              {/* BENACHRICHTIGUNGEN TOGGLE */}
+              <div style={{height:1,background:darkMode?'#222':'#efefef',margin:'8px 18px'}}/>
+
+              {/* BENACHRICHTIGUNGEN */}
               <div onClick={async()=>{
-                if(!('Notification' in window)){showMsg('Benachrichtigungen nicht unterstützt');return;}
-                if(Notification.permission==='granted'){
-                  showMsg('Benachrichtigungen sind bereits aktiv 🔔');
-                }else if(Notification.permission==='denied'){
-                  showMsg('Bitte in den Browser-Einstellungen erlauben');
-                }else{
-                  const perm=await Notification.requestPermission();
-                  if(perm==='granted'){showMsg('Benachrichtigungen aktiviert! 🔔');}
-                  else{showMsg('Benachrichtigungen abgelehnt');}
-                }
-              }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',cursor:'pointer',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5')}}
-                onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
+                if(!('Notification' in window)){showMsg('Nicht unterstützt');return;}
+                if(Notification.permission==='granted'){showMsg('Benachrichtigungen aktiv 🔔');}
+                else if(Notification.permission==='denied'){showMsg('In Browser-Einstellungen erlauben');}
+                else{const p=await Notification.requestPermission();showMsg(p==='granted'?'Aktiviert! 🔔':'Abgelehnt');}
+              }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px'}}
+                onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
                 onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                <div style={{display:'flex',alignItems:'center',gap:14}}>
-                  <div style={{fontSize:20,width:28,textAlign:'center'}}>🔔</div>
+                <div style={{display:'flex',alignItems:'center',gap:12}}>
+                  <div style={{fontSize:17,width:24,textAlign:'center',opacity:0.85}}>🔔</div>
                   <div>
-                    <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,fontWeight:600}}>Benachrichtigungen</div>
-                    <div style={{color:'#aaa',fontSize:11,marginTop:1}}>{typeof Notification!=='undefined'&&Notification.permission==='granted'?'Aktiv':'Nicht aktiv'}</div>
+                    <div style={{color:darkMode?'#e0e0e0':'#222',fontSize:13,fontWeight:600}}>Benachrichtigungen</div>
+                    <div style={{color:'#aaa',fontSize:10,marginTop:1}}>{typeof Notification!=='undefined'&&Notification.permission==='granted'?'Aktiv':'Nicht aktiv'}</div>
                   </div>
                 </div>
-                <div style={{width:40,height:22,borderRadius:11,background:typeof Notification!=='undefined'&&Notification.permission==='granted'?'#27ae60':'#ccc',position:'relative',flexShrink:0}}>
-                  <div style={{position:'absolute',top:3,left:typeof Notification!=='undefined'&&Notification.permission==='granted'?21:3,width:16,height:16,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
+                <div style={{width:34,height:19,borderRadius:10,background:typeof Notification!=='undefined'&&Notification.permission==='granted'?'#27ae60':'#ccc',position:'relative',flexShrink:0}}>
+                  <div style={{position:'absolute',top:2.5,left:typeof Notification!=='undefined'&&Notification.permission==='granted'?17:2.5,width:14,height:14,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
                 </div>
               </div>
 
-              {/* DARK MODE TOGGLE */}
-              <div onClick={()=>setDarkMode(d=>!d)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',cursor:'pointer',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5')}}
-                onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
+              {/* DARK MODE */}
+              <div onClick={()=>setDarkMode(d=>!d)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px'}}
+                onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
                 onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                <div style={{display:'flex',alignItems:'center',gap:14}}>
-                  <div style={{fontSize:20,width:28,textAlign:'center'}}>{darkMode?'☀️':'🌙'}</div>
-                  <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,fontWeight:600}}>Dark Mode</div>
+                <div style={{display:'flex',alignItems:'center',gap:12}}>
+                  <div style={{fontSize:17,width:24,textAlign:'center',opacity:0.85}}>{darkMode?'☀️':'🌙'}</div>
+                  <div style={{color:darkMode?'#e0e0e0':'#222',fontSize:13,fontWeight:600}}>Dark Mode</div>
                 </div>
-                <div style={{width:40,height:22,borderRadius:11,background:darkMode?RED:'#ddd',position:'relative',flexShrink:0}}>
-                  <div style={{position:'absolute',top:3,left:darkMode?21:3,width:16,height:16,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
+                <div style={{width:34,height:19,borderRadius:10,background:darkMode?RED:'#ccc',position:'relative',flexShrink:0}}>
+                  <div style={{position:'absolute',top:2.5,left:darkMode?17:2.5,width:14,height:14,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
                 </div>
               </div>
 
               {isAdmin&&(
-                <div onClick={()=>{setShowAdmin(true);setShowMenu(false);}} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',cursor:'pointer',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5')}}
-                  onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
+                <div onClick={()=>{setShowAdmin(true);setShowMenu(false);}} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px'}}
+                  onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
                   onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                  <div style={{fontSize:20,width:28,textAlign:'center'}}>⚙️</div>
-                  <div style={{color:RED,fontSize:15,fontWeight:700}}>Admin Panel</div>
+                  <div style={{fontSize:17,width:24,textAlign:'center'}}>⚙️</div>
+                  <div style={{color:RED,fontSize:13,fontWeight:700}}>Admin Panel</div>
                 </div>
               )}
             </div>
             {/* SPRACHE */}
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
-              <div style={{display:'flex',alignItems:'center',gap:14}}>
-                <div style={{fontSize:20,width:28,textAlign:'center'}}>🌍</div>
-                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,fontWeight:600}}>Sprache</div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 18px',borderTop:'1px solid '+(darkMode?'#222':'#efefef')}}>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <div style={{fontSize:15,width:24,textAlign:'center',opacity:0.7}}>🌍</div>
+                <div style={{color:darkMode?'#aaa':'#666',fontSize:12,fontWeight:600}}>Sprache</div>
               </div>
-              <div style={{display:'flex',gap:4,background:darkMode?'#2a2a2a':'#f0f0f0',borderRadius:20,padding:3}}>
+              <div style={{display:'flex',gap:3,background:darkMode?'#222':'#ebebeb',borderRadius:16,padding:3}}>
                 {['DE','EN'].map(lang=>(
-                  <button key={lang} onClick={()=>{setAppLang(lang);try{localStorage.setItem('fighter_lang',lang);}catch{}showMsg(lang==='DE'?'Sprache: Deutsch 🇩🇪':'Language: English 🇬🇧');}}
-                    style={{padding:'4px 14px',borderRadius:18,background:appLang===lang?(darkMode?'#444':'#fff'):'transparent',border:'none',color:appLang===lang?(darkMode?'#fff':'#1a1a1a'):(darkMode?'#666':'#aaa'),fontSize:13,fontWeight:700,cursor:'pointer',transition:'all 0.2s',boxShadow:appLang===lang?'0 1px 4px rgba(0,0,0,0.15)':'none'}}>
+                  <button key={lang} onClick={()=>{setAppLang(lang);try{localStorage.setItem('fighter_lang',lang);}catch{}showMsg(lang==='DE'?'Deutsch 🇩🇪':'English 🇬🇧');}}
+                    style={{padding:'3px 11px',borderRadius:13,background:appLang===lang?(darkMode?'#333':'#fff'):'transparent',border:'none',color:appLang===lang?(darkMode?'#fff':'#111'):(darkMode?'#555':'#999'),fontSize:12,fontWeight:700,cursor:'pointer',transition:'all 0.15s',boxShadow:appLang===lang?'0 1px 3px rgba(0,0,0,0.12)':'none'}}>
                     {lang}
                   </button>
                 ))}
@@ -3175,11 +3176,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             </div>
 
             {/* Logout */}
-            <div onClick={handleLogout} style={{padding:'16px 20px',borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:14,cursor:'pointer'}}
-              onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
+            <div onClick={handleLogout} style={{padding:'10px 18px',borderTop:'1px solid '+(darkMode?'#222':'#efefef'),display:'flex',alignItems:'center',gap:12,cursor:'pointer',borderRadius:8,margin:'4px 8px 8px'}}
+              onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
               onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-              <div style={{fontSize:20,width:28,textAlign:'center'}}></div>
-              <div style={{color:'#e74c3c',fontSize:15,fontWeight:600}}>{t.logout}</div>
+              <div style={{fontSize:16,width:24,textAlign:'center',opacity:0.85}}>🚪</div>
+              <div style={{color:'#e74c3c',fontSize:13,fontWeight:600}}>{t.logout}</div>
             </div>
           </div>
         </div>
