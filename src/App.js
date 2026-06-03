@@ -2416,7 +2416,15 @@ export default function App(){
       else                                        score=14;
 
       // ── BONUS-PUNKTE (verbessern Score) ──
-      // Gleiche Gewichtsklasse: -0.3 (wichtig für echte Kämpfe)
+      // Gewicht-Kompatibilität (wichtigster Bonus für echte Kämpfe)
+      const myWeight=parseInt(myProfile?.weight||profile?.weight||0);
+      const fWeight=parseInt(f.weight||0);
+      const weightDiff=myWeight&&fWeight?Math.abs(myWeight-fWeight):999;
+      if(weightDiff<=3)       score-=0.5;  // fast gleich (±3kg) — ideal
+      else if(weightDiff<=7)  score-=0.35; // sehr nah (±7kg)
+      else if(weightDiff<=12) score-=0.2;  // nah (±12kg)
+      else if(weightDiff<=20) score-=0.05; // noch ok (±20kg)
+      // Gleiche Gewichtsklasse (zusätzlich zum Gewicht)
       if(sameWCBool) score-=0.3;
       // Gleicher Pro/Amateur Status: -0.2
       if(sameProBool) score-=0.2;
