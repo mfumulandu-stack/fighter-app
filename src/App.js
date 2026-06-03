@@ -3083,7 +3083,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             {/* Menu Items */}
             <div style={{flex:1,overflowY:'auto',padding:'8px 0'}}>
               {[
-                {icon:'📅',label:'Events',action:()=>{setTab('events');setShowMenu(false);}},
+                {icon:'📅',label:'Events',action:()=>{setTab('events');setShowMenu(false);loadEvents(session);}},
                 {icon:'👤',label:'Mein Profil',action:()=>{setTab('stats');setShowMenu(false);}},
               ].map(item=>(
                 <div key={item.label} onClick={item.action} style={{display:'flex',alignItems:'center',gap:14,padding:'14px 20px',cursor:'pointer',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5'),transition:'background 0.15s'}}
@@ -4155,8 +4155,12 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                               <button onClick={async()=>{
                                 if(!window.confirm('Event löschen?'))return;
                                 try{
-                                  await fetch(SUPA_URL+'/rest/v1/events?id=eq.'+ev.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
-                                  await loadEvents(session);showMsg('Event gelöscht');
+                                  // Teilnehmer zuerst löschen, dann Event
+                                  const aKey=isAdmin?SUPA_SERVICE_KEY:SUPA_KEY;
+                                  const aAuth=isAdmin?SUPA_SERVICE_KEY:session.token;
+                                  await fetch(SUPA_URL+'/rest/v1/event_participants?event_id=eq.'+ev.id,{method:'DELETE',headers:{apikey:aKey,Authorization:'Bearer '+aAuth}});
+                                  await fetch(SUPA_URL+'/rest/v1/events?id=eq.'+ev.id,{method:'DELETE',headers:{apikey:aKey,Authorization:'Bearer '+aAuth}});
+                                  await loadEvents(session);showMsg('Event gelöscht ✅');
                                 }catch(e){showMsg('Fehler: '+e.message);}
                               }} style={{flex:1,padding:'10px',borderRadius:10,background:'transparent',border:'1px solid #e74c3c44',color:'#e74c3c',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
                                 🗑️ Löschen
