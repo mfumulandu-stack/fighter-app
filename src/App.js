@@ -924,8 +924,8 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
             {/* Infos */}
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:10}}>
               {[
-                ['GEWICHTSKLASSE',other?.weight_class||'-','#2980b9'],
-                ['GYM',other?.gym||'-','#8e44ad'],
+                [appLang==='FR'?'CATÉGORIE':appLang==='EN'?'WEIGHT CLASS':'GEWICHTSKLASSE',other?.weight_class||'-','#2980b9'],
+                [appLang==='FR'?'SALLE':'GYM',other?.gym||'-','#8e44ad'],
                 ['GRÖSSE',other?.height?(other.height+'cm'):'-','#27ae60'],
                 ['GEWICHT',other?.weight?(other.weight+'kg'):'-','#e67e22'],
               ].map(([label,val,color])=>(
@@ -1332,6 +1332,20 @@ export default function App(){
     DE: {
       // Navigation
       fight:'FIGHT', chat:'CHAT', rang:'RANG', gyms:'GYMS', profil:'PROFIL',
+      // Additional UI strings
+      noOneLiked:'Noch niemand hat dich geliket',
+      keepSwiping:'Swipe weiter — dein Match kommt!',
+      notifications:'Benachrichtigungen',
+      noEvents:'Keine Events vorhanden',
+      findEventsCity:'Finde Events in deiner Stadt',
+      deleteBtn:'🗑️ Löschen',
+      gymNotFound:'Kein Gym gefunden',
+      gymBeingAdded:'Dein Gym wird geprüft und hinzugefügt',
+      myGymNotListed:'Mein Gym ist nicht dabei → anmelden',
+      noReports:'Keine Meldungen — oder "Laden" drücken',
+      noRequests:'Keine offenen Anträge',
+      noFeedbackYet:'Noch kein Feedback — Laden drücken',
+      weiterSwipen:'Weiter swipen',
       // Auth
       login:'Einloggen', register:'Registrieren', email:'E-Mail', password:'Passwort (min. 6 Zeichen)',
       loginBtn:'LOGIN', registerBtn:'REGISTRIEREN', forgotPw:'Passwort vergessen?',
@@ -1432,6 +1446,20 @@ export default function App(){
     EN: {
       // Navigation
       fight:'FIGHT', chat:'CHAT', rang:'RANK', gyms:'GYMS', profil:'PROFILE',
+      // Additional UI strings
+      noOneLiked:'Nobody liked you yet',
+      keepSwiping:'Keep swiping — your match is coming!',
+      notifications:'Notifications',
+      noEvents:'No events available',
+      findEventsCity:'Find events in your city',
+      deleteBtn:'🗑️ Delete',
+      gymNotFound:'No gym found',
+      gymBeingAdded:'Your gym is being reviewed and added',
+      myGymNotListed:'My gym is not listed → register',
+      noReports:'No reports — or press "Load"',
+      noRequests:'No open requests',
+      noFeedbackYet:'No feedback yet — press Load',
+      weiterSwipen:'Keep swiping',
       // Auth
       login:'Log in', register:'Register', email:'E-Mail', password:'Password (min. 6 chars)',
       loginBtn:'LOGIN', registerBtn:'REGISTER', forgotPw:'Forgot password?',
@@ -1533,6 +1561,20 @@ export default function App(){
   T.FR = {
       // Navigation
       fight:'COMBAT', chat:'CHAT', rang:'CLASSEMENT', gyms:'SALLES', profil:'PROFIL',
+      // Additional UI strings
+      noOneLiked:"Personne ne vous a encore liké",
+      keepSwiping:'Continuez à swiper — votre match arrive!',
+      notifications:'Notifications',
+      noEvents:'Aucun événement disponible',
+      findEventsCity:'Trouvez des événements dans votre ville',
+      deleteBtn:'🗑️ Supprimer',
+      gymNotFound:'Aucune salle trouvée',
+      gymBeingAdded:'Votre salle est en cours de vérification',
+      myGymNotListed:"Ma salle n'est pas listée → inscrire",
+      noReports:'Aucun signalement — ou appuyer sur "Charger"',
+      noRequests:'Aucune demande en attente',
+      noFeedbackYet:'Pas encore de feedback — appuyer sur Charger',
+      weiterSwipen:'Continuer à swiper',
       // Auth
       login:'Connexion', register:"S'inscrire", email:'E-Mail', password:'Mot de passe (min. 6 car.)',
       loginBtn:'CONNEXION', registerBtn:"S'INSCRIRE", forgotPw:'Mot de passe oublié?',
@@ -1793,9 +1835,9 @@ export default function App(){
               body:JSON.stringify({lat,lon,location_source:'gps',city:city||myProfile.city||profile.city})
             });
           }
-          showMsg('📍 Standort gespeichert'+(city?' — '+city:'')+'!');
+          showMsg((appLang==='FR'?'📍 Localisation sauvegardée':appLang==='EN'?'📍 Location saved':'📍 Standort gespeichert')+(city?' — '+city:'')+'!');
         }catch{
-          showMsg('📍 GPS Standort gespeichert!');
+          showMsg(appLang==='FR'?'📍 Position GPS sauvegardée!':appLang==='EN'?'📍 GPS location saved!':'📍 GPS Standort gespeichert!');
           if(session&&myProfile){
             await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{
               method:'PATCH',
@@ -1808,7 +1850,7 @@ export default function App(){
       },
       (err)=>{
         if(err.code===1)showMsg('Standort-Zugriff verweigert');
-        else showMsg('GPS-Fehler: '+err.message);
+        else showMsg((appLang==='FR'?'Erreur GPS: ':appLang==='EN'?'GPS error: ':'GPS-Fehler: ')+err.message);
         setLocationLoading(false);
       },
       {enableHighAccuracy:true,timeout:10000}
@@ -1825,7 +1867,7 @@ export default function App(){
     newRatings[gymKey].userRating=stars;
     setGymRatings(newRatings);
     localStorage.setItem('gymRatings',JSON.stringify(newRatings));
-    showMsg('Bewertung gespeichert! '+('⭐'.repeat(stars)));
+    showMsg((appLang==='FR'?'Note enregistrée! ':appLang==='EN'?'Rating saved! ':'Bewertung gespeichert! ')+('⭐'.repeat(stars)));
     // In Supabase speichern
     if(session){
       try{
@@ -1914,7 +1956,7 @@ export default function App(){
     if(!('Notification' in window))return;
     if(Notification.permission==='default'){
       const perm=await Notification.requestPermission();
-      if(perm==='granted')showMsg('🔔 Benachrichtigungen aktiviert!');
+      if(perm==='granted')showMsg(appLang==='FR'?'🔔 Notifications activées!':appLang==='EN'?'🔔 Notifications enabled!':'🔔 Benachrichtigungen aktiviert!');
     }
   }
 
@@ -2363,8 +2405,8 @@ export default function App(){
         bio:editProfile.bio!==undefined?editProfile.bio:mp.bio,
       }));
       setEditMode(false);
-      showMsg('Profil gespeichert ✓');
-    }catch(e){showMsg('Fehler beim Speichern');}
+      showMsg(appLang==='FR'?'Profil enregistré ✓':appLang==='EN'?'Profile saved ✓':'Profil gespeichert ✓');
+    }catch(e){showMsg(appLang==='FR'?'Erreur lors de la sauvegarde':appLang==='EN'?'Error saving':'Fehler beim Speichern');}
     setSavingEdit(false);
   }
 
@@ -2379,7 +2421,7 @@ export default function App(){
         showMsg('Gespeichert! ✓');
       }else{
         const res=await dbInsert('profiles',d,session.token);
-        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg('Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);loadGymRatings(session);loadFightHistory(session);loadDbGyms(session);loadWhoLikedMe(session,res[0]);loadAllProfiles(session);}
+        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg(appLang==='FR'?'Profil créé! 🥊':appLang==='EN'?'Profile created! 🥊':'Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);loadGymRatings(session);loadFightHistory(session);loadDbGyms(session);loadWhoLikedMe(session,res[0]);loadAllProfiles(session);}
         else showMsg('Fehler: '+(JSON.stringify(res)||'unbekannt'));
       }
     }catch{showMsg('Netzwerkfehler');}
@@ -2725,8 +2767,8 @@ export default function App(){
         {whoLikedMe.length===0?(
           <div style={{textAlign:'center',padding:'60px 20px',color:darkMode?'#555':'#bbb'}}>
             <div style={{fontSize:48,marginBottom:12}}>🥊</div>
-            <div style={{fontSize:14}}>Noch niemand hat dich geliket</div>
-            <div style={{fontSize:12,marginTop:6}}>Swipe weiter — dein Match kommt!</div>
+            <div style={{fontSize:14}}>{t.noOneLiked}</div>
+            <div style={{fontSize:12,marginTop:6}}>{t.keepSwiping}</div>
           </div>
         ):whoLikedMe.map((p,i)=>(
           <div key={i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),overflow:'hidden',boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
@@ -2793,7 +2835,7 @@ export default function App(){
           ))}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
-          {[['GEWICHTSKLASSE',viewProfile.weight_class||'-','#2980b9'],['GYM',viewProfile.gym||'-','#8e44ad'],['GRÖSSE',viewProfile.height?(viewProfile.height+'cm'):'-','#27ae60'],['GEWICHT',viewProfile.weight?(viewProfile.weight+'kg'):'-','#e67e22']].map(([label,val,color])=>(
+          {[[appLang==='FR'?'CATÉGORIE':appLang==='EN'?'WEIGHT CLASS':'GEWICHTSKLASSE',viewProfile.weight_class||'-','#2980b9'],[appLang==='FR'?'SALLE':'GYM',viewProfile.gym||'-','#8e44ad'],['GRÖSSE',viewProfile.height?(viewProfile.height+'cm'):'-','#27ae60'],['GEWICHT',viewProfile.weight?(viewProfile.weight+'kg'):'-','#e67e22']].map(([label,val,color])=>(
             <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 12px',border:'1px solid '+color+'22'}}>
               <div style={{color:'#bbb',fontSize:9,letterSpacing:1}}>{label}</div>
               <div style={{color:color,fontWeight:700,fontSize:12,marginTop:3}}>{val}</div>
@@ -2866,7 +2908,7 @@ nicht öffentlich gemacht</div>
           <button onClick={()=>{
             if(reportSent[viewProfile.id]){showMsg('Bereits gemeldet');return;}
             setReportSent(r=>({...r,[viewProfile.id]:true}));
-            showMsg('Profil wurde gemeldet ✓');
+            showMsg(appLang==='FR'?'Profil signalé ✓':appLang==='EN'?'Profile reported ✓':'Profil wurde gemeldet ✓');
           }} style={{flex:1,padding:'11px',borderRadius:10,background:darkMode?'#1a1a2a':'#f5f5ff',border:'1px solid #2980b944',color:'#2980b9',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
             {reportSent[viewProfile.id]?'✓ Gemeldet':'⚠️ Melden'}
           </button>
@@ -2968,10 +3010,10 @@ nicht öffentlich gemacht</div>
                   {avatarPreview&&<div style={{position:'absolute',bottom:4,right:4,background:'#27ae60',borderRadius:'50%',width:24,height:24,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,border:'2px solid #fff'}}>✓</div>}
                 </div>
                 <div style={{color:avatarPreview?'#27ae60':RED,fontSize:12,marginTop:8,fontWeight:700}}>{avatarPreview?'Foto hochgeladen ✓':'Profilbild hochladen (Pflicht)'}</div>
-                {!avatarPreview&&<div style={{color:'#bbb',fontSize:10,marginTop:2}}>Ohne Foto kannst du nicht weitermachen</div>}
+                {!avatarPreview&&<div style={{color:'#bbb',fontSize:10,marginTop:2}}>{appLang==='FR'?'Sans photo vous ne pouvez pas continuer':appLang==='EN'?'Without a photo you cannot continue':'Ohne Foto kannst du nicht weitermachen'}</div>}
               </label>
             </div>
-            <Lbl>Dein Name</Lbl><Inp placeholder='z.B. Max Mueller' value={profile.name} onChange={v=>setProfile(p=>({...p,name:v}))}/>
+            <Lbl>{appLang==='FR'?'Votre nom':appLang==='EN'?'Your name':'Dein Name'}</Lbl><Inp placeholder='z.B. Max Mueller' value={profile.name} onChange={v=>setProfile(p=>({...p,name:v}))}/>
             <Lbl>Alter</Lbl><Inp placeholder='z.B. 25' type='number' value={profile.age} onChange={v=>setProfile(p=>({...p,age:v}))}/>
             <Lbl>Standort</Lbl><Inp placeholder='z.B. Berlin' value={profile.city} onChange={v=>setProfile(p=>({...p,city:v}))}/>
             <Lbl>Ich bin</Lbl>
@@ -3009,9 +3051,9 @@ nicht öffentlich gemacht</div>
         )}
         {step===2&&(
           <div style={{display:'flex',flexDirection:'column',gap:13}}>
-            <Lbl>Dein Gym</Lbl>
+            <Lbl>{appLang==='FR'?'Votre salle':appLang==='EN'?'Your gym':'Dein Gym'}</Lbl>
             <div style={{position:'relative'}}>
-              <Inp placeholder='Gym suchen…' value={profile.gym} onChange={v=>{
+              <Inp placeholder={appLang==='FR'?'Chercher une salle…':appLang==='EN'?'Search gym…':'Gym suchen…'} value={profile.gym} onChange={v=>{
                 setProfile(p=>({...p,gym:v}));
                 if(v.length>=2){
                   const q=v.toLowerCase();
@@ -3036,13 +3078,13 @@ nicht öffentlich gemacht</div>
                   ))}
                   <div onClick={()=>{setShowGymSuggestions(false);setShowRegisterGym(true);setNewGymData(d=>({...d,name:profile.gym}));}} style={{padding:'10px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',background:'#fdf8ff',borderTop:'1px solid #f0e8ff'}} onMouseEnter={e=>e.currentTarget.style.background='#f0e8ff'} onMouseLeave={e=>e.currentTarget.style.background='#fdf8ff'}>
                     <div style={{fontSize:20}}>➕</div>
-                    <div style={{color:'#8e44ad',fontWeight:700,fontSize:13}}>Mein Gym ist nicht dabei → anmelden</div>
+                    <div style={{color:'#8e44ad',fontWeight:700,fontSize:13}}>{t.myGymNotListed}</div>
                   </div>
                 </div>
               )}
               {showGymSuggestions&&gymSuggestions.length===0&&profile.gym.length>=2&&(
                 <div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',borderRadius:10,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',border:'1px solid #eee',zIndex:100,marginTop:4}}>
-                  <div style={{padding:'12px 14px',color:'#aaa',fontSize:13,textAlign:'center'}}>Kein Gym gefunden</div>
+                  <div style={{padding:'12px 14px',color:'#aaa',fontSize:13,textAlign:'center'}}>{t.gymNotFound}</div>
                   <div onClick={()=>{setShowGymSuggestions(false);setShowRegisterGym(true);setNewGymData(d=>({...d,name:profile.gym}));}} style={{padding:'10px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',background:'#fdf8ff',borderTop:'1px solid #f0e8ff'}}>
                     <div style={{fontSize:20}}>➕</div>
                     <div style={{color:'#8e44ad',fontWeight:700,fontSize:13}}>"{profile.gym}" zur App anmelden</div>
@@ -3057,7 +3099,7 @@ nicht öffentlich gemacht</div>
                 <div style={{background:'#fff',borderRadius:20,width:'100%',maxWidth:360,overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,0.25)'}}>
                   <div style={{background:'linear-gradient(135deg,#6c3483,#8e44ad)',padding:'18px 20px'}}>
                     <div className='rj' style={{color:'#fff',fontSize:20,letterSpacing:2}}>GYM ANMELDEN</div>
-                    <div style={{color:'rgba(255,255,255,0.65)',fontSize:11,marginTop:2}}>Dein Gym wird geprüft und hinzugefügt</div>
+                    <div style={{color:'rgba(255,255,255,0.65)',fontSize:11,marginTop:2}}>{t.gymBeingAdded}</div>
                   </div>
                   <div style={{padding:'18px 20px',display:'flex',flexDirection:'column',gap:10}}>
                     {gymRegSent?(
@@ -3113,7 +3155,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                                 })
                               });
                               await loadDbGyms(session);
-                              showMsg('✅ Gym gespeichert!');
+                              showMsg(appLang==='FR'?'✅ Salle enregistrée!':appLang==='EN'?'✅ Gym saved!':'✅ Gym gespeichert!');
                             }catch(e){showMsg('Fehler: '+e.message);}
                             setProfile(p=>({...p,gym:newGymData.name}));
                             setGymRegSent(true);
@@ -3169,7 +3211,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
           {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{flex:1,padding:'13px',borderRadius:8,background:'#fff',border:'1px solid #ddd',color:'#666',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>Zurueck</button>}
           <div style={{flex:2,display:'flex',flexDirection:'column',gap:4}}>
             <button onClick={async()=>{if(!canGo())return;if(step<3)setStep(s=>s+1);else await saveProfile();}} style={{width:'100%',padding:'13px',borderRadius:8,background:canGo()?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#eee',border:'none',color:canGo()?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:canGo()?'pointer':'not-allowed',transition:'all 0.2s'}}>
-              {saving?'Speichern…':step===3?'Lets Fight':'Weiter'}
+              {saving?t.saving:step===3?t.letsGo:t.next}
             </button>
             {step===1&&!(avatarPreview||avatarUrl)&&<div style={{color:RED,fontSize:10,textAlign:'center',fontWeight:600}}>{appLang==='FR'?'⬆ Télécharger une photo pour continuer':appLang==='EN'?'⬆ Upload profile photo to continue':'⬆ Profilbild hochladen um fortzufahren'}</div>}
           </div>
@@ -3533,7 +3575,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       <div style={{position:'absolute',top:22,right:18,border:'3px solid '+RED,borderRadius:6,padding:'3px 12px',color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:26,letterSpacing:3,transform:'rotate(18deg)',opacity:pop,transition:drag?'none':'opacity 0.12s'}}>PASS</div>
                       <div onClick={e=>{e.stopPropagation();setViewProfile(f);}} style={{position:'absolute',top:14,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.45)',borderRadius:20,padding:'4px 12px',display:'flex',alignItems:'center',gap:5,cursor:'pointer',backdropFilter:'blur(4px)'}}>
                         <span style={{fontSize:12}}>👁</span>
-                        <span style={{color:'rgba(255,255,255,0.85)',fontSize:10,fontWeight:600,letterSpacing:0.5}}>Profil ansehen</span>
+                        <span style={{color:'rgba(255,255,255,0.85)',fontSize:10,fontWeight:600,letterSpacing:0.5}}>{t.profileSeen}</span>
                       </div>
                     </>)}
                     {isTop&&f.last_seen&&<div style={{position:'absolute',top:12,left:12,background:'rgba(0,0,0,0.55)',borderRadius:20,padding:'3px 10px',backdropFilter:'blur(4px)',zIndex:2}}><div style={{color:'#fff',fontSize:10,fontWeight:600}}>{getLastSeen(f.last_seen)}</div></div>}
@@ -3729,7 +3771,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         <div style={{color:RED,fontSize:11,marginTop:5,fontWeight:700}}>Foto ändern</div>
                       </label>
                     </div>
-                    {[['NAME *','name','text',profile.name],['STADT *','city','text',profile.city],['GYM','gym','text',profile.gym],['GRÖSSE (cm)','height','number',profile.height],['GEWICHT (kg)','weight','number',profile.weight],['BIO','bio','text',profile.bio],['INSTAGRAM / YOUTUBE','socialUrl','text',profile.socialUrl]].map(([label,key,type,current])=>(
+                    {[['NAME *','name','text',profile.name],['STADT *','city','text',profile.city],[appLang==='FR'?'SALLE':'GYM','gym','text',profile.gym],['GRÖSSE (cm)','height','number',profile.height],['GEWICHT (kg)','weight','number',profile.weight],['BIO','bio','text',profile.bio],['INSTAGRAM / YOUTUBE','socialUrl','text',profile.socialUrl]].map(([label,key,type,current])=>(
                       <div key={key}>
                         <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{label}</div>
                         <input type={type} defaultValue={current||''} onChange={e=>setEditProfile(p=>({...p,[key]:e.target.value}))}
@@ -4555,7 +4597,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         {tab==='sports'&&(
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:4}}>SPORTARTEN</div>
-            <div style={{color:'#888',fontSize:12,marginBottom:11}}>Finde Events in deiner Stadt</div>
+            <div style={{color:'#888',fontSize:12,marginBottom:11}}>{t.findEventsCity}</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7,marginBottom:14}}>
               {Object.keys(SPORTS).map(s=>{const{color,emoji}=SPORTS[s];const sel=sport===s;return(<button key={s} onClick={()=>setSport(s)} style={{padding:'12px 10px',borderRadius:11,background:sel?color+'25':(darkMode?'#1a1a1a':'#fff'),border:'1px solid '+(sel?color:(darkMode?'#2a2a2a':'#eee')),cursor:'pointer',transition:'all 0.2s',textAlign:'left',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}><div style={{fontSize:22,marginBottom:4}}>{emoji}</div><div style={{color:sel?color:'#555',fontWeight:700,fontSize:13}}>{s}</div><div style={{color:darkMode?'#666':'#bbb',fontSize:10,marginTop:2}}>{SPORTS[s].games.length} Events</div></button>);})}
             </div>
@@ -4752,7 +4794,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                             if(!window.confirm('Löschen: "'+gym.name+'"?'))return;
                             await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                             await loadDbGyms(session);showMsg('✅ Gelöscht');
-                          }} style={{padding:'4px 10px',borderRadius:6,background:'#e74c3c',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>🗑️ Löschen</button>
+                          }} style={{padding:'4px 10px',borderRadius:6,background:'#e74c3c',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>{t.deleteBtn}</button>
                         </div>
                       ))}
                       {dupes.map(arr=>(
@@ -4771,7 +4813,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                                 if(!window.confirm('Duplikat löschen: "'+gym.name+'" ('+gym.city+')?'))return;
                                 await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                                 await loadDbGyms(session);showMsg('✅ Duplikat gelöscht');
-                              }} style={{padding:'4px 10px',borderRadius:6,background:'#e74c3c',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',flexShrink:0}}>🗑️ Löschen</button>}
+                              }} style={{padding:'4px 10px',borderRadius:6,background:'#e74c3c',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',flexShrink:0}}>{t.deleteBtn}</button>}
                               {i===0&&<span style={{color:'#27ae60',fontSize:10,flexShrink:0}}>✓ Behalten</span>}
                             </div>
                           ))}
@@ -4951,7 +4993,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             {adminTab==='addcity'&&(
               <div>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:8}}>🌍 NEUE STADT + GYM</div>
-                <div style={{color:'#aaa',fontSize:11,marginBottom:12}}>Stadt wird sofort im Gym-Reiter sichtbar.</div>
+                <div style={{color:'#aaa',fontSize:11,marginBottom:12}}>{appLang==='FR'?'La ville sera visible immédiatement.':appLang==='EN'?'City will be immediately visible.':'Stadt wird sofort im Gym-Reiter sichtbar.'}</div>
                 <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
                   <div><div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:4}}>STADTNAME *</div>
                   <input value={adminCityName||''} onChange={e=>setAdminCityName(e.target.value)} placeholder='z.B. Neuss' style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box'}}/></div>
@@ -4987,7 +5029,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>📅 EVENTS VERWALTEN</div>
                 <button onClick={()=>loadEvents(session)} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:12}}>🔄 EVENTS LADEN</button>
                 {events.length===0?(
-                  <div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>Keine Events vorhanden</div>
+                  <div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>{t.noEvents}</div>
                 ):(
                   <div style={{display:'flex',flexDirection:'column',gap:8}}>
                     {[...events].sort((a,b)=>new Date(a.event_date)-new Date(b.event_date)).map(ev=>{
@@ -5019,7 +5061,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                                   await loadEvents(session);
                                   showMsg('Event gelöscht ✅');
                                 }catch(e){showMsg('Fehler: '+e.message);}
-                              }} style={{padding:'5px 10px',borderRadius:6,background:'#e74c3c22',border:'1px solid #e74c3c44',color:'#e74c3c',fontSize:11,fontWeight:700,cursor:'pointer'}}>🗑️ Löschen</button>
+                              }} style={{padding:'5px 10px',borderRadius:6,background:'#e74c3c22',border:'1px solid #e74c3c44',color:'#e74c3c',fontSize:11,fontWeight:700,cursor:'pointer'}}>{t.deleteBtn}</button>
                               <button onClick={async()=>{
                                 const newTitle=window.prompt('Neuer Titel:',ev.title);
                                 if(!newTitle||!newTitle.trim())return;
@@ -5133,7 +5175,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     else setAdminReports([]);
                   }catch{setAdminReports([]);}
                 }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>MELDUNGEN LADEN</button>
-                {adminReports.length===0&&<div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>Keine Meldungen — oder "Laden" drücken</div>}
+                {adminReports.length===0&&<div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>{t.noReports}</div>}
                 {adminReports.map((r,i)=>(
                   <div key={r.id||i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'12px',border:'1px solid #e74c3c44',marginBottom:8}}>
                     <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
@@ -5170,7 +5212,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     else setAdminRecords([]);
                   }catch{setAdminRecords([]);}
                 }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>ANTRÄGE LADEN</button>
-                {adminRecords.length===0&&<div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>Keine offenen Anträge</div>}
+                {adminRecords.length===0&&<div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>{t.noRequests}</div>}
                 {adminRecords.map((u,i)=>(
                   <div key={u.id||i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'12px',border:'1px solid #d4a01744',marginBottom:8}}>
                     <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
@@ -5224,7 +5266,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   ))}
                 </div>
                 {adminFeedback.length===0?(
-                  <div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>Noch kein Feedback — Laden drücken</div>
+                  <div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>{t.noFeedbackYet}</div>
                 ):(
                   <div style={{display:'flex',flexDirection:'column',gap:8}}>
                     {adminFeedback.filter(f=>feedbackFilter==='alle'||f.type===feedbackFilter).map((fb,i)=>(
@@ -5421,7 +5463,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     {scanResult.cities.length===0&&scanResult.gyms.length===0&&(
                       <div style={{textAlign:'center',padding:'30px',color:darkMode?'#555':'#bbb'}}>
                         <div style={{fontSize:32,marginBottom:8}}>✅</div>
-                        <div style={{fontSize:14}}>Alle Städte und Gyms sind bereits erfasst!</div>
+                        <div style={{fontSize:14}}>{appLang==='FR'?'Toutes les villes et salles sont déjà enregistrées!':appLang==='EN'?'All cities and gyms are already registered!':'Alle Städte und Gyms sind bereits erfasst!'}</div>
                       </div>
                     )}
                   </>
@@ -5462,7 +5504,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:8}}>
                       <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>NEUE USER HEUTE</div>
                       {adminUsers.filter(u=>u.created_at&&(Date.now()-new Date(u.created_at).getTime())<86400000).length===0
-                        ?<div style={{color:darkMode?'#555':'#bbb',fontSize:12,textAlign:'center',padding:'8px 0'}}>Noch keine neuen User heute</div>
+                        ?<div style={{color:darkMode?'#555':'#bbb',fontSize:12,textAlign:'center',padding:'8px 0'}}>{appLang==='FR'?"Pas encore de nouveaux utilisateurs aujourd'hui":appLang==='EN'?'No new users today':'Noch keine neuen User heute'}</div>
                         :adminUsers.filter(u=>u.created_at&&(Date.now()-new Date(u.created_at).getTime())<86400000).map((u,i)=>(
                           <div key={i} onClick={()=>{setShowAdmin(false);setViewProfile(u);}} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
                             {u.avatar_url?<img src={u.avatar_url} style={{width:28,height:28,borderRadius:'50%',objectFit:'cover',flexShrink:0}} alt=''/>:<div style={{width:28,height:28,borderRadius:'50%',background:RED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,color:'#fff',fontWeight:700,flexShrink:0}}>{u.name?u.name[0].toUpperCase():'?'}</div>}
@@ -5534,7 +5576,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
           <div style={{color:matched.accent||RED,fontSize:12,fontWeight:700}}>{matched.style} · {matched.city}</div>
           <div style={{display:'flex',gap:10,marginTop:8}}>
             <button onClick={()=>{setMatched(null);setTab('chat');}} style={{padding:'13px 28px',borderRadius:12,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>💬 JETZT CHATTEN</button>
-            <button onClick={()=>setMatched(null)} style={{padding:'13px 20px',borderRadius:12,background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.2)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>Weiter swipen</button>
+            <button onClick={()=>setMatched(null)} style={{padding:'13px 20px',borderRadius:12,background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.2)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>{t.weiterSwipen}</button>
           </div>
         </div>
       )}
