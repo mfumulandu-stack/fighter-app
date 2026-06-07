@@ -3340,7 +3340,6 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <div onClick={handleLogout} style={{padding:'10px 18px',borderTop:'1px solid '+(darkMode?'#222':'#efefef'),display:'flex',alignItems:'center',gap:12,cursor:'pointer',borderRadius:8,margin:'4px 8px 8px'}}
               onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
               onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-              <div style={{fontSize:16,width:24,textAlign:'center',opacity:0.85}}>🚪</div>
               <div style={{color:'#e74c3c',fontSize:13,fontWeight:600}}>{t.logout}</div>
             </div>
           </div>
@@ -3553,8 +3552,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   </div>
                   <div style={{color:'rgba(255,255,255,0.3)',fontSize:11,marginTop:4}}>{appLang==='FR'?'Conseil: Double-tap sur une carte = voir le profil':appLang==='EN'?'Tip: Double-tap a card = view profile':'Tipp: Doppel-Tap auf eine Karte = Profil ansehen'}</div>
                 </div>
-              ):cards.map((f,idx)=>{
-                const isTop=idx===cards.length-1;const isSec=idx===cards.length-2;const fA=f.accent||'#c0392b';
+              ):filteredCards.map((f,idx)=>{
+                const isTop=idx===filteredCards.length-1;const isSec=idx===filteredCards.length-2;const fA=f.accent||'#c0392b';
                 return(
                   <div key={f.id} onMouseDown={isTop?dragStart:undefined} onTouchStart={e=>{
                       if(isTop){
@@ -3621,7 +3620,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   <Btn onClick={()=>doSwipe('de')} color={RED} icon='✕' size={54}/>
                   {lastSwiped&&<Btn onClick={undoSwipe} color='rgba(255,255,255,0.2)' icon='↩️' size={46}/>}
                   <Btn onClick={()=>doSwipe('ch')} color='#27ae60' icon='⚔️' size={64} primary label='FIGHT'/>
-                  <Btn onClick={()=>doSwipe('de')} color='#d4a017' icon='⭐' size={54}/>
+                  <Btn onClick={()=>doSwipe('ch')} color='#d4a017' icon='⭐' size={54}/>
                 </div>
                 {recentSwiped.length>0&&(
                   <div style={{padding:'4px 16px 0',width:'100%',maxWidth:420}}>
@@ -3771,7 +3770,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         <div style={{color:RED,fontSize:11,marginTop:5,fontWeight:700}}>Foto ändern</div>
                       </label>
                     </div>
-                    {[['NAME *','name','text',profile.name],['STADT *','city','text',profile.city],[appLang==='FR'?'SALLE':'GYM','gym','text',profile.gym],['GRÖSSE (cm)','height','number',profile.height],['GEWICHT (kg)','weight','number',profile.weight],['BIO','bio','text',profile.bio],['INSTAGRAM / YOUTUBE','socialUrl','text',profile.socialUrl]].map(([label,key,type,current])=>(
+                    {[['NAME *','name','text',profile.name],['STADT *','city','text',profile.city],['GYM','gym','text',profile.gym],['GRÖSSE (cm)','height','number',profile.height],['GEWICHT (kg)','weight','number',profile.weight],['BIO','bio','text',profile.bio],['INSTAGRAM / YOUTUBE','socialUrl','text',profile.socialUrl]].map(([label,key,type,current])=>(
                       <div key={key}>
                         <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{label}</div>
                         <input type={type} defaultValue={current||''} onChange={e=>setEditProfile(p=>({...p,[key]:e.target.value}))}
