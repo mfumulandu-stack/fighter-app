@@ -2756,9 +2756,9 @@ export default function App(){
     :{transform:'translateX(0) rotate(0deg)',transition:'transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275)'};
 
   function canGo(){
-    if(step===1)return !!(profile.name&&profile.age&&profile.city); // Foto optional für ersten Versuch
-    if(step===2)return !!(profile.style); // gym optional
-    if(step===3)return !!(profile.height&&profile.weight); // weightClass optional
+    if(step===1)return !!(profile.name&&profile.age&&profile.city);
+    if(step===2)return !!(profile.style);
+    if(step===3)return true; // Alles optional auf Step 3
     return true;
   }
   const tf=stats.wins+stats.losses+stats.draws;
