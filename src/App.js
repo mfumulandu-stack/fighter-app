@@ -3483,9 +3483,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
 
       {/* HEADER */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 16px 8px',flexShrink:0,borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),background:darkMode?'#1a1a1a':'#fff'}}>
-        <button onClick={()=>setDarkMode(d=>!d)} style={{background:'none',border:'none',cursor:'pointer',fontSize:20,width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,color:darkMode?'#fff':'#1a1a1a'}}>
-          {darkMode?'☀️':'🌙'}
-        </button>
+        <div style={{width:36,height:36}}/>
         <div className='rj' style={{fontSize:28,color:darkMode?'#ff4500':'#1a1a1a',letterSpacing:5,position:'absolute',left:'50%',transform:'translateX(-50%)'}}>FIGHTER</div>
         <button onClick={()=>setShowMenu(true)} style={{background:'none',border:'none',cursor:'pointer',width:36,height:36,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5,borderRadius:8,marginLeft:'auto'}}>
           <div style={{width:20,height:2,background:darkMode?'#fff':'#1a1a1a',borderRadius:2}}/>
