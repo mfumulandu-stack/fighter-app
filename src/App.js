@@ -2433,7 +2433,32 @@ export default function App(){
         }
       }catch(e){console.error('avatar upload error',e);}
     }
-    const d={user_id:session.userId,name:profile.name,age:parseInt(profile.age)||null,city:profile.city,gym:profile.gym,height:parseInt(profile.height)||null,weight:parseInt(profile.weight)||null,weight_class:profile.weightClass,style:profile.style,bio:profile.bio,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,avatar_url:finalAvatarUrl||null,is_pro:profile.isPro===true,country:profile.country||'DE',gender:profile.gender||'male',lat:myLat||null,lon:myLon||null,location_source:locationSource||'city',social_url:profile.socialUrl||null};
+    // Build profile data — only include columns that definitely exist
+    const d={
+      user_id:session.userId,
+      name:profile.name,
+      age:parseInt(profile.age)||null,
+      city:profile.city,
+      gym:profile.gym||null,
+      height:parseInt(profile.height)||null,
+      weight:parseInt(profile.weight)||null,
+      weight_class:profile.weightClass||null,
+      style:profile.style,
+      bio:profile.bio||null,
+      wins:parseInt(stats.wins)||0,
+      losses:parseInt(stats.losses)||0,
+      draws:parseInt(stats.draws)||0,
+      ko:parseInt(stats.ko)||0,
+      avatar_url:finalAvatarUrl||null,
+      is_pro:profile.isPro===true,
+      country:profile.country||'DE',
+      gender:profile.gender||'male',
+    };
+    // Add optional columns only if they exist
+    try{if(myLat)d.lat=myLat;}catch{}
+    try{if(myLon)d.lon=myLon;}catch{}
+    try{if(locationSource)d.location_source=locationSource;}catch{}
+    try{if(profile.socialUrl)d.social_url=profile.socialUrl;}catch{}
     try{
       if(myProfile){
         const res=await dbUpdate('profiles',d,'user_id=eq.'+session.userId,session.token);
