@@ -3531,18 +3531,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               </div>
               <div style={{color:'#aaa',fontSize:10,textAlign:'right'}}>{profile.height}cm<br/>{profile.weight}kg</div>
             </div>
-            {/* FILTER LEISTE */}
-            <div style={{width:'calc(100% - 24px)',maxWidth:380,margin:'0 0 6px',display:'flex',flexDirection:'column',gap:4}}>
-              {/* Stil-Filter */}
-              <div style={{display:'flex',gap:4,overflowX:'auto',paddingBottom:2}}>
-                {['Alle',...STYLES].map(s=>(
-                  <button key={s} onClick={()=>setFilterStyle(s)}
-                    style={{flexShrink:0,padding:'3px 10px',borderRadius:16,background:filterStyle===s?RED:'transparent',border:'1px solid '+(filterStyle===s?RED:(darkMode?'#333':'#ddd')),color:filterStyle===s?'#fff':(darkMode?'#aaa':'#666'),fontSize:11,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap'}}>
-                    {s==='Alle'?t.all:s}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* FILTER LEISTE - leer, kein Stil-Filter in Swipe Tab */}
             <div style={{position:'relative',width:330,height:430,flexShrink:0,touchAction:'none'}}>
               {filteredCards.length===0?(
                 <div style={{width:'100%',height:'100%',borderRadius:20,background:'linear-gradient(160deg,#1a1a1a 0%,#2d1a1a 100%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:'30px 24px',textAlign:'center'}}>
