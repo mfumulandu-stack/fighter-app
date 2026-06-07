@@ -2708,7 +2708,8 @@ export default function App(){
     if(!p||p.clientX===undefined)return;
     const dx=p.clientX-start.x;
     const dy=p.clientY-start.y;
-    if(Math.abs(dx)>Math.abs(dy))setOffset({x:dx,y:dy*0.3});
+    // Immer horizontal updaten - auch bei leicht schrägen Swipes
+    if(Math.abs(dx)>10)setOffset({x:dx,y:dy*0.2});
   }
   function dragEnd(e){
     if(!drag)return;
@@ -2769,7 +2770,11 @@ export default function App(){
       sessionSwipedRef.current.add(top.id);
       if(session&&myProfile&&!String(top.id).startsWith('demo_')){try{await dbInsert('swipes',{swiper_id:myProfile.id,target_id:top.id,direction:'pass'},session.token);}catch{}}
     }
-    setTimeout(()=>{setCards(prev=>prev.slice(0,-1));setLastAct(null);},260);
+    setTimeout(()=>{
+      const swipedId=top?.id;
+      setCards(prev=>swipedId?prev.filter(c=>c.id!==swipedId):prev.slice(0,-1));
+      setLastAct(null);
+    },260);
   }
 
   const rot=(offset.x/14).toFixed(1);
@@ -3631,7 +3636,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 if(!f||!f.id||!f.name)return null;
                 const isTop=idx===filteredCards.length-1;const isSec=idx===filteredCards.length-2;const fA=f.accent||'#c0392b';
                 return(
-                  <div key={f.id} onMouseDown={isTop?dragStart:undefined} onTouchStart={e=>{
+                  <div key={f.id} onMouseDown={isTop?(e)=>{e.preventDefault();dragStart(e);}:undefined} onTouchStart={e=>{
                       if(isTop){
                         if(!e.touches||!e.touches[0])return;
                         const now=Date.now();
