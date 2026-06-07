@@ -2424,9 +2424,43 @@ export default function App(){
         if(Array.isArray(res)&&res[0])setMyProfile(res[0]);
         showMsg('Gespeichert! ✓');
       }else{
-        const res=await dbInsert('profiles',d,session.token);
-        if(Array.isArray(res)&&res[0]){setMyProfile(res[0]);showMsg(appLang==='FR'?'Profil créé! 🥊':appLang==='EN'?'Profile created! 🥊':'Profil erstellt! 🥊');setScreen('main');loadRealFighters(session,res[0]);loadMatches(session,res[0]);loadGymRatings(session);loadFightHistory(session);loadDbGyms(session);loadWhoLikedMe(session,res[0]);loadAllProfiles(session);}
-        else showMsg('Fehler: '+(JSON.stringify(res)||'unbekannt'));
+        // Upsert: falls Profil bereits existiert (doppelter user_id), updaten statt Fehler
+        const upsertRes=await fetch(SUPA_URL+'/rest/v1/profiles',{
+          method:'POST',
+          headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=representation,resolution=merge-duplicates'},
+          body:JSON.stringify(d)
+        });
+        const res=await upsertRes.json();
+        const profile_data=Array.isArray(res)?res[0]:null;
+        if(profile_data&&profile_data.id){
+          setMyProfile(profile_data);
+          showMsg(appLang==='FR'?'Profil créé! 🥊':appLang==='EN'?'Profile created! 🥊':'Profil erstellt! 🥊');
+          setScreen('main');
+          loadRealFighters(session,profile_data,true);
+          loadMatches(session,profile_data);
+          loadGymRatings(session);
+          loadFightHistory(session);
+          loadDbGyms(session);
+          loadWhoLikedMe(session,profile_data);
+          loadAllProfiles(session);
+        }else{
+          // Fallback: try to load existing profile
+          try{
+            const existing=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+session.userId,{
+              headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
+            });
+            const ep=await existing.json();
+            if(Array.isArray(ep)&&ep[0]){
+              setMyProfile(ep[0]);
+              setScreen('main');
+              loadRealFighters(session,ep[0],true);
+              loadMatches(session,ep[0]);
+              loadGymRatings(session);loadFightHistory(session);loadDbGyms(session);loadWhoLikedMe(session,ep[0]);loadAllProfiles(session);
+            }else{
+              showMsg('Fehler beim Speichern — bitte nochmal versuchen');
+            }
+          }catch{showMsg('Netzwerkfehler');}
+        }
       }
     }catch{showMsg('Netzwerkfehler');}
     setSaving(false);
@@ -2705,9 +2739,9 @@ export default function App(){
     :{transform:'translateX(0) rotate(0deg)',transition:'transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275)'};
 
   function canGo(){
-    if(step===1)return profile.name&&profile.age&&profile.city&&(avatarPreview||avatarUrl);
-    if(step===2)return profile.gym&&profile.style;
-    if(step===3)return profile.height&&profile.weight&&profile.weightClass;
+    if(step===1)return !!(profile.name&&profile.age&&profile.city&&(avatarPreview||avatarUrl));
+    if(step===2)return !!(profile.style); // gym optional
+    if(step===3)return !!(profile.height&&profile.weight); // weightClass optional
     return true;
   }
   const tf=stats.wins+stats.losses+stats.draws;
