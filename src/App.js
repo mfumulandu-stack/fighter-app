@@ -2417,7 +2417,23 @@ export default function App(){
   async function saveProfile(){
     if(!session)return;
     setSaving(true);
-    const d={user_id:session.userId,name:profile.name,age:parseInt(profile.age)||null,city:profile.city,gym:profile.gym,height:parseInt(profile.height)||null,weight:parseInt(profile.weight)||null,weight_class:profile.weightClass,style:profile.style,bio:profile.bio,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,avatar_url:avatarUrl,is_pro:profile.isPro===true,country:profile.country||'DE',gender:profile.gender||'male',lat:myLat||null,lon:myLon||null,location_source:locationSource||'city',social_url:profile.socialUrl||null};
+    // Falls Foto nur als Preview vorhanden aber noch nicht hochgeladen → jetzt hochladen
+    let finalAvatarUrl = avatarUrl;
+    if(avatarPreview&&!avatarUrl){
+      try{
+        const blob=await (await fetch(avatarPreview)).blob();
+        const ext=blob.type.includes('png')?'png':'jpg';
+        const path='avatars/'+session.userId+'.'+ext;
+        const upRes=await fetch(SUPA_URL+'/storage/v1/object/'+path,{
+          method:'POST',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token,'Content-Type':blob.type,'x-upsert':'true'},body:blob
+        });
+        if(upRes.ok){
+          finalAvatarUrl=SUPA_URL+'/storage/v1/object/public/'+path+'?t='+Date.now();
+          setAvatarUrl(finalAvatarUrl);
+        }
+      }catch(e){console.error('avatar upload error',e);}
+    }
+    const d={user_id:session.userId,name:profile.name,age:parseInt(profile.age)||null,city:profile.city,gym:profile.gym,height:parseInt(profile.height)||null,weight:parseInt(profile.weight)||null,weight_class:profile.weightClass,style:profile.style,bio:profile.bio,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,avatar_url:finalAvatarUrl||null,is_pro:profile.isPro===true,country:profile.country||'DE',gender:profile.gender||'male',lat:myLat||null,lon:myLon||null,location_source:locationSource||'city',social_url:profile.socialUrl||null};
     try{
       if(myProfile){
         const res=await dbUpdate('profiles',d,'user_id=eq.'+session.userId,session.token);
@@ -2425,6 +2441,7 @@ export default function App(){
         showMsg('Gespeichert! ✓');
       }else{
         // Upsert: falls Profil bereits existiert (doppelter user_id), updaten statt Fehler
+        console.log('saveProfile: starting upsert for',session.userId);
         const upsertRes=await fetch(SUPA_URL+'/rest/v1/profiles',{
           method:'POST',
           headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=representation,resolution=merge-duplicates'},
@@ -2457,12 +2474,12 @@ export default function App(){
               loadMatches(session,ep[0]);
               loadGymRatings(session);loadFightHistory(session);loadDbGyms(session);loadWhoLikedMe(session,ep[0]);loadAllProfiles(session);
             }else{
-              showMsg('Fehler beim Speichern — bitte nochmal versuchen');
+              showMsg('Fehler: '+(JSON.stringify(res)||'?'));
             }
           }catch{showMsg('Netzwerkfehler');}
         }
       }
-    }catch{showMsg('Netzwerkfehler');}
+    }catch(e){showMsg('Fehler: '+e.message);}
     setSaving(false);
   }
 
@@ -2739,7 +2756,7 @@ export default function App(){
     :{transform:'translateX(0) rotate(0deg)',transition:'transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275)'};
 
   function canGo(){
-    if(step===1)return !!(profile.name&&profile.age&&profile.city&&(avatarPreview||avatarUrl));
+    if(step===1)return !!(profile.name&&profile.age&&profile.city); // Foto optional für ersten Versuch
     if(step===2)return !!(profile.style); // gym optional
     if(step===3)return !!(profile.height&&profile.weight); // weightClass optional
     return true;
