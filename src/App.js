@@ -2071,6 +2071,9 @@ export default function App(){
       const blockedSet=new Set(blockedUsers||[]);
       const fresh=all.filter(f=>
         f.id&&
+        f.name&&f.name.trim()&&  // muss einen Namen haben
+        f.avatar_url&&           // muss ein Profilbild haben
+        (f.style||'').trim()&&   // muss einen Kampfstil haben
         !swipedIds.has(f.id)&&
         !matchedIds.has(f.id)&&
         !blockedSet.has(f.id)&&
@@ -2095,11 +2098,12 @@ export default function App(){
     const min=Math.floor(diff/60000);
     const h=Math.floor(min/60);
     const d=Math.floor(h/24);
-    if(min<2)return'🟢 Gerade online';
-    if(min<60)return'🟡 Vor '+min+' Min';
-    if(h<24)return'⚪ Vor '+h+' Std';
-    if(d<7)return'⚪ Vor '+d+' Tag'+(d>1?'en':'');
-    return'⚪ Vor einer Weile';
+    const isFR=appLang==='FR', isEN=appLang==='EN';
+    if(min<2)return isFR?'🟢 En ligne':isEN?'🟢 Online now':'🟢 Gerade online';
+    if(min<60)return isFR?'🟡 Il y a '+min+' min':isEN?'🟡 '+min+' min ago':'🟡 Vor '+min+' Min';
+    if(h<24)return isFR?'⚪ Il y a '+h+'h':isEN?'⚪ '+h+'h ago':'⚪ Vor '+h+' Std';
+    if(d<7)return isFR?'⚪ Il y a '+d+'j':isEN?'⚪ '+d+'d ago':'⚪ Vor '+d+' Tag'+(d>1?'en':'');
+    return isFR?'⚪ Il y a longtemps':isEN?'⚪ A while ago':'⚪ Vor einer Weile';
   }
 
   async function loadGymLogos(){
@@ -3548,6 +3552,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   <div style={{color:'rgba(255,255,255,0.3)',fontSize:11,marginTop:4}}>{appLang==='FR'?'Conseil: Double-tap sur une carte = voir le profil':appLang==='EN'?'Tip: Double-tap a card = view profile':'Tipp: Doppel-Tap auf eine Karte = Profil ansehen'}</div>
                 </div>
               ):filteredCards.map((f,idx)=>{
+                if(!f||!f.id||!f.name)return null;
                 const isTop=idx===filteredCards.length-1;const isSec=idx===filteredCards.length-2;const fA=f.accent||'#c0392b';
                 return(
                   <div key={f.id} onMouseDown={isTop?dragStart:undefined} onTouchStart={e=>{
