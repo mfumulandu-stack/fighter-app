@@ -2053,10 +2053,10 @@ export default function App(){
 
   async function loadRealFighters(s,myP,isInitial=false){
     try{
-      let all = await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true&order=created_at.desc&limit=2000',s.token);
+      let all = await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true&order=created_at.desc&limit=2000&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height',s.token);
       if(!Array.isArray(all)||all.length===0){
         try{
-          const r=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=neq.'+s.userId+'&banned=neq.true',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
+          const r=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=neq.'+s.userId+'&banned=neq.true&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
           all=await r.json();
         }catch{}
       }
@@ -2290,12 +2290,12 @@ export default function App(){
       if(!Array.isArray(m)||m.length===0){setDbMatches([]);return;}
       // Load profiles only for matched users
       const matchIds=[...new Set(m.flatMap(x=>[x.profile_a_id,x.profile_b_id]))].filter(Boolean);
-      const matchProfiles=matchIds.length>0?await dbSelect('profiles','id=in.('+matchIds.join(',')+')',s.token):[];
+      const matchProfiles=matchIds.length>0?await dbSelect('profiles','id=in.('+matchIds.join(',')+')'+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,wins,losses,draws,ko',s.token):[];
       // Fallback mit anon key falls Session-Token RLS blockiert
       let profilesArr=Array.isArray(matchProfiles)?matchProfiles:[];
       if(profilesArr.length===0&&matchIds.length>0){
         try{
-          const fb=await fetch(SUPA_URL+'/rest/v1/profiles?id=in.('+matchIds.join(',')+')',{
+          const fb=await fetch(SUPA_URL+'/rest/v1/profiles?id=in.('+matchIds.join(',')+')'+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,wins,losses,draws,ko',{
             headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
           });
           const fbData=await fb.json();
