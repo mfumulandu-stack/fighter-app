@@ -611,6 +611,117 @@ class ErrorBoundary extends React.Component {
 }
 
 
+function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest}){
+  const [items,setItems]=React.useState([]);
+  const [loading,setLoading]=React.useState(true);
+  const [activeCategory,setActiveCategory]=React.useState('Alle');
+  const RED='#c0392b';
+
+  React.useEffect(()=>{
+    fetch(SUPA_URL+'/rest/v1/equipment?order=featured.desc,sort_order.asc',{
+      headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+    }).then(r=>r.json()).then(data=>{
+      setItems(Array.isArray(data)?data:[]);
+      setLoading(false);
+    }).catch(()=>setLoading(false));
+  },[]);
+
+  const categories=['Alle',...new Set(items.map(i=>i.category).filter(Boolean))];
+  const filtered=activeCategory==='Alle'?items:items.filter(i=>i.category===activeCategory);
+  const featured=filtered.filter(i=>i.featured);
+  const rest=filtered.filter(i=>!i.featured);
+
+  if(loading)return(
+    <div style={{textAlign:'center',padding:'60px 20px'}}>
+      <div style={{fontSize:32,marginBottom:8}}>⏳</div>
+      <div style={{color:'#aaa',fontSize:13}}>Laden...</div>
+    </div>
+  );
+
+  if(items.length===0)return(
+    <div style={{textAlign:'center',padding:'60px 20px'}}>
+      <div style={{fontSize:64,marginBottom:16}}>🥊</div>
+      <div style={{fontFamily:'Rajdhani,sans-serif',color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:3,marginBottom:8}}>COMING SOON</div>
+      <div style={{color:'#aaa',fontSize:13,lineHeight:1.7,maxWidth:280,margin:'0 auto'}}>
+        {appLang==='FR'?'Bientôt disponible — la meilleure équipement de sport de combat.':appLang==='EN'?'Coming soon — the best combat sports equipment, curated by real athletes.':'Bald findest du hier die beste Kampfsport-Ausrüstung — kuratiert von echten Athleten.'}
+      </div>
+      <button onClick={onSuggest} style={{marginTop:20,padding:'12px 24px',borderRadius:10,background:'linear-gradient(135deg,#c0392b,#e74c3c)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:'pointer'}}>
+        ⭐ {appLang==='FR'?'SUGGÉRER':appLang==='EN'?'SUGGEST':'VORSCHLAGEN'}
+      </button>
+    </div>
+  );
+
+  return(
+    <div>
+      {/* Category Filter */}
+      {categories.length>1&&(
+        <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:8,marginBottom:16}}>
+          {categories.map(cat=>(
+            <button key={cat} onClick={()=>setActiveCategory(cat)}
+              style={{flexShrink:0,padding:'5px 12px',borderRadius:16,background:activeCategory===cat?RED:'transparent',border:'1px solid '+(activeCategory===cat?RED:(darkMode?'#333':'#ddd')),color:activeCategory===cat?'#fff':(darkMode?'#aaa':'#666'),fontSize:12,fontWeight:600,cursor:'pointer'}}>
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Featured */}
+      {featured.length>0&&(
+        <div style={{marginBottom:20}}>
+          <div style={{color:'#d4a017',fontSize:11,fontWeight:700,letterSpacing:2,marginBottom:10}}>⭐ EMPFOHLEN</div>
+          {featured.map(eq=><EquipCard key={eq.id} eq={eq} darkMode={darkMode} RED={RED}/>)}
+        </div>
+      )}
+
+      {/* Rest */}
+      {rest.length>0&&(
+        <div>
+          {featured.length>0&&<div style={{color:'#aaa',fontSize:11,fontWeight:700,letterSpacing:2,marginBottom:10}}>WEITERE PRODUKTE</div>}
+          {rest.map(eq=><EquipCard key={eq.id} eq={eq} darkMode={darkMode} RED={RED}/>)}
+        </div>
+      )}
+
+      {/* Suggest button */}
+      <button onClick={onSuggest} style={{width:'100%',marginTop:20,padding:'12px',borderRadius:10,background:'transparent',border:'1px solid '+(darkMode?'#333':'#ddd'),color:darkMode?'#aaa':'#888',fontSize:13,cursor:'pointer'}}>
+        ⭐ {appLang==='FR'?'Suggérer un produit':appLang==='EN'?'Suggest a product':'Produkt vorschlagen'}
+      </button>
+    </div>
+  );
+}
+
+function EquipCard({eq,darkMode,RED}){
+  const [pressed,setPressed]=React.useState(false);
+  return(
+    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',marginBottom:10,border:'1px solid '+(eq.featured?'#d4a01733':(darkMode?'#2a2a2a':'#eee')),boxShadow:eq.featured?'0 2px 12px rgba(212,160,23,0.08)':'none'}}>
+      <div style={{display:'flex',gap:12,alignItems:'flex-start'}}>
+        {eq.image_url&&<img src={eq.image_url} style={{width:64,height:64,borderRadius:10,objectFit:'cover',flexShrink:0}} alt={eq.product} onError={e=>e.target.style.display='none'}/>}
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:4}}>
+            <span style={{background:RED+'18',borderRadius:20,padding:'1px 8px',color:RED,fontSize:10,fontWeight:700}}>{eq.category}</span>
+            {eq.featured&&<span style={{background:'#d4a01718',borderRadius:20,padding:'1px 8px',color:'#d4a017',fontSize:10,fontWeight:700}}>⭐</span>}
+          </div>
+          <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15}}>{eq.brand}</div>
+          <div style={{color:darkMode?'#ddd':'#444',fontSize:13,marginTop:1}}>{eq.product}</div>
+          {eq.description&&<div style={{color:'#aaa',fontSize:11,marginTop:4,lineHeight:1.5}}>{eq.description}</div>}
+          {eq.discount_code&&(
+            <div style={{display:'inline-flex',alignItems:'center',gap:5,background:'#27ae6018',border:'1px solid #27ae6033',borderRadius:8,padding:'3px 8px',marginTop:6}}>
+              <span style={{color:'#27ae60',fontSize:11,fontWeight:700}}>🏷️ Code: {eq.discount_code}</span>
+            </div>
+          )}
+        </div>
+      </div>
+      {eq.url&&(
+        <a href={eq.url} target='_blank' rel='noopener noreferrer'
+          style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,width:'100%',marginTop:10,padding:'10px',borderRadius:10,background:pressed?RED+'dd':'linear-gradient(135deg,'+RED+',#e74c3c)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:'pointer',textDecoration:'none',boxSizing:'border-box'}}
+          onMouseEnter={()=>setPressed(true)} onMouseLeave={()=>setPressed(false)}>
+          🔗 JETZT ANSEHEN →
+        </a>
+      )}
+    </div>
+  );
+}
+
+
 function AuthScreen({ onSession, appLang }) {
   const T_AUTH = {
     DE: {login:'Einloggen',register:'Registrieren',loginBtn:'LOGIN',registerBtn:'REGISTRIEREN',forgotPw:'Passwort vergessen?',sendLink:'LINK SENDEN',cancel:'Abbrechen',pwReset:'PASSWORT RESET',pwResetSub:'Wir senden dir einen Reset-Link per E-Mail.'},
@@ -1288,6 +1399,9 @@ export default function App(){
   const [adminSaving,setAdminSaving]=useState(false);
   const [adminFeedback,setAdminFeedback]=useState([]);
   const [feedbackFilter,setFeedbackFilter]=useState('alle');
+  const [equipmentList,setEquipmentList]=useState([]);
+  const [equipLoading,setEquipLoading]=useState(false);
+  const [newEquip,setNewEquip]=useState({brand:'',product:'',description:'',category:'Boxen',url:'',image_url:'',discount_code:'',featured:false});
   const [adminUsersLoaded,setAdminUsersLoaded]=useState(false);
   const isAdmin=session?.userId===ADMIN_ID||myProfile?.id===ADMIN_ID;
   const [fightHistory,setFightHistory]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_history')||'[]')}catch{return []}});
@@ -3552,18 +3666,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             </div>
           </div>
           <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%'}}>
-            {/* Coming Soon */}
-            <div style={{textAlign:'center',padding:'60px 20px'}}>
-              <div style={{fontSize:64,marginBottom:16}}>🥊</div>
-              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:3,marginBottom:8}}>COMING SOON</div>
-              <div style={{color:'#aaa',fontSize:13,lineHeight:1.7,maxWidth:280,margin:'0 auto'}}>
-                Bald findest du hier die beste Kampfsport-Ausrüstung — kuratiert von echten Athleten. Handschuhe, Bandagen, Schutzausrüstung und mehr.
-              </div>
-              <button onClick={()=>{setFeedbackType('wunsch');setFeedbackText('Equipment Empfehlung: ');setShowEquipment(false);setShowFeedbackModal(true);setFeedbackSent(false);}}
-                style={{marginTop:20,padding:'12px 24px',borderRadius:10,background:`linear-gradient(135deg,#c0392b,#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:'pointer'}}>
-                ⭐ AUSRÜSTUNG VORSCHLAGEN
-              </button>
-            </div>
+            <EquipmentScreen darkMode={darkMode} appLang={appLang} SUPA_URL={SUPA_URL} SUPA_KEY={SUPA_KEY}
+              onSuggest={()=>{setFeedbackType('wunsch');setFeedbackText('Equipment Empfehlung: ');setShowEquipment(false);setShowFeedbackModal(true);setFeedbackSent(false);}}/>
           </div>
         </div>
       )}
@@ -4844,7 +4948,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <button onClick={()=>setShowAdmin(false)} style={{background:'none',border:'none',color:'#fff',fontSize:22,cursor:'pointer'}}>✕</button>
           </div>
           <div style={{display:'flex',overflowX:'auto',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
-            {[['gyms','🏋️'],['addgym','➕'],['addcity','🌍'],['events','📅'],['users','👤'],['reports','🚨'],['records','🏅'],['feedback','💬'],['broadcast','📢'],['stats','📊'],['scanner','🔍']].map(([t,l])=>(
+            {[['gyms','🏋️'],['addgym','➕'],['addcity','🌍'],['events','📅'],['users','👤'],['reports','🚨'],['records','🏅'],['feedback','💬'],['equipment','🥊'],['broadcast','📢'],['stats','📊'],['scanner','🔍']].map(([t,l])=>(
               <button key={t} onClick={()=>setAdminTab(t)} style={{flexShrink:0,padding:'10px 14px',background:'none',border:'none',borderBottom:adminTab===t?'2px solid '+RED:'2px solid transparent',color:adminTab===t?RED:(darkMode?'#aaa':'#888'),fontWeight:700,fontSize:16,cursor:'pointer'}}>{l}</button>
             ))}
           </div>
@@ -5384,6 +5488,104 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {adminTab==='equipment'&&(
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>🥊 EQUIPMENT VERWALTEN</div>
+
+                {/* NEUES PRODUKT HINZUFÜGEN */}
+                <div style={{background:darkMode?'#1a1a1a':'#f9f9f9',borderRadius:12,padding:'14px',marginBottom:16,border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                  <div style={{color:RED,fontSize:12,fontWeight:700,letterSpacing:1,marginBottom:10}}>➕ NEUES PRODUKT</div>
+                  {[
+                    ['Marke *','brand','z.B. Paffen Sport'],
+                    ['Produkt *','product','z.B. Pro Mexican Boxing Gloves'],
+                    ['Beschreibung','description','z.B. Professionelle Boxhandschuhe für Training & Wettkampf'],
+                    ['Link / URL','url','z.B. https://paffen-sport.com/...'],
+                    ['Bild URL','image_url','z.B. https://... (optional)'],
+                    ['Rabattcode','discount_code','z.B. FIGHTER10 (optional)'],
+                  ].map(([label,key,ph])=>(
+                    <div key={key} style={{marginBottom:8}}>
+                      <div style={{color:'#aaa',fontSize:10,marginBottom:3}}>{label}</div>
+                      <input value={newEquip[key]} onChange={e=>setNewEquip(p=>({...p,[key]:e.target.value}))}
+                        placeholder={ph}
+                        style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
+                    </div>
+                  ))}
+                  <div style={{marginBottom:8}}>
+                    <div style={{color:'#aaa',fontSize:10,marginBottom:3}}>Kategorie</div>
+                    <select value={newEquip.category} onChange={e=>setNewEquip(p=>({...p,category:e.target.value}))}
+                      style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:13}}>
+                      {['Boxen','Kickboxing','MMA','BJJ','Muay Thai','Grappling','Allgemein','Schutzausrüstung','Bekleidung','Supplements'].map(cat=>(
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                    <input type='checkbox' checked={newEquip.featured} onChange={e=>setNewEquip(p=>({...p,featured:e.target.checked}))} id='featured_cb'/>
+                    <label htmlFor='featured_cb' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,cursor:'pointer'}}>⭐ Featured (oben anzeigen)</label>
+                  </div>
+                  <button onClick={async()=>{
+                    if(!newEquip.brand||!newEquip.product){showMsg('Marke und Produkt sind Pflicht');return;}
+                    try{
+                      const res=await fetch(SUPA_URL+'/rest/v1/equipment',{
+                        method:'POST',
+                        headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=representation'},
+                        body:JSON.stringify({...newEquip,sort_order:Date.now()})
+                      });
+                      const data=await res.json();
+                      if(Array.isArray(data)&&data[0]){
+                        setEquipmentList(prev=>[data[0],...prev]);
+                        setNewEquip({brand:'',product:'',description:'',category:'Boxen',url:'',image_url:'',discount_code:'',featured:false});
+                        showMsg('✅ Produkt hinzugefügt!');
+                      }else showMsg('Fehler: '+JSON.stringify(data));
+                    }catch(e){showMsg('Fehler: '+e.message);}
+                  }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>
+                    ➕ PRODUKT SPEICHERN
+                  </button>
+                </div>
+
+                {/* LISTE LADEN */}
+                <button onClick={async()=>{
+                  setEquipLoading(true);
+                  try{
+                    const res=await fetch(SUPA_URL+'/rest/v1/equipment?order=featured.desc,sort_order.asc',{
+                      headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
+                    });
+                    const data=await res.json();
+                    setEquipmentList(Array.isArray(data)?data:[]);
+                  }catch(e){showMsg('Fehler: '+e.message);}
+                  setEquipLoading(false);
+                }} style={{width:'100%',padding:'9px',borderRadius:8,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:12}}>
+                  {equipLoading?'Laden...':'🔄 ALLE PRODUKTE LADEN'}
+                </button>
+
+                {/* PRODUKT LISTE */}
+                {equipmentList.map(eq=>(
+                  <div key={eq.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'12px',marginBottom:8,border:'1px solid '+(eq.featured?'#d4a01744':(darkMode?'#2a2a2a':'#eee'))}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                      <div style={{flex:1}}>
+                        <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:4}}>
+                          {eq.featured&&<span style={{background:'#d4a01722',border:'1px solid #d4a01744',borderRadius:20,padding:'1px 7px',color:'#d4a017',fontSize:10,fontWeight:700}}>⭐ FEATURED</span>}
+                          <span style={{background:RED+'22',border:'1px solid '+RED+'44',borderRadius:20,padding:'1px 7px',color:RED,fontSize:10,fontWeight:700}}>{eq.category}</span>
+                        </div>
+                        <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14}}>{eq.brand} — {eq.product}</div>
+                        {eq.description&&<div style={{color:'#aaa',fontSize:11,marginTop:2}}>{eq.description}</div>}
+                        {eq.url&&<div style={{color:'#2980b9',fontSize:11,marginTop:2}}>🔗 {eq.url.replace('https://','').slice(0,50)}</div>}
+                        {eq.discount_code&&<div style={{color:'#27ae60',fontSize:11,marginTop:2}}>🏷️ Code: {eq.discount_code}</div>}
+                      </div>
+                      <button onClick={async()=>{
+                        if(!window.confirm('Löschen?'))return;
+                        await fetch(SUPA_URL+'/rest/v1/equipment?id=eq.'+eq.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                        setEquipmentList(prev=>prev.filter(e=>e.id!==eq.id));
+                        showMsg('Gelöscht');
+                      }} style={{background:'none',border:'1px solid #e74c3c44',borderRadius:6,padding:'4px 8px',color:'#e74c3c',fontSize:11,cursor:'pointer',flexShrink:0,marginLeft:8}}>
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
