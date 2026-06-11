@@ -3513,6 +3513,43 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 </div>
               )}
             </div>
+            {/* EINSTELLUNGEN IN SLIDEBAR */}
+            <div style={{height:1,background:darkMode?'#222':'#efefef',margin:'8px 18px'}}/>
+            {[
+              {icon:'📋',label:t.impressum,action:()=>{setShowImpressum(true);setShowMenu(false);}},
+              {icon:'🔐',label:t.privacy,action:()=>{setShowDatenschutz(true);setShowMenu(false);}},
+              {icon:'📜',label:t.agb,action:()=>{setShowAGB(true);setShowMenu(false);}},
+              {icon:'🔑',label:t.changePw,action:()=>{setShowPwChange(true);setShowMenu(false);}},
+            ].map(item=>(
+              <div key={item.label} onClick={item.action}
+                style={{display:'flex',alignItems:'center',gap:12,padding:'10px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px'}}
+                onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
+                onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <div style={{fontSize:15,width:24,textAlign:'center',opacity:0.7}}>{item.icon}</div>
+                <div style={{color:darkMode?'#e0e0e0':'#444',fontSize:13,fontWeight:500}}>{item.label}</div>
+              </div>
+            ))}
+            <div onClick={()=>{
+              if(!window.confirm('Account wirklich löschen?'))return;
+              if(!window.confirm('Bist du sicher? Diese Aktion kann nicht rückgängig gemacht werden!'))return;
+              (async()=>{
+                try{
+                  await fetch(SUPA_URL+'/rest/v1/swipes?swiper_id=eq.'+session.userId,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                  await fetch(SUPA_URL+'/rest/v1/matches?profile_a_id=eq.'+session.userId,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                  await fetch(SUPA_URL+'/rest/v1/matches?profile_b_id=eq.'+session.userId,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                  await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+session.userId,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                  try{localStorage.clear();}catch{}
+                  setSession(null);setMyProfile(null);setShowMenu(false);
+                }catch(e){showMsg('Fehler: '+e.message);}
+              })();
+            }}
+              style={{display:'flex',alignItems:'center',gap:12,padding:'10px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px'}}
+              onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
+              onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+              <div style={{fontSize:15,width:24,textAlign:'center',opacity:0.7}}>🗑️</div>
+              <div style={{color:'#e74c3c',fontSize:13,fontWeight:500}}>{t.deleteAccount}</div>
+            </div>
+
             {/* SPRACHE */}
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 18px',borderTop:'1px solid '+(darkMode?'#222':'#efefef')}}>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
@@ -4220,54 +4257,6 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   ))}
                 </div>
               )}
-            </div>
-            {/* EINSTELLUNGEN */}
-            <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginTop:10}}>
-              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:2,marginBottom:12}}>{t.settings}</div>
-              <div onClick={()=>setDarkMode(d=>!d)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
-                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>{t.darkMode}</div>
-                <div style={{width:48,height:26,borderRadius:13,background:darkMode?'#c0392b':'#ddd',position:'relative',cursor:'pointer'}}>
-                  <div style={{width:20,height:20,borderRadius:'50%',background:'#fff',position:'absolute',top:3,left:darkMode?24:4,transition:'all 0.3s'}}/>
-                </div>
-              </div>
-              <div onClick={()=>setShowImpressum(true)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
-                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>{t.impressum}</div>
-                <div style={{color:'#aaa',fontSize:16}}>›</div>
-              </div>
-              <div onClick={()=>setShowDatenschutz(true)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
-                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>{t.privacy}</div>
-                <div style={{color:'#aaa',fontSize:16}}>›</div>
-              </div>
-              <div onClick={()=>setShowAGB(true)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
-                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>{t.agb}</div>
-                <div style={{color:'#aaa',fontSize:16}}>›</div>
-              </div>
-
-              <div onClick={async()=>{
-                if(!window.confirm('Account wirklich löschen? Alle deine Daten werden permanent gelöscht.'))return;
-                if(!window.confirm('Bist du sicher? Diese Aktion kann nicht rückgängig gemacht werden!'))return;
-                try{
-                  // Alle Daten löschen
-                  await fetch('https://uykdrmymjvqgebsmndme.supabase.co/rest/v1/swipes?swiper_id=eq.'+session.userId,{method:'DELETE',headers:{apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk',Authorization:'Bearer '+session.token}});
-                  await fetch('https://uykdrmymjvqgebsmndme.supabase.co/rest/v1/matches?profile_a_id=eq.'+session.userId,{method:'DELETE',headers:{apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk',Authorization:'Bearer '+session.token}});
-                  await fetch('https://uykdrmymjvqgebsmndme.supabase.co/rest/v1/matches?profile_b_id=eq.'+session.userId,{method:'DELETE',headers:{apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk',Authorization:'Bearer '+session.token}});
-                  await fetch('https://uykdrmymjvqgebsmndme.supabase.co/rest/v1/profiles?id=eq.'+session.userId,{method:'DELETE',headers:{apikey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk',Authorization:'Bearer '+session.token}});
-                  try{localStorage.clear();}catch{}
-                  setSession(null);setMyProfile(null);
-                  alert('Dein Account wurde gelöscht.');
-                }catch(e){alert('Fehler beim Löschen: '+e.message);}
-              }} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',cursor:'pointer',borderTop:'1px solid #e74c3c22'}}>
-                <span style={{color:'#e74c3c',fontSize:14,fontWeight:600}}>{t.deleteAccount}</span>
-                <span style={{color:'#e74c3c',fontSize:16}}>›</span>
-              </div>
-              <div onClick={()=>setShowPwChange(true)} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',cursor:'pointer',borderTop:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
-                <span style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>{t.changePw}</span>
-                <span style={{color:'#aaa',fontSize:16}}>›</span>
-              </div>
-              <div onClick={handleLogout} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',cursor:'pointer'}}>
-                <div style={{color:'#c0392b',fontSize:14,fontWeight:600}}>{t.logout}</div>
-                <div style={{color:'#aaa',fontSize:16}}>›</div>
-              </div>
             </div>
             {dbMatches.length>3&&(
               <div style={{marginTop:14}}>
