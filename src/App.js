@@ -750,7 +750,9 @@ function AuthScreen({ onSession, appLang }) {
   );
 }
 
-function ChatOverlay({match,myProfileId,token,onClose,onViewProfile}){
+function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,appLang}){
+  // Fallback t object if not passed
+  if(!t)t={fightRequest:'FIGHT REQUEST',fightType:'FIGHT TYP',date:'DATUM',placeGym:'ORT / GYM',placePlaceholder:'z.B. Tiger Gym Berlin',waitingResponse:'Warte...',sendFightRequest:'⚔️ SENDEN',fightSent:'GESENDET!',waitingFor:'Wartet auf',accept:'✅ ANNEHMEN',decline:'❌ ABLEHNEN',counterDate:'🔄 GEGEN-TERMIN',backToChat:'💬 ZURÜCK',fightAccepted:'ANGENOMMEN',fightDeclined:'ABGELEHNT',counterTerm:'GEGENVORSCHLAG',message:'Nachricht…',send:'➤',block:'🚫 Blockieren',unblock:'🚫 Entsperren',report:'⚠️ Melden',reported:'✓ Gemeldet'};
   const [messages,setMessages]=useState([]);
   const [input,setInput]=useState('');
   const [loading,setLoading]=useState(true);
@@ -3066,7 +3068,7 @@ nicht öffentlich gemacht</div>
   );
 
   if(!session)return <AuthScreen onSession={handleSession} appLang={appLang}/>;
-  if(activeChat&&myProfile&&!viewProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>{setViewProfile(p);}}/></>);
+  if(activeChat&&myProfile&&!viewProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>{setViewProfile(p);}} darkMode={darkMode} t={t} appLang={appLang}/></>);
 
   if(screen==='setup')return(
     <div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'0 0 40px'}}>
