@@ -5539,11 +5539,18 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         body:JSON.stringify({...newEquip,sort_order:Date.now()})
                       });
                       const data=await res.json();
+                      console.log('Equipment save response:', res.status, data);
                       if(Array.isArray(data)&&data[0]){
                         setEquipmentList(prev=>[data[0],...prev]);
                         setNewEquip({brand:'',product:'',description:'',category:'Boxen',url:'',image_url:'',discount_code:'',featured:false});
                         showMsg('✅ Produkt hinzugefügt!');
-                      }else showMsg('Fehler: '+JSON.stringify(data));
+                      }else if(data&&data.code==='42P01'){
+                        showMsg('❌ Tabelle fehlt — SQL im Supabase Editor ausführen!');
+                      }else if(data&&data.message){
+                        showMsg('❌ '+data.message);
+                      }else{
+                        showMsg('Fehler: '+JSON.stringify(data).slice(0,100));
+                      }
                     }catch(e){showMsg('Fehler: '+e.message);}
                   }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>
                     ➕ PRODUKT SPEICHERN
