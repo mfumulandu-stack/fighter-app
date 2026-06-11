@@ -3422,7 +3422,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
     </div>
   );
 
-  const tabs=[['swipe','',t.fight],['chat','unread',t.chat],['ranking','🏆',t.rang],['gyms','🏋️',t.gyms],['stats','',t.profil]];
+  const tabs=[['swipe','🥊',t.fight],['chat','unread',t.chat],['ranking','🏆',t.rang],['gyms','🏋️',t.gyms],['stats','🧍',t.profil]];
 
   return(
     <ErrorBoundary>
