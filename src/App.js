@@ -209,7 +209,7 @@ const GYMS = {
   ],
   'Wien':[
     {name:'Vienna Fight Club',members:190,styles:['MMA','Boxing','BJJ'],rating:4.8,address:'Mariahilfer Str. 88, 1070 Wien',street:'Mariahilfer Str. 88',zip:'1070',city:'Wien',emoji:'🦅',code:'VFC-3311',phone:'+43 1 5234567',hours:'Mo-Fr 08:00-22:00, Sa-So 10:00-18:00',desc:'Österreichs führendes MMA-Gym in der Hauptstadt. State-of-the-art Ausstattung auf 800qm, internationale Toptrainer und eine wachsende Community von über 190 Mitgliedern.',founded:2012,website:'vienna-fightclub.at'},
-    {name:'Kick & Box Austria',members:145,styles:['Kickboxing','Muay Thai'],rating:4.6,address:'Ottakringer Str. 120, 1160 Wien',street:'Ottakringer Str. 120',zip:'1160',city:'Wien',emoji:'🥊',code:'KBA-7792',phone:'+43 1 4567890',hours:'Mo-Fr 09:00-21:00, Sa 10:00-15:00',desc:'Das älteste Kickboxing-Gym Wiens mit Tradition seit 1998. Heimat zahlreicher österreichischer Meister und internationaler Nachwuchstalente.',founded:1998,website:'kickbox-austria.at'},
+    {name:'Kick & Box Austria',members:145,styles:['Kickboxing','Muay Thai'],rating:4.6,address:'Ottakringer Str. 120, 1160 Wien',street:'Ottakringer Str. 120',zip:'1160',city:'Wien',emoji:'',code:'KBA-7792',phone:'+43 1 4567890',hours:'Mo-Fr 09:00-21:00, Sa 10:00-15:00',desc:'Das älteste Kickboxing-Gym Wiens mit Tradition seit 1998. Heimat zahlreicher österreichischer Meister und internationaler Nachwuchstalente.',founded:1998,website:'kickbox-austria.at'},
   ],
   'Graz':[
     {name:'Steiermark Combat Center',members:110,styles:['MMA','Grappling','Wrestling'],rating:4.5,address:'Annenstraße 45, 8020 Graz',street:'Annenstraße 45',zip:'8020',city:'Graz',emoji:'🐆',code:'SCC-4481',phone:'+43 316 789012',hours:'Mo-Fr 17:00-22:00, Sa 10:00-14:00',desc:'Das Steiermark Combat Center ist die Kampfsport-Heimat der steirischen Metropole. Regionale Meister in MMA, Grappling und Wrestling trainieren hier täglich.',founded:2015,website:'scc-graz.at'},
@@ -1076,7 +1076,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,a
           </div>
           <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%',display:'flex',flexDirection:'column',gap:12}}>
             <div style={{background:'#fff',borderRadius:12,padding:'14px',border:'1px solid #eee',textAlign:'center'}}>
-              <div style={{fontSize:40,marginBottom:6}}>{other?.emoji||'🥊'}</div>
+              <div style={{fontSize:40,marginBottom:6}}>{other?.emoji||''}</div>
               <div className='rj' style={{color:'#1a1a1a',fontSize:18,letterSpacing:1}}>{other?.name}</div>
               <div style={{color:'#888',fontSize:12,marginTop:2}}>{other?.style} · {other?.weight_class||other?.weightClass||''}</div>
             </div>
@@ -1526,9 +1526,9 @@ export default function App(){
       noHistory:'Noch keine Trainings-Einträge', historyHint:'Nimm einen Fight Request an → wird hier gespeichert',
       public2:'Öffentlich', private2:'Privat',
       // Settings
-      settings:'EINSTELLUNGEN', darkMode:'Dark Mode', impressum:'📋 Impressum',
-      privacy:'🔐 Datenschutz', agb:'📜 AGB', deleteAccount:'🗑️ Account löschen',
-      changePw:'🔑 Passwort ändern', logout:'🚪 Ausloggen',
+      settings:'EINSTELLUNGEN', darkMode:'Dark Mode', impressum:'Impressum',
+      privacy:'Datenschutz', agb:'AGB', deleteAccount:'Account löschen',
+      changePw:'Passwort ändern', logout:'Ausloggen',
       // Misc
       undone:'↩️ Rückgängig!', photoUploading:'Foto wird hochgeladen...',
       matchConfirmed:'Match bestätigt!', writeFirst:'Schreib die erste Nachricht',
@@ -1640,9 +1640,9 @@ export default function App(){
       noHistory:'No training entries yet', historyHint:'Accept a Fight Request → saved here',
       public2:'Public', private2:'Private',
       // Settings
-      settings:'SETTINGS', darkMode:'Dark Mode', impressum:'📋 Imprint',
-      privacy:'🔐 Privacy Policy', agb:'📜 Terms', deleteAccount:'🗑️ Delete account',
-      changePw:'🔑 Change password', logout:'🚪 Log out',
+      settings:'SETTINGS', darkMode:'Dark Mode', impressum:'Imprint',
+      privacy:'Privacy Policy', agb:'Terms', deleteAccount:'Delete account',
+      changePw:'Change password', logout:'Log out',
       // Misc
       undone:'↩️ Undone!', photoUploading:'Uploading photo...',
       matchConfirmed:'Match confirmed!', writeFirst:'Write the first message',
@@ -1755,9 +1755,9 @@ export default function App(){
       noHistory:"Pas encore d'entrées", historyHint:'Acceptez une demande de combat → sauvegardé ici',
       public2:'Public', private2:'Privé',
       // Settings
-      settings:'PARAMÈTRES', darkMode:'Mode Sombre', impressum:'📋 Mentions légales',
-      privacy:'🔐 Confidentialité', agb:'📜 CGU', deleteAccount:'🗑️ Supprimer le compte',
-      changePw:'🔑 Changer le mot de passe', logout:'🚪 Déconnexion',
+      settings:'PARAMÈTRES', darkMode:'Mode Sombre', impressum:'Mentions légales',
+      privacy:'Confidentialité', agb:'CGU', deleteAccount:'Supprimer le compte',
+      changePw:'Changer le mot de passe', logout:'Déconnexion',
       // Misc
       undone:'↩️ Annulé!', photoUploading:'Téléchargement en cours...',
       matchConfirmed:'Match confirmé!', writeFirst:'Écrivez le premier message',
@@ -2911,10 +2911,10 @@ export default function App(){
   const tf=stats.wins+stats.losses+stats.draws;
   const wr=tf>0?Math.round((stats.wins/tf)*100):0;
   const kr=stats.wins>0?Math.round((stats.ko/stats.wins)*100):0;
-  const allF=profile.name?[{id:0,name:profile.name,age:profile.age,city:profile.city,gym:profile.gym,weight_class:profile.weightClass,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'🥊',accent:RED,isMe:true,avatar_url:avatarUrl}].concat(FIGHTERS):FIGHTERS;
+  const allF=profile.name?[{id:0,name:profile.name,age:profile.age,city:profile.city,gym:profile.gym,weight_class:profile.weightClass,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'',accent:RED,isMe:true,avatar_url:avatarUrl}].concat(FIGHTERS):FIGHTERS;
   // Rangliste: ALLE angemeldeten User aus Datenbank
   const userOnly=(()=>{
-    const me=profile.name?[{id:0,name:profile.name,city:profile.city,gym:profile.gym,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'🥊',accent:RED,isMe:true,avatar_url:avatarUrl,is_pro:profile.isPro===true,country:profile.country||'DE'}]:[];
+    const me=profile.name?[{id:0,name:profile.name,city:profile.city,gym:profile.gym,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'',accent:RED,isMe:true,avatar_url:avatarUrl,is_pro:profile.isPro===true,country:profile.country||'DE'}]:[];
     if(allProfiles.length>0){
       const others=allProfiles.filter(p=>p.id!==myProfile?.id&&!p.banned).map(p=>({
         ...p,
@@ -3152,7 +3152,7 @@ nicht öffentlich gemacht</div>
   );
   // ONBOARDING
   const onboardSlides=[
-    {icon:'🥊',title:t.ob1title,sub:t.ob1sub,bg:'linear-gradient(160deg,#1a0505 0%,#0d0d0d 100%)',accent:'#c0392b'},
+    {icon:'',title:t.ob1title,sub:t.ob1sub,bg:'linear-gradient(160deg,#1a0505 0%,#0d0d0d 100%)',accent:'#c0392b'},
     {icon:'💬',title:t.ob2title,sub:t.ob2sub,bg:'linear-gradient(160deg,#05101a 0%,#0d0d0d 100%)',accent:'#2980b9'},
     {icon:'🏆',title:t.ob3title,sub:t.ob3sub,bg:'linear-gradient(160deg,#0a0a05 0%,#0d0d0d 100%)',accent:'#d4a017'},
   ];
@@ -3353,7 +3353,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                                   style:newGymData.style||'',
                                   styles:newGymData.style?[newGymData.style]:[],
                                   code:newGymData.name.replace(/[^A-Z0-9]/gi,'-').toUpperCase().slice(0,20)+'-'+Math.floor(Math.random()*9000+1000),
-                                  emoji:'🥊',members:0,rating:0
+                                  emoji:'',members:0,rating:0
                                 })
                               });
                               await loadDbGyms(session);
@@ -3422,7 +3422,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
     </div>
   );
 
-  const tabs=[['swipe','🥊',t.fight],['chat','unread',t.chat],['ranking','🏆',t.rang],['gyms','🏋️',t.gyms],['stats','👤',t.profil]];
+  const tabs=[['swipe','',t.fight],['chat','unread',t.chat],['ranking','🏆',t.rang],['gyms','🏋️',t.gyms],['stats','',t.profil]];
 
   return(
     <ErrorBoundary>
@@ -3456,9 +3456,9 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
 
               {/* Navigations-Items */}
               {[
-                {icon:'📅',label:'Events',action:()=>{setTab('events');setShowMenu(false);loadEvents(session);}},
-                {icon:'👤',label:'Mein Profil',action:()=>{setTab('stats');setShowMenu(false);}},
-                {icon:'🥊',label:'Equipment',action:()=>{setShowEquipment(true);setShowMenu(false);}},
+                {icon:'',label:'Events',action:()=>{setTab('events');setShowMenu(false);loadEvents(session);}},
+                {icon:'',label:'Mein Profil',action:()=>{setTab('stats');setShowMenu(false);}},
+                {icon:'',label:'Equipment',action:()=>{setShowEquipment(true);setShowMenu(false);}},
               ].map(item=>(
                 <div key={item.label} onClick={item.action}
                   style={{display:'flex',alignItems:'center',gap:12,padding:'10px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px',transition:'background 0.15s'}}
@@ -3481,7 +3481,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
                 onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                 <div style={{display:'flex',alignItems:'center',gap:12}}>
-                  <div style={{fontSize:17,width:24,textAlign:'center',opacity:0.85}}>🔔</div>
+                  <div style={{fontSize:17,width:24,textAlign:'center',opacity:0.85}}></div>
                   <div>
                     <div style={{color:darkMode?'#e0e0e0':'#222',fontSize:13,fontWeight:600}}>Benachrichtigungen</div>
                     <div style={{color:'#aaa',fontSize:10,marginTop:1}}>{typeof Notification!=='undefined'&&Notification.permission==='granted'?'Aktiv':'Nicht aktiv'}</div>
@@ -3497,7 +3497,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
                 onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                 <div style={{display:'flex',alignItems:'center',gap:12}}>
-                  <div style={{fontSize:17,width:24,textAlign:'center',opacity:0.85}}>{darkMode?'☀️':'🌙'}</div>
+                  <div style={{fontSize:17,width:24,textAlign:'center',opacity:0.85}}></div>
                   <div style={{color:darkMode?'#e0e0e0':'#222',fontSize:13,fontWeight:600}}>Dark Mode</div>
                 </div>
                 <div style={{width:34,height:19,borderRadius:10,background:darkMode?RED:'#ccc',position:'relative',flexShrink:0}}>
@@ -3521,7 +3521,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
               onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
-                <div style={{fontSize:15,width:24,textAlign:'center',opacity:0.7}}>⚙️</div>
+                <div style={{fontSize:15,width:24,textAlign:'center',opacity:0.7}}></div>
                 <div style={{color:darkMode?'#e0e0e0':'#444',fontSize:13,fontWeight:600}}>{t.settings}</div>
               </div>
               <div style={{color:'#aaa',fontSize:12,transform:showSettings?'rotate(90deg)':'rotate(0deg)',transition:'transform 0.2s'}}>›</div>
@@ -3559,7 +3559,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   style={{display:'flex',alignItems:'center',gap:12,padding:'9px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px'}}
                   onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
                   onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                  <div style={{fontSize:14,width:24,textAlign:'center',opacity:0.6}}>🗑️</div>
+                  <div style={{fontSize:14,width:24,textAlign:'center',opacity:0.6}}></div>
                   <div style={{color:'#e74c3c',fontSize:12,fontWeight:500}}>{t.deleteAccount}</div>
                 </div>
               </div>
@@ -3568,7 +3568,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             {/* SPRACHE */}
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 18px',borderTop:'1px solid '+(darkMode?'#222':'#efefef')}}>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
-                <div style={{fontSize:15,width:24,textAlign:'center',opacity:0.7}}>🌍</div>
+                <div style={{fontSize:15,width:24,textAlign:'center',opacity:0.7}}></div>
                 <div style={{color:darkMode?'#aaa':'#666',fontSize:12,fontWeight:600}}>Sprache</div>
               </div>
               <div style={{display:'flex',gap:3,background:darkMode?'#222':'#ebebeb',borderRadius:16,padding:3}}>
@@ -3805,7 +3805,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     style={{position:'absolute',inset:0,borderRadius:16,background:'#111',boxShadow:isTop?'0 8px 32px rgba(0,0,0,0.2)':'none',cursor:isTop?'grab':'default',zIndex:isTop?10:isSec?5:1,transform:isTop?cStyle.transform:isSec?'scale(0.96) translateY(10px)':'scale(0.92) translateY(20px)',transition:isTop?cStyle.transition:'none',overflow:'hidden',userSelect:'none'}}>
                     {f.avatar_url
                       ?<img src={f.avatar_url} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:(f.img_pos_x||50)+'% '+(f.img_pos_y||30)+'%'}} alt={f.name}/>
-                      :<div style={{position:'absolute',inset:0,background:`linear-gradient(160deg,${fA}55 0%,#111 100%)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:120}}>{f.emoji||'🥊'}</div>
+                      :<div style={{position:'absolute',inset:0,background:`linear-gradient(160deg,${fA}55 0%,#111 100%)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:120}}>{f.emoji||''}</div>
                     }
                     <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0) 30%,rgba(0,0,0,0.95) 100%)'}}/>
                     {isTop&&(<>
@@ -4365,7 +4365,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       <div key={gym.k} onClick={()=>openGym(gym)} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'12px 14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:12,cursor:'pointer'}}>
                         <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,color:'#aaa',width:30,textAlign:'center'}}>#{i+6}</div>
                         <div style={{width:42,height:42,borderRadius:8,background:darkMode?'#2a2a2a':'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0,overflow:'hidden'}}>
-                          {(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} alt=''/>:(gym.emoji||'🥊')}
+                          {(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} alt=''/>:(gym.emoji||'')}
                         </div>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{fontWeight:700,fontSize:14,color:darkMode?'#fff':'#1a1a1a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{gym.name||''}</div>
@@ -4717,7 +4717,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   const heights=[96,118,80];const places=[2,1,3];const colors=['#95a5a6','#d4a017','#cd7f32'];const isFirst=i===1;
                   return(<div key={f.id} onClick={()=>{if(!f.isMe&&f.id)setViewProfile(f);}} style={{flex:1,maxWidth:105,display:'flex',flexDirection:'column',alignItems:'center',cursor:f.isMe?'default':'pointer'}}>
                     {isFirst&&<div style={{fontSize:26,marginBottom:2}}>🏆</div>}
-                    {f.avatar_url?<img src={f.avatar_url} style={{width:isFirst?44:36,height:isFirst?44:36,borderRadius:'50%',objectFit:'cover',border:'2px solid '+colors[i],marginBottom:3}} alt={f.name}/>:<div style={{fontSize:isFirst?28:22,marginBottom:3}}>{f.emoji||'🥊'}</div>}
+                    {f.avatar_url?<img src={f.avatar_url} style={{width:isFirst?44:36,height:isFirst?44:36,borderRadius:'50%',objectFit:'cover',border:'2px solid '+colors[i],marginBottom:3}} alt={f.name}/>:<div style={{fontSize:isFirst?28:22,marginBottom:3}}>{f.emoji||''}</div>}
                     <div style={{color:f.isMe?RED:(darkMode?'#fff':'#1a1a1a'),fontSize:11,fontWeight:700,textAlign:'center'}}>{f.name?.split(' ')[0]}</div>
                     <div style={{color:'#aaa',fontSize:9}}>{f.wins}W-{f.losses}L</div>
                     <div style={{width:'100%',height:heights[i],background:colors[i]+'18',border:'1px solid '+colors[i]+'44',borderRadius:'5px 5px 0 0',marginTop:5,display:'flex',alignItems:'center',justifyContent:'center'}}><div className='rj' style={{color:colors[i],fontSize:28}}>#{places[i]}</div></div>
@@ -4730,7 +4730,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 const score=f.wins*3-f.losses*2+f.draws;const rc=['#d4a017','#95a5a6','#cd7f32'];
                 return(<div key={f.id} onClick={()=>{if(!f.isMe&&f.id&&typeof f.id==='string')setViewProfile(f);}} style={{background:f.isMe?(darkMode?'#2a1510':'#fdf0ef'):(darkMode?'#1a1a1a':'#fff'),borderRadius:9,padding:'10px 12px',border:'1px solid '+(f.isMe?RED+'33':i<3?rc[i]+'33':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.04)',cursor:f.isMe?'default':'pointer'}}>
                   <div className='rj' style={{color:i<3?rc[i]:'#bbb',fontSize:18,width:24,textAlign:'center'}}>#{i+1}</div>
-                  {f.avatar_url?<img src={f.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover'}} alt={f.name}/>:<div style={{fontSize:22}}>{f.emoji||'🥊'}</div>}
+                  {f.avatar_url?<img src={f.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover'}} alt={f.name}/>:<div style={{fontSize:22}}>{f.emoji||''}</div>}
                   <div style={{flex:1}}>
                     <div style={{display:'flex',alignItems:'center',gap:4}}>
                       <div style={{color:f.isMe?RED:(darkMode?'#fff':'#1a1a1a'),fontWeight:700,fontSize:13}}>{f.name}</div>
@@ -4952,7 +4952,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <button onClick={()=>setShowAdmin(false)} style={{background:'none',border:'none',color:'#fff',fontSize:22,cursor:'pointer'}}>✕</button>
           </div>
           <div style={{display:'flex',overflowX:'auto',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
-            {[['gyms','🏋️'],['addgym','➕'],['addcity','🌍'],['events','📅'],['users','👤'],['reports','🚨'],['records','🏅'],['feedback','💬'],['equipment','🥊'],['broadcast','📢'],['stats','📊'],['scanner','🔍']].map(([t,l])=>(
+            {[['gyms','🏋️'],['addgym','➕'],['addcity','🌍'],['events',''],['users',''],['reports','🚨'],['records','🏅'],['feedback','💬'],['equipment',''],['broadcast','📢'],['stats','📊'],['scanner','🔍']].map(([t,l])=>(
               <button key={t} onClick={()=>setAdminTab(t)} style={{flexShrink:0,padding:'10px 14px',background:'none',border:'none',borderBottom:adminTab===t?'2px solid '+RED:'2px solid transparent',color:adminTab===t?RED:(darkMode?'#aaa':'#888'),fontWeight:700,fontSize:16,cursor:'pointer'}}>{l}</button>
             ))}
           </div>
@@ -5198,7 +5198,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     const resp=await fetch(SUPA_URL+'/rest/v1/gyms',{
                       method:'POST',
                       headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
-                      body:JSON.stringify({name:gymName,city,code:gymName.replace(/[^A-Z0-9]/gi,'-').toUpperCase().slice(0,15)+'-'+Date.now().toString().slice(-4),emoji:'🥊',members:0,rating:0,style:'Kampfsport',styles:['Kampfsport']})
+                      body:JSON.stringify({name:gymName,city,code:gymName.replace(/[^A-Z0-9]/gi,'-').toUpperCase().slice(0,15)+'-'+Date.now().toString().slice(-4),emoji:'',members:0,rating:0,style:'Kampfsport',styles:['Kampfsport']})
                     });
                     if(resp.ok||resp.status===201){
                       await loadDbGyms(session);
@@ -5715,7 +5715,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                                 await fetch(SUPA_URL+'/rest/v1/gyms',{
                                   method:'POST',
                                   headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
-                                  body:JSON.stringify({name,city,code:name.toUpperCase().replace(/[^A-Z0-9]/g,'-').slice(0,20)+'-'+Date.now().toString().slice(-4),emoji:'🥊',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})
+                                  body:JSON.stringify({name,city,code:name.toUpperCase().replace(/[^A-Z0-9]/g,'-').slice(0,20)+'-'+Date.now().toString().slice(-4),emoji:'',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})
                                 });
                                 setScanResult(prev=>({...prev,cities:prev.cities.filter(([c])=>c!==city)}));
                                 await loadDbGyms(session);
@@ -5738,7 +5738,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                             </div>
                             <button onClick={async()=>{
                               try{
-                                await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:gym,city:data.city||'Unbekannt',code:gym.toUpperCase().replace(/\s/g,'-').slice(0,20),emoji:'🥊',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})});
+                                await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:gym,city:data.city||'Unbekannt',code:gym.toUpperCase().replace(/\s/g,'-').slice(0,20),emoji:'',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})});
                                 setScanResult(prev=>({...prev,gyms:prev.gyms.filter(([g])=>g!==gym)}));
                                 await loadDbGyms(session);
                                 showMsg('✅ '+gym+' hinzugefügt');
@@ -5776,7 +5776,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     {/* Haupt-Stats */}
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
                       {[
-                        ['👤','Gesamt User',adminUsers.length],
+                        ['','Gesamt User',adminUsers.length],
                         ['🟢','Heute aktiv',adminUsers.filter(u=>u.last_seen&&(Date.now()-new Date(u.last_seen).getTime())<86400000).length],
                         ['⚡','Diese Woche',adminUsers.filter(u=>u.last_seen&&(Date.now()-new Date(u.last_seen).getTime())<604800000).length],
                         ['🚫','Gesperrt',adminUsers.filter(u=>u.banned).length],
@@ -5859,7 +5859,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
           <div className='rj' style={{color:RED,fontSize:12,letterSpacing:8}}>⚡ NEUES MATCH</div>
           <div className='rj' style={{fontSize:46,color:'#fff',letterSpacing:4,textAlign:'center',lineHeight:1,animation:'pulse 1.2s infinite'}}>IT'S A MATCH!</div>
           <div style={{fontSize:14,color:'rgba(255,255,255,0.6)',textAlign:'center'}}>Ihr habt beide geswipt — jetzt chatten!</div>
-          {matched.avatar_url?<img src={matched.avatar_url} style={{width:140,height:140,borderRadius:'50%',objectFit:'cover',border:'3px solid '+RED}} alt=''/>:<div style={{fontSize:52}}>{matched.emoji||'🥊'}</div>}
+          {matched.avatar_url?<img src={matched.avatar_url} style={{width:140,height:140,borderRadius:'50%',objectFit:'cover',border:'3px solid '+RED}} alt=''/>:<div style={{fontSize:52}}>{matched.emoji||''}</div>}
           <div className='rj' style={{color:'#fff',fontSize:24,letterSpacing:2}}>{matched.name}</div>
           <div style={{color:matched.accent||RED,fontSize:12,fontWeight:700}}>{matched.style} · {matched.city}</div>
           <div style={{display:'flex',gap:10,marginTop:8}}>
