@@ -3515,40 +3515,62 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             </div>
             {/* EINSTELLUNGEN IN SLIDEBAR */}
             <div style={{height:1,background:darkMode?'#222':'#efefef',margin:'8px 18px'}}/>
-            {[
-              {icon:'📋',label:t.impressum,action:()=>{setShowImpressum(true);setShowMenu(false);}},
-              {icon:'🔐',label:t.privacy,action:()=>{setShowDatenschutz(true);setShowMenu(false);}},
-              {icon:'📜',label:t.agb,action:()=>{setShowAGB(true);setShowMenu(false);}},
-              {icon:'🔑',label:t.changePw,action:()=>{setShowPwChange(true);setShowMenu(false);}},
-            ].map(item=>(
-              <div key={item.label} onClick={item.action}
-                style={{display:'flex',alignItems:'center',gap:12,padding:'10px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px'}}
-                onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
-                onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                <div style={{fontSize:15,width:24,textAlign:'center',opacity:0.7}}>{item.icon}</div>
-                <div style={{color:darkMode?'#e0e0e0':'#444',fontSize:13,fontWeight:500}}>{item.label}</div>
-              </div>
-            ))}
-            <div onClick={()=>{
-              if(!window.confirm('Account wirklich löschen?'))return;
-              if(!window.confirm('Bist du sicher? Diese Aktion kann nicht rückgängig gemacht werden!'))return;
-              (async()=>{
-                try{
-                  await fetch(SUPA_URL+'/rest/v1/swipes?swiper_id=eq.'+session.userId,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
-                  await fetch(SUPA_URL+'/rest/v1/matches?profile_a_id=eq.'+session.userId,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
-                  await fetch(SUPA_URL+'/rest/v1/matches?profile_b_id=eq.'+session.userId,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
-                  await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+session.userId,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
-                  try{localStorage.clear();}catch{}
-                  setSession(null);setMyProfile(null);setShowMenu(false);
-                }catch(e){showMsg('Fehler: '+e.message);}
-              })();
-            }}
-              style={{display:'flex',alignItems:'center',gap:12,padding:'10px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px'}}
-              onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
-              onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-              <div style={{fontSize:15,width:24,textAlign:'center',opacity:0.7}}>🗑️</div>
-              <div style={{color:'#e74c3c',fontSize:13,fontWeight:500}}>{t.deleteAccount}</div>
-            </div>
+            {/* Einstellungen Accordion */}
+            {(()=>{
+              const [settingsOpen,setSettingsOpen]=React.useState(false);
+              return(
+                <div>
+                  <div onClick={()=>setSettingsOpen(o=>!o)}
+                    style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px'}}
+                    onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
+                    onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                    <div style={{display:'flex',alignItems:'center',gap:12}}>
+                      <div style={{fontSize:15,width:24,textAlign:'center',opacity:0.7}}>⚙️</div>
+                      <div style={{color:darkMode?'#e0e0e0':'#444',fontSize:13,fontWeight:600}}>{t.settings}</div>
+                    </div>
+                    <div style={{color:'#aaa',fontSize:12,transition:'transform 0.2s',transform:settingsOpen?'rotate(90deg)':'rotate(0deg)'}}>›</div>
+                  </div>
+                  {settingsOpen&&(
+                    <div style={{marginLeft:16}}>
+                      {[
+                        {icon:'📋',label:t.impressum,action:()=>{setShowImpressum(true);setShowMenu(false);}},
+                        {icon:'🔐',label:t.privacy,action:()=>{setShowDatenschutz(true);setShowMenu(false);}},
+                        {icon:'📜',label:t.agb,action:()=>{setShowAGB(true);setShowMenu(false);}},
+                        {icon:'🔑',label:t.changePw,action:()=>{setShowPwChange(true);setShowMenu(false);}},
+                      ].map(item=>(
+                        <div key={item.label} onClick={item.action}
+                          style={{display:'flex',alignItems:'center',gap:12,padding:'9px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px'}}
+                          onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
+                          onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                          <div style={{fontSize:14,width:24,textAlign:'center',opacity:0.6}}>{item.icon}</div>
+                          <div style={{color:darkMode?'#ccc':'#555',fontSize:12,fontWeight:500}}>{item.label}</div>
+                        </div>
+                      ))}
+                      <div onClick={()=>{
+                        if(!window.confirm('Account wirklich löschen?'))return;
+                        if(!window.confirm('Bist du sicher? Diese Aktion kann nicht rückgängig gemacht werden!'))return;
+                        (async()=>{
+                          try{
+                            await fetch(SUPA_URL+'/rest/v1/swipes?swiper_id=eq.'+session.userId,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                            await fetch(SUPA_URL+'/rest/v1/matches?profile_a_id=eq.'+session.userId,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                            await fetch(SUPA_URL+'/rest/v1/matches?profile_b_id=eq.'+session.userId,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                            await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+session.userId,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                            try{localStorage.clear();}catch{}
+                            setSession(null);setMyProfile(null);setShowMenu(false);
+                          }catch(e){showMsg('Fehler: '+e.message);}
+                        })();
+                      }}
+                        style={{display:'flex',alignItems:'center',gap:12,padding:'9px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px'}}
+                        onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
+                        onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                        <div style={{fontSize:14,width:24,textAlign:'center',opacity:0.6}}>🗑️</div>
+                        <div style={{color:'#e74c3c',fontSize:12,fontWeight:500}}>{t.deleteAccount}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* SPRACHE */}
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 18px',borderTop:'1px solid '+(darkMode?'#222':'#efefef')}}>
