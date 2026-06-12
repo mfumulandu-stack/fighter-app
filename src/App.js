@@ -2741,6 +2741,12 @@ export default function App(){
 
       // ── SCORE SYSTEM (niedriger = besser) ──
       const relatedStyleBool=relatedStyle(f);
+      // Geschlecht-Priorität: gleiches Geschlecht zuerst
+      const myGender=profile.gender||myProfile?.gender||'male';
+      const fGender=f.gender||'male';
+      const sameGenderPriority=(myGender!=='other'&&fGender!=='other'&&myGender===fGender);
+      // Geschlecht-Offset: gleiches Geschlecht bekommt Score 0-14, anderes Geschlecht 15-29
+      const genderOffset=sameGenderPriority?0:15;
 
       let score;
       // STUFE 1: Gleiche Sportart + Stadt
@@ -2769,8 +2775,10 @@ export default function App(){
       else if(sameRegionBool)                     score=12;
       // STUFE 13: Gleiches Land
       else if(sameCountryBool)                    score=13;
-      // STUFE 14: Rest (andere Länder, unbekannte Stile)
+      // STUFE 14: Rest
       else                                        score=14;
+      // Geschlecht-Offset anwenden: anderes Geschlecht kommt nach allen gleichen
+      score=score+genderOffset;
 
       // ── BONUS-PUNKTE (verbessern Score) ──
       // Gewicht-Kompatibilität (wichtigster Bonus für echte Kämpfe)
