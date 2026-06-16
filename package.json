@@ -3,6 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/ios": "^8.4.0",
+    "@capacitor/push-notifications": "^8.1.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1"
@@ -12,7 +18,11 @@
     "build": "react-scripts build"
   },
   "browserslist": {
-    "production": [">0.2%"],
-    "development": ["last 1 chrome version"]
+    "production": [
+      ">0.2%"
+    ],
+    "development": [
+      "last 1 chrome version"
+    ]
   }
 }

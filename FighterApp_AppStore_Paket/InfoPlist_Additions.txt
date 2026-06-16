@@ -1,0 +1,16 @@
+INFO.PLIST EINTRÄGE FÜR XCODE:
+
+NSCameraUsageDescription
+→ "Fighter benötigt die Kamera um dein Profilbild aufzunehmen."
+
+NSPhotoLibraryUsageDescription  
+→ "Fighter benötigt Zugriff auf deine Fotos um ein Profilbild hochzuladen."
+
+NSLocationWhenInUseUsageDescription
+→ "Fighter nutzt deinen Standort um Kampfsportler in deiner Nähe zu finden."
+
+NSUserNotificationsUsageDescription
+→ "Fighter sendet dir Benachrichtigungen bei neuen Matches und Nachrichten."
+
+NSMicrophoneUsageDescription (optional für spätere Video-Features)
+→ "Fighter benötigt das Mikrofon für Video-Uploads."

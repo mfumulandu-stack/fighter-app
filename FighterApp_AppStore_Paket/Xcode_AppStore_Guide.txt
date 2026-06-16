@@ -1,0 +1,77 @@
+FIGHTER APP — XCODE APP STORE UPLOAD GUIDE
+==========================================
+
+SCHRITT 1: VORBEREITUNGEN AUF DEM MAC
+--------------------------------------
+1. Apple Developer Account aktivieren:
+   → developer.apple.com → Enroll → 99$/Jahr
+   
+2. App in App Store Connect anlegen:
+   → appstoreconnect.apple.com → My Apps → ➕
+   → Bundle ID: com.juniorlandu.fighter
+   → App Name: Fighter
+   → Language: German
+
+3. Capacitor config aktualisieren:
+   cp capacitor.config.ts ~/Documents/Fighter/fighter-app/
+
+SCHRITT 2: XCODE VORBEREITEN
+-------------------------------
+1. Terminal:
+   cd ~/Documents/Fighter/fighter-app
+   git pull origin main
+   npm run build
+   npx cap sync ios
+   npx cap open ios
+
+2. In Xcode:
+   → App target → Signing & Capabilities
+   → Team: dein Apple Developer Account
+   → Bundle Identifier: com.juniorlandu.fighter
+   → Version: 1.0.0
+   → Build: 1
+
+SCHRITT 3: ICONS SETZEN
+--------------------------
+1. In Xcode → App → Assets.xcassets → AppIcon
+2. Alle Icon-Größen aus dem icons/ Ordner einfügen:
+   - 20x20 (1x, 2x, 3x)
+   - 29x29 (1x, 2x, 3x)
+   - 40x40 (1x, 2x, 3x)
+   - 60x60 (2x, 3x)
+   - 76x76 (1x, 2x) — iPad
+   - 83.5x83.5 (2x) — iPad Pro
+   - 1024x1024 — App Store (KEIN Alpha-Kanal!)
+
+SCHRITT 4: INFO.PLIST PERMISSIONS
+------------------------------------
+In Xcode → Info.plist → Folgende Einträge hinzufügen:
+(Aus InfoPlist_Additions.txt kopieren)
+
+SCHRITT 5: PRIVACY MANIFEST
+------------------------------
+1. Xcode → File → New → File → PrivacyInfo.xcprivacy
+2. Inhalt aus PrivacyInfo.xcprivacy kopieren
+
+SCHRITT 6: PUSH NOTIFICATIONS (optional für v1.0)
+---------------------------------------------------
+1. Xcode → Signing & Capabilities → ➕ → Push Notifications
+2. Apple Developer → Certificates → APNs Key erstellen
+3. Supabase → Project Settings → Auth → APNs Config
+
+SCHRITT 7: ARCHIVE & UPLOAD
+------------------------------
+1. Xcode → Product → Archive
+2. Distribute App → App Store Connect → Upload
+3. App Store Connect: Metadaten ausfüllen (aus AppDescription Dateien)
+4. Screenshots hochladen (6.5" und 5.5" benötigt)
+5. Submit for Review
+
+SCREENSHOTS ERSTELLEN:
+-----------------------
+iPhone 14 Pro Max (6.7") = 1290x2796px
+iPhone 8 Plus (5.5") = 1242x2208px
+Mindestens 3 Screenshots pro Gerät.
+Empfohlen: Login, Fight Tab, Chat, Rangliste, Profil
+
+REVIEW ZEIT: 24-48 Stunden

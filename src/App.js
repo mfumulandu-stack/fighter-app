@@ -2911,7 +2911,7 @@ export default function App(){
     :{transform:'translateX(0) rotate(0deg)',transition:'transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275)'};
 
   function canGo(){
-    if(step===1)return !!(profile.name&&profile.age&&profile.city);
+    if(step===1)return !!(profile.name&&profile.age&&profile.city&&(avatarPreview||avatarUrl));
     if(step===2)return !!(profile.style);
     if(step===3)return true; // Alles optional auf Step 3
     return true;
@@ -3745,6 +3745,19 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
 
       <div style={{flex:1,overflowY:'auto',paddingBottom:65}}>
 
+        {myProfile&&!myProfile.avatar_url&&(
+          <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(13,13,13,0.97)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 24px',textAlign:'center'}}>
+            <div style={{fontSize:54,marginBottom:18}}>📸</div>
+            <div className='rj' style={{fontSize:28,color:'#fff',letterSpacing:2,marginBottom:14}}>{appLang==='FR'?'PHOTO REQUISE':appLang==='EN'?'PHOTO REQUIRED':'PROFILBILD FEHLT'}</div>
+            <div style={{color:'rgba(255,255,255,0.7)',fontSize:15,lineHeight:1.6,maxWidth:320,marginBottom:24,fontFamily:'DM Sans,sans-serif'}}>{appLang==='FR'?"Ajoute une photo de profil. Sans photo, tu n'apparais PAS dans les cartes de swipe.":appLang==='EN'?'Add a profile photo. Without one you will NOT appear in the swipe cards.':'Lade ein Profilbild hoch. Ohne Foto wirst du NICHT in den Swipe-Karten angezeigt.'}</div>
+            {avatarPreview&&<img src={avatarPreview} alt='' style={{width:120,height:120,borderRadius:'50%',objectFit:'cover',border:'3px solid '+RED,marginBottom:20}}/>}
+            <label style={{display:'inline-block',padding:'14px 28px',borderRadius:12,background:'rgba(255,255,255,0.1)',color:'#fff',border:'1px solid rgba(255,255,255,0.25)',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:1,cursor:'pointer',marginBottom:14}}>
+              {uploading?(appLang==='EN'?'Uploading...':'Lädt...'):avatarPreview?(appLang==='FR'?'Changer':appLang==='EN'?'Change photo':'Foto ändern'):(appLang==='FR'?'Choisir une photo':appLang==='EN'?'Choose photo':'Foto auswählen')}
+              <input type='file' accept='image/*' onChange={handlePhoto} style={{display:'none'}}/>
+            </label>
+            {avatarUrl&&<button onClick={saveProfile} disabled={saving} style={{display:'block',width:'100%',maxWidth:280,padding:'14px',borderRadius:12,background:saving?'#444':`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:17,letterSpacing:2,cursor:saving?'not-allowed':'pointer'}}>{saving?(appLang==='EN'?'Saving...':'Speichert...'):(appLang==='FR'?'ENREGISTRER':appLang==='EN'?'SAVE':'SPEICHERN')}</button>}
+          </div>
+        )}
         {tab==='swipe'&&(
           <div style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:8}}>
             {/* LAND FILTER */}

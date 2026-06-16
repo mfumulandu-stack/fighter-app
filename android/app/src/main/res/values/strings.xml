@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Fighter</string>
+    <string name="title_activity_main">Fighter</string>
+    <string name="package_name">com.juniorlandu.fighter</string>
+    <string name="custom_url_scheme">com.juniorlandu.fighter</string>
+</resources>

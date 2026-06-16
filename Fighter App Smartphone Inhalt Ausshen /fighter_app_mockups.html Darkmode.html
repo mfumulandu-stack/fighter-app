@@ -1,0 +1,367 @@
+
+<style>
+  .phone {
+    width: 168px;
+    height: 340px;
+    border-radius: 28px;
+    border: 2px solid var(--color-border-secondary);
+    background: #0d0d0d;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .status-bar {
+    height: 22px;
+    background: #0d0d0d;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    flex-shrink: 0;
+  }
+  .status-text { font-size: 9px; color: #fff; font-weight: 500; }
+  .tab-bar {
+    height: 44px;
+    background: #111;
+    border-top: 0.5px solid #222;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    flex-shrink: 0;
+    padding: 0 4px;
+  }
+  .tab-item { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
+  .tab-icon { font-size: 14px; }
+  .tab-label { font-size: 7px; color: #555; font-weight: 600; letter-spacing: 0.5px; }
+  .tab-label.active { color: #c0392b; }
+  .screen-content { flex: 1; overflow: hidden; position: relative; }
+  .phone-label {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    text-align: center;
+    margin-top: 8px;
+    font-weight: 500;
+  }
+  .screens-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 8px 0;
+  }
+  .section-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin: 1rem 0 10px;
+    letter-spacing: 0.5px;
+  }
+</style>
+
+<div style="padding: 0.5rem 0 1.5rem;">
+
+  <p class="section-title">Vor dem Login</p>
+  <div class="screens-row">
+
+    <!-- Screen 1: Splash/Login -->
+    <div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-text">9:41</span>
+          <span class="status-text">●●●</span>
+        </div>
+        <div class="screen-content" style="background: linear-gradient(170deg,#1a0505 0%,#0d0d0d 100%); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px;">
+          <div style="font-family:'Arial Black',sans-serif; font-size:28px; color:#fff; letter-spacing:6px; margin-bottom:4px;">FIGHTER</div>
+          <div style="font-size:8px; color:#c0392b; letter-spacing:3px; margin-bottom:28px;">KAMPFSPORT MATCHING</div>
+          <div style="width:48px; height:1px; background:#c0392b; margin-bottom:28px;"></div>
+          <div style="width:100%; display:flex; flex-direction:column; gap:8px;">
+            <div style="background:#1a1a1a; border:1px solid #2a2a2a; border-radius:8px; padding:8px 10px;">
+              <div style="font-size:7px; color:#555; margin-bottom:3px;">E-MAIL</div>
+              <div style="font-size:9px; color:#888;">deine@email.com</div>
+            </div>
+            <div style="background:#1a1a1a; border:1px solid #2a2a2a; border-radius:8px; padding:8px 10px;">
+              <div style="font-size:7px; color:#555; margin-bottom:3px;">PASSWORT</div>
+              <div style="font-size:9px; color:#888;">••••••••</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#c0392b,#e74c3c); border-radius:8px; padding:9px; text-align:center;">
+              <div style="font-size:11px; color:#fff; font-weight:700; letter-spacing:2px;">LOGIN</div>
+            </div>
+            <div style="text-align:center; font-size:8px; color:#444; margin-top:4px;">Noch kein Account? Registrieren</div>
+          </div>
+        </div>
+      </div>
+      <p class="phone-label">Login</p>
+    </div>
+
+    <!-- Screen 2: Registrierung -->
+    <div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-text">9:41</span>
+          <span class="status-text">●●●</span>
+        </div>
+        <div class="screen-content" style="background:#0d0d0d; padding:14px 12px; overflow:hidden;">
+          <div style="display:flex; gap:4px; margin-bottom:14px;">
+            <div style="flex:1; height:3px; background:#c0392b; border-radius:2px;"></div>
+            <div style="flex:1; height:3px; background:#222; border-radius:2px;"></div>
+            <div style="flex:1; height:3px; background:#222; border-radius:2px;"></div>
+          </div>
+          <div style="text-align:center; margin-bottom:14px;">
+            <div style="width:60px; height:60px; border-radius:50%; background:#1a1a1a; border:2px dashed #c0392b; margin:0 auto 6px; display:flex; align-items:center; justify-content:center;">
+              <span style="font-size:20px;">📸</span>
+            </div>
+            <div style="font-size:8px; color:#c0392b; font-weight:700;">FOTO HOCHLADEN</div>
+            <div style="font-size:7px; color:#333; margin-top:2px;">Pflicht</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div>
+              <div style="font-size:7px; color:#555; margin-bottom:2px; letter-spacing:1px;">DEIN NAME</div>
+              <div style="background:#1a1a1a; border:1px solid #222; border-radius:6px; padding:6px 8px; font-size:9px; color:#666;">Junior Landu...</div>
+            </div>
+            <div>
+              <div style="font-size:7px; color:#555; margin-bottom:2px; letter-spacing:1px;">ALTER</div>
+              <div style="background:#1a1a1a; border:1px solid #222; border-radius:6px; padding:6px 8px; font-size:9px; color:#666;">25</div>
+            </div>
+            <div>
+              <div style="font-size:7px; color:#555; margin-bottom:2px; letter-spacing:1px;">STADT</div>
+              <div style="background:#1a1a1a; border:1px solid #222; border-radius:6px; padding:6px 8px; font-size:9px; color:#666;">Aachen</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#c0392b,#e74c3c); border-radius:6px; padding:8px; text-align:center; margin-top:4px;">
+              <div style="font-size:10px; color:#fff; font-weight:700; letter-spacing:2px;">WEITER</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="phone-label">Registrierung</p>
+    </div>
+
+  </div>
+
+  <p class="section-title">Nach dem Login</p>
+  <div class="screens-row">
+
+    <!-- Screen 3: Swipe -->
+    <div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-text">9:41</span>
+          <span class="status-text">●●●</span>
+        </div>
+        <div class="screen-content" style="background:#0d0d0d; display:flex; flex-direction:column; padding:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div style="font-size:8px; color:#555;">Abgelehnt: 2</div>
+            <div style="font-size:14px; color:#fff; font-weight:700; letter-spacing:3px;">FIGHTER</div>
+            <div style="font-size:8px; color:#555;">🌙</div>
+          </div>
+          <div style="flex:1; position:relative; border-radius:14px; overflow:hidden; background:#1a1a1a;">
+            <div style="position:absolute; inset:0; background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,0.95) 100%);"></div>
+            <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">
+              <div style="font-size:52px; opacity:0.3;">🥊</div>
+            </div>
+            <div style="position:absolute; top:8px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.5); border-radius:12px; padding:3px 10px; display:flex; align-items:center; gap:4px;">
+              <span style="font-size:8px;">👁</span>
+              <span style="font-size:7px; color:rgba(255,255,255,0.8); font-weight:600;">Profil ansehen</span>
+            </div>
+            <div style="position:absolute; bottom:8px; left:8px; right:8px;">
+              <div style="display:flex; gap:4px; margin-bottom:5px;">
+                <div style="background:rgba(0,0,0,0.5); border-radius:6px; padding:2px 5px; text-align:center;">
+                  <div style="font-size:9px; color:#27ae60; font-weight:700;">22</div>
+                  <div style="font-size:6px; color:rgba(255,255,255,0.5);">SIEGE</div>
+                </div>
+                <div style="background:rgba(0,0,0,0.5); border-radius:6px; padding:2px 5px; text-align:center;">
+                  <div style="font-size:9px; color:#e74c3c; font-weight:700;">2</div>
+                  <div style="font-size:6px; color:rgba(255,255,255,0.5);">NIEDER</div>
+                </div>
+              </div>
+              <div style="font-size:13px; color:#fff; font-weight:700; letter-spacing:1px;">Dricus Du Plessis</div>
+              <div style="display:flex; gap:4px; margin-top:3px; flex-wrap:wrap;">
+                <div style="background:#c0392b; border-radius:10px; padding:1px 6px; font-size:7px; color:#fff; font-weight:700;">MMA</div>
+                <div style="background:rgba(255,255,255,0.15); border-radius:10px; padding:1px 6px; font-size:7px; color:#fff;">Mittelgewicht</div>
+                <div style="background:rgba(255,255,255,0.15); border-radius:10px; padding:1px 6px; font-size:7px; color:#fff;">📍 Pretoria</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex; justify-content:space-around; align-items:center; padding:8px 0 2px;">
+            <div style="width:36px; height:36px; border-radius:50%; border:1.5px solid #e74c3c; display:flex; align-items:center; justify-content:center; font-size:16px;">✕</div>
+            <div style="width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#c0392b,#e74c3c); display:flex; align-items:center; justify-content:center; font-size:18px;">⚔️</div>
+            <div style="width:36px; height:36px; border-radius:50%; border:1.5px solid #27ae60; display:flex; align-items:center; justify-content:center; font-size:16px;">✓</div>
+          </div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-item"><div class="tab-icon">🥊</div><div class="tab-label active">FIGHT</div></div>
+          <div class="tab-item"><div class="tab-icon">💬</div><div class="tab-label">CHAT</div></div>
+          <div class="tab-item"><div class="tab-icon">🏆</div><div class="tab-label">RANG</div></div>
+          <div class="tab-item"><div class="tab-icon">🏋️</div><div class="tab-label">GYMS</div></div>
+          <div class="tab-item"><div class="tab-icon">📊</div><div class="tab-label">PROFIL</div></div>
+        </div>
+      </div>
+      <p class="phone-label">Swipe</p>
+    </div>
+
+    <!-- Screen 4: Chat -->
+    <div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-text">9:41</span>
+          <span class="status-text">●●●</span>
+        </div>
+        <div class="screen-content" style="background:#0d0d0d; padding:10px 10px 6px;">
+          <div style="font-size:14px; color:#fff; font-weight:700; letter-spacing:3px; margin-bottom:10px;">NACHRICHTEN</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="background:#1a1a1a; border-radius:10px; border:1px solid #c0392b33; overflow:hidden;">
+              <div style="height:2px; background:linear-gradient(90deg,#c0392b,transparent);"></div>
+              <div style="padding:8px; display:flex; align-items:center; gap:8px;">
+                <div style="width:36px; height:36px; border-radius:50%; background:#2a1a1a; border:1.5px solid #c0392b44; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">🥊</div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:10px; color:#fff; font-weight:700;">Tyson Fury</div>
+                  <div style="font-size:8px; color:#c0392b; font-weight:700;">Boxing · London</div>
+                  <div style="font-size:8px; color:#555; margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">⚔️ Fight Request</div>
+                </div>
+                <div style="font-size:7px; color:#444;">09.05</div>
+              </div>
+            </div>
+            <div style="background:#1a1a1a; border-radius:10px; border:1px solid #2980b933; overflow:hidden;">
+              <div style="height:2px; background:linear-gradient(90deg,#2980b9,transparent);"></div>
+              <div style="padding:8px; display:flex; align-items:center; gap:8px;">
+                <div style="width:36px; height:36px; border-radius:50%; background:#1a1a2a; border:1.5px solid #2980b944; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">🦅</div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:10px; color:#fff; font-weight:700;">Islam Makhachev</div>
+                  <div style="font-size:8px; color:#2980b9; font-weight:700;">MMA · Dagestan</div>
+                  <div style="font-size:8px; color:#555; margin-top:1px;">Noch keine Nachrichten</div>
+                </div>
+                <div style="font-size:7px; color:#444;">08.05</div>
+              </div>
+            </div>
+            <div style="background:#1a1a1a; border-radius:10px; border:1px solid #d3540033; overflow:hidden;">
+              <div style="height:2px; background:linear-gradient(90deg,#d35400,transparent);"></div>
+              <div style="padding:8px; display:flex; align-items:center; gap:8px;">
+                <div style="width:36px; height:36px; border-radius:50%; background:#1f1a10; border:1.5px solid #d3540044; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">🐆</div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:10px; color:#fff; font-weight:700;">Canelo Alvarez</div>
+                  <div style="font-size:8px; color:#d35400; font-weight:700;">Boxing · Guadalajara</div>
+                  <div style="font-size:8px; color:#555; margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Wann können wir kämpfen?</div>
+                </div>
+                <div style="font-size:7px; color:#444;">07.05</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-item"><div class="tab-icon">🥊</div><div class="tab-label">FIGHT</div></div>
+          <div class="tab-item"><div class="tab-icon">💬</div><div class="tab-label active">CHAT</div></div>
+          <div class="tab-item"><div class="tab-icon">🏆</div><div class="tab-label">RANG</div></div>
+          <div class="tab-item"><div class="tab-icon">🏋️</div><div class="tab-label">GYMS</div></div>
+          <div class="tab-item"><div class="tab-icon">📊</div><div class="tab-label">PROFIL</div></div>
+        </div>
+      </div>
+      <p class="phone-label">Nachrichten</p>
+    </div>
+
+  </div>
+
+  <div class="screens-row">
+
+    <!-- Screen 5: Gym Detail -->
+    <div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-text">9:41</span>
+          <span class="status-text">●●●</span>
+        </div>
+        <div class="screen-content" style="background:#0d0d0d; overflow:hidden;">
+          <div style="background:linear-gradient(170deg,#1a1a1a,#111); padding:12px 10px 14px; text-align:center;">
+            <div style="font-size:30px; margin-bottom:4px;">🐯</div>
+            <div style="font-size:13px; color:#fff; font-weight:700; letter-spacing:1px;">Tiger Gym Berlin</div>
+            <div style="font-size:8px; color:#555; margin-top:2px;">📍 Berlin · seit 2003</div>
+            <div style="display:flex; gap:4px; justify-content:center; margin-top:6px;">
+              <div style="background:#c0392b33; border:1px solid #c0392b44; border-radius:10px; padding:2px 7px; font-size:7px; color:#c0392b; font-weight:700;">Boxing</div>
+              <div style="background:#2980b933; border:1px solid #2980b944; border-radius:10px; padding:2px 7px; font-size:7px; color:#2980b9; font-weight:700;">MMA</div>
+            </div>
+          </div>
+          <div style="padding:8px 10px; display:flex; flex-direction:column; gap:6px;">
+            <div style="background:#1a1a1a; border-radius:8px; padding:8px; border:1px solid #222;">
+              <div style="font-size:7px; color:#555; letter-spacing:1px; margin-bottom:5px;">BEWERTE DIESES GYM</div>
+              <div style="display:flex; gap:3px; justify-content:center; font-size:18px;">
+                <span style="color:#d4a017;">★</span>
+                <span style="color:#d4a017;">★</span>
+                <span style="color:#d4a017;">★</span>
+                <span style="color:#d4a017;">★</span>
+                <span style="color:#333;">☆</span>
+              </div>
+            </div>
+            <div style="background:#1a1a1a; border-radius:8px; padding:8px; border:1px solid #d4a01733;">
+              <div style="font-size:7px; color:#555; letter-spacing:1px; margin-bottom:4px;">🔑 FIGHTER CODE</div>
+              <div style="font-size:14px; color:#d4a017; font-weight:700; letter-spacing:3px;">TGB-2847</div>
+            </div>
+            <div style="background:#1a1a1a; border-radius:8px; padding:8px; border:1px solid #222;">
+              <div style="font-size:8px; color:#666;">📍 Müllerstr. 12, Berlin</div>
+              <div style="font-size:8px; color:#666; margin-top:3px;">📞 +49 30 12345678</div>
+              <div style="font-size:8px; color:#666; margin-top:3px;">🕐 Mo-Fr 07:00-22:00</div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-item"><div class="tab-icon">🥊</div><div class="tab-label">FIGHT</div></div>
+          <div class="tab-item"><div class="tab-icon">💬</div><div class="tab-label">CHAT</div></div>
+          <div class="tab-item"><div class="tab-icon">🏆</div><div class="tab-label">RANG</div></div>
+          <div class="tab-item"><div class="tab-icon">🏋️</div><div class="tab-label active">GYMS</div></div>
+          <div class="tab-item"><div class="tab-icon">📊</div><div class="tab-label">PROFIL</div></div>
+        </div>
+      </div>
+      <p class="phone-label">Gym Detail</p>
+    </div>
+
+    <!-- Screen 6: Profil -->
+    <div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-text">9:41</span>
+          <span class="status-text">●●●</span>
+        </div>
+        <div class="screen-content" style="background:#0d0d0d; padding:10px;">
+          <div style="background:#1a1a1a; border-radius:10px; padding:10px; text-align:center; border:1px solid #222; margin-bottom:7px;">
+            <div style="width:56px; height:56px; border-radius:12px; background:#2a1a1a; border:2px solid #c0392b; margin:0 auto 6px; display:flex; align-items:center; justify-content:center; font-size:22px;">🥊</div>
+            <div style="font-size:13px; color:#fff; font-weight:700; letter-spacing:1px;">Junior Landu</div>
+            <div style="font-size:8px; color:#c0392b; margin-top:2px;">Boxing - Halbweltergewicht</div>
+            <div style="background:#27ae6018; border:1px solid #27ae6044; border-radius:10px; padding:2px 8px; display:inline-flex; align-items:center; gap:3px; margin-top:5px;">
+              <span style="font-size:9px; color:#27ae60; font-weight:700;">✅ NFT Gymnasium Krefeld</span>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; margin-bottom:7px;">
+            <div style="background:#1a1a1a; border-radius:8px; padding:7px; text-align:center; border:1px solid #27ae6033;">
+              <div style="font-size:18px; color:#27ae60; font-weight:700;">12</div>
+              <div style="font-size:6px; color:#555; letter-spacing:1px;">SIEGE</div>
+            </div>
+            <div style="background:#1a1a1a; border-radius:8px; padding:7px; text-align:center; border:1px solid #e74c3c33;">
+              <div style="font-size:18px; color:#e74c3c; font-weight:700;">2</div>
+              <div style="font-size:6px; color:#555; letter-spacing:1px;">NIEDER</div>
+            </div>
+            <div style="background:#1a1a1a; border-radius:8px; padding:7px; text-align:center; border:1px solid #d4a01733;">
+              <div style="font-size:18px; color:#d4a017; font-weight:700;">1</div>
+              <div style="font-size:6px; color:#555; letter-spacing:1px;">UNENTSCH</div>
+            </div>
+          </div>
+          <div style="background:#1a1a1a; border-radius:8px; padding:8px; border:1px solid #8e44ad33; display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <div style="width:32px; height:32px; border-radius:8px; background:#8e44ad18; border:1px solid #8e44ad33; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;">🏅</div>
+            <div>
+              <div style="font-size:9px; color:#fff; font-weight:700;">Gym verifiziert ✅</div>
+              <div style="font-size:7px; color:#8e44ad; margin-top:1px;">NFT Gymnasium Krefeld</div>
+            </div>
+            <div style="margin-left:auto; font-size:14px; color:#444;">›</div>
+          </div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab-item"><div class="tab-icon">🥊</div><div class="tab-label">FIGHT</div></div>
+          <div class="tab-item"><div class="tab-icon">💬</div><div class="tab-label">CHAT</div></div>
+          <div class="tab-item"><div class="tab-icon">🏆</div><div class="tab-label">RANG</div></div>
+          <div class="tab-item"><div class="tab-icon">🏋️</div><div class="tab-label">GYMS</div></div>
+          <div class="tab-item"><div class="tab-icon">📊</div><div class="tab-label active">PROFIL</div></div>
+        </div>
+      </div>
+      <p class="phone-label">Profil</p>
+    </div>
+
+  </div>
+</div>

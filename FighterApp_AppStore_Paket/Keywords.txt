@@ -1,0 +1,2 @@
+DE: kampfsport,boxing,mma,sparring,gegner,fight,boxer,kickboxing,muay thai,bjj,martial arts,training,kämpfer,match
+EN: combat sports,boxing,mma,sparring,fighter,fight,martial arts,training,match,opponent,kickboxing,bjj,grappling
