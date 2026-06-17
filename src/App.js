@@ -1403,6 +1403,7 @@ export default function App(){
   const [equipLoading,setEquipLoading]=useState(false);
   const [newEquip,setNewEquip]=useState({brand:'',product:'',description:'',category:'Boxen',url:'',image_url:'',discount_code:'',featured:false});
   const [adminUsersLoaded,setAdminUsersLoaded]=useState(false);
+  const [adminUserSearch,setAdminUserSearch]=useState('');
   const isAdmin=session?.userId===ADMIN_ID||myProfile?.id===ADMIN_ID;
   const [fightHistory,setFightHistory]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_history')||'[]')}catch{return []}});
   const [historyPublic,setHistoryPublic]=useState(()=>{try{return localStorage.getItem('fighter_history_public')==='true'}catch{return false}});
@@ -5317,7 +5318,20 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
                   }catch(e){showMsg('Fehler: '+e.message);}
                 }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>{adminUsersLoaded?'🔄 AKTUALISIEREN':'USER LADEN'}</button>
-                {adminUsers.map(u=>(
+                {adminUsersLoaded&&(
+                  <input
+                    type='text'
+                    value={adminUserSearch}
+                    onChange={e=>setAdminUserSearch(e.target.value)}
+                    placeholder='🔍 Suche nach Name oder Stadt...'
+                    style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#1a1a1a':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,marginBottom:12,boxSizing:'border-box'}}
+                  />
+                )}
+                {adminUsers.filter(u=>{
+                  const q=adminUserSearch.trim().toLowerCase();
+                  if(!q)return true;
+                  return (u.name||'').toLowerCase().includes(q)||(u.city||'').toLowerCase().includes(q);
+                }).map(u=>(
                   <div key={u.id} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,border:'1px solid '+(u.banned?'#e74c3c44':(darkMode?'#2a2a2a':'#eee')),marginBottom:5}}>
                     {u.avatar_url?<img src={u.avatar_url} style={{width:34,height:34,borderRadius:'50%',objectFit:'cover',opacity:u.banned?0.4:1}} alt=''/>:<div style={{width:34,height:34,borderRadius:'50%',background:'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>👤</div>}
                     <div style={{flex:1,minWidth:0}}>
