@@ -1352,6 +1352,7 @@ export default function App(){
   const [avatarPreview,setAvatarPreview]=useState(null);
   const [myVideos,setMyVideos]=useState([]);
   const [uploadingVideo,setUploadingVideo]=useState(false);
+  const [videoUploadProgress,setVideoUploadProgress]=useState(0);
   const [uploading,setUploading]=useState(false);
   const [cards,setCards]=useState([...FIGHTERS]);
   const [drag,setDrag]=useState(false);
@@ -2686,30 +2687,41 @@ export default function App(){
   async function handleVideoUpload(e){
     const file=e.target.files[0];if(!file||!session)return;
     if(myVideos.length>=3){showMsg('Maximal 3 Videos erlaubt. Bitte zuerst eins entfernen.');return;}
-    if(file.size>50*1024*1024){showMsg('Video zu groß (max. 50MB)');return;}
+    if(file.size>20*1024*1024){showMsg('Video zu groß (max. 20MB). Tipp: kürzeres Video (10-20 Sek.) aufnehmen oder komprimieren.');return;}
     setUploadingVideo(true);
+    setVideoUploadProgress(0);
     showMsg('Video wird hochgeladen...');
     try{
       const ext=(file.name.split('.').pop()||'mp4').toLowerCase();
       const path='videos/'+session.userId+'_'+Date.now()+'.'+ext;
-      const upRes=await fetch(SUPA_URL+'/storage/v1/object/avatars/'+path,{
-        method:'POST',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token,'Content-Type':file.type||'video/mp4','x-upsert':'true'},body:file
+      const url=await new Promise((resolve,reject)=>{
+        const xhr=new XMLHttpRequest();
+        xhr.open('POST',SUPA_URL+'/storage/v1/object/avatars/'+path);
+        xhr.setRequestHeader('apikey',SUPA_KEY);
+        xhr.setRequestHeader('Authorization','Bearer '+session.token);
+        xhr.setRequestHeader('Content-Type',file.type||'video/mp4');
+        xhr.setRequestHeader('x-upsert','true');
+        xhr.upload.onprogress=(ev)=>{
+          if(ev.lengthComputable){setVideoUploadProgress(Math.round((ev.loaded/ev.total)*100));}
+        };
+        xhr.onload=()=>{
+          if(xhr.status>=200&&xhr.status<300){resolve(SUPA_URL+'/storage/v1/object/public/avatars/'+path);}
+          else reject(new Error('Upload fehlgeschlagen ('+xhr.status+')'));
+        };
+        xhr.onerror=()=>reject(new Error('Netzwerkfehler beim Upload'));
+        xhr.send(file);
       });
-      if(upRes.ok){
-        const url=SUPA_URL+'/storage/v1/object/public/avatars/'+path;
-        const updated=[...myVideos,url];
-        setMyVideos(updated);
-        await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+session.userId,{
-          method:'PATCH',
-          headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
-          body:JSON.stringify({videos:updated})
-        });
-        showMsg('Video hochgeladen ✓');
-      }else{
-        showMsg('Video-Upload fehlgeschlagen');
-      }
+      const updated=[...myVideos,url];
+      setMyVideos(updated);
+      await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+session.userId,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+        body:JSON.stringify({videos:updated})
+      });
+      showMsg('Video hochgeladen ✓');
     }catch(e){console.error('video upload',e);showMsg('Video-Upload fehlgeschlagen');}
     setUploadingVideo(false);
+    setVideoUploadProgress(0);
   }
 
   async function removeVideo(urlToRemove){
@@ -4190,6 +4202,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             {/* VIDEOS */}
             <div style={{marginBottom:9}}>
               <div style={{color:darkMode?'#888':'#999',fontSize:10,letterSpacing:1,marginBottom:6,fontWeight:600}}>🎥 VIDEOS ({myVideos.length}/3)</div>
+              <div style={{color:darkMode?'#555':'#bbb',fontSize:10,marginBottom:6}}>Kurze Clips (max. 20MB) laden am schnellsten</div>
               <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7}}>
                 {[0,1,2].map(i=>{
                   const v=myVideos[i];
@@ -4201,8 +4214,17 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                           <button onClick={()=>removeVideo(v)} style={{position:'absolute',top:4,right:4,width:22,height:22,borderRadius:11,background:'rgba(0,0,0,0.6)',border:'none',color:'#fff',fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
                         </>
                       ):(
-                        <label style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',cursor:uploadingVideo?'not-allowed':'pointer',flexDirection:'column',gap:4}}>
-                          <span style={{fontSize:22,color:darkMode?'#555':'#bbb'}}>{uploadingVideo?'⏳':'+'}</span>
+                        <label style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',cursor:uploadingVideo?'not-allowed':'pointer',flexDirection:'column',gap:6,padding:8}}>
+                          {uploadingVideo?(
+                            <>
+                              <div style={{width:'80%',height:5,background:darkMode?'#333':'#e0e0e0',borderRadius:3,overflow:'hidden'}}>
+                                <div style={{height:'100%',width:videoUploadProgress+'%',background:RED,borderRadius:3,transition:'width 0.2s ease'}}/>
+                              </div>
+                              <span style={{fontSize:10,color:darkMode?'#888':'#999',fontWeight:600}}>{videoUploadProgress}%</span>
+                            </>
+                          ):(
+                            <span style={{fontSize:22,color:darkMode?'#555':'#bbb'}}>+</span>
+                          )}
                           <input type='file' accept='video/*' onChange={handleVideoUpload} disabled={uploadingVideo} style={{display:'none'}}/>
                         </label>
                       )}
