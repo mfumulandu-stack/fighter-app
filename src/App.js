@@ -2712,13 +2712,19 @@ export default function App(){
         xhr.send(file);
       });
       const updated=[...myVideos,url];
-      setMyVideos(updated);
-      await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+session.userId,{
+      const patchRes=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+session.userId,{
         method:'PATCH',
         headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
         body:JSON.stringify({videos:updated})
       });
-      showMsg('Video hochgeladen ✓');
+      if(patchRes.ok){
+        setMyVideos(updated);
+        showMsg('Video hochgeladen ✓');
+      }else{
+        const errText=await patchRes.text().catch(()=>'');
+        console.error('Video DB-Speichern fehlgeschlagen:',patchRes.status,errText);
+        showMsg('Video gespeichert, aber Profil-Update fehlgeschlagen (Fehler '+patchRes.status+'). Bitte Screenshot an Support.');
+      }
     }catch(e){console.error('video upload',e);showMsg('Video-Upload fehlgeschlagen');}
     setUploadingVideo(false);
     setVideoUploadProgress(0);
