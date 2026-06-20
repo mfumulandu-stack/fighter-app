@@ -2116,7 +2116,7 @@ export default function App(){
 
   async function initProfile(s){
     try{
-      const data=await dbSelect('profiles','user_id=eq.'+s.userId+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery,bio,record_verified,history_public,banned,social_url,videos,gallery',s.token);
+      const data=await dbSelect('profiles','user_id=eq.'+s.userId+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery,bio,record_verified,history_public,banned,social_url',s.token);
       if(Array.isArray(data)&&data[0]){
         const p=data[0];
         if(p.banned===true){
@@ -2245,7 +2245,7 @@ export default function App(){
       const iAlreadyLiked=new Set(Array.isArray(mySwipes)?mySwipes.filter(x=>x.direction==='like').map(x=>x.target_id):[]);
       // Profile dazu laden
       const ids=likes.map(l=>l.swiper_id);
-      const profiles=await dbSelect('profiles','id=in.('+ids.join(',')+')'+'&banned=neq.true&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery,bio,record_verified,history_public,banned,social_url,videos,gallery',s.token);
+      const profiles=await dbSelect('profiles','id=in.('+ids.join(',')+')'+'&banned=neq.true&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery,bio,record_verified,history_public,banned,social_url',s.token);
       if(!Array.isArray(profiles))return;
       // Bereits gematchte UND bereits von mir gelikte rausfiltern
       const matchedIds=new Set(dbMatches.map(m=>m.profile_a_id===myP.id?m.profile_b_id:m.profile_a_id));
@@ -2344,7 +2344,7 @@ export default function App(){
   async function loadFightHistory(s){
     try{
       // history_public Status aus Profil laden
-      const profileData=await dbSelect('profiles','id=eq.'+s.userId+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery,bio,record_verified,history_public,banned,social_url,videos,gallery',s.token);
+      const profileData=await dbSelect('profiles','id=eq.'+s.userId+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery,bio,record_verified,history_public,banned,social_url',s.token);
       if(Array.isArray(profileData)&&profileData[0]){
         const hp=profileData[0].history_public===true;
         setHistoryPublic(hp);
