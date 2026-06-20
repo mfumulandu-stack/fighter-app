@@ -1,4 +1,82 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
+const Globe=lazy(()=>import('react-globe.gl'));
+
+function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
+  const globeRef=useRef();
+  const [points,setPoints]=useState([]);
+  const [loading,setLoading]=useState(true);
+
+  useEffect(()=>{
+    let active=true;
+    (async()=>{
+      try{
+        const res=await fetch(SUPA_URL+'/rest/v1/profiles?select=lat,lon,city&banned=eq.false&lat=not.is.null&lon=not.is.null',{
+          headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+        });
+        const data=await res.json();
+        if(active&&Array.isArray(data)){
+          // Mehrere Nutzer in derselben Stadt zu einem Punkt zusammenfassen
+          const seen={};
+          const pts=[];
+          data.forEach(d=>{
+            if(!d.lat||!d.lon)return;
+            const key=Math.round(d.lat*10)+'_'+Math.round(d.lon*10);
+            if(seen[key]){seen[key].count++;}
+            else{const p={lat:d.lat,lng:d.lon,city:d.city||'',count:1};seen[key]=p;pts.push(p);}
+          });
+          setPoints(pts);
+        }
+      }catch(e){console.error('Globe-Daten laden fehlgeschlagen',e);}
+      if(active)setLoading(false);
+    })();
+    return()=>{active=false;};
+  },[SUPA_URL,SUPA_KEY]);
+
+  useEffect(()=>{
+    if(globeRef.current){
+      globeRef.current.pointOfView({lat:20,lng:10,altitude:2.2},0);
+      const controls=globeRef.current.controls();
+      if(controls){controls.autoRotate=true;controls.autoRotateSpeed=0.4;controls.enableZoom=true;}
+    }
+  },[points]);
+
+  return(
+    <div style={{position:'fixed',inset:0,background:'#000',zIndex:600,display:'flex',flexDirection:'column'}}>
+      <div style={{position:'absolute',top:'calc(16px + env(safe-area-inset-top))',right:16,zIndex:10}}>
+        <button onClick={onClose} style={{width:38,height:38,borderRadius:19,background:'rgba(255,255,255,0.12)',border:'none',color:'#fff',fontSize:18,cursor:'pointer'}}>✕</button>
+      </div>
+      <div style={{position:'absolute',top:'calc(16px + env(safe-area-inset-top))',left:16,zIndex:10,color:'#fff',fontFamily:'Rajdhani,sans-serif'}}>
+        <div style={{fontSize:13,letterSpacing:2,color:'rgba(255,255,255,0.6)'}}>FIGHTER WELTWEIT</div>
+        <div style={{fontSize:22,fontWeight:700,color:'#f5a623'}}>{points.reduce((s,p)=>s+p.count,0)} AKTIVE FIGHTER</div>
+      </div>
+      <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}>
+        {loading?(
+          <div style={{color:'rgba(255,255,255,0.5)',fontFamily:'Rajdhani,sans-serif',fontSize:16}}>Lädt Globus...</div>
+        ):(
+          <Suspense fallback={<div style={{color:'rgba(255,255,255,0.5)'}}>Lädt...</div>}>
+            <Globe
+              ref={globeRef}
+              width={window.innerWidth}
+              height={window.innerHeight}
+              backgroundColor='#000000'
+              globeImageUrl='//unpkg.com/three-globe/example/img/earth-night.jpg'
+              bumpImageUrl='//unpkg.com/three-globe/example/img/earth-topology.png'
+              pointsData={points}
+              pointLat='lat'
+              pointLng='lng'
+              pointColor={()=>'#f5a623'}
+              pointAltitude={0.01}
+              pointRadius={d=>0.25+Math.min(d.count*0.08,0.5)}
+              pointLabel={d=>`${d.city||''} · ${d.count} Fighter`}
+              atmosphereColor='#f5a623'
+              atmosphereAltitude={0.18}
+            />
+          </Suspense>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const SUPA_URL = 'https://uykdrmymjvqgebsmndme.supabase.co';
 const ADMIN_ID = '1a697731-458d-4559-a4cf-a89d3150bfa5';
@@ -1351,6 +1429,8 @@ export default function App(){
   const [avatarUrl,setAvatarUrl]=useState(null);
   const [avatarPreview,setAvatarPreview]=useState(null);
   const [myVideos,setMyVideos]=useState([]);
+  const [showGlobe,setShowGlobe]=useState(false);
+  const swipeStartX=useRef(null);
   const [uploadingVideo,setUploadingVideo]=useState(false);
   const [videoUploadProgress,setVideoUploadProgress]=useState(0);
   const [uploading,setUploading]=useState(false);
@@ -3812,6 +3892,10 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         </div>
       )}
 
+      {showGlobe&&(
+        <UserGlobe darkMode={darkMode} onClose={()=>setShowGlobe(false)} SUPA_URL={SUPA_URL} SUPA_KEY={SUPA_KEY}/>
+      )}
+
       {/* HEADER */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'calc(10px + env(safe-area-inset-top)) 16px 8px',flexShrink:0,borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),background:darkMode?'#1a1a1a':'#fff'}}>
         <div style={{width:36,height:36}}/>
@@ -4071,7 +4155,15 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
           </div>
         )}
         {tab==='stats'&&(
-          <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
+          <div
+            onTouchStart={(e)=>{swipeStartX.current=e.touches[0].clientX;}}
+            onTouchEnd={(e)=>{
+              if(swipeStartX.current==null)return;
+              const dx=e.changedTouches[0].clientX-swipeStartX.current;
+              if(dx<-80){setShowGlobe(true);}
+              swipeStartX.current=null;
+            }}
+            style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
             {/* EDIT MODAL */}
             {editMode&&(
               <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.65)',zIndex:500,display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
