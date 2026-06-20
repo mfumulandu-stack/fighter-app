@@ -2173,7 +2173,14 @@ export default function App(){
           setMyLat(p.lat);setMyLon(p.lon);
           setLocationSource(p.location_source||'gps');
         }else{
-          // IP-basiert automatisch im Hintergrund
+          // Einmalige automatische GPS-Abfrage (nur beim allerersten Mal)
+          try{
+            if(!localStorage.getItem('fighter_gps_asked')){
+              localStorage.setItem('fighter_gps_asked','1');
+              setTimeout(()=>{try{getGPSLocation();}catch(e){}},3500);
+            }
+          }catch(e){}
+          // IP-basiert automatisch im Hintergrund (als Fallback)
           getLocationByIP().then(loc=>{
             if(loc){
               setMyLat(loc.lat);setMyLon(loc.lon);
@@ -3946,6 +3953,16 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         )}
         {tab==='swipe'&&(
           <div style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:8}}>
+            {/* GPS-HINWEIS BANNER */}
+            {locationSource!=='gps'&&(
+              <div onClick={getGPSLocation} style={{display:'flex',alignItems:'center',gap:8,width:'calc(100% - 24px)',maxWidth:420,marginBottom:8,padding:'9px 12px',borderRadius:10,background:locationLoading?(darkMode?'#1a1a1a':'#f0f0f0'):'linear-gradient(135deg,#27ae60,#2ecc71)',cursor:locationLoading?'wait':'pointer'}}>
+                <span style={{fontSize:16}}>📍</span>
+                <span style={{flex:1,color:locationLoading?(darkMode?'#888':'#999'):'#fff',fontSize:12,fontWeight:600,lineHeight:1.3}}>
+                  {locationLoading?'Standort wird ermittelt...':'Genauen Standort aktivieren für besseres Matching in deiner Nähe'}
+                </span>
+                {!locationLoading&&<span style={{color:'#fff',fontSize:11,fontWeight:700,whiteSpace:'nowrap'}}>AKTIVIEREN ›</span>}
+              </div>
+            )}
             {/* LAND FILTER */}
             <div style={{display:'flex',gap:4,marginBottom:6,width:'calc(100% - 24px)',maxWidth:420,justifyContent:'center'}}>
               <button onClick={()=>setCountryFilter('mine')} style={{padding:'3px 12px',borderRadius:20,background:'transparent',border:'none',color:countryFilter==='mine'?(darkMode?'#fff':'#1a1a1a'):(darkMode?'#444':'#ccc'),fontSize:11,fontWeight:countryFilter==='mine'?700:400,cursor:'pointer',transition:'all 0.2s'}}>
