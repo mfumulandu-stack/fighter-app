@@ -1103,7 +1103,10 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,a
                 <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7}}>
                   {(Array.isArray(other.videos)?other.videos:[]).slice(0,3).map((v,i)=>(
                     <div key={i} style={{aspectRatio:'9/16',borderRadius:11,overflow:'hidden',background:'#f0f0f0',border:'1px solid #eee'}}>
-                      <video src={v} style={{width:'100%',height:'100%',objectFit:'cover'}} controls playsInline preload='metadata'/>
+                      <video style={{width:'100%',height:'100%',objectFit:'cover'}} controls playsInline preload='metadata'>
+                      <source src={v} type={v.endsWith('.mov')?'video/quicktime':v.endsWith('.webm')?'video/webm':'video/mp4'}/>
+                      <div style={{color:'#999',fontSize:10,padding:8,textAlign:'center'}}>Video kann nicht angezeigt werden</div>
+                    </video>
                     </div>
                   ))}
                 </div>
@@ -2779,13 +2782,15 @@ export default function App(){
     showMsg('Video wird hochgeladen...');
     try{
       const ext=(file.name.split('.').pop()||'mp4').toLowerCase();
+      const mimeMap={mov:'video/quicktime',mp4:'video/mp4',m4v:'video/x-m4v',webm:'video/webm',avi:'video/x-msvideo'};
+      const contentType=mimeMap[ext]||file.type||'video/mp4';
       const path='videos/'+session.userId+'_'+Date.now()+'.'+ext;
       const url=await new Promise((resolve,reject)=>{
         const xhr=new XMLHttpRequest();
         xhr.open('POST',SUPA_URL+'/storage/v1/object/avatars/'+path);
         xhr.setRequestHeader('apikey',SUPA_KEY);
         xhr.setRequestHeader('Authorization','Bearer '+session.token);
-        xhr.setRequestHeader('Content-Type',file.type||'video/mp4');
+        xhr.setRequestHeader('Content-Type',contentType);
         xhr.setRequestHeader('x-upsert','true');
         xhr.upload.onprogress=(ev)=>{
           if(ev.lengthComputable){setVideoUploadProgress(Math.round((ev.loaded/ev.total)*100));}
@@ -4314,7 +4319,10 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     <div key={i} style={{position:'relative',aspectRatio:'9/16',borderRadius:11,overflow:'hidden',background:darkMode?'#1a1a1a':'#f0f0f0',border:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8')}}>
                       {v?(
                         <>
-                          <video src={v} style={{width:'100%',height:'100%',objectFit:'cover'}} muted playsInline preload='metadata'/>
+                          <video style={{width:'100%',height:'100%',objectFit:'cover'}} muted playsInline preload='metadata'>
+                            <source src={v} type={v.endsWith('.mov')?'video/quicktime':v.endsWith('.webm')?'video/webm':'video/mp4'}/>
+                            <div style={{color:'#999',fontSize:10,padding:8,textAlign:'center'}}>Video kann nicht angezeigt werden</div>
+                          </video>
                           <button onClick={()=>removeVideo(v)} style={{position:'absolute',top:4,right:4,width:22,height:22,borderRadius:11,background:'rgba(0,0,0,0.6)',border:'none',color:'#fff',fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
                         </>
                       ):(
