@@ -64,14 +64,15 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
               width={window.innerWidth}
               height={window.innerHeight}
               backgroundColor='#000000'
-              globeImageUrl='//unpkg.com/three-globe/example/img/earth-night.jpg'
+              globeImageUrl='https://raw.githubusercontent.com/vasturiano/three-globe/master/example/img/earth-night.jpg'
+              pointResolution={12}
               bumpImageUrl='//unpkg.com/three-globe/example/img/earth-topology.png'
               pointsData={points}
               pointLat='lat'
               pointLng='lng'
               pointColor={()=>'#f5a623'}
-              pointAltitude={0.01}
-              pointRadius={d=>0.25+Math.min(d.count*0.08,0.5)}
+              pointAltitude={0.008}
+              pointRadius={d=>0.12+Math.min(d.count*0.04,0.25)}
               pointLabel={d=>`${d.city||''} · ${d.count} Fighter`}
               atmosphereColor='#f5a623'
               atmosphereAltitude={0.18}
