@@ -1103,7 +1103,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,a
                 <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7}}>
                   {(Array.isArray(other.gallery)?other.gallery:[]).slice(0,3).map((g,i)=>(
                     <div key={i} style={{aspectRatio:'1/1',borderRadius:11,overflow:'hidden',background:'#f0f0f0',border:'1px solid #eee'}}>
-                      <img src={g} alt='' style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                      <img src={g} alt='' onClick={()=>setLightboxImg(g)} style={{width:'100%',height:'100%',objectFit:'contain',cursor:'zoom-in'}}/>
                     </div>
                   ))}
                 </div>
@@ -4287,7 +4287,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     <div key={i} style={{position:'relative',aspectRatio:'1/1',borderRadius:11,overflow:'hidden',background:darkMode?'#1a1a1a':'#f0f0f0',border:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8')}}>
                       {g?(
                         <>
-                          <img src={g} alt='' style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                          <img src={g} alt='' onClick={()=>setLightboxImg(g)} style={{width:'100%',height:'100%',objectFit:'contain',cursor:'zoom-in'}}/>
                           <button onClick={()=>removeGalleryPhoto(g)} style={{position:'absolute',top:4,right:4,width:22,height:22,borderRadius:11,background:'rgba(0,0,0,0.6)',border:'none',color:'#fff',fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
                         </>
                       ):(
