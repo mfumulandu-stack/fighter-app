@@ -1097,16 +1097,13 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,a
           <div style={{padding:'14px 14px 40px',maxWidth:480,margin:'0 auto',width:'100%'}}>
 
             {/* VIDEOS */}
-            {other?.videos&&(Array.isArray(other.videos)?other.videos:[]).length>0&&(
+            {other?.gallery&&(Array.isArray(other.gallery)?other.gallery:[]).length>0&&(
               <div style={{marginBottom:10}}>
-                <div style={{color:'#bbb',fontSize:10,letterSpacing:1,marginBottom:6,fontWeight:600}}>🎥 VIDEOS</div>
+                <div style={{color:'#bbb',fontSize:10,letterSpacing:1,marginBottom:6,fontWeight:600}}>📸 FOTOS</div>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7}}>
-                  {(Array.isArray(other.videos)?other.videos:[]).slice(0,3).map((v,i)=>(
-                    <div key={i} style={{aspectRatio:'9/16',borderRadius:11,overflow:'hidden',background:'#f0f0f0',border:'1px solid #eee'}}>
-                      <video style={{width:'100%',height:'100%',objectFit:'cover'}} controls playsInline preload='metadata'>
-                      <source src={v} type={v.endsWith('.mov')?'video/quicktime':v.endsWith('.webm')?'video/webm':'video/mp4'}/>
-                      <div style={{color:'#999',fontSize:10,padding:8,textAlign:'center'}}>Video kann nicht angezeigt werden</div>
-                    </video>
+                  {(Array.isArray(other.gallery)?other.gallery:[]).slice(0,3).map((g,i)=>(
+                    <div key={i} style={{aspectRatio:'1/1',borderRadius:11,overflow:'hidden',background:'#f0f0f0',border:'1px solid #eee'}}>
+                      <img src={g} alt='' style={{width:'100%',height:'100%',objectFit:'cover'}}/>
                     </div>
                   ))}
                 </div>
@@ -1437,11 +1434,10 @@ export default function App(){
   const [stats,setStats]=useState({wins:0,losses:0,draws:0,ko:0});
   const [avatarUrl,setAvatarUrl]=useState(null);
   const [avatarPreview,setAvatarPreview]=useState(null);
-  const [myVideos,setMyVideos]=useState([]);
+  const [myGallery,setMyGallery]=useState([]);
   const [showGlobe,setShowGlobe]=useState(false);
   const swipeStartX=useRef(null);
-  const [uploadingVideo,setUploadingVideo]=useState(false);
-  const [videoUploadProgress,setVideoUploadProgress]=useState(0);
+  const [uploadingGallery,setUploadingGallery]=useState(false);
   const [uploading,setUploading]=useState(false);
   const [cards,setCards]=useState([...FIGHTERS]);
   const [drag,setDrag]=useState(false);
@@ -2120,7 +2116,7 @@ export default function App(){
 
   async function initProfile(s){
     try{
-      const data=await dbSelect('profiles','user_id=eq.'+s.userId+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,bio,record_verified,history_public,banned,social_url,videos',s.token);
+      const data=await dbSelect('profiles','user_id=eq.'+s.userId+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery,bio,record_verified,history_public,banned,social_url,videos,gallery',s.token);
       if(Array.isArray(data)&&data[0]){
         const p=data[0];
         if(p.banned===true){
@@ -2132,7 +2128,7 @@ export default function App(){
         }
         setMyProfile(p);
         setProfile({name:p.name||'',age:p.age||'',city:p.city||'',gym:p.gym||'',height:p.height||'',weight:p.weight||'',weightClass:p.weight_class||'',style:p.style||'',bio:p.bio||'',isPro:p.is_pro===true,country:p.country||'DE',gender:p.gender||'male',socialUrl:p.social_url||''});
-        try{setMyVideos(Array.isArray(p.videos)?p.videos:(p.videos?JSON.parse(p.videos):[]));}catch{setMyVideos([]);}
+        try{setMyGallery(Array.isArray(p.gallery)?p.gallery:(p.gallery?JSON.parse(p.gallery):[]));}catch{setMyGallery([]);}
         if(p.lat&&p.lon){setMyLat(p.lat);setMyLon(p.lon);setLocationSource(p.location_source||'gps');}
         setStats({wins:p.wins||0,losses:p.losses||0,draws:p.draws||0,ko:p.ko||0});
         if(p.avatar_url){setAvatarUrl(p.avatar_url);setAvatarPreview(p.avatar_url);}
@@ -2249,7 +2245,7 @@ export default function App(){
       const iAlreadyLiked=new Set(Array.isArray(mySwipes)?mySwipes.filter(x=>x.direction==='like').map(x=>x.target_id):[]);
       // Profile dazu laden
       const ids=likes.map(l=>l.swiper_id);
-      const profiles=await dbSelect('profiles','id=in.('+ids.join(',')+')'+'&banned=neq.true&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,bio,record_verified,history_public,banned,social_url,videos',s.token);
+      const profiles=await dbSelect('profiles','id=in.('+ids.join(',')+')'+'&banned=neq.true&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery,bio,record_verified,history_public,banned,social_url,videos,gallery',s.token);
       if(!Array.isArray(profiles))return;
       // Bereits gematchte UND bereits von mir gelikte rausfiltern
       const matchedIds=new Set(dbMatches.map(m=>m.profile_a_id===myP.id?m.profile_b_id:m.profile_a_id));
@@ -2278,10 +2274,10 @@ export default function App(){
 
   async function loadRealFighters(s,myP,isInitial=false){
     try{
-      let all = await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true&order=created_at.desc&limit=2000&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos',s.token);
+      let all = await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true&order=created_at.desc&limit=2000&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery',s.token);
       if(!Array.isArray(all)||all.length===0){
         try{
-          const r=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=neq.'+s.userId+'&banned=neq.true&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
+          const r=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=neq.'+s.userId+'&banned=neq.true&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
           all=await r.json();
         }catch{}
       }
@@ -2348,7 +2344,7 @@ export default function App(){
   async function loadFightHistory(s){
     try{
       // history_public Status aus Profil laden
-      const profileData=await dbSelect('profiles','id=eq.'+s.userId+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,bio,record_verified,history_public,banned,social_url,videos',s.token);
+      const profileData=await dbSelect('profiles','id=eq.'+s.userId+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery,bio,record_verified,history_public,banned,social_url,videos,gallery',s.token);
       if(Array.isArray(profileData)&&profileData[0]){
         const hp=profileData[0].history_public===true;
         setHistoryPublic(hp);
@@ -2773,68 +2769,41 @@ export default function App(){
     setUploading(false);
   }
 
-  async function handleVideoUpload(e){
+  async function handleGalleryUpload(e){
     const file=e.target.files[0];if(!file||!session)return;
-    if(myVideos.length>=3){showMsg('Maximal 3 Videos erlaubt. Bitte zuerst eins entfernen.');return;}
-    if(file.size>20*1024*1024){showMsg('Video zu groß (max. 20MB). Tipp: kürzeres Video (10-20 Sek.) aufnehmen oder komprimieren.');return;}
-    setUploadingVideo(true);
-    setVideoUploadProgress(0);
-    showMsg('Video wird hochgeladen...');
+    if(myGallery.length>=3){showMsg('Maximal 3 Fotos erlaubt. Bitte zuerst eins entfernen.');return;}
+    setUploadingGallery(true);
+    showMsg('Foto wird komprimiert...');
     try{
-      const ext=(file.name.split('.').pop()||'mp4').toLowerCase();
-      const mimeMap={mov:'video/quicktime',mp4:'video/mp4',m4v:'video/x-m4v',webm:'video/webm',avi:'video/x-msvideo'};
-      const contentType=mimeMap[ext]||file.type||'video/mp4';
-      const path='videos/'+session.userId+'_'+Date.now()+'.'+ext;
-      const url=await new Promise((resolve,reject)=>{
-        const xhr=new XMLHttpRequest();
-        xhr.open('POST',SUPA_URL+'/storage/v1/object/avatars/'+path);
-        xhr.setRequestHeader('apikey',SUPA_KEY);
-        xhr.setRequestHeader('Authorization','Bearer '+session.token);
-        xhr.setRequestHeader('Content-Type',contentType);
-        xhr.setRequestHeader('x-upsert','true');
-        xhr.upload.onprogress=(ev)=>{
-          if(ev.lengthComputable){setVideoUploadProgress(Math.round((ev.loaded/ev.total)*100));}
-        };
-        xhr.onload=()=>{
-          if(xhr.status>=200&&xhr.status<300){resolve(SUPA_URL+'/storage/v1/object/public/avatars/'+path);}
-          else reject(new Error('Upload fehlgeschlagen ('+xhr.status+')'));
-        };
-        xhr.onerror=()=>reject(new Error('Netzwerkfehler beim Upload'));
-        xhr.send(file);
-      });
-      const updated=[...myVideos,url];
-      const patchRes=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+session.userId,{
-        method:'PATCH',
-        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
-        body:JSON.stringify({videos:updated})
-      });
-      if(patchRes.ok){
-        setMyVideos(updated);
-        showMsg('Video hochgeladen ✓');
-      }else{
-        const errText=await patchRes.text().catch(()=>'');
-        console.error('Video DB-Speichern fehlgeschlagen:',patchRes.status,errText);
-        showMsg('Video gespeichert, aber Profil-Update fehlgeschlagen (Fehler '+patchRes.status+'). Bitte Screenshot an Support.');
-      }
-    }catch(e){console.error('video upload',e);showMsg('Video-Upload fehlgeschlagen');}
-    setUploadingVideo(false);
-    setVideoUploadProgress(0);
+      const compressed=await compressImage(file,1000,0.82);
+      const p='gallery_'+session.userId+'_'+Date.now()+'.jpg';
+      const url=await uploadPhoto(compressed,p,session.token);
+      if(url){
+        const updated=[...myGallery,url];
+        const patchRes=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+session.userId,{
+          method:'PATCH',
+          headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+          body:JSON.stringify({gallery:updated})
+        });
+        if(patchRes.ok){setMyGallery(updated);showMsg('Foto hinzugefuegt');}
+        else{showMsg('Foto gespeichert, aber Profil-Update fehlgeschlagen ('+patchRes.status+')');}
+      }else{showMsg('Upload fehlgeschlagen');}
+    }catch(err){console.error('gallery upload',err);showMsg('Upload fehlgeschlagen');}
+    setUploadingGallery(false);
   }
 
-  async function removeVideo(urlToRemove){
+  async function removeGalleryPhoto(urlToRemove){
     if(!session)return;
-    const updated=myVideos.filter(v=>v!==urlToRemove);
-    setMyVideos(updated);
+    const updated=myGallery.filter(g=>g!==urlToRemove);
+    setMyGallery(updated);
     try{
       await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+session.userId,{
         method:'PATCH',
         headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
-        body:JSON.stringify({videos:updated})
+        body:JSON.stringify({gallery:updated})
       });
-      showMsg('Video entfernt');
-    }catch(e){console.error('video remove',e);}
-    setUploading(false);
-    // dummy
+      showMsg('Foto entfernt');
+    }catch(err){console.error('gallery remove',err);}
   }
 
   const myWeightClass=myProfile?.weight_class||profile?.weightClass||'';
@@ -4308,36 +4277,23 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               {profile.bio&&<div style={{color:'#aaa',fontSize:12,marginTop:6,fontStyle:'italic'}}>'{profile.bio}'</div>}
             </div>
 
-            {/* VIDEOS */}
+            {/* GALERIE */}
             <div style={{marginBottom:9}}>
-              <div style={{color:darkMode?'#888':'#999',fontSize:10,letterSpacing:1,marginBottom:6,fontWeight:600}}>🎥 VIDEOS ({myVideos.length}/3)</div>
-              <div style={{color:darkMode?'#555':'#bbb',fontSize:10,marginBottom:6}}>Kurze Clips (max. 20MB) laden am schnellsten</div>
+              <div style={{color:darkMode?'#888':'#999',fontSize:10,letterSpacing:1,marginBottom:6,fontWeight:600}}>📸 FOTOS ({myGallery.length}/3)</div>
               <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7}}>
                 {[0,1,2].map(i=>{
-                  const v=myVideos[i];
+                  const g=myGallery[i];
                   return (
-                    <div key={i} style={{position:'relative',aspectRatio:'9/16',borderRadius:11,overflow:'hidden',background:darkMode?'#1a1a1a':'#f0f0f0',border:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8')}}>
-                      {v?(
+                    <div key={i} style={{position:'relative',aspectRatio:'1/1',borderRadius:11,overflow:'hidden',background:darkMode?'#1a1a1a':'#f0f0f0',border:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8')}}>
+                      {g?(
                         <>
-                          <video style={{width:'100%',height:'100%',objectFit:'cover'}} muted playsInline preload='metadata'>
-                            <source src={v} type={v.endsWith('.mov')?'video/quicktime':v.endsWith('.webm')?'video/webm':'video/mp4'}/>
-                            <div style={{color:'#999',fontSize:10,padding:8,textAlign:'center'}}>Video kann nicht angezeigt werden</div>
-                          </video>
-                          <button onClick={()=>removeVideo(v)} style={{position:'absolute',top:4,right:4,width:22,height:22,borderRadius:11,background:'rgba(0,0,0,0.6)',border:'none',color:'#fff',fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                          <img src={g} alt='' style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                          <button onClick={()=>removeGalleryPhoto(g)} style={{position:'absolute',top:4,right:4,width:22,height:22,borderRadius:11,background:'rgba(0,0,0,0.6)',border:'none',color:'#fff',fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
                         </>
                       ):(
-                        <label style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',cursor:uploadingVideo?'not-allowed':'pointer',flexDirection:'column',gap:6,padding:8}}>
-                          {uploadingVideo?(
-                            <>
-                              <div style={{width:'80%',height:5,background:darkMode?'#333':'#e0e0e0',borderRadius:3,overflow:'hidden'}}>
-                                <div style={{height:'100%',width:videoUploadProgress+'%',background:RED,borderRadius:3,transition:'width 0.2s ease'}}/>
-                              </div>
-                              <span style={{fontSize:10,color:darkMode?'#888':'#999',fontWeight:600}}>{videoUploadProgress}%</span>
-                            </>
-                          ):(
-                            <span style={{fontSize:22,color:darkMode?'#555':'#bbb'}}>+</span>
-                          )}
-                          <input type='file' accept='video/*' onChange={handleVideoUpload} disabled={uploadingVideo} style={{display:'none'}}/>
+                        <label style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',cursor:uploadingGallery?'not-allowed':'pointer'}}>
+                          <span style={{fontSize:22,color:darkMode?'#555':'#bbb'}}>{uploadingGallery?'⏳':'+'}</span>
+                          <input type='file' accept='image/*' onChange={handleGalleryUpload} disabled={uploadingGallery} style={{display:'none'}}/>
                         </label>
                       )}
                     </div>
