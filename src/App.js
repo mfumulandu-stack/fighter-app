@@ -418,21 +418,15 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUp
                 <input type='file' accept='image/*' style={{display:'none'}} onChange={async(e)=>{
                   const file=e.target.files?.[0];if(!file||!session)return;
                   try{
-                    const reader=new FileReader();
-                    reader.onload=async ev=>{
-                      const resp=await fetch('https://uykdrmymjvqgebsmndme.supabase.co/storage/v1/object/avatars/gyms/'+gym.code+'_'+Date.now()+'.png',{method:'POST',headers:{'Content-Type':file.type,Authorization:'Bearer '+session.token},body:file}).catch(()=>null);
-                      // Use uploadPhoto via Supabase storage
-                      const formData=new FormData();formData.append('file',file);
-                      const path='gyms/'+gym.code+'_logo.png';
-                      const up=await fetch(SUPA_URL+'/storage/v1/object/avatars/'+path,{method:'POST',headers:{Authorization:'Bearer '+session.token,'x-upsert':'true'},body:file});
-                      if(up.ok){
-                        const url=SUPA_URL+'/storage/v1/object/public/avatars/'+path;
-                        await fetch(SUPA_URL+'/rest/v1/gym_logos?gym_code=eq.'+gym.code,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
-                        await fetch(SUPA_URL+'/rest/v1/gym_logos',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({gym_code:gym.code,logo_url:url,verified:true})});
-                        if(onGymUpdate)await onGymUpdate();
-                        alert('✅ Logo gespeichert!');
-                      }
-                    };reader.readAsDataURL(file);
+                    const path='gyms/'+gym.code+'_logo_'+Date.now()+'.png';
+                    const up=await fetch(SUPA_URL+'/storage/v1/object/avatars/'+path,{method:'POST',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token,'Content-Type':file.type,'x-upsert':'true'},body:file});
+                    if(!up.ok){alert('Logo-Upload fehlgeschlagen ('+up.status+'). Bitte erneut versuchen.');return;}
+                    const url=SUPA_URL+'/storage/v1/object/public/avatars/'+path;
+                    await fetch(SUPA_URL+'/rest/v1/gym_logos?gym_code=eq.'+gym.code,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                    const ins=await fetch(SUPA_URL+'/rest/v1/gym_logos',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({gym_code:gym.code,logo_url:url,verified:true})});
+                    if(!ins.ok){alert('Logo gespeichert, aber Eintrag fehlgeschlagen ('+ins.status+').');return;}
+                    if(onGymUpdate)await onGymUpdate();
+                    alert('✅ Logo gespeichert!');
                   }catch(err){alert('Fehler: '+err.message);}
                 }}/>
               </label>
