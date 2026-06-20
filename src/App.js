@@ -2382,6 +2382,7 @@ export default function App(){
 
   async function loadDbGyms(s){
     try{
+      loadGymLogos();
       const token=(s?.token)||session?.token;
       // Versuche mit Session Token
       let resp=await fetch(SUPA_URL+'/rest/v1/gyms?order=city.asc,name.asc',{
