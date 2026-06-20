@@ -900,11 +900,11 @@ function AuthScreen({ onSession, appLang }) {
             <div style={{display:'flex',flexDirection:'column',gap:8,marginTop:12}}>
               <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
                 <input type='checkbox' id='privacy' checked={privacy} onChange={e=>setPrivacy(e.target.checked)} style={{marginTop:2,accentColor:RED,width:16,height:16,cursor:'pointer',flexShrink:0}}/>
-                <label htmlFor='privacy' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich stimme der <span style={{color:RED,textDecoration:'underline'}} onClick={()=>setShowDatenschutz&&setShowDatenschutz(true)}>Datenschutzerklärung</span> zu</label>
+                <label htmlFor='privacy' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich stimme der <span style={{color:RED,textDecoration:'underline'}} onClick={(e)=>{e.preventDefault();e.stopPropagation();setShowDatenschutz&&setShowDatenschutz(true);}}>Datenschutzerklärung</span> zu</label>
               </div>
               <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
                 <input type='checkbox' id='agb' checked={agbAccepted} onChange={e=>setAgbAccepted(e.target.checked)} style={{marginTop:2,accentColor:RED,width:16,height:16,cursor:'pointer',flexShrink:0}}/>
-                <label htmlFor='agb' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich akzeptiere die <span style={{color:RED,textDecoration:'underline'}} onClick={()=>setShowAGB&&setShowAGB(true)}>AGB</span></label>
+                <label htmlFor='agb' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich akzeptiere die <span style={{color:RED,textDecoration:'underline'}} onClick={(e)=>{e.preventDefault();e.stopPropagation();setShowAGB&&setShowAGB(true);}}>AGB</span></label>
               </div>
             </div>
           )}
