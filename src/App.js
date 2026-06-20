@@ -2114,6 +2114,33 @@ export default function App(){
 
   function showMsg(text){setMsg(text);setTimeout(()=>setMsg(''),3000);}
 
+  async function registerPush(userId,token){
+    // Nur in der nativen App (nicht im Web-Browser)
+    if(!window.Capacitor||!window.Capacitor.isNativePlatform||!window.Capacitor.isNativePlatform()){return;}
+    try{
+      const {PushNotifications}=await import('@capacitor/push-notifications');
+      // Erlaubnis pruefen / anfragen (loest System-Popup aus)
+      let perm=await PushNotifications.checkPermissions();
+      if(perm.receive==='prompt'||perm.receive==='prompt-with-rationale'){
+        perm=await PushNotifications.requestPermissions();
+      }
+      if(perm.receive!=='granted'){return;}
+      // Bei APNs registrieren
+      await PushNotifications.register();
+      // Listener: Token erhalten -> in Supabase speichern
+      PushNotifications.addListener('registration',async(tokenData)=>{
+        try{
+          await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+userId,{
+            method:'PATCH',
+            headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=minimal'},
+            body:JSON.stringify({push_token:tokenData.value})
+          });
+        }catch(err){console.error('push token save',err);}
+      });
+      PushNotifications.addListener('registrationError',(err)=>{console.error('push reg error',err);});
+    }catch(err){console.error('registerPush',err);}
+  }
+
   async function initProfile(s){
     try{
       const data=await dbSelect('profiles','user_id=eq.'+s.userId+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery,bio,record_verified,history_public,banned,social_url',s.token);
@@ -2127,6 +2154,7 @@ export default function App(){
           return;
         }
         setMyProfile(p);
+        try{registerPush(s.userId,s.token);}catch(e){}
         setProfile({name:p.name||'',age:p.age||'',city:p.city||'',gym:p.gym||'',height:p.height||'',weight:p.weight||'',weightClass:p.weight_class||'',style:p.style||'',bio:p.bio||'',isPro:p.is_pro===true,country:p.country||'DE',gender:p.gender||'male',socialUrl:p.social_url||''});
         try{setMyGallery(Array.isArray(p.gallery)?p.gallery:(p.gallery?JSON.parse(p.gallery):[]));}catch{setMyGallery([]);}
         if(p.lat&&p.lon){setMyLat(p.lat);setMyLon(p.lon);setLocationSource(p.location_source||'gps');}
