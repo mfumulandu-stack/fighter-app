@@ -3176,6 +3176,18 @@ export default function App(){
         </div>
       </div>
       <div style={{padding:'12px',maxWidth:420,margin:'0 auto',width:'100%'}}>
+        {viewProfile.gallery&&(Array.isArray(viewProfile.gallery)?viewProfile.gallery:[]).length>0&&(
+          <div style={{marginBottom:10}}>
+            <div style={{color:darkMode?'#888':'#999',fontSize:10,letterSpacing:1,marginBottom:6,fontWeight:600}}>📸 FOTOS</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7}}>
+              {(Array.isArray(viewProfile.gallery)?viewProfile.gallery:[]).slice(0,3).map((g,i)=>(
+                <div key={i} style={{aspectRatio:'1/1',borderRadius:11,overflow:'hidden',background:darkMode?'#1a1a1a':'#f0f0f0',border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                  <img src={g} alt='' onClick={()=>setLightboxImg(g)} style={{width:'100%',height:'100%',objectFit:'contain',cursor:'zoom-in'}}/>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginBottom:10}}>
           {[['SIEGE',viewProfile.wins||0,'#27ae60'],['NIEDER',viewProfile.losses||0,RED],['UNENTSCH',viewProfile.draws||0,'#d4a017'],['KOs',viewProfile.ko||0,RED]].map(([label,val,color])=>(
             <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 4px',textAlign:'center',border:'1px solid '+color+'33'}}>
