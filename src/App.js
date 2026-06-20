@@ -16,13 +16,18 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
         const data=await res.json();
         if(active&&Array.isArray(data)){
           // Mehrere Nutzer in derselben Stadt zu einem Punkt zusammenfassen
+          // Stadt-Ebene-Rundung (~5km Raster) — bewusst KEINE exakten Koordinaten,
+          // damit kein einzelner Nutzer auf seine genaue Adresse zurückverfolgbar ist.
+          const CITY_GRID=0.05; // ca. 5km bei mittleren Breitengraden
           const seen={};
           const pts=[];
           data.forEach(d=>{
             if(!d.lat||!d.lon)return;
-            const key=Math.round(d.lat*10)+'_'+Math.round(d.lon*10);
+            const roundedLat=Math.round(d.lat/CITY_GRID)*CITY_GRID;
+            const roundedLon=Math.round(d.lon/CITY_GRID)*CITY_GRID;
+            const key=roundedLat+'_'+roundedLon;
             if(seen[key]){seen[key].count++;}
-            else{const p={lat:d.lat,lng:d.lon,city:d.city||'',count:1};seen[key]=p;pts.push(p);}
+            else{const p={lat:roundedLat,lng:roundedLon,city:d.city||'',count:1};seen[key]=p;pts.push(p);}
           });
           setPoints(pts);
         }
@@ -36,7 +41,7 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
     if(globeRef.current){
       globeRef.current.pointOfView({lat:20,lng:10,altitude:2.2},0);
       const controls=globeRef.current.controls();
-      if(controls){controls.autoRotate=true;controls.autoRotateSpeed=0.4;controls.enableZoom=true;}
+      if(controls){controls.autoRotate=true;controls.autoRotateSpeed=0.4;controls.enableZoom=true;controls.minDistance=110;controls.maxDistance=800;controls.zoomSpeed=0.8;}
     }
   },[points]);
 
