@@ -1951,7 +1951,9 @@ export default function App(){
   const [showImpressum,setShowImpressum]=useState(false);
   const [showDatenschutz,setShowDatenschutz]=useState(false);
   const [showPwChange,setShowPwChange]=useState(false);
+  const [oldPassword,setOldPassword]=useState('');
   const [newPassword,setNewPassword]=useState('');
+  const [newPassword2,setNewPassword2]=useState('');
   const [pwChangeMsg,setPwChangeMsg]=useState('');
   const [showAGB,setShowAGB]=useState(false);
   const [rankMode,setRankMode]=useState('user');
@@ -5117,28 +5119,59 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <div style={{color:'#aaa',fontSize:12,marginBottom:16}}>{t.pwChangeSub}</div>
             <input
               type='password'
+              placeholder='Aktuelles Passwort'
+              value={oldPassword}
+              onChange={e=>setOldPassword(e.target.value)}
+              style={{width:'100%',padding:'12px',borderRadius:10,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',marginBottom:8,outline:'none'}}
+            />
+            <input
+              type='password'
               placeholder={t.newPw}
               value={newPassword}
               onChange={e=>setNewPassword(e.target.value)}
               style={{width:'100%',padding:'12px',borderRadius:10,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',marginBottom:8,outline:'none'}}
             />
+            <input
+              type='password'
+              placeholder='Neues Passwort wiederholen'
+              value={newPassword2}
+              onChange={e=>setNewPassword2(e.target.value)}
+              style={{width:'100%',padding:'12px',borderRadius:10,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',marginBottom:8,outline:'none'}}
+            />
             {pwChangeMsg&&<div style={{color:pwChangeMsg.includes('✅')?'#27ae60':'#e74c3c',fontSize:12,marginBottom:8}}>{pwChangeMsg}</div>}
             <div style={{display:'flex',gap:10,marginTop:8}}>
-              <button onClick={()=>{setShowPwChange(false);setNewPassword('');setPwChangeMsg('');}} style={{flex:1,padding:'12px',borderRadius:10,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>ABBRECHEN</button>
+              <button onClick={()=>{setShowPwChange(false);setOldPassword('');setNewPassword('');setNewPassword2('');setPwChangeMsg('');}} style={{flex:1,padding:'12px',borderRadius:10,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>ABBRECHEN</button>
               <button onClick={async()=>{
-                if(!newPassword||newPassword.length<6){setPwChangeMsg('Mindestens 6 Zeichen!');return;}
+                if(!oldPassword){setPwChangeMsg('Bitte aktuelles Passwort eingeben');return;}
+                if(!newPassword||newPassword.length<6){setPwChangeMsg('Neues Passwort: mindestens 6 Zeichen!');return;}
+                if(newPassword!==newPassword2){setPwChangeMsg('Die neuen Passwörter stimmen nicht überein');return;}
+                if(newPassword===oldPassword){setPwChangeMsg('Neues Passwort muss sich vom alten unterscheiden');return;}
+                setPwChangeMsg('Wird geprüft...');
                 try{
+                  // E-Mail des Nutzers von Supabase holen
+                  const ures=await fetch(SUPA_URL+'/auth/v1/user',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                  const udata=await ures.json();
+                  const email=udata.email;
+                  if(!email){setPwChangeMsg('Fehler: E-Mail nicht gefunden');return;}
+                  // Altes Passwort per Test-Login verifizieren
+                  const verify=await fetch(SUPA_URL+'/auth/v1/token?grant_type=password',{
+                    method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
+                    body:JSON.stringify({email,password:oldPassword})
+                  });
+                  const vdata=await verify.json();
+                  if(!vdata.access_token){setPwChangeMsg('Aktuelles Passwort ist falsch');return;}
+                  // Neues Passwort setzen (mit frischem Token aus der Verifikation)
                   const resp=await fetch(SUPA_URL+'/auth/v1/user',{
                     method:'PUT',
-                    headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token},
+                    headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+vdata.access_token},
                     body:JSON.stringify({password:newPassword})
                   });
                   const data=await resp.json();
                   if(data.id){
                     setPwChangeMsg('✅ Passwort geändert!');
-                    setTimeout(()=>{setShowPwChange(false);setNewPassword('');setPwChangeMsg('');},1500);
+                    setTimeout(()=>{setShowPwChange(false);setOldPassword('');setNewPassword('');setNewPassword2('');setPwChangeMsg('');},1500);
                   } else {
-                    setPwChangeMsg('Fehler: '+(data.message||'Unbekannt'));
+                    setPwChangeMsg('Fehler: '+(data.message||data.msg||'Unbekannt'));
                   }
                 }catch(e){setPwChangeMsg('Fehler: '+e.message);}
               }} style={{flex:1,padding:'12px',borderRadius:10,background:'#c0392b',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>SPEICHERN</button>
