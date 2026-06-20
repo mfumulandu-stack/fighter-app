@@ -2952,6 +2952,13 @@ export default function App(){
       else if(weightDiff<=7)  score-=0.35; // sehr nah (±7kg)
       else if(weightDiff<=12) score-=0.2;  // nah (±12kg)
       else if(weightDiff<=20) score-=0.05; // noch ok (±20kg)
+      // Alter-Bonus (schwaecher als Gewicht, damit Gewicht vor Alter zaehlt)
+      const myAge=parseInt(myProfile?.age||profile?.age||0);
+      const fAge=parseInt(f.age||0);
+      const ageDiff=myAge&&fAge?Math.abs(myAge-fAge):999;
+      if(ageDiff<=2)       score-=0.04; // fast gleiches Alter
+      else if(ageDiff<=5)  score-=0.025;
+      else if(ageDiff<=10) score-=0.01;
       // Gleiche Gewichtsklasse (zusätzlich zum Gewicht)
       if(sameWCBool) score-=0.3;
       // Gleicher Pro/Amateur Status: -0.2
