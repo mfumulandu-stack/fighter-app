@@ -3083,6 +3083,24 @@ export default function App(){
               });
             }catch{}
             sendLocalNotification('🥊 ITS A MATCH!',top.name+' hat dich auch geliket!');
+            // Push an den anderen Matching-Partner schicken
+            (async()=>{
+              try{
+                const pres=await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+top.id+'&select=user_id,push_token',{
+                  headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
+                });
+                const prows=await pres.json();
+                const pushToken=Array.isArray(prows)&&prows[0]&&prows[0].push_token;
+                if(pushToken){
+                  const myName=(myProfile&&myProfile.name)||'Jemand';
+                  await fetch(SUPA_URL+'/functions/v1/send-push',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
+                    body:JSON.stringify({token:pushToken,title:'🥊 Neues Match!',body:myName+' hat dich auch geliket!'})
+                  });
+                }
+              }catch(err){console.error('match push',err);}
+            })();
             setTimeout(()=>{setMatched(top);loadMatches(session,myProfile);},300);
           }
           // Keine fake Matches mehr
