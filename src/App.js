@@ -1036,6 +1036,24 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,a
     }catch{}
   }
 
+  async function sendPushTo(recipientUserId,title,body){
+    if(!recipientUserId)return;
+    try{
+      // push_token des Empfaengers holen
+      const res=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+recipientUserId+'&select=push_token',{
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+token}
+      });
+      const rows=await res.json();
+      const pushToken=Array.isArray(rows)&&rows[0]&&rows[0].push_token;
+      if(!pushToken)return; // Empfaenger hat (noch) kein Geraet registriert
+      await fetch(SUPA_URL+'/functions/v1/send-push',{
+        method:'POST',
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
+        body:JSON.stringify({token:pushToken,title,body})
+      });
+    }catch(err){console.error('sendPushTo',err);}
+  }
+
   async function send(){
     if(!input.trim())return;
     const text=input.trim();setInput('');
@@ -1052,6 +1070,9 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,a
         setMessages(m=>m.map(msg=>msg.id===tmpId?saved[0]:msg));
         lastMsgTime.current=saved[0].created_at;
       }
+      // Push an den Empfaenger ausloesen
+      const myName=(myProfile&&myProfile.name)||'Jemand';
+      sendPushTo(other&&other.user_id,myName,text);
     }catch{}
   }
 
