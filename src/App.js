@@ -1520,6 +1520,10 @@ export default function App(){
   const [equipLoading,setEquipLoading]=useState(false);
   const [newEquip,setNewEquip]=useState({brand:'',product:'',description:'',category:'Boxen',url:'',image_url:'',discount_code:'',featured:false});
   const [adminUsersLoaded,setAdminUsersLoaded]=useState(false);
+  const [adminSwipes,setAdminSwipes]=useState([]);
+  const [adminMatches,setAdminMatches]=useState([]);
+  const [adminChatMsgs,setAdminChatMsgs]=useState([]);
+  const [adminMatchStatsLoaded,setAdminMatchStatsLoaded]=useState(false);
   const [adminUserSearch,setAdminUserSearch]=useState('');
   const isAdmin=session?.userId===ADMIN_ID||myProfile?.id===ADMIN_ID;
   const [fightHistory,setFightHistory]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_history')||'[]')}catch{return []}});
@@ -6117,10 +6121,58 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     const resp=await fetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=500',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                     const data=await resp.json();
                     if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
+                    const [sRes,mRes,msgRes]=await Promise.all([
+                      fetch(SUPA_URL+'/rest/v1/swipes?select=direction,created_at&order=created_at.desc&limit=5000',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}}),
+                      fetch(SUPA_URL+'/rest/v1/matches?select=id,created_at&order=created_at.desc&limit=2000',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}}),
+                      fetch(SUPA_URL+'/rest/v1/messages?select=id,match_id,created_at&order=created_at.desc&limit=5000',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}}),
+                    ]);
+                    const [sData,mData,msgData]=await Promise.all([sRes.json(),mRes.json(),msgRes.json()]);
+                    if(Array.isArray(sData))setAdminSwipes(sData);
+                    if(Array.isArray(mData))setAdminMatches(mData);
+                    if(Array.isArray(msgData))setAdminChatMsgs(msgData);
+                    setAdminMatchStatsLoaded(true);
                   }catch(e){showMsg('Fehler: '+e.message);}
                 }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:12}}>
                   🔄 STATS AKTUALISIEREN
                 </button>
+                {adminMatchStatsLoaded&&(()=>{
+                  const now=Date.now();
+                  const day=86400000,week=604800000;
+                  const likes=adminSwipes.filter(s=>s.direction==='like').length;
+                  const passes=adminSwipes.filter(s=>s.direction==='pass').length;
+                  const totalSwipes=adminSwipes.length;
+                  const matchesToday=adminMatches.filter(m=>m.created_at&&(now-new Date(m.created_at).getTime())<day).length;
+                  const matchesWeek=adminMatches.filter(m=>m.created_at&&(now-new Date(m.created_at).getTime())<week).length;
+                  const matchRate=likes>0?((adminMatches.length/likes)*100).toFixed(1):'0.0';
+                  const msgsToday=adminChatMsgs.filter(m=>m.created_at&&(now-new Date(m.created_at).getTime())<day).length;
+                  const msgPerMatch=adminMatches.length>0?(adminChatMsgs.length/adminMatches.length).toFixed(1):'0.0';
+                  return(
+                    <div style={{marginBottom:12}}>
+                      <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>🥊 MATCHING & ENGAGEMENT</div>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
+                        {[
+                          ['💕','Matches gesamt',adminMatches.length],
+                          ['🔥','Matches heute',matchesToday],
+                          ['📅','Matches Woche',matchesWeek],
+                          ['🎯','Match-Rate',matchRate+'%'],
+                          ['👍','Likes gesamt',likes],
+                          ['👎','Passes gesamt',passes],
+                          ['💬','Nachrichten gesamt',adminChatMsgs.length],
+                          ['✉️','Nachrichten heute',msgsToday],
+                        ].map(([icon,label,val])=>(
+                          <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'12px 10px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),textAlign:'center'}}>
+                            <div style={{fontSize:18}}>{icon}</div>
+                            <div style={{color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,lineHeight:1}}>{val}</div>
+                            <div style={{color:darkMode?'#aaa':'#888',fontSize:9,marginTop:2}}>{label}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'10px 12px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),fontSize:11,color:darkMode?'#888':'#999'}}>
+                        Ø {msgPerMatch} Nachrichten pro Match · {totalSwipes} Swipes insgesamt erfasst
+                      </div>
+                    </div>
+                  );
+                })()}
                 {adminUsersLoaded&&(
                   <>
                     {/* Haupt-Stats */}
