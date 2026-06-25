@@ -1519,6 +1519,8 @@ export default function App(){
   const [equipmentList,setEquipmentList]=useState([]);
   const [equipLoading,setEquipLoading]=useState(false);
   const [newEquip,setNewEquip]=useState({brand:'',product:'',description:'',category:'Boxen',url:'',image_url:'',discount_code:'',featured:false});
+  const [editingEquip,setEditingEquip]=useState(null);
+  const [editEquipForm,setEditEquipForm]=useState(null);
   const [adminUsersLoaded,setAdminUsersLoaded]=useState(false);
   const [adminSwipes,setAdminSwipes]=useState([]);
   const [adminMatches,setAdminMatches]=useState([]);
@@ -3670,7 +3672,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
     <ErrorBoundary>
     <div style={{minHeight:'100vh',background:darkMode?'#1a1a1a':'#f5f5f7',fontFamily:'DM Sans,sans-serif',display:'flex',flexDirection:'column'}} onMouseMove={dragMove} onMouseUp={dragEnd} onTouchMove={dragMove} onTouchEnd={dragEnd}>
       <style>{css}</style>
-      {msg&&<div style={{position:'fixed',top:60,left:'50%',transform:'translateX(-50%)',background:'#fff',border:'1px solid '+RED,borderRadius:20,padding:'8px 20px',color:'#1a1a1a',fontSize:13,zIndex:200,fontWeight:600,boxShadow:'0 4px 20px rgba(0,0,0,0.1)',whiteSpace:'nowrap'}}>{msg}</div>}
+      {msg&&<div style={{position:'fixed',top:60,left:'50%',transform:'translateX(-50%)',background:'#fff',border:'1px solid '+RED,borderRadius:20,padding:'8px 20px',color:'#1a1a1a',fontSize:13,zIndex:9999,fontWeight:600,boxShadow:'0 4px 20px rgba(0,0,0,0.1)',whiteSpace:'nowrap',maxWidth:'90vw',overflow:'hidden',textOverflow:'ellipsis'}}>{msg}</div>}
 
       {/* SLIDE-OUT MENU OVERLAY */}
       {showMenu&&(
@@ -5922,6 +5924,53 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 {/* PRODUKT LISTE */}
                 {equipmentList.map(eq=>(
                   <div key={eq.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'12px',marginBottom:8,border:'1px solid '+(eq.featured?'#d4a01744':(darkMode?'#2a2a2a':'#eee'))}}>
+                    {editingEquip===eq.id?(
+                      <div>
+                        {[
+                          ['Marke','brand'],['Produkt','product'],['Beschreibung','description'],
+                          ['Link / URL','url'],['Bild URL','image_url'],['Rabattcode','discount_code'],
+                        ].map(([label,key])=>(
+                          <div key={key} style={{marginBottom:6}}>
+                            <div style={{color:'#aaa',fontSize:10,marginBottom:2}}>{label}</div>
+                            <input value={editEquipForm[key]||''} onChange={e=>setEditEquipForm(p=>({...p,[key]:e.target.value}))}
+                              style={{width:'100%',padding:'7px 9px',borderRadius:7,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:12,boxSizing:'border-box'}}/>
+                          </div>
+                        ))}
+                        <div style={{marginBottom:8}}>
+                          <div style={{color:'#aaa',fontSize:10,marginBottom:2}}>Kategorie</div>
+                          <select value={editEquipForm.category} onChange={e=>setEditEquipForm(p=>({...p,category:e.target.value}))}
+                            style={{width:'100%',padding:'7px 9px',borderRadius:7,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:12}}>
+                            {['Boxen','Kickboxing','MMA','BJJ','Muay Thai','Grappling','Allgemein','Schutzausrüstung','Bekleidung','Supplements'].map(cat=>(
+                              <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                          <input type='checkbox' checked={!!editEquipForm.featured} onChange={e=>setEditEquipForm(p=>({...p,featured:e.target.checked}))} id={'feat_'+eq.id}/>
+                          <label htmlFor={'feat_'+eq.id} style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,cursor:'pointer'}}>⭐ Featured</label>
+                        </div>
+                        <div style={{display:'flex',gap:8}}>
+                          <button onClick={()=>{setEditingEquip(null);setEditEquipForm(null);}} style={{flex:1,padding:'8px',borderRadius:7,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontWeight:700,fontSize:12,cursor:'pointer'}}>ABBRECHEN</button>
+                          <button onClick={async()=>{
+                            try{
+                              const resp=await fetch(SUPA_URL+'/rest/v1/equipment?id=eq.'+eq.id,{
+                                method:'PATCH',
+                                headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=representation'},
+                                body:JSON.stringify(editEquipForm)
+                              });
+                              const data=await resp.json();
+                              if(Array.isArray(data)&&data[0]){
+                                setEquipmentList(prev=>prev.map(e=>e.id===eq.id?data[0]:e));
+                                setEditingEquip(null);setEditEquipForm(null);
+                                showMsg('✅ Aktualisiert!');
+                              }else{
+                                showMsg('❌ Fehler: '+JSON.stringify(data).slice(0,100));
+                              }
+                            }catch(err){showMsg('Fehler: '+err.message);}
+                          }} style={{flex:1,padding:'8px',borderRadius:7,background:'#27ae60',border:'none',color:'#fff',fontWeight:700,fontSize:12,cursor:'pointer'}}>✓ SPEICHERN</button>
+                        </div>
+                      </div>
+                    ):(
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
                       <div style={{flex:1}}>
                         <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:4}}>
@@ -5933,15 +5982,27 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         {eq.url&&<div style={{color:'#2980b9',fontSize:11,marginTop:2}}>🔗 {eq.url.replace('https://','').slice(0,50)}</div>}
                         {eq.discount_code&&<div style={{color:'#27ae60',fontSize:11,marginTop:2}}>🏷️ Code: {eq.discount_code}</div>}
                       </div>
-                      <button onClick={async()=>{
-                        if(!window.confirm('Löschen?'))return;
-                        await fetch(SUPA_URL+'/rest/v1/equipment?id=eq.'+eq.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
-                        setEquipmentList(prev=>prev.filter(e=>e.id!==eq.id));
-                        showMsg('Gelöscht');
-                      }} style={{background:'none',border:'1px solid #e74c3c44',borderRadius:6,padding:'4px 8px',color:'#e74c3c',fontSize:11,cursor:'pointer',flexShrink:0,marginLeft:8}}>
-                        🗑️
-                      </button>
+                      <div style={{display:'flex',gap:6,flexShrink:0,marginLeft:8}}>
+                        <button onClick={()=>{setEditingEquip(eq.id);setEditEquipForm({brand:eq.brand||'',product:eq.product||'',description:eq.description||'',url:eq.url||'',image_url:eq.image_url||'',discount_code:eq.discount_code||'',category:eq.category||'Boxen',featured:!!eq.featured});}} style={{background:'none',border:'1px solid #2980b944',borderRadius:6,padding:'4px 8px',color:'#2980b9',fontSize:11,cursor:'pointer'}}>
+                          ✏️
+                        </button>
+                        <button onClick={async()=>{
+                          if(!window.confirm('Löschen?'))return;
+                          try{
+                            const delRes=await fetch(SUPA_URL+'/rest/v1/equipment?id=eq.'+eq.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                            if(delRes.ok){
+                              setEquipmentList(prev=>prev.filter(e=>e.id!==eq.id));
+                              showMsg('✅ Gelöscht');
+                            }else{
+                              showMsg('❌ Löschen fehlgeschlagen ('+delRes.status+')');
+                            }
+                          }catch(err){showMsg('Fehler: '+err.message);}
+                        }} style={{background:'none',border:'1px solid #e74c3c44',borderRadius:6,padding:'4px 8px',color:'#e74c3c',fontSize:11,cursor:'pointer'}}>
+                          🗑️
+                        </button>
+                      </div>
                     </div>
+                    )}
                   </div>
                 ))}
               </div>
