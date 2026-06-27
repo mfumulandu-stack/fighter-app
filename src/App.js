@@ -2218,6 +2218,16 @@ export default function App(){
               if(!p.city&&loc.city){
                 setProfile(prev=>({...prev,city:loc.city}));
               }
+              // WICHTIG: IP-Standort auch in DB speichern, damit der Globus
+              // und das Matching ihn sehen (nur wenn noch kein Standort da ist,
+              // damit ein bereits aktivierter GPS-Standort nicht ueberschrieben wird)
+              if(!p.lat||!p.lon){
+                fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+s.userId,{
+                  method:'PATCH',
+                  headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+s.token,Prefer:'return=minimal'},
+                  body:JSON.stringify({lat:loc.lat,lon:loc.lon,location_source:'ip'})
+                }).catch(()=>{});
+              }
             }
           });
         }
