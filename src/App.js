@@ -38,11 +38,31 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
   },[SUPA_URL,SUPA_KEY]);
 
   useEffect(()=>{
-    if(globeRef.current){
-      globeRef.current.pointOfView({lat:20,lng:10,altitude:2.2},0);
-      const controls=globeRef.current.controls();
-      if(controls){controls.autoRotate=true;controls.autoRotateSpeed=0.4;controls.enableZoom=true;controls.minDistance=110;controls.maxDistance=800;controls.zoomSpeed=0.8;}
+    let cancelled=false;
+    let attempts=0;
+    function trySetup(){
+      if(cancelled)return;
+      attempts++;
+      if(globeRef.current&&globeRef.current.controls){
+        // Kamera auf Mitteleuropa ausrichten, damit Nutzer direkt sichtbar sind
+        globeRef.current.pointOfView({lat:48,lng:9,altitude:1.6},0);
+        const controls=globeRef.current.controls();
+        if(controls){
+          controls.autoRotate=false;
+          controls.enableZoom=true;
+          controls.minDistance=20;   // sehr tiefes Reinzoomen erlaubt
+          controls.maxDistance=800;
+          controls.zoomSpeed=1.1;
+          controls.update&&controls.update();
+        }
+        return; // erfolgreich, Polling beenden
+      }
+      if(attempts<40){ // bis zu ~4 Sekunden lang erneut versuchen
+        setTimeout(trySetup,100);
+      }
     }
+    trySetup();
+    return()=>{cancelled=true;};
   },[points]);
 
   return(
