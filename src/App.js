@@ -3047,11 +3047,14 @@ export default function App(){
       };
     })
     .sort((a,b)=>{
-      // Primär: Score
-      const scoreDiff=a._score-b._score;
+      // Primär: Score — ABSTEIGEND sortiert (schlechtester Match zuerst,
+      // bester Match zuletzt), da 'top' das LETZTE Element der Liste ist
+      // und beim Swipen jeweils von hinten entfernt wird. So wird stets
+      // der aktuell beste verbleibende Match angezeigt.
+      const scoreDiff=b._score-a._score;
       if(Math.abs(scoreDiff)>0.01)return scoreDiff;
-      // Sekundär: Distanz
-      return (a._dist||9999)-(b._dist||9999);
+      // Sekundär: Distanz (näher = weiter hinten = wird zuerst gezeigt)
+      return (b._dist||9999)-(a._dist||9999);
     });
   const top=filteredCards[filteredCards.length-1];
   const lastTapRef=useRef(0);
