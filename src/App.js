@@ -6073,7 +6073,15 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         sent++;
                       }catch{}
                     }
-                    showMsg('✅ Nachricht an '+sent+' User gesendet!');
+                    // Echte Push-Benachrichtigung an alle senden (zusätzlich zur In-App-Nachricht)
+                    try{
+                      await fetch(SUPA_URL+'/functions/v1/broadcast-push',{
+                        method:'POST',
+                        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
+                        body:JSON.stringify({title:'🥊 Fighter News',body:adminBroadcast.slice(0,150)})
+                      });
+                    }catch(err){console.error('broadcast push',err);}
+                    showMsg('✅ Nachricht + Push an '+sent+' User gesendet!');
                     setAdminBroadcast('');
                   }catch(e){showMsg('Fehler: '+e.message);}
                   setAdminSaving(false);
