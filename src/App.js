@@ -5891,8 +5891,15 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       console.log('Equipment save response:', res.status, data);
                       if(Array.isArray(data)&&data[0]){
                         setEquipmentList(prev=>[data[0],...prev]);
+                        const savedBrand=newEquip.brand,savedProduct=newEquip.product;
                         setNewEquip({brand:'',product:'',description:'',category:'Boxen',url:'',image_url:'',discount_code:'',featured:false});
                         showMsg('✅ Produkt hinzugefügt!');
+                        // Alle Nutzer per Push benachrichtigen
+                        fetch(SUPA_URL+'/functions/v1/broadcast-push',{
+                          method:'POST',
+                          headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
+                          body:JSON.stringify({title:'🥊 Neues Equipment!',body:savedBrand+' '+savedProduct+' ist jetzt im Shop verfügbar'})
+                        }).catch(err=>console.error('broadcast push',err));
                       }else if(data&&data.code==='42P01'){
                         showMsg('❌ Tabelle fehlt — SQL im Supabase Editor ausführen!');
                       }else if(data&&data.message){
