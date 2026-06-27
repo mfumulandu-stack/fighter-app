@@ -72,7 +72,7 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
       </div>
       <div style={{position:'absolute',top:'calc(16px + env(safe-area-inset-top))',left:16,zIndex:10,color:'#fff',fontFamily:'Rajdhani,sans-serif'}}>
         <div style={{fontSize:13,letterSpacing:2,color:'rgba(255,255,255,0.6)'}}>FIGHTER WELTWEIT</div>
-        <div style={{fontSize:22,fontWeight:700,color:'#f5a623'}}>{points.reduce((s,p)=>s+p.count,0)} AKTIVE FIGHTER</div>
+        <div style={{fontSize:22,fontWeight:700,color:'#f5a623'}}>{points.reduce((s,p)=>s+p.count,0)} FIGHTER</div>
       </div>
       <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}>
         {loading?(
@@ -92,7 +92,7 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
               pointLng='lng'
               pointColor={()=>'#f5a623'}
               pointAltitude={0.008}
-              pointRadius={d=>0.12+Math.min(d.count*0.04,0.25)}
+              pointRadius={d=>0.06+Math.min(d.count*0.02,0.14)}
               pointLabel={d=>`${d.city||''} · ${d.count} Fighter`}
               atmosphereColor='#f5a623'
               atmosphereAltitude={0.18}
