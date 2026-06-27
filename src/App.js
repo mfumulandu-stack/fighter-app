@@ -2161,27 +2161,34 @@ export default function App(){
     // Nur in der nativen App (nicht im Web-Browser)
     if(!window.Capacitor||!window.Capacitor.isNativePlatform||!window.Capacitor.isNativePlatform()){return;}
     try{
+      showMsg('📲 Push wird eingerichtet...');
       const {PushNotifications}=await import('@capacitor/push-notifications');
       // Erlaubnis pruefen / anfragen (loest System-Popup aus)
       let perm=await PushNotifications.checkPermissions();
       if(perm.receive==='prompt'||perm.receive==='prompt-with-rationale'){
         perm=await PushNotifications.requestPermissions();
       }
-      if(perm.receive!=='granted'){return;}
+      if(perm.receive!=='granted'){showMsg('⚠️ Push-Erlaubnis nicht erteilt ('+perm.receive+')');return;}
       // Bei APNs registrieren
       await PushNotifications.register();
+      showMsg('📲 Bei Apple registriert, warte auf Token...');
       // Listener: Token erhalten -> in Supabase speichern
       PushNotifications.addListener('registration',async(tokenData)=>{
+        showMsg('✅ Token erhalten: '+tokenData.value.slice(0,12)+'...');
         try{
-          await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+userId,{
+          const patchRes=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+userId,{
             method:'PATCH',
             headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=minimal'},
             body:JSON.stringify({push_token:tokenData.value})
           });
-        }catch(err){console.error('push token save',err);}
+          if(patchRes.ok){showMsg('✅ Push-Token gespeichert!');}
+          else{showMsg('❌ Token-Speichern fehlgeschlagen ('+patchRes.status+')');}
+        }catch(err){showMsg('❌ Fehler beim Speichern: '+err.message);}
       });
-      PushNotifications.addListener('registrationError',(err)=>{console.error('push reg error',err);});
-    }catch(err){console.error('registerPush',err);}
+      PushNotifications.addListener('registrationError',(err)=>{
+        showMsg('❌ APNs-Registrierung fehlgeschlagen: '+JSON.stringify(err).slice(0,150));
+      });
+    }catch(err){showMsg('❌ registerPush Fehler: '+err.message);}
   }
 
   async function initProfile(s){
