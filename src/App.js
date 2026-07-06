@@ -4024,7 +4024,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         </button>
       </div>
 
-      <div style={{flex:1,overflowY:'auto',overscrollBehavior:'contain',paddingBottom:'calc(8px + env(safe-area-inset-bottom))'}}>
+      <div style={{flex:1,overflowY:tab==='swipe'?'hidden':'auto',overscrollBehavior:'contain',paddingBottom:tab==='swipe'?0:'calc(68px + env(safe-area-inset-bottom))'}}>
 
         {myProfile&&!myProfile.avatar_url&&(
           <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(13,13,13,0.97)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 24px',textAlign:'center'}}>
