@@ -2169,10 +2169,8 @@ export default function App(){
         perm=await PushNotifications.requestPermissions();
       }
       if(perm.receive!=='granted'){showMsg('⚠️ Push-Erlaubnis nicht erteilt ('+perm.receive+')');return;}
-      // Bei APNs registrieren
-      await PushNotifications.register();
-      showMsg('📲 Bei Apple registriert, warte auf Token...');
-      // Listener: Token erhalten -> in Supabase speichern
+      // WICHTIG: Erst zuhoeren, DANN registrieren - sonst kann die Antwort
+      // von Apple verloren gehen, falls sie sehr schnell zurueckkommt.
       PushNotifications.addListener('registration',async(tokenData)=>{
         showMsg('✅ Token erhalten: '+tokenData.value.slice(0,12)+'...');
         try{
@@ -2188,6 +2186,9 @@ export default function App(){
       PushNotifications.addListener('registrationError',(err)=>{
         showMsg('❌ APNs-Registrierung fehlgeschlagen: '+JSON.stringify(err).slice(0,150));
       });
+      // Jetzt erst registrieren - Listener sind bereits aktiv
+      await PushNotifications.register();
+      showMsg('📲 Bei Apple registriert, warte auf Token...');
     }catch(err){showMsg('❌ registerPush Fehler: '+err.message);}
   }
 
