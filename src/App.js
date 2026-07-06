@@ -4036,7 +4036,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
           </div>
         )}
         {tab==='swipe'&&(
-          <div style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:8}}>
+          <div onTouchMove={(e)=>{if(!drag)e.preventDefault();}} style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:8,touchAction:'none'}}>
             {/* GPS-HINWEIS BANNER */}
             {locationSource!=='gps'&&(
               <div onClick={getGPSLocation} style={{display:'flex',alignItems:'center',gap:8,width:'calc(100% - 24px)',maxWidth:420,marginBottom:8,padding:'9px 12px',borderRadius:10,background:locationLoading?(darkMode?'#1a1a1a':'#f0f0f0'):'linear-gradient(135deg,#27ae60,#2ecc71)',cursor:locationLoading?'wait':'pointer'}}>
