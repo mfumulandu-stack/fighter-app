@@ -3414,14 +3414,10 @@ nicht öffentlich gemacht</div>
     <div style={{minHeight:'100vh',background:'#0d0d0d',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:0,position:'relative',overflow:'hidden'}}>
       <style>{css}</style>
       <style>{`
-        @keyframes splashScale{0%{transform:scale(0.7);opacity:0}60%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
-        @keyframes splashFade{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
         @keyframes splashDot{0%,80%,100%{transform:scale(0.6);opacity:0.3}40%{transform:scale(1);opacity:1}}
-        .splash-logo{animation:splashScale 0.7s ease-out forwards}
-        .splash-sub{animation:splashFade 0.5s ease-out 0.4s forwards;opacity:0}
-        .splash-dot1{animation:splashDot 1.4s ease-in-out 0.8s infinite}
-        .splash-dot2{animation:splashDot 1.4s ease-in-out 1.0s infinite}
-        .splash-dot3{animation:splashDot 1.4s ease-in-out 1.2s infinite}
+        .splash-dot1{animation:splashDot 1.4s ease-in-out infinite}
+        .splash-dot2{animation:splashDot 1.4s ease-in-out 0.2s infinite}
+        .splash-dot3{animation:splashDot 1.4s ease-in-out 0.4s infinite}
       `}</style>
       <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse at center,#1a0a0a 0%,#0d0d0d 70%)'}}/>
       <div style={{position:'relative',textAlign:'center'}}>
