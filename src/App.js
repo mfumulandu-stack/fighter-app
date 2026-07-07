@@ -353,7 +353,7 @@ const SPORTS = {
 
 const SW=60, RED='#c0392b', LIGHT_RED='#e74c3c';
 const css=`
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=block');
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#f5f5f7;font-family:'DM Sans',sans-serif}
 .rj{font-family:'Rajdhani',sans-serif!important;font-weight:700}
@@ -6078,14 +6078,22 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       }catch{}
                     }
                     // Echte Push-Benachrichtigung an alle senden (zusätzlich zur In-App-Nachricht)
+                    let pushInfo='';
                     try{
-                      await fetch(SUPA_URL+'/functions/v1/broadcast-push',{
+                      const pushResp=await fetch(SUPA_URL+'/functions/v1/broadcast-push',{
                         method:'POST',
                         headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
                         body:JSON.stringify({title:'🥊 Fighter News',body:adminBroadcast.slice(0,150)})
                       });
-                    }catch(err){console.error('broadcast push',err);}
-                    showMsg('✅ Nachricht + Push an '+sent+' User gesendet!');
+                      const pushData=await pushResp.json();
+                      if(pushData&&typeof pushData.sent==='number'){
+                        pushInfo=' | Push: '+pushData.sent+'/'+pushData.totalTokens+' zugestellt';
+                        if(pushData.failed>0)pushInfo+=', '+pushData.failed+' fehlgeschlagen';
+                      }else{
+                        pushInfo=' | Push-Antwort: '+JSON.stringify(pushData).slice(0,100);
+                      }
+                    }catch(err){pushInfo=' | Push-Fehler: '+err.message;}
+                    showMsg('✅ Nachricht an '+sent+' User'+pushInfo);
                     setAdminBroadcast('');
                   }catch(e){showMsg('Fehler: '+e.message);}
                   setAdminSaving(false);
