@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'build',
   bundledWebRuntime: false,
   ios: {
-    contentInset: 'always',
+    contentInset: 'never',
     backgroundColor: '#0d0d0d',
     preferredContentMode: 'mobile',
     scheme: 'Fighter',
