@@ -6088,7 +6088,12 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       const pushData=await pushResp.json();
                       if(pushData&&typeof pushData.sent==='number'){
                         pushInfo=' | Push: '+pushData.sent+'/'+pushData.totalTokens+' zugestellt';
-                        if(pushData.failed>0)pushInfo+=', '+pushData.failed+' fehlgeschlagen';
+                        if(pushData.failed>0){
+                          pushInfo+=', '+pushData.failed+' fehlgeschlagen';
+                          if(Array.isArray(pushData.errors)&&pushData.errors[0]){
+                            pushInfo+=' (Grund: '+JSON.stringify(pushData.errors[0]).slice(0,120)+')';
+                          }
+                        }
                       }else{
                         pushInfo=' | Push-Antwort: '+JSON.stringify(pushData).slice(0,100);
                       }
