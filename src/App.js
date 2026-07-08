@@ -3229,7 +3229,7 @@ export default function App(){
   if(viewGym)return(<><style>{css}</style><GymDetailScreen gym={viewGym.gym} gymKey={viewGym.key} gymRatings={gymRatings} gymLogos={gymLogos} isAdmin={isAdmin} session={session} onGymUpdate={async()=>{await loadDbGyms(session);await loadGymLogos();}} rateGym={(k,s)=>{rateGym(k,s);}} onClose={()=>setViewGym(null)} darkMode={darkMode===true}/></>);
 
   if(whoLikedTab)return(
-    <div style={{minHeight:'100vh',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column'}}> 
+    <div style={{height:'100dvh',overflowY:'auto',WebkitOverflowScrolling:'touch',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column'}}> 
       <style>{css}</style>
       <div style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
         <button onClick={()=>setWhoLikedTab(false)} style={{background:'none',border:'none',color:darkMode?'#fff':'#1a1a1a',fontSize:20,cursor:'pointer',padding:'0 8px 0 0'}}>←</button>
@@ -3279,7 +3279,7 @@ export default function App(){
   );
 
   if(viewProfile)return(
-    <div style={{minHeight:'100vh',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column'}}>
+    <div style={{height:'100dvh',overflowY:'auto',WebkitOverflowScrolling:'touch',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column'}}>
       <style>{css}</style>
       <div style={{position:'relative',width:'100%',height:340,overflow:'hidden',flexShrink:0}}>
         {viewProfile.avatar_url
@@ -3467,7 +3467,7 @@ nicht öffentlich gemacht</div>
   if(activeChat&&myProfile&&!viewProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>{setViewProfile(p);}} darkMode={darkMode} t={t} appLang={appLang}/></>);
 
   if(screen==='setup')return(
-    <div style={{minHeight:'100vh',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'0 0 40px'}}>
+    <div style={{height:'100dvh',overflowY:'auto',WebkitOverflowScrolling:'touch',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'0 0 40px'}}>
       <style>{css}</style>
       {showImgEditor&&imgEditorSrc&&<ImgPositionEditor src={imgEditorSrc} onSave={imgEditorCallback} onCancel={()=>setShowImgEditor(false)}/>}
       <div style={{width:'100%',maxWidth:420,padding:'32px 24px 0',textAlign:'center'}}>
