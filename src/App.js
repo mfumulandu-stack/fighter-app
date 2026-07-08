@@ -1951,6 +1951,10 @@ export default function App(){
   useEffect(()=>{
     document.body.classList.toggle('dark',darkMode);
     try{localStorage.setItem('fighter_dark',String(darkMode));}catch{}
+    try{
+      const meta=document.querySelector('meta[name="theme-color"]');
+      if(meta)meta.setAttribute('content',darkMode?'#1a1a1a':'#ffffff');
+    }catch{}
   },[darkMode]);
 
   // Gyms neu laden wenn Gym Tab geöffnet wird
