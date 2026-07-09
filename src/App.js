@@ -1060,7 +1060,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,a
     try{
       // push_token des Empfaengers holen
       const res=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+recipientUserId+'&select=push_token',{
-        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+token}
+        headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
       });
       const rows=await res.json();
       const pushToken=Array.isArray(rows)&&rows[0]&&rows[0].push_token;
@@ -3153,7 +3153,7 @@ export default function App(){
             (async()=>{
               try{
                 const pres=await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+top.id+'&select=user_id,push_token',{
-                  headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
+                  headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
                 });
                 const prows=await pres.json();
                 const pushToken=Array.isArray(prows)&&prows[0]&&prows[0].push_token;
