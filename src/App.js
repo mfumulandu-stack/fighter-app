@@ -6148,30 +6148,27 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         if(page>20)break; // Sicherheitsgrenze
                       }
                       const unconfirmed=allUsers.filter(u=>!u.email_confirmed_at);
-                      showMsg('Sende '+unconfirmed.length+' Bestätigungslinks...');
+                      showMsg('Sende '+unconfirmed.length+' Bestätigungslinks (gedrosselt, dauert etwas)...');
                       let sent=0;
                       let firstError=null;
-                      const batchSize=20;
-                      for(let i=0;i<unconfirmed.length;i+=batchSize){
-                        const batch=unconfirmed.slice(i,i+batchSize);
-                        const results=await Promise.all(batch.map(async u=>{
-                          try{
-                            const r=await fetch(SUPA_URL+'/auth/v1/resend',{
-                              method:'POST',
-                              headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
-                              body:JSON.stringify({type:'signup',email:u.email})
-                            });
-                            if(!r.ok&&!firstError){
-                              const errText=await r.text();
-                              firstError='Status '+r.status+': '+errText.slice(0,200);
-                            }
-                            return r.ok;
-                          }catch(err){
-                            if(!firstError)firstError='Netzwerkfehler: '+err.message;
-                            return false;
+                      // EINZELN mit Pause versenden - Resend erlaubt nur ~2/Sekunde,
+                      // gleichzeitiges Versenden fuehrt zu Ratenlimit-Fehlern
+                      for(const u of unconfirmed){
+                        try{
+                          const r=await fetch(SUPA_URL+'/auth/v1/resend',{
+                            method:'POST',
+                            headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
+                            body:JSON.stringify({type:'signup',email:u.email})
+                          });
+                          if(r.ok)sent++;
+                          else if(!firstError){
+                            const errText=await r.text();
+                            firstError='Status '+r.status+': '+errText.slice(0,200);
                           }
-                        }));
-                        sent+=results.filter(Boolean).length;
+                        }catch(err){
+                          if(!firstError)firstError='Netzwerkfehler: '+err.message;
+                        }
+                        await new Promise(res=>setTimeout(res,600));
                       }
                       showMsg('✅ '+sent+'/'+unconfirmed.length+' gesendet.'+(firstError?' Fehler: '+firstError:''));
                     }catch(e){showMsg('Fehler: '+e.message);}
@@ -6205,35 +6202,32 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       const existingProfiles=await profRes.json();
                       const profiledIds=new Set((Array.isArray(existingProfiles)?existingProfiles:[]).map(p=>p.user_id));
                       const incomplete=confirmedUsers.filter(u=>!profiledIds.has(u.id));
-                      showMsg('Sende '+incomplete.length+' Erinnerungen...');
+                      showMsg('Sende '+incomplete.length+' Erinnerungen (gedrosselt, dauert etwas)...');
                       let sent=0;
                       let firstError=null;
-                      const batchSize=20;
-                      for(let i=0;i<incomplete.length;i+=batchSize){
-                        const batch=incomplete.slice(i,i+batchSize);
-                        const results=await Promise.all(batch.map(async u=>{
-                          try{
-                            const r=await fetch('https://api.resend.com/emails',{
-                              method:'POST',
-                              headers:{'Content-Type':'application/json','Authorization':'Bearer re_Y2CAV2io_E166bEXwLZVym2yHXoiYq3dg'},
-                              body:JSON.stringify({
-                                from:'Fighter App <noreply@fighterapp.de>',
-                                to:u.email,
-                                subject:'Fast geschafft — schließ dein Fighter-Profil ab 🥊',
-                                html:'<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#0d0d0d;color:#fff;border-radius:12px"><h1 style="color:#c0392b;font-size:28px;letter-spacing:4px;margin:0 0 16px">FIGHTER</h1><p style="font-size:15px;line-height:1.6">Hey,<br><br>du hast dich bei Fighter registriert, aber dein Profil noch nicht fertig eingerichtet. Nur noch ein paar Schritte (Foto, Gewichtsklasse, Kampfstil) und du kannst loslegen!</p><a href="https://fighterapp.de" style="display:inline-block;background:#c0392b;color:#fff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:16px;margin:16px 0">👊 Jetzt fertig einrichten</a><p style="color:#888;font-size:13px;margin-top:16px">Finde Sparringpartner & Gegner in deiner Nähe.<br>Swipe. Match. Fight.</p><p style="color:#444;font-size:11px;margin-top:24px;border-top:1px solid #222;padding-top:12px">© 2026 Fighter App · fighterapp.de</p></div>'
-                              })
-                            });
-                            if(!r.ok&&!firstError){
-                              const errText=await r.text();
-                              firstError='Status '+r.status+': '+errText.slice(0,200);
-                            }
-                            return r.ok;
-                          }catch(err){
-                            if(!firstError)firstError='Netzwerkfehler: '+err.message;
-                            return false;
+                      // EINZELN mit Pause versenden - Resend erlaubt nur ~2/Sekunde,
+                      // gleichzeitiges Versenden fuehrt zu Ratenlimit-Fehlern
+                      for(const u of incomplete){
+                        try{
+                          const r=await fetch('https://api.resend.com/emails',{
+                            method:'POST',
+                            headers:{'Content-Type':'application/json','Authorization':'Bearer re_Y2CAV2io_E166bEXwLZVym2yHXoiYq3dg'},
+                            body:JSON.stringify({
+                              from:'Fighter App <noreply@fighterapp.de>',
+                              to:u.email,
+                              subject:'Fast geschafft — schließ dein Fighter-Profil ab 🥊',
+                              html:'<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#0d0d0d;color:#fff;border-radius:12px"><h1 style="color:#c0392b;font-size:28px;letter-spacing:4px;margin:0 0 16px">FIGHTER</h1><p style="font-size:15px;line-height:1.6">Hey,<br><br>du hast dich bei Fighter registriert, aber dein Profil noch nicht fertig eingerichtet. Nur noch ein paar Schritte (Foto, Gewichtsklasse, Kampfstil) und du kannst loslegen!</p><a href="https://fighterapp.de" style="display:inline-block;background:#c0392b;color:#fff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:16px;margin:16px 0">👊 Jetzt fertig einrichten</a><p style="color:#888;font-size:13px;margin-top:16px">Finde Sparringpartner & Gegner in deiner Nähe.<br>Swipe. Match. Fight.</p><p style="color:#444;font-size:11px;margin-top:24px;border-top:1px solid #222;padding-top:12px">© 2026 Fighter App · fighterapp.de</p></div>'
+                            })
+                          });
+                          if(r.ok)sent++;
+                          else if(!firstError){
+                            const errText=await r.text();
+                            firstError='Status '+r.status+': '+errText.slice(0,200);
                           }
-                        }));
-                        sent+=results.filter(Boolean).length;
+                        }catch(err){
+                          if(!firstError)firstError='Netzwerkfehler: '+err.message;
+                        }
+                        await new Promise(res=>setTimeout(res,600));
                       }
                       showMsg('✅ '+sent+'/'+incomplete.length+' Erinnerungs-Mails.'+(firstError?' Fehler: '+firstError:''));
                     }catch(e){showMsg('Fehler: '+e.message);}
