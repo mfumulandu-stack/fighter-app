@@ -353,7 +353,6 @@ const SPORTS = {
 
 const SW=60, RED='#c0392b', LIGHT_RED='#e74c3c';
 const css=`
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=block');
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#f5f5f7;font-family:'DM Sans',sans-serif}
 .rj{font-family:'Rajdhani',sans-serif!important;font-weight:700}
