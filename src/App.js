@@ -2561,9 +2561,16 @@ export default function App(){
         })
       });
       setShowCreateEvent(false);
+      const evTitle=newEvent.title,evCity=newEvent.city,evType=newEvent.event_type;
       setNewEvent({title:'',description:'',event_type:'Sparring',city:'',address:'',event_date:'',event_time:'',max_participants:10,styles:[]});
       await loadEvents(session);
       showMsg('Event erstellt! 🎉');
+      // Alle Nutzer per Push ueber das neue Event benachrichtigen
+      fetch(SUPA_URL+'/functions/v1/broadcast-push',{
+        method:'POST',
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
+        body:JSON.stringify({title:'📅 Neues Event: '+evType,body:evTitle+(evCity?' in '+evCity:'')+' - jetzt anmelden!'})
+      }).catch(err=>console.error('event push',err));
     }catch(e){showMsg('Fehler: '+e.message);}
     setCreatingEvent(false);
   }
@@ -2782,9 +2789,18 @@ export default function App(){
     try{if(profile.socialUrl)d.social_url=profile.socialUrl;}catch{}
     try{
       if(myProfile){
+        const statsChanged=(myProfile.wins||0)!==d.wins||(myProfile.losses||0)!==d.losses||(myProfile.draws||0)!==d.draws;
         const res=await dbUpdate('profiles',d,'user_id=eq.'+session.userId,session.token);
         if(Array.isArray(res)&&res[0])setMyProfile(res[0]);
         showMsg('Gespeichert! ✓');
+        // Rangliste neu pruefen, falls sich Sieg/Niederlage-Werte geaendert haben -
+        // benachrichtigt alle, die dadurch ueberholt wurden
+        if(statsChanged){
+          fetch(SUPA_URL+'/functions/v1/rank-check',{
+            method:'POST',
+            headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+          }).catch(err=>console.error('rank-check',err));
+        }
       }else{
         // Upsert: falls Profil bereits existiert (doppelter user_id), updaten statt Fehler
         console.log('saveProfile: starting upsert for',session.userId);
