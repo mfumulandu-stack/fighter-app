@@ -6084,17 +6084,20 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     const resp=await fetch(SUPA_URL+'/rest/v1/profiles?select=id&banned=neq.true&limit=500',{headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
                     const users=await resp.json();
                     if(!Array.isArray(users)||users.length===0){showMsg('Keine User gefunden');setAdminSaving(false);return;}
-                    // Für jeden User eine admin_message anlegen
+                    // Für jeden User eine admin_message anlegen - in Gruppen von 50
+                    // GLEICHZEITIG statt einzeln nacheinander (viel schneller)
                     let sent=0;
-                    for(const u of users){
-                      try{
-                        await fetch(SUPA_URL+'/rest/v1/admin_messages',{
+                    const broadcastBatchSize=50;
+                    for(let i=0;i<users.length;i+=broadcastBatchSize){
+                      const batch=users.slice(i,i+broadcastBatchSize);
+                      const results=await Promise.all(batch.map(u=>
+                        fetch(SUPA_URL+'/rest/v1/admin_messages',{
                           method:'POST',
                           headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
                           body:JSON.stringify({user_id:u.id,message:adminBroadcast,from_admin:true,read:false})
-                        });
-                        sent++;
-                      }catch{}
+                        }).then(()=>true).catch(()=>false)
+                      ));
+                      sent+=results.filter(Boolean).length;
                     }
                     // Echte Push-Benachrichtigung an alle senden (zusätzlich zur In-App-Nachricht)
                     let pushInfo='';
