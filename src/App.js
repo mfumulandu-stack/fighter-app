@@ -6127,36 +6127,95 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 }} style={{width:'100%',padding:'12px',borderRadius:10,background:adminSaving?'#aaa':`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,cursor:adminSaving?'not-allowed':'pointer',letterSpacing:2}}>{adminSaving?'Sende...':'📢 AN ALLE SENDEN'}</button>
 
                 <div style={{marginTop:20,paddingTop:16,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
-                  <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,letterSpacing:2,marginBottom:6}}>✉️ AKTIVIERUNGS-MAILS</div>
-                  <div style={{color:'#aaa',fontSize:11,marginBottom:10,lineHeight:1.6}}>Schickt eine E-Mail an alle User die sich noch nicht bestätigt haben damit sie sich einloggen können.</div>
+                  <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,letterSpacing:2,marginBottom:6}}>✉️ BESTÄTIGUNGS-MAILS ERNEUT SENDEN</div>
+                  <div style={{color:'#aaa',fontSize:11,marginBottom:10,lineHeight:1.6}}>Verschickt den ECHTEN Bestätigungslink erneut an alle User, die sich noch nicht bestätigt haben (prüft wirklich ALLE User, nicht nur die ersten 100).</div>
                   <button onClick={async()=>{
-                    if(!window.confirm('Aktivierungs-E-Mail an alle unbestätigten User senden?'))return;
-                    showMsg('Sende E-Mails...');
+                    if(!window.confirm('Echten Bestätigungslink erneut an alle unbestätigten User senden?'))return;
+                    showMsg('Lade alle User...');
                     try{
-                      const resp=await fetch(SUPA_URL+'/auth/v1/admin/users?page=1&per_page=100',{
+                      // Alle Auth-User laden (alle Seiten durchlaufen, nicht nur die erste)
+                      let allUsers=[];
+                      let page=1;
+                      while(true){
+                        const resp=await fetch(SUPA_URL+'/auth/v1/admin/users?page='+page+'&per_page=1000',{
+                          headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
+                        });
+                        const data=await resp.json();
+                        const batch=data.users||[];
+                        allUsers=allUsers.concat(batch);
+                        if(batch.length<1000)break;
+                        page++;
+                        if(page>20)break; // Sicherheitsgrenze
+                      }
+                      const unconfirmed=allUsers.filter(u=>!u.email_confirmed_at);
+                      showMsg('Sende '+unconfirmed.length+' Bestätigungslinks...');
+                      let sent=0;
+                      const batchSize=20;
+                      for(let i=0;i<unconfirmed.length;i+=batchSize){
+                        const batch=unconfirmed.slice(i,i+batchSize);
+                        const results=await Promise.all(batch.map(u=>
+                          fetch(SUPA_URL+'/auth/v1/resend',{
+                            method:'POST',
+                            headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
+                            body:JSON.stringify({type:'signup',email:u.email})
+                          }).then(r=>r.ok).catch(()=>false)
+                        ));
+                        sent+=results.filter(Boolean).length;
+                      }
+                      showMsg('✅ '+sent+'/'+unconfirmed.length+' echte Bestätigungslinks erneut gesendet!');
+                    }catch(e){showMsg('Fehler: '+e.message);}
+                  }} style={{width:'100%',padding:'12px',borderRadius:10,background:'#2980b9',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:1}}>✉️ BESTÄTIGUNGSLINK ERNEUT SENDEN</button>
+                </div>
+
+                <div style={{marginTop:20,paddingTop:16,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                  <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,letterSpacing:2,marginBottom:6}}>📋 PROFIL-EINRICHTUNG ERINNERN</div>
+                  <div style={{color:'#aaa',fontSize:11,marginBottom:10,lineHeight:1.6}}>Erinnert User, die zwar bestätigt sind, aber ihr Profil (Foto, Gewicht, Stil) nie fertig eingerichtet haben, per E-Mail daran, die Registrierung abzuschließen.</div>
+                  <button onClick={async()=>{
+                    if(!window.confirm('Erinnerungs-Mail an alle User mit unvollständiger Registrierung senden?'))return;
+                    showMsg('Lade alle User...');
+                    try{
+                      let allUsers=[];
+                      let page=1;
+                      while(true){
+                        const resp=await fetch(SUPA_URL+'/auth/v1/admin/users?page='+page+'&per_page=1000',{
+                          headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
+                        });
+                        const data=await resp.json();
+                        const batch=data.users||[];
+                        allUsers=allUsers.concat(batch);
+                        if(batch.length<1000)break;
+                        page++;
+                        if(page>20)break;
+                      }
+                      const confirmedUsers=allUsers.filter(u=>u.email_confirmed_at);
+                      const profRes=await fetch(SUPA_URL+'/rest/v1/profiles?select=user_id',{
                         headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
                       });
-                      const data=await resp.json();
-                      const unconfirmed=(data.users||[]).filter(u=>!u.email_confirmed_at);
+                      const existingProfiles=await profRes.json();
+                      const profiledIds=new Set((Array.isArray(existingProfiles)?existingProfiles:[]).map(p=>p.user_id));
+                      const incomplete=confirmedUsers.filter(u=>!profiledIds.has(u.id));
+                      showMsg('Sende '+incomplete.length+' Erinnerungen...');
                       let sent=0;
-                      for(const u of unconfirmed){
-                        try{
-                          await fetch('https://api.resend.com/emails',{
+                      const batchSize=20;
+                      for(let i=0;i<incomplete.length;i+=batchSize){
+                        const batch=incomplete.slice(i,i+batchSize);
+                        const results=await Promise.all(batch.map(u=>
+                          fetch('https://api.resend.com/emails',{
                             method:'POST',
                             headers:{'Content-Type':'application/json','Authorization':'Bearer re_Y2CAV2io_E166bEXwLZVym2yHXoiYq3dg'},
                             body:JSON.stringify({
                               from:'Fighter App <noreply@fighterapp.de>',
                               to:u.email,
-                              subject:'Dein Fighter Account ist jetzt aktiv 🥊',
-                              html:'<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#0d0d0d;color:#fff;border-radius:12px"><h1 style="color:#c0392b;font-size:28px;letter-spacing:4px;margin:0 0 16px">FIGHTER</h1><p style="font-size:15px;line-height:1.6">Hey Fighter,<br><br>dein Account ist jetzt aktiviert — du kannst dich sofort einloggen!</p><a href="https://fighterapp.de" style="display:inline-block;background:#c0392b;color:#fff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:16px;margin:16px 0">👊 Jetzt einloggen</a><p style="color:#888;font-size:13px;margin-top:16px">Finde Sparringpartner & Gegner in deiner Nähe.<br>Swipe. Match. Fight.</p><p style="color:#444;font-size:11px;margin-top:24px;border-top:1px solid #222;padding-top:12px">© 2026 Fighter App · fighterapp.de</p></div>'
+                              subject:'Fast geschafft — schließ dein Fighter-Profil ab 🥊',
+                              html:'<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#0d0d0d;color:#fff;border-radius:12px"><h1 style="color:#c0392b;font-size:28px;letter-spacing:4px;margin:0 0 16px">FIGHTER</h1><p style="font-size:15px;line-height:1.6">Hey,<br><br>du hast dich bei Fighter registriert, aber dein Profil noch nicht fertig eingerichtet. Nur noch ein paar Schritte (Foto, Gewichtsklasse, Kampfstil) und du kannst loslegen!</p><a href="https://fighterapp.de" style="display:inline-block;background:#c0392b;color:#fff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:16px;margin:16px 0">👊 Jetzt fertig einrichten</a><p style="color:#888;font-size:13px;margin-top:16px">Finde Sparringpartner & Gegner in deiner Nähe.<br>Swipe. Match. Fight.</p><p style="color:#444;font-size:11px;margin-top:24px;border-top:1px solid #222;padding-top:12px">© 2026 Fighter App · fighterapp.de</p></div>'
                             })
-                          });
-                          sent++;
-                        }catch{}
+                          }).then(r=>r.ok).catch(()=>false)
+                        ));
+                        sent+=results.filter(Boolean).length;
                       }
-                      showMsg('✅ '+sent+'/'+unconfirmed.length+' E-Mails gesendet!');
+                      showMsg('✅ '+sent+'/'+incomplete.length+' Erinnerungs-Mails gesendet!');
                     }catch(e){showMsg('Fehler: '+e.message);}
-                  }} style={{width:'100%',padding:'12px',borderRadius:10,background:'#2980b9',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:1}}>✉️ AKTIVIERUNGS-MAILS SENDEN</button>
+                  }} style={{width:'100%',padding:'12px',borderRadius:10,background:'#8e44ad',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:1}}>📋 ERINNERUNG SENDEN</button>
                 </div>
               </div>
             )}
