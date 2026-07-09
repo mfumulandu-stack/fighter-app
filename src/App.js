@@ -3728,7 +3728,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
     <ErrorBoundary>
     <div style={{height:'100dvh',background:darkMode?'#1a1a1a':'#f5f5f7',fontFamily:'DM Sans,sans-serif',display:'flex',flexDirection:'column',overflow:'hidden'}} onMouseMove={dragMove} onMouseUp={dragEnd} onTouchMove={dragMove} onTouchEnd={dragEnd}>
       <style>{css}</style>
-      {msg&&<div style={{position:'fixed',top:60,left:'50%',transform:'translateX(-50%)',background:'#fff',border:'1px solid '+RED,borderRadius:20,padding:'8px 20px',color:'#1a1a1a',fontSize:13,zIndex:9999,fontWeight:600,boxShadow:'0 4px 20px rgba(0,0,0,0.1)',whiteSpace:'nowrap',maxWidth:'90vw',overflow:'hidden',textOverflow:'ellipsis'}}>{msg}</div>}
+      {msg&&<div style={{position:'fixed',top:60,left:'50%',transform:'translateX(-50%)',background:'#fff',border:'1px solid '+RED,borderRadius:14,padding:'10px 18px',color:'#1a1a1a',fontSize:13,zIndex:9999,fontWeight:600,boxShadow:'0 4px 20px rgba(0,0,0,0.1)',whiteSpace:'pre-wrap',wordBreak:'break-word',maxWidth:'92vw',lineHeight:1.4}}>{msg}</div>}
 
       {/* SLIDE-OUT MENU OVERLAY */}
       {showMenu&&(
