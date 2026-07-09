@@ -48,9 +48,11 @@ async function sendOne(authToken: string, token: string, title: string, body: st
       },
       body: JSON.stringify(payload),
     });
-    return res.ok;
-  } catch {
-    return false;
+    if (res.ok) return { ok: true };
+    const errBody = await res.text();
+    return { ok: false, status: res.status, reason: errBody };
+  } catch (e) {
+    return { ok: false, status: 0, reason: String(e) };
   }
 }
 
@@ -87,6 +89,7 @@ Deno.serve(async (req) => {
     const authToken = await makeAuthToken();
 
     let success = 0, failed = 0;
+    const errors: any[] = [];
     // In kleinen Batches versenden, um APNs nicht zu ueberlasten
     const batchSize = 20;
     for (let i = 0; i < tokens.length; i += batchSize) {
@@ -94,11 +97,14 @@ Deno.serve(async (req) => {
       const results = await Promise.all(
         batch.map((t) => sendOne(authToken, t, title, body, data)),
       );
-      results.forEach((ok) => (ok ? success++ : failed++));
+      results.forEach((r) => {
+        if (r.ok) success++;
+        else { failed++; errors.push({ status: r.status, reason: r.reason }); }
+      });
     }
 
     return new Response(
-      JSON.stringify({ success: true, totalTokens: tokens.length, sent: success, failed }),
+      JSON.stringify({ success: true, totalTokens: tokens.length, sent: success, failed, errors: errors.slice(0,5) }),
       { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } },
     );
   } catch (err) {

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import { sortFightersByRank } from './matchScore';
+import { setupPushRegistration } from './pushRegistration';
 const Globe=lazy(()=>import('react-globe.gl'));
 
 function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
@@ -109,21 +111,21 @@ const ADMIN_ID = '1a697731-458d-4559-a4cf-a89d3150bfa5';
 const SUPA_SERVICE_KEY = process.env.REACT_APP_SUPA_SERVICE_KEY||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjY3ODM0MywiZXhwIjoyMDkyMjU0MzQzfQ.o-Q8hM53Kp2O5HKSlsyygjQ8bCAEVOXkaW-TQhVYcT4';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk';
 
-async function authSignUp(email, password) {
+export async function authSignUp(email, password) {
   const r = await fetch(SUPA_URL + '/auth/v1/signup', {
     method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY },
     body: JSON.stringify({ email, password, options: { emailRedirectTo: 'https://fighterapp.de' } }),
   });
   return r.json();
 }
-async function authSignIn(email, password) {
+export async function authSignIn(email, password) {
   const r = await fetch(SUPA_URL + '/auth/v1/token?grant_type=password', {
     method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY },
     body: JSON.stringify({ email, password }),
   });
   return r.json();
 }
-async function authSignOut(token) {
+export async function authSignOut(token) {
   await fetch(SUPA_URL + '/auth/v1/logout', {
     method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY, Authorization: 'Bearer ' + token },
   });
@@ -131,19 +133,19 @@ async function authSignOut(token) {
 function hdr(token) {
   return { 'Content-Type': 'application/json', apikey: SUPA_KEY, Authorization: 'Bearer ' + (token || SUPA_KEY) };
 }
-async function dbInsert(table, data, token) {
+export async function dbInsert(table, data, token) {
   const r = await fetch(SUPA_URL + '/rest/v1/' + table, {
     method: 'POST', headers: { ...hdr(token), Prefer: 'return=representation' }, body: JSON.stringify(data),
   });
   return r.json();
 }
-async function dbUpdate(table, data, query, token) {
+export async function dbUpdate(table, data, query, token) {
   const r = await fetch(SUPA_URL + '/rest/v1/' + table + '?' + query, {
     method: 'PATCH', headers: { ...hdr(token), Prefer: 'return=representation' }, body: JSON.stringify(data),
   });
   return r.json();
 }
-async function dbSelect(table, query, token) {
+export async function dbSelect(table, query, token) {
   const r = await fetch(SUPA_URL + '/rest/v1/' + table + (query ? '?' + query : ''), { headers: hdr(token) });
   return r.json();
 }
@@ -2166,31 +2168,24 @@ export default function App(){
     try{
       showMsg('📲 Push wird eingerichtet...');
       const {PushNotifications}=await import('@capacitor/push-notifications');
-      // Erlaubnis pruefen / anfragen (loest System-Popup aus)
-      let perm=await PushNotifications.checkPermissions();
-      if(perm.receive==='prompt'||perm.receive==='prompt-with-rationale'){
-        perm=await PushNotifications.requestPermissions();
-      }
-      if(perm.receive!=='granted'){showMsg('⚠️ Push-Erlaubnis nicht erteilt ('+perm.receive+')');return;}
-      // WICHTIG: Erst zuhoeren, DANN registrieren - sonst kann die Antwort
-      // von Apple verloren gehen, falls sie sehr schnell zurueckkommt.
-      PushNotifications.addListener('registration',async(tokenData)=>{
-        showMsg('✅ Token erhalten: '+tokenData.value.slice(0,12)+'...');
-        try{
-          const patchRes=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+userId,{
-            method:'PATCH',
-            headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=minimal'},
-            body:JSON.stringify({push_token:tokenData.value})
-          });
-          if(patchRes.ok){showMsg('✅ Push-Token gespeichert!');}
-          else{showMsg('❌ Token-Speichern fehlgeschlagen ('+patchRes.status+')');}
-        }catch(err){showMsg('❌ Fehler beim Speichern: '+err.message);}
+      const result=await setupPushRegistration(PushNotifications,{
+        onToken:async(tokenData)=>{
+          showMsg('✅ Token erhalten: '+tokenData.value.slice(0,12)+'...');
+          try{
+            const patchRes=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+userId,{
+              method:'PATCH',
+              headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=minimal'},
+              body:JSON.stringify({push_token:tokenData.value})
+            });
+            if(patchRes.ok){showMsg('✅ Push-Token gespeichert!');}
+            else{showMsg('❌ Token-Speichern fehlgeschlagen ('+patchRes.status+')');}
+          }catch(err){showMsg('❌ Fehler beim Speichern: '+err.message);}
+        },
+        onError:(err)=>{
+          showMsg('❌ APNs-Registrierung fehlgeschlagen: '+JSON.stringify(err).slice(0,150));
+        }
       });
-      PushNotifications.addListener('registrationError',(err)=>{
-        showMsg('❌ APNs-Registrierung fehlgeschlagen: '+JSON.stringify(err).slice(0,150));
-      });
-      // Jetzt erst registrieren - Listener sind bereits aktiv
-      await PushNotifications.register();
+      if(result.status==='permission_denied'){showMsg('⚠️ Push-Erlaubnis nicht erteilt ('+result.receive+')');return;}
       showMsg('📲 Bei Apple registriert, warte auf Token...');
     }catch(err){showMsg('❌ registerPush Fehler: '+err.message);}
   }
@@ -5052,7 +5047,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             {/* EIGENER PLATZ */}
             {rankMode!=='trainer'&&myProfile&&(()=>{
               const myScore=(myProfile.wins||0)*3-(myProfile.losses||0)*2+(myProfile.draws||0);
-              const allScored=[...userOnly].map(f=>({...f,score:(f.wins||0)*3-(f.losses||0)*2+(f.draws||0)})).sort((a,b)=>b.score-a.score);
+              const allScored=sortFightersByRank(userOnly);
               const myRank=allScored.findIndex(f=>f.id===0)+1;
               if(myRank<=0)return null;
               return(
