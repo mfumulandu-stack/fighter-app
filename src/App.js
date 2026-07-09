@@ -2158,7 +2158,7 @@ export default function App(){
     }
   }
 
-  function showMsg(text){setMsg(text);setTimeout(()=>setMsg(''),3000);}
+  function showMsg(text){setMsg(text);const isError=text.includes('Fehler')||text.includes('❌');setTimeout(()=>setMsg(''),isError?15000:3000);}
 
   async function registerPush(userId,token){
     // Nur in der nativen App (nicht im Web-Browser)
@@ -6207,24 +6207,35 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       const incomplete=confirmedUsers.filter(u=>!profiledIds.has(u.id));
                       showMsg('Sende '+incomplete.length+' Erinnerungen...');
                       let sent=0;
+                      let firstError=null;
                       const batchSize=20;
                       for(let i=0;i<incomplete.length;i+=batchSize){
                         const batch=incomplete.slice(i,i+batchSize);
-                        const results=await Promise.all(batch.map(u=>
-                          fetch('https://api.resend.com/emails',{
-                            method:'POST',
-                            headers:{'Content-Type':'application/json','Authorization':'Bearer re_Y2CAV2io_E166bEXwLZVym2yHXoiYq3dg'},
-                            body:JSON.stringify({
-                              from:'Fighter App <noreply@fighterapp.de>',
-                              to:u.email,
-                              subject:'Fast geschafft — schließ dein Fighter-Profil ab 🥊',
-                              html:'<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#0d0d0d;color:#fff;border-radius:12px"><h1 style="color:#c0392b;font-size:28px;letter-spacing:4px;margin:0 0 16px">FIGHTER</h1><p style="font-size:15px;line-height:1.6">Hey,<br><br>du hast dich bei Fighter registriert, aber dein Profil noch nicht fertig eingerichtet. Nur noch ein paar Schritte (Foto, Gewichtsklasse, Kampfstil) und du kannst loslegen!</p><a href="https://fighterapp.de" style="display:inline-block;background:#c0392b;color:#fff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:16px;margin:16px 0">👊 Jetzt fertig einrichten</a><p style="color:#888;font-size:13px;margin-top:16px">Finde Sparringpartner & Gegner in deiner Nähe.<br>Swipe. Match. Fight.</p><p style="color:#444;font-size:11px;margin-top:24px;border-top:1px solid #222;padding-top:12px">© 2026 Fighter App · fighterapp.de</p></div>'
-                            })
-                          }).then(r=>r.ok).catch(()=>false)
-                        ));
+                        const results=await Promise.all(batch.map(async u=>{
+                          try{
+                            const r=await fetch('https://api.resend.com/emails',{
+                              method:'POST',
+                              headers:{'Content-Type':'application/json','Authorization':'Bearer re_Y2CAV2io_E166bEXwLZVym2yHXoiYq3dg'},
+                              body:JSON.stringify({
+                                from:'Fighter App <noreply@fighterapp.de>',
+                                to:u.email,
+                                subject:'Fast geschafft — schließ dein Fighter-Profil ab 🥊',
+                                html:'<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#0d0d0d;color:#fff;border-radius:12px"><h1 style="color:#c0392b;font-size:28px;letter-spacing:4px;margin:0 0 16px">FIGHTER</h1><p style="font-size:15px;line-height:1.6">Hey,<br><br>du hast dich bei Fighter registriert, aber dein Profil noch nicht fertig eingerichtet. Nur noch ein paar Schritte (Foto, Gewichtsklasse, Kampfstil) und du kannst loslegen!</p><a href="https://fighterapp.de" style="display:inline-block;background:#c0392b;color:#fff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:16px;margin:16px 0">👊 Jetzt fertig einrichten</a><p style="color:#888;font-size:13px;margin-top:16px">Finde Sparringpartner & Gegner in deiner Nähe.<br>Swipe. Match. Fight.</p><p style="color:#444;font-size:11px;margin-top:24px;border-top:1px solid #222;padding-top:12px">© 2026 Fighter App · fighterapp.de</p></div>'
+                              })
+                            });
+                            if(!r.ok&&!firstError){
+                              const errText=await r.text();
+                              firstError='Status '+r.status+': '+errText.slice(0,200);
+                            }
+                            return r.ok;
+                          }catch(err){
+                            if(!firstError)firstError='Netzwerkfehler: '+err.message;
+                            return false;
+                          }
+                        }));
                         sent+=results.filter(Boolean).length;
                       }
-                      showMsg('✅ '+sent+'/'+incomplete.length+' Erinnerungs-Mails gesendet!');
+                      showMsg('✅ '+sent+'/'+incomplete.length+' Erinnerungs-Mails.'+(firstError?' Fehler: '+firstError:''));
                     }catch(e){showMsg('Fehler: '+e.message);}
                   }} style={{width:'100%',padding:'12px',borderRadius:10,background:'#8e44ad',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:1}}>📋 ERINNERUNG SENDEN</button>
                 </div>
