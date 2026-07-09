@@ -6150,19 +6150,30 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       const unconfirmed=allUsers.filter(u=>!u.email_confirmed_at);
                       showMsg('Sende '+unconfirmed.length+' Bestätigungslinks...');
                       let sent=0;
+                      let firstError=null;
                       const batchSize=20;
                       for(let i=0;i<unconfirmed.length;i+=batchSize){
                         const batch=unconfirmed.slice(i,i+batchSize);
-                        const results=await Promise.all(batch.map(u=>
-                          fetch(SUPA_URL+'/auth/v1/resend',{
-                            method:'POST',
-                            headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
-                            body:JSON.stringify({type:'signup',email:u.email})
-                          }).then(r=>r.ok).catch(()=>false)
-                        ));
+                        const results=await Promise.all(batch.map(async u=>{
+                          try{
+                            const r=await fetch(SUPA_URL+'/auth/v1/resend',{
+                              method:'POST',
+                              headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
+                              body:JSON.stringify({type:'signup',email:u.email})
+                            });
+                            if(!r.ok&&!firstError){
+                              const errText=await r.text();
+                              firstError='Status '+r.status+': '+errText.slice(0,200);
+                            }
+                            return r.ok;
+                          }catch(err){
+                            if(!firstError)firstError='Netzwerkfehler: '+err.message;
+                            return false;
+                          }
+                        }));
                         sent+=results.filter(Boolean).length;
                       }
-                      showMsg('✅ '+sent+'/'+unconfirmed.length+' echte Bestätigungslinks erneut gesendet!');
+                      showMsg('✅ '+sent+'/'+unconfirmed.length+' gesendet.'+(firstError?' Fehler: '+firstError:''));
                     }catch(e){showMsg('Fehler: '+e.message);}
                   }} style={{width:'100%',padding:'12px',borderRadius:10,background:'#2980b9',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:1}}>✉️ BESTÄTIGUNGSLINK ERNEUT SENDEN</button>
                 </div>
