@@ -6110,7 +6110,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         if(pushData.failed>0){
                           pushInfo+=', '+pushData.failed+' fehlgeschlagen';
                           if(Array.isArray(pushData.errors)&&pushData.errors[0]){
-                            pushInfo+=' (Grund: '+JSON.stringify(pushData.errors[0]).slice(0,120)+')';
+                            pushInfo+=' (Grund: '+JSON.stringify(pushData.errors[0]).slice(0,500)+')';
                           }
                         }
                       }else{
