@@ -5683,7 +5683,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>👤 USER ({adminUsers.length})</div>
                 <button onClick={async()=>{
                   try{
-                    const resp=await fetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=500',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                    const resp=await fetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=1000',{headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
                     const data=await resp.json();
                     if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
                   }catch(e){showMsg('Fehler: '+e.message);}
@@ -6266,7 +6266,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>📊 ECHTZEIT STATISTIKEN</div>
                 <button onClick={async()=>{
                   try{
-                    const resp=await fetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=500',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                    const resp=await fetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=1000',{headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
                     const data=await resp.json();
                     if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
                     const [sRes,mRes,msgRes]=await Promise.all([
