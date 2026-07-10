@@ -3040,6 +3040,15 @@ export default function App(){
       else if(weightDiff<=7)  score-=0.35; // sehr nah (±7kg)
       else if(weightDiff<=12) score-=0.2;  // nah (±12kg)
       else if(weightDiff<=20) score-=0.05; // noch ok (±20kg)
+      // Erfahrungs-Bonus (Gesamtzahl Kaempfe) - aehnlich erfahrene Fighter
+      // werden bevorzugt zusammengebracht (staerker als Alter, schwaecher
+      // als Gewicht - Sicherheit/Gewichtsklasse bleibt wichtigstes Kriterium)
+      const myTotalFights=(parseInt(myProfile?.wins||profile?.wins||0))+(parseInt(myProfile?.losses||profile?.losses||0))+(parseInt(myProfile?.draws||profile?.draws||0));
+      const fTotalFights=(parseInt(f.wins||0))+(parseInt(f.losses||0))+(parseInt(f.draws||0));
+      const experienceDiff=Math.abs(myTotalFights-fTotalFights);
+      if(experienceDiff<=2)       score-=0.15; // sehr aehnliche Erfahrung
+      else if(experienceDiff<=5)  score-=0.1;
+      else if(experienceDiff<=10) score-=0.05;
       // Alter-Bonus (schwaecher als Gewicht, damit Gewicht vor Alter zaehlt)
       const myAge=parseInt(myProfile?.age||profile?.age||0);
       const fAge=parseInt(f.age||0);
