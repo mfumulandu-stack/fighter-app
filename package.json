@@ -16,9 +16,10 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build"
-  },
-  "browserslist": {
+    "build": "react-scripts build",
+    "test": "react-scripts test"
+
+  }," "browserslist": {
     "production": [
       ">0.2%"
     ],
