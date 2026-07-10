@@ -6143,11 +6143,13 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         if(page>20)break; // Sicherheitsgrenze
                       }
                       const unconfirmed=allUsers.filter(u=>!u.email_confirmed_at);
-                      showMsg('Sende '+unconfirmed.length+' Bestätigungslinks (gedrosselt, dauert etwas)...');
+                      const estMinutes=Math.ceil(unconfirmed.length*4/60);
+                      showMsg('Sende '+unconfirmed.length+' Bestätigungslinks - dauert ca. '+estMinutes+' Min, bitte Tab offen lassen...');
                       let sent=0;
                       let firstError=null;
-                      // EINZELN mit Pause versenden - Resend erlaubt nur ~2/Sekunde,
-                      // gleichzeitiges Versenden fuehrt zu Ratenlimit-Fehlern
+                      // EINZELN mit 4s Pause - passend zu Supabases Nachfuellrate
+                      // bei 1000 E-Mails/Stunde (~1 Token alle 3,6s). Schnelleres
+                      // Senden fuehrt zu over_email_send_rate_limit Fehlern.
                       let processed=0;
                       for(const u of unconfirmed){
                         try{
@@ -6165,8 +6167,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                           if(!firstError)firstError='Netzwerkfehler: '+err.message;
                         }
                         processed++;
-                        if(processed%10===0)showMsg('⏳ '+processed+'/'+unconfirmed.length+' verarbeitet ('+sent+' erfolgreich)...');
-                        await new Promise(res=>setTimeout(res,600));
+                        showMsg('⏳ '+processed+'/'+unconfirmed.length+' verarbeitet ('+sent+' erfolgreich)...');
+                        await new Promise(res=>setTimeout(res,4000));
                       }
                       showMsg('✅ '+sent+'/'+unconfirmed.length+' gesendet.'+(firstError?' Fehler: '+firstError:''));
                     }catch(e){showMsg('Fehler: '+e.message);}
@@ -6200,11 +6202,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       const existingProfiles=await profRes.json();
                       const profiledIds=new Set((Array.isArray(existingProfiles)?existingProfiles:[]).map(p=>p.user_id));
                       const incomplete=confirmedUsers.filter(u=>!profiledIds.has(u.id));
-                      showMsg('Sende '+incomplete.length+' Erinnerungen (gedrosselt, dauert etwas)...');
+                      const estMinutesR=Math.ceil(incomplete.length*4/60);
+                      showMsg('Sende '+incomplete.length+' Erinnerungen - dauert ca. '+estMinutesR+' Min, bitte Tab offen lassen...');
                       let sent=0;
                       let firstError=null;
-                      // EINZELN mit Pause versenden - Resend erlaubt nur ~2/Sekunde,
-                      // gleichzeitiges Versenden fuehrt zu Ratenlimit-Fehlern
+                      // EINZELN mit 4s Pause - siehe Erklaerung bei Bestaetigungslinks oben
                       let processedR=0;
                       for(const u of incomplete){
                         try{
@@ -6227,8 +6229,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                           if(!firstError)firstError='Netzwerkfehler: '+err.message;
                         }
                         processedR++;
-                        if(processedR%10===0)showMsg('⏳ '+processedR+'/'+incomplete.length+' verarbeitet ('+sent+' erfolgreich)...');
-                        await new Promise(res=>setTimeout(res,600));
+                        showMsg('⏳ '+processedR+'/'+incomplete.length+' verarbeitet ('+sent+' erfolgreich)...');
+                        await new Promise(res=>setTimeout(res,4000));
                       }
                       showMsg('✅ '+sent+'/'+incomplete.length+' Erinnerungs-Mails.'+(firstError?' Fehler: '+firstError:''));
                     }catch(e){showMsg('Fehler: '+e.message);}
