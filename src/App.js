@@ -6148,6 +6148,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       let firstError=null;
                       // EINZELN mit Pause versenden - Resend erlaubt nur ~2/Sekunde,
                       // gleichzeitiges Versenden fuehrt zu Ratenlimit-Fehlern
+                      let processed=0;
                       for(const u of unconfirmed){
                         try{
                           const r=await fetch(SUPA_URL+'/auth/v1/resend',{
@@ -6163,6 +6164,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         }catch(err){
                           if(!firstError)firstError='Netzwerkfehler: '+err.message;
                         }
+                        processed++;
+                        if(processed%10===0)showMsg('⏳ '+processed+'/'+unconfirmed.length+' verarbeitet ('+sent+' erfolgreich)...');
                         await new Promise(res=>setTimeout(res,600));
                       }
                       showMsg('✅ '+sent+'/'+unconfirmed.length+' gesendet.'+(firstError?' Fehler: '+firstError:''));
@@ -6202,6 +6205,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       let firstError=null;
                       // EINZELN mit Pause versenden - Resend erlaubt nur ~2/Sekunde,
                       // gleichzeitiges Versenden fuehrt zu Ratenlimit-Fehlern
+                      let processedR=0;
                       for(const u of incomplete){
                         try{
                           const r=await fetch('https://api.resend.com/emails',{
@@ -6222,6 +6226,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         }catch(err){
                           if(!firstError)firstError='Netzwerkfehler: '+err.message;
                         }
+                        processedR++;
+                        if(processedR%10===0)showMsg('⏳ '+processedR+'/'+incomplete.length+' verarbeitet ('+sent+' erfolgreich)...');
                         await new Promise(res=>setTimeout(res,600));
                       }
                       showMsg('✅ '+sent+'/'+incomplete.length+' Erinnerungs-Mails.'+(firstError?' Fehler: '+firstError:''));
