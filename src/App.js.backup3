@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { sortFightersByRank } from './matchScore';
 import { setupPushRegistration } from './pushRegistration';
-import { cityToCountry, filterCitiesByCountry } from './cityCountry';
 const Globe=lazy(()=>import('react-globe.gl'));
 
 function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
@@ -1584,8 +1583,6 @@ export default function App(){
   const [city,setCity]=useState('Berlin');
   const [citySearchOpen,setCitySearchOpen]=useState(false);
   const [citySearchQuery,setCitySearchQuery]=useState('');
-  const [gymCountry,setGymCountry]=useState('DE');
-  const [gymCountryOpen,setGymCountryOpen]=useState(false);
   const [rankF,setRankF]=useState('All');
   const [trainerF,setTrainerF]=useState('All');
   const [sport,setSport]=useState('Basketball');
@@ -4775,39 +4772,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 ):(
                   /* STÄDTE ANSICHT */
                   <>
-                  <div style={{display:'flex',gap:8,marginBottom:11}}>
-                  <div style={{position:'relative',flexShrink:0,width:110}}>
-                    <div onClick={()=>{setGymCountryOpen(o=>!o);setCitySearchOpen(false);}} style={{display:'flex',alignItems:'center',gap:6,padding:'10px 10px',borderRadius:12,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),cursor:'pointer'}}>
-                      <span style={{fontSize:14}}>{({DE:'🇩🇪',AT:'🇦🇹',CH:'🇨🇭',ALL:'🌍'})[gymCountry]}</span>
-                      <span style={{flex:1,color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:600}}>{gymCountry==='ALL'?'Alle':gymCountry}</span>
-                      <span style={{color:'#aaa',fontSize:10,transform:gymCountryOpen?'rotate(180deg)':'none',transition:'transform 0.2s'}}>▼</span>
-                    </div>
-                    {gymCountryOpen&&(
-                      <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,zIndex:21,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,0.15)',padding:6}}>
-                        {[['DE','🇩🇪','DE'],['AT','🇦🇹','AT'],['CH','🇨🇭','CH'],['ALL','🌍','Alle']].map(([code,flag,label])=>(
-                          <div key={code} onClick={()=>{
-                            setGymCountry(code);
-                            setGymCountryOpen(false);
-                            // Falls die aktuell gewaehlte Stadt nicht zum neuen Land passt,
-                            // automatisch die erste passende Stadt auswaehlen
-                            if(code!=='ALL'&&cityToCountry(city)!==code){
-                              const normC=s=>(s||'').toLowerCase().trim().replace(/ü/g,'ue').replace(/ö/g,'oe').replace(/ä/g,'ae').replace(/ß/g,'ss');
-                              const seen=new Set();const allCities=[];
-                              [...dbGyms.map(g=>g.city).filter(Boolean),...Object.keys(GYMS)].forEach(c=>{
-                                const k=normC(c);if(!seen.has(k)){seen.add(k);allCities.push(c);}
-                              });
-                              const matching=filterCitiesByCountry(allCities.sort((a,b)=>a.localeCompare(b,'de')),code);
-                              if(matching.length>0)setCity(matching[0]);
-                            }
-                          }} style={{padding:'8px 10px',borderRadius:8,cursor:'pointer',background:gymCountry===code?(darkMode?'#2a1414':'#fdecea'):'transparent',color:gymCountry===code?RED:(darkMode?'#e0e0e0':'#333'),fontSize:13,fontWeight:gymCountry===code?700:500,display:'flex',alignItems:'center',gap:8}}>
-                            <span>{flag}</span><span>{label}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{position:'relative',flex:1}}>
-                    <div onClick={()=>{setCitySearchOpen(o=>!o);setGymCountryOpen(false);}} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',borderRadius:12,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),cursor:'pointer'}}>
+                  <div style={{position:'relative',marginBottom:11}}>
+                    <div onClick={()=>setCitySearchOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',borderRadius:12,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),cursor:'pointer'}}>
                       <span style={{fontSize:14}}>📍</span>
                       <span style={{flex:1,color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>{city||'Stadt wählen'}</span>
                       <span style={{color:'#aaa',fontSize:11,transform:citySearchOpen?'rotate(180deg)':'none',transition:'transform 0.2s'}}>▼</span>
@@ -4825,7 +4791,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                               const k=normC(c);
                               if(!seen.has(k)){seen.add(k);result.push(c);}
                             });
-                            return filterCitiesByCountry(result.sort((a,b)=>a.localeCompare(b,'de')),gymCountry)
+                            return result.sort((a,b)=>a.localeCompare(b,'de'))
                               .filter(c=>!citySearchQuery||normC(c).includes(normC(citySearchQuery)));
                           })().map(c=>(
                             <div key={c} onClick={()=>{setCity(c);setCitySearchOpen(false);setCitySearchQuery('');}} style={{padding:'10px 12px',borderRadius:8,cursor:'pointer',background:city===c?(darkMode?'#2a1414':'#fdecea'):'transparent',color:city===c?RED:(darkMode?'#e0e0e0':'#333'),fontSize:14,fontWeight:city===c?700:500}}>{c}</div>
@@ -4833,7 +4799,6 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         </div>
                       </div>
                     )}
-                  </div>
                   </div>
                   <div style={{display:'flex',flexDirection:'column',gap:8}}>
                     {(dbGyms.filter(g=>g.city===city).length>0?dbGyms.filter(g=>g.city===city):(GYMS[city]||[]))
