@@ -2287,13 +2287,16 @@ export default function App(){
   }
 
   // Rangliste Profile nachladen — KEINE Karten-Reload
+  // Laeuft nur noch, WAEHREND die Rangliste tatsaechlich offen ist, statt
+  // permanent im Hintergrund alle 2 Minuten die komplette Nutzerliste zu
+  // laden, egal was gerade angezeigt wird (spart Datenverbrauch/Akku/CPU).
   useEffect(()=>{
-    if(!session||!myProfile)return;
+    if(!session||!myProfile||tab!=='ranking')return;
     const interval=setInterval(async()=>{
       await loadAllProfiles(session);
-    },120000); // alle 2 Minuten
+    },120000); // alle 2 Minuten, nur solange die Rangliste offen ist
     return()=>clearInterval(interval);
-  },[session?.userId,myProfile?.id]);
+  },[session?.userId,myProfile?.id,tab]);
 
   async function loadAdminMessages(s){
     try{
