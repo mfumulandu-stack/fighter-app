@@ -1561,6 +1561,8 @@ export default function App(){
   const [reportSent,setReportSent]=useState({});
   const [viewProfileHistory,setViewProfileHistory]=useState([]);
   const [city,setCity]=useState('Berlin');
+  const [citySearchOpen,setCitySearchOpen]=useState(false);
+  const [citySearchQuery,setCitySearchQuery]=useState('');
   const [rankF,setRankF]=useState('All');
   const [trainerF,setTrainerF]=useState('All');
   const [sport,setSport]=useState('Basketball');
@@ -4749,16 +4751,33 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 ):(
                   /* STÄDTE ANSICHT */
                   <>
-                  <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
-                    {(()=>{
-                      const normC=s=>(s||'').toLowerCase().trim().replace(/ü/g,'ue').replace(/ö/g,'oe').replace(/ä/g,'ae').replace(/ß/g,'ss');
-                      const seen=new Set();const result=[];
-                      [...dbGyms.map(g=>g.city).filter(Boolean),...Object.keys(GYMS)].forEach(c=>{
-                        const k=normC(c);
-                        if(!seen.has(k)){seen.add(k);result.push(c);}
-                      });
-                      return result.sort((a,b)=>a.localeCompare(b,'de'));
-                    })().map(c=>(<button key={c} onClick={()=>setCity(c)} style={{flexShrink:0,padding:'6px 13px',borderRadius:20,background:city===c?RED:'#fff',border:'1px solid '+(city===c?RED:'#e0e0e0'),color:city===c?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{c}</button>))}
+                  <div style={{position:'relative',marginBottom:11}}>
+                    <div onClick={()=>setCitySearchOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',borderRadius:12,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),cursor:'pointer'}}>
+                      <span style={{fontSize:14}}>📍</span>
+                      <span style={{flex:1,color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>{city||'Stadt wählen'}</span>
+                      <span style={{color:'#aaa',fontSize:11,transform:citySearchOpen?'rotate(180deg)':'none',transition:'transform 0.2s'}}>▼</span>
+                    </div>
+                    {citySearchOpen&&(
+                      <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,zIndex:20,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,0.15)',maxHeight:320,display:'flex',flexDirection:'column'}}>
+                        <div style={{padding:'10px 12px',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                          <input autoFocus value={citySearchQuery} onChange={e=>setCitySearchQuery(e.target.value)} placeholder='Stadt suchen...' style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#111':'#f7f7f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,outline:'none',boxSizing:'border-box'}}/>
+                        </div>
+                        <div style={{overflowY:'auto',padding:'6px'}}>
+                          {(()=>{
+                            const normC=s=>(s||'').toLowerCase().trim().replace(/ü/g,'ue').replace(/ö/g,'oe').replace(/ä/g,'ae').replace(/ß/g,'ss');
+                            const seen=new Set();const result=[];
+                            [...dbGyms.map(g=>g.city).filter(Boolean),...Object.keys(GYMS)].forEach(c=>{
+                              const k=normC(c);
+                              if(!seen.has(k)){seen.add(k);result.push(c);}
+                            });
+                            return result.sort((a,b)=>a.localeCompare(b,'de'))
+                              .filter(c=>!citySearchQuery||normC(c).includes(normC(citySearchQuery)));
+                          })().map(c=>(
+                            <div key={c} onClick={()=>{setCity(c);setCitySearchOpen(false);setCitySearchQuery('');}} style={{padding:'10px 12px',borderRadius:8,cursor:'pointer',background:city===c?(darkMode?'#2a1414':'#fdecea'):'transparent',color:city===c?RED:(darkMode?'#e0e0e0':'#333'),fontSize:14,fontWeight:city===c?700:500}}>{c}</div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div style={{display:'flex',flexDirection:'column',gap:8}}>
                     {(dbGyms.filter(g=>g.city===city).length>0?dbGyms.filter(g=>g.city===city):(GYMS[city]||[]))
