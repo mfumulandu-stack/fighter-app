@@ -108,7 +108,9 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
 
 const SUPA_URL = 'https://uykdrmymjvqgebsmndme.supabase.co';
 const ADMIN_ID = '1a697731-458d-4559-a4cf-a89d3150bfa5';
-const SUPA_SERVICE_KEY = process.env.REACT_APP_SUPA_SERVICE_KEY||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjY3ODM0MywiZXhwIjoyMDkyMjU0MzQzfQ.o-Q8hM53Kp2O5HKSlsyygjQ8bCAEVOXkaW-TQhVYcT4';
+// SUPA_SERVICE_KEY wurde entfernt - der Vollzugriffsschluessel liegt jetzt
+// ausschliesslich sicher auf dem Server (admin-proxy Edge Function Secret),
+// nicht mehr im Client-Code.
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk';
 
 export async function authSignUp(email, password) {
@@ -148,6 +150,28 @@ export async function dbUpdate(table, data, query, token) {
 export async function dbSelect(table, query, token) {
   const r = await fetch(SUPA_URL + '/rest/v1/' + table + (query ? '?' + query : ''), { headers: hdr(token) });
   return r.json();
+}
+// Sichere Admin-Schleuse: ersetzt direkte Aufrufe mit dem Vollzugriffs-
+// schluessel. Der Schluessel selbst liegt nur noch serverseitig in der
+// admin-proxy Edge Function - hier wird nur der eigene, normale Nutzer-
+// Token mitgeschickt, den der Server dann selbst gegen die Admin-ID prueft.
+export async function adminFetch(url, options = {}, userToken) {
+  const path = url.replace(SUPA_URL, '');
+  const extraHeaders = { ...(options.headers || {}) };
+  delete extraHeaders.apikey;
+  delete extraHeaders.Authorization;
+  delete extraHeaders['Content-Type'];
+  return fetch(SUPA_URL + '/functions/v1/admin-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY },
+    body: JSON.stringify({
+      userToken,
+      path,
+      method: options.method || 'GET',
+      body: options.body,
+      extraHeaders,
+    }),
+  });
 }
 async function uploadPhoto(file, path, token) {
   const r = await fetch(SUPA_URL + '/storage/v1/object/avatars/' + path, {
@@ -1060,17 +1084,13 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,a
   async function sendPushTo(recipientUserId,title,body){
     if(!recipientUserId)return;
     try{
-      // push_token des Empfaengers holen
-      const res=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+recipientUserId+'&select=push_token',{
-        headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
-      });
-      const rows=await res.json();
-      const pushToken=Array.isArray(rows)&&rows[0]&&rows[0].push_token;
-      if(!pushToken)return; // Empfaenger hat (noch) kein Geraet registriert
+      // Token wird jetzt serverseitig in send-push nachgeschlagen -
+      // der Client muss den Push-Token einer anderen Person nie mehr
+      // direkt auslesen
       await fetch(SUPA_URL+'/functions/v1/send-push',{
         method:'POST',
         headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
-        body:JSON.stringify({token:pushToken,title,body})
+        body:JSON.stringify({recipientUserId,title,body})
       });
     }catch(err){console.error('sendPushTo',err);}
   }
@@ -3164,17 +3184,15 @@ export default function App(){
             // Push an den anderen Matching-Partner schicken
             (async()=>{
               try{
-                const pres=await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+top.id+'&select=user_id,push_token',{
-                  headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
-                });
-                const prows=await pres.json();
-                const pushToken=Array.isArray(prows)&&prows[0]&&prows[0].push_token;
-                if(pushToken){
+                // Token wird jetzt serverseitig in send-push nachgeschlagen -
+                // der Client muss den Push-Token der anderen Person nie mehr
+                // direkt auslesen
+                if(top.user_id){
                   const myName=(myProfile&&myProfile.name)||'Jemand';
                   await fetch(SUPA_URL+'/functions/v1/send-push',{
                     method:'POST',
                     headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
-                    body:JSON.stringify({token:pushToken,title:'🥊 Neues Match!',body:myName+' hat dich auch geliket!'})
+                    body:JSON.stringify({recipientUserId:top.user_id,title:'🥊 Neues Match!',body:myName+' hat dich auch geliket!'})
                   });
                 }
               }catch(err){console.error('match push',err);}
@@ -3657,7 +3675,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                             try{
                               await fetch(SUPA_URL+'/rest/v1/gyms',{
                                 method:'POST',
-                                headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
+                                headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
                                 body:JSON.stringify({
                                   name:newGymData.name,
                                   city:newGymData.city,
@@ -3665,7 +3683,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                                   style:newGymData.style||'',
                                   styles:newGymData.style?[newGymData.style]:[],
                                   code:newGymData.name.replace(/[^A-Z0-9]/gi,'-').toUpperCase().slice(0,20)+'-'+Math.floor(Math.random()*9000+1000),
-                                  emoji:'',members:0,rating:0
+                                  emoji:'',members:0,rating:0,verified:false
                                 })
                               });
                               await loadDbGyms(session);
@@ -4997,10 +5015,13 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                                 if(!window.confirm('Event löschen?'))return;
                                 try{
                                   // Teilnehmer zuerst löschen, dann Event
-                                  const aKey=isAdmin?SUPA_SERVICE_KEY:SUPA_KEY;
-                                  const aAuth=isAdmin?SUPA_SERVICE_KEY:session.token;
-                                  await fetch(SUPA_URL+'/rest/v1/event_participants?event_id=eq.'+ev.id,{method:'DELETE',headers:{apikey:aKey,Authorization:'Bearer '+aAuth}});
-                                  await fetch(SUPA_URL+'/rest/v1/events?id=eq.'+ev.id,{method:'DELETE',headers:{apikey:aKey,Authorization:'Bearer '+aAuth}});
+                                  if(isAdmin){
+                                    await adminFetch(SUPA_URL+'/rest/v1/event_participants?event_id=eq.'+ev.id,{method:'DELETE'},session?.token);
+                                    await adminFetch(SUPA_URL+'/rest/v1/events?id=eq.'+ev.id,{method:'DELETE'},session?.token);
+                                  }else{
+                                    await fetch(SUPA_URL+'/rest/v1/event_participants?event_id=eq.'+ev.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                                    await fetch(SUPA_URL+'/rest/v1/events?id=eq.'+ev.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                                  }
                                   await loadEvents(session);showMsg('Event gelöscht ✅');
                                 }catch(e){showMsg('Fehler: '+e.message);}
                               }} style={{flex:1,padding:'10px',borderRadius:10,background:'transparent',border:'1px solid #e74c3c44',color:'#e74c3c',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
@@ -5675,8 +5696,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                               <button onClick={async()=>{
                                 if(!window.confirm('Event "'+ev.title+'" wirklich löschen?'))return;
                                 try{
-                                  await fetch(SUPA_URL+'/rest/v1/event_participants?event_id=eq.'+ev.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
-                                  await fetch(SUPA_URL+'/rest/v1/events?id=eq.'+ev.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                                  await adminFetch(SUPA_URL+'/rest/v1/event_participants?event_id=eq.'+ev.id,{method:'DELETE'},session?.token);
+                                  await adminFetch(SUPA_URL+'/rest/v1/events?id=eq.'+ev.id,{method:'DELETE'},session?.token);
                                   await loadEvents(session);
                                   showMsg('Event gelöscht ✅');
                                 }catch(e){showMsg('Fehler: '+e.message);}
@@ -5685,11 +5706,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                                 const newTitle=window.prompt('Neuer Titel:',ev.title);
                                 if(!newTitle||!newTitle.trim())return;
                                 try{
-                                  await fetch(SUPA_URL+'/rest/v1/events?id=eq.'+ev.id,{
+                                  await adminFetch(SUPA_URL+'/rest/v1/events?id=eq.'+ev.id,{
                                     method:'PATCH',
-                                    headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
+                                    headers:{Prefer:'return=minimal'},
                                     body:JSON.stringify({title:newTitle.trim()})
-                                  });
+                                  },session?.token);
                                   await loadEvents(session);
                                   showMsg('Titel geändert ✅');
                                 }catch(e){showMsg('Fehler: '+e.message);}
@@ -5720,7 +5741,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>👤 USER ({adminUsers.length})</div>
                 <button onClick={async()=>{
                   try{
-                    const resp=await fetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=1000',{headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                    const resp=await adminFetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=1000',{},session?.token);
                     const data=await resp.json();
                     if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
                   }catch(e){showMsg('Fehler: '+e.message);}
@@ -5748,7 +5769,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     <div style={{display:'flex',gap:4}}>
                       <button onClick={async()=>{
                         const ban=!u.banned;
-                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({banned:ban})});
+                        await adminFetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({banned:ban})},session?.token);
                         setAdminUsers(prev=>prev.map(x=>x.id===u.id?{...x,banned:ban}:x));
                         if(ban) setAllProfiles(prev=>prev.filter(x=>x.id!==u.id));
                         showMsg(ban?'User gesperrt 🚫':'User entsperrt ✅');
@@ -5757,11 +5778,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         const msg=window.prompt('Nachricht an '+u.name+':');
                         if(!msg||!msg.trim())return;
                         try{
-                          await fetch(SUPA_URL+'/rest/v1/admin_messages',{
+                          await adminFetch(SUPA_URL+'/rest/v1/admin_messages',{
                             method:'POST',
-                            headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
+                            headers:{Prefer:'return=minimal'},
                             body:JSON.stringify({user_id:u.id,message:msg,from_admin:true,read:false})
-                          });
+                          },session?.token);
                           showMsg('✅ Nachricht gesendet an '+(u.name||'User'));
                         }catch(e){showMsg('Fehler: '+e.message);}
                       }} style={{background:'#2980b9',border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:10,fontWeight:700,cursor:'pointer'}}>✉️</button>
@@ -5769,17 +5790,17 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         if(!window.confirm('User '+u.name+' wirklich löschen? Das kann nicht rückgängig gemacht werden.'))return;
                         try{
                           // 1. Alle Daten löschen
-                          await fetch(SUPA_URL+'/rest/v1/messages?sender_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
-                          await fetch(SUPA_URL+'/rest/v1/swipes?swiper_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
-                          await fetch(SUPA_URL+'/rest/v1/swipes?target_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
-                          await fetch(SUPA_URL+'/rest/v1/matches?profile_a_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
-                          await fetch(SUPA_URL+'/rest/v1/matches?profile_b_id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                          await adminFetch(SUPA_URL+'/rest/v1/messages?sender_id=eq.'+u.id,{method:'DELETE'},session?.token);
+                          await adminFetch(SUPA_URL+'/rest/v1/swipes?swiper_id=eq.'+u.id,{method:'DELETE'},session?.token);
+                          await adminFetch(SUPA_URL+'/rest/v1/swipes?target_id=eq.'+u.id,{method:'DELETE'},session?.token);
+                          await adminFetch(SUPA_URL+'/rest/v1/matches?profile_a_id=eq.'+u.id,{method:'DELETE'},session?.token);
+                          await adminFetch(SUPA_URL+'/rest/v1/matches?profile_b_id=eq.'+u.id,{method:'DELETE'},session?.token);
                           // 2. Profile löschen + banned setzen damit Login fehlschlägt
-                          await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({banned:true,name:'[Gelöscht]',avatar_url:null,bio:null})});
+                          await adminFetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({banned:true,name:'[Gelöscht]',avatar_url:null,bio:null})},session?.token);
                           // 3. Auth User löschen
-                          const authResp=await fetch(SUPA_URL+'/auth/v1/admin/users/'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,'Content-Type':'application/json','X-Supabase-Admin':SUPA_SERVICE_KEY}});
+                          const authResp=await adminFetch(SUPA_URL+'/auth/v1/admin/users/'+u.id,{method:'DELETE'},session?.token);
                           if(authResp.ok){
-                            await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                            await adminFetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'DELETE'},session?.token);
                             showMsg('✅ User vollständig gelöscht');
                           }else{
                             showMsg('✅ User gesperrt + Daten gelöscht (Auth-Account bleibt)');
@@ -5818,12 +5839,12 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     <div style={{color:'#bbb',fontSize:10,marginTop:2}}>Von: {r.reporter_id?.slice(0,8)}...</div>
                     <div style={{display:'flex',gap:6,marginTop:8}}>
                       <button onClick={async()=>{
-                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+r.reported_id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({banned:true})});
+                        await adminFetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+r.reported_id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({banned:true})},session?.token);
                         showMsg('User gesperrt 🚫');
                         setAdminReports(prev=>prev.filter(x=>x.id!==r.id));
                       }} style={{flex:1,padding:'7px',borderRadius:7,background:'#e74c3c',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>🚫 Sperren</button>
                       <button onClick={async()=>{
-                        await fetch(SUPA_URL+'/rest/v1/reports?id=eq.'+r.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                        await adminFetch(SUPA_URL+'/rest/v1/reports?id=eq.'+r.id,{method:'DELETE'},session?.token);
                         setAdminReports(prev=>prev.filter(x=>x.id!==r.id));
                         showMsg('Meldung ignoriert');
                       }} style={{flex:1,padding:'7px',borderRadius:7,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#aaa':'#666',fontSize:11,fontWeight:700,cursor:'pointer'}}>✓ Ignorieren</button>
@@ -5857,12 +5878,12 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     {u.record_proof_url&&<img loading="lazy" src={u.record_proof_url} style={{width:'100%',borderRadius:8,marginBottom:8,maxHeight:200,objectFit:'contain',background:'#f0f0f0'}} alt='Nachweis'/>}
                     <div style={{display:'flex',gap:6}}>
                       <button onClick={async()=>{
-                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({record_verified:'verified'})});
+                        await adminFetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({record_verified:'verified'})},session?.token);
                         setAdminRecords(prev=>prev.filter(x=>x.id!==u.id));
                         showMsg('✅ Rekord verifiziert!');
                       }} style={{flex:1,padding:'8px',borderRadius:7,background:'#27ae60',border:'none',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer'}}>✅ Bestätigen</button>
                       <button onClick={async()=>{
-                        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},body:JSON.stringify({record_verified:'rejected'})});
+                        await adminFetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({record_verified:'rejected'})},session?.token);
                         setAdminRecords(prev=>prev.filter(x=>x.id!==u.id));
                         showMsg('❌ Abgelehnt');
                       }} style={{flex:1,padding:'8px',borderRadius:7,background:'#e74c3c',border:'none',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer'}}>❌ Ablehnen</button>
@@ -5878,9 +5899,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>💬 FEEDBACK & WÜNSCHE</div>
                 <button onClick={async()=>{
                   try{
-                    const resp=await fetch(SUPA_URL+'/rest/v1/feedback?order=created_at.desc&limit=100',{
-                      headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
-                    });
+                    const resp=await adminFetch(SUPA_URL+'/rest/v1/feedback?order=created_at.desc&limit=100',{},session?.token);
                     const data=await resp.json();
                     if(Array.isArray(data))setAdminFeedback(data);
                     else setAdminFeedback([]);
@@ -5919,11 +5938,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                           <div style={{color:'#aaa',fontSize:11}}>👤 {fb.user_name||'Anonym'}</div>
                           <button onClick={async()=>{
                             try{
-                              await fetch(SUPA_URL+'/rest/v1/feedback?id=eq.'+fb.id,{
+                              await adminFetch(SUPA_URL+'/rest/v1/feedback?id=eq.'+fb.id,{
                                 method:'PATCH',
-                                headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
+                                headers:{Prefer:'return=minimal'},
                                 body:JSON.stringify({read:true})
-                              });
+                              },session?.token);
                               setAdminFeedback(prev=>prev.map(f=>f.id===fb.id?{...f,read:true}:f));
                             }catch{}
                           }} style={{background:'none',border:'1px solid '+(darkMode?'#333':'#ddd'),borderRadius:6,padding:'3px 8px',color:darkMode?'#666':'#aaa',fontSize:10,cursor:'pointer'}}>
@@ -5975,11 +5994,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   <button onClick={async()=>{
                     if(!newEquip.brand||!newEquip.product){showMsg('Marke und Produkt sind Pflicht');return;}
                     try{
-                      const res=await fetch(SUPA_URL+'/rest/v1/equipment',{
+                      const res=await adminFetch(SUPA_URL+'/rest/v1/equipment',{
                         method:'POST',
-                        headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=representation'},
+                        headers:{Prefer:'return=representation'},
                         body:JSON.stringify({...newEquip,sort_order:Date.now()})
-                      });
+                      },session?.token);
                       const data=await res.json();
                       console.log('Equipment save response:', res.status, data);
                       if(Array.isArray(data)&&data[0]){
@@ -6010,9 +6029,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <button onClick={async()=>{
                   setEquipLoading(true);
                   try{
-                    const res=await fetch(SUPA_URL+'/rest/v1/equipment?order=featured.desc,sort_order.asc',{
-                      headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
-                    });
+                    const res=await adminFetch(SUPA_URL+'/rest/v1/equipment?order=featured.desc,sort_order.asc',{},session?.token);
                     const data=await res.json();
                     setEquipmentList(Array.isArray(data)?data:[]);
                   }catch(e){showMsg('Fehler: '+e.message);}
@@ -6053,11 +6070,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                           <button onClick={()=>{setEditingEquip(null);setEditEquipForm(null);}} style={{flex:1,padding:'8px',borderRadius:7,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontWeight:700,fontSize:12,cursor:'pointer'}}>ABBRECHEN</button>
                           <button onClick={async()=>{
                             try{
-                              const resp=await fetch(SUPA_URL+'/rest/v1/equipment?id=eq.'+eq.id,{
+                              const resp=await adminFetch(SUPA_URL+'/rest/v1/equipment?id=eq.'+eq.id,{
                                 method:'PATCH',
-                                headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=representation'},
+                                headers:{Prefer:'return=representation'},
                                 body:JSON.stringify(editEquipForm)
-                              });
+                              },session?.token);
                               const data=await resp.json();
                               if(Array.isArray(data)&&data[0]){
                                 setEquipmentList(prev=>prev.map(e=>e.id===eq.id?data[0]:e));
@@ -6089,7 +6106,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         <button onClick={async()=>{
                           if(!window.confirm('Löschen?'))return;
                           try{
-                            const delRes=await fetch(SUPA_URL+'/rest/v1/equipment?id=eq.'+eq.id,{method:'DELETE',headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                            const delRes=await adminFetch(SUPA_URL+'/rest/v1/equipment?id=eq.'+eq.id,{method:'DELETE'},session?.token);
                             if(delRes.ok){
                               setEquipmentList(prev=>prev.filter(e=>e.id!==eq.id));
                               showMsg('✅ Gelöscht');
@@ -6118,7 +6135,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   setAdminSaving(true);
                   try{
                     // Alle User laden
-                    const resp=await fetch(SUPA_URL+'/rest/v1/profiles?select=id&banned=neq.true&limit=500',{headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                    const resp=await adminFetch(SUPA_URL+'/rest/v1/profiles?select=id&banned=neq.true&limit=500',{},session?.token);
                     const users=await resp.json();
                     if(!Array.isArray(users)||users.length===0){showMsg('Keine User gefunden');setAdminSaving(false);return;}
                     // Für jeden User eine admin_message anlegen - in Gruppen von 50
@@ -6128,11 +6145,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     for(let i=0;i<users.length;i+=broadcastBatchSize){
                       const batch=users.slice(i,i+broadcastBatchSize);
                       const results=await Promise.all(batch.map(u=>
-                        fetch(SUPA_URL+'/rest/v1/admin_messages',{
+                        adminFetch(SUPA_URL+'/rest/v1/admin_messages',{
                           method:'POST',
-                          headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
+                          headers:{Prefer:'return=minimal'},
                           body:JSON.stringify({user_id:u.id,message:adminBroadcast,from_admin:true,read:false})
-                        }).then(()=>true).catch(()=>false)
+                        },session?.token).then(()=>true).catch(()=>false)
                       ));
                       sent+=results.filter(Boolean).length;
                     }
@@ -6174,9 +6191,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       let allUsers=[];
                       let page=1;
                       while(true){
-                        const resp=await fetch(SUPA_URL+'/auth/v1/admin/users?page='+page+'&per_page=1000',{
-                          headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
-                        });
+                        const resp=await adminFetch(SUPA_URL+'/auth/v1/admin/users?page='+page+'&per_page=1000',{},session?.token);
                         const data=await resp.json();
                         const batch=data.users||[];
                         allUsers=allUsers.concat(batch);
@@ -6227,9 +6242,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       let allUsers=[];
                       let page=1;
                       while(true){
-                        const resp=await fetch(SUPA_URL+'/auth/v1/admin/users?page='+page+'&per_page=1000',{
-                          headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
-                        });
+                        const resp=await adminFetch(SUPA_URL+'/auth/v1/admin/users?page='+page+'&per_page=1000',{},session?.token);
                         const data=await resp.json();
                         const batch=data.users||[];
                         allUsers=allUsers.concat(batch);
@@ -6238,9 +6251,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         if(page>20)break;
                       }
                       const confirmedUsers=allUsers.filter(u=>u.email_confirmed_at);
-                      const profRes=await fetch(SUPA_URL+'/rest/v1/profiles?select=user_id',{
-                        headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}
-                      });
+                      const profRes=await adminFetch(SUPA_URL+'/rest/v1/profiles?select=user_id',{},session?.token);
                       const existingProfiles=await profRes.json();
                       const profiledIds=new Set((Array.isArray(existingProfiles)?existingProfiles:[]).map(p=>p.user_id));
                       const incomplete=confirmedUsers.filter(u=>!profiledIds.has(u.id));
@@ -6334,11 +6345,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                                 // Nur Stadt hinzufügen — User kann danach Gym Namen eingeben
                                 const gymName=window.prompt('Gym Name für '+city+' (oder leer lassen):');
                                 const name=gymName&&gymName.trim()?gymName.trim():'Kampfsport '+city;
-                                await fetch(SUPA_URL+'/rest/v1/gyms',{
+                                await adminFetch(SUPA_URL+'/rest/v1/gyms',{
                                   method:'POST',
-                                  headers:{'Content-Type':'application/json',apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY,Prefer:'return=minimal'},
+                                  headers:{Prefer:'return=minimal'},
                                   body:JSON.stringify({name,city,code:name.toUpperCase().replace(/[^A-Z0-9]/g,'-').slice(0,20)+'-'+Date.now().toString().slice(-4),emoji:'',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})
-                                });
+                                },session?.token);
                                 setScanResult(prev=>({...prev,cities:prev.cities.filter(([c])=>c!==city)}));
                                 await loadDbGyms(session);
                                 showMsg('✅ '+city+' hinzugefügt');
@@ -6386,7 +6397,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>📊 ECHTZEIT STATISTIKEN</div>
                 <button onClick={async()=>{
                   try{
-                    const resp=await fetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=1000',{headers:{apikey:SUPA_SERVICE_KEY,Authorization:'Bearer '+SUPA_SERVICE_KEY}});
+                    const resp=await adminFetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=1000',{},session?.token);
                     const data=await resp.json();
                     if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
                     const [sRes,mRes,msgRes]=await Promise.all([
