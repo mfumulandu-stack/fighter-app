@@ -4107,7 +4107,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               <div style={{color:'#aaa',fontSize:10,textAlign:'right'}}>{profile.height}cm<br/>{profile.weight}kg</div>
             </div>
             {/* FILTER LEISTE - leer, kein Stil-Filter in Swipe Tab */}
-            <div style={{position:'relative',width:'min(330px, calc(100vw - 40px))',height:'min(430px, 46dvh)',flexShrink:0,touchAction:'none'}}>
+            <div style={{position:'relative',width:'min(330px, calc(100vw - 40px))',height:'min(430px, 58dvh)',flexShrink:0,touchAction:'none'}}>
               {filteredCards.length===0?(
                 <div style={{width:'100%',height:'100%',borderRadius:20,background:'linear-gradient(160deg,#1a1a1a 0%,#2d1a1a 100%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:'30px 24px',textAlign:'center'}}>
                   <div style={{fontSize:64,marginBottom:4}}>🏆</div>
