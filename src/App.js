@@ -3745,7 +3745,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <style>{`@keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}`}</style>
 
             {/* Profil Header */}
-            <div style={{padding:'22px 18px 14px',display:'flex',alignItems:'center',gap:11}}>
+            <div style={{padding:'calc(22px + env(safe-area-inset-top)) 18px 14px',display:'flex',alignItems:'center',gap:11}}>
               {avatarPreview
                 ?<img loading="lazy" src={avatarPreview} style={{width:42,height:42,borderRadius:'50%',objectFit:'cover',border:'2px solid '+RED}} alt=''/>
                 :<div style={{width:42,height:42,borderRadius:'50%',background:RED+'18',border:'2px solid '+RED+'33',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>🥊</div>}
@@ -3897,7 +3897,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             </div>
 
             {/* Logout */}
-            <div onClick={handleLogout} style={{padding:'10px 18px',borderTop:'1px solid '+(darkMode?'#222':'#efefef'),display:'flex',alignItems:'center',gap:12,cursor:'pointer',borderRadius:8,margin:'4px 8px 8px'}}
+            <div onClick={handleLogout} style={{padding:'10px 18px',borderTop:'1px solid '+(darkMode?'#222':'#efefef'),display:'flex',alignItems:'center',gap:12,cursor:'pointer',borderRadius:8,margin:'4px 8px calc(8px + env(safe-area-inset-bottom))'}}
               onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
               onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
               <div style={{color:'#e74c3c',fontSize:13,fontWeight:600}}>{t.logout}</div>
@@ -5346,7 +5346,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
       {/* ADMIN PANEL */}
       {showAdmin&&isAdmin&&(
         <div style={{position:'fixed',inset:0,background:darkMode?'#0d0d0d':'#f5f5f7',zIndex:600,display:'flex',flexDirection:'column',overflowY:'auto'}}>
-          <div style={{background:RED,padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
+          <div style={{background:RED,padding:'calc(14px + env(safe-area-inset-top)) 16px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
             <div className='rj' style={{color:'#fff',fontSize:18,letterSpacing:3}}>⚙️ ADMIN</div>
             <button onClick={()=>setShowAdmin(false)} style={{background:'none',border:'none',color:'#fff',fontSize:22,cursor:'pointer'}}>✕</button>
           </div>
