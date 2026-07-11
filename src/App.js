@@ -2140,7 +2140,7 @@ export default function App(){
     newRatings[gymKey].userRating=stars;
     setGymRatings(newRatings);
     localStorage.setItem('gymRatings',JSON.stringify(newRatings));
-    showMsg((appLang==='FR'?'Note enregistrée! ':appLang==='EN'?'Rating saved! ':'Bewertung gespeichert! ')+('⭐'.repeat(stars)));
+    // Meldung bewusst entfernt - Bewertung laeuft still im Hintergrund
     // In Supabase speichern
     if(session){
       try{
