@@ -6263,11 +6263,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       let processedR=0;
                       for(const u of incomplete){
                         try{
-                          const r=await fetch(SUPA_URL+'/functions/v1/send-email',{
+                          const r=await fetch('https://api.resend.com/emails',{
                             method:'POST',
-                            headers:{'Content-Type':'application/json'},
+                            headers:{'Content-Type':'application/json','Authorization':'Bearer re_Y2CAV2io_E166bEXwLZVym2yHXoiYq3dg'},
                             body:JSON.stringify({
-                              userToken:session?.token,
+                              from:'Fighter App <noreply@fighterapp.de>',
                               to:u.email,
                               subject:'Fast geschafft — schließ dein Fighter-Profil ab 🥊',
                               html:'<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#0d0d0d;color:#fff;border-radius:12px"><h1 style="color:#c0392b;font-size:28px;letter-spacing:4px;margin:0 0 16px">FIGHTER</h1><p style="font-size:15px;line-height:1.6">Hey,<br><br>du hast dich bei Fighter registriert, aber dein Profil noch nicht fertig eingerichtet. Nur noch ein paar Schritte (Foto, Gewichtsklasse, Kampfstil) und du kannst loslegen!</p><a href="https://fighterapp.de" style="display:inline-block;background:#c0392b;color:#fff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:16px;margin:16px 0">👊 Jetzt fertig einrichten</a><p style="color:#888;font-size:13px;margin-top:16px">Finde Sparringpartner & Gegner in deiner Nähe.<br>Swipe. Match. Fight.</p><p style="color:#444;font-size:11px;margin-top:24px;border-top:1px solid #222;padding-top:12px">© 2026 Fighter App · fighterapp.de</p></div>'
