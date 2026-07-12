@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { sortFightersByRank } from './matchScore';
 import { setupPushRegistration } from './pushRegistration';
 import { cityToCountry, filterCitiesByCountry } from './cityCountry';
-import { autoFilterCandidates } from './autoFilters';
 const Globe=lazy(()=>import('react-globe.gl'));
 
 function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
@@ -184,10 +183,10 @@ async function uploadPhoto(file, path, token) {
 }
 
 const WEIGHT_CLASSES = [
-  'Strohgewicht (bis 48 kg)','Fliegengewicht (bis 51 kg)','Bantamgewicht (bis 54 kg)',
-  'Federgewicht (bis 57 kg)','Leichtgewicht (bis 61 kg)','Halbweltergewicht (bis 64 kg)',
-  'Weltergewicht (bis 67 kg)','Halbmittelgewicht (bis 70 kg)','Mittelgewicht (bis 73 kg)',
-  'Supermittelgewicht (bis 76 kg)','Halbschwergewicht (bis 79 kg)','Cruisergewicht (bis 91 kg)','Schwergewicht (ueber 91 kg)'
+  'Strohgewicht (bis 52 kg)','Leichtfliegengewicht (bis 54 kg)','Fliegengewicht (bis 57 kg)',
+  'Bantamgewicht (bis 61 kg)','Federgewicht (bis 66 kg)','Leichtgewicht (bis 70 kg)',
+  'Halbweltergewicht (bis 77 kg)','Weltergewicht (bis 83 kg)','Halbmittelgewicht (bis 87 kg)',
+  'Mittelgewicht (bis 93 kg)','Halbschwergewicht (bis 100 kg)','Cruisergewicht (bis 90 kg)','Schwergewicht (ueber 100 kg)'
 ];
 const STYLES = ['Boxing','Kickboxing','MMA','Muay Thai','Grappling','BJJ','Wrestling','Kung Fu','Karate','Taekwondo','Judo','Sambo'];
 const PRO_FIGHTERS = [];
@@ -2987,55 +2986,22 @@ export default function App(){
   const myIsPro=myProfile?.is_pro===true||profile.isPro===true;
   const myWC=(myProfile?.weight_class||profile.weightClass||'').split(' (')[0].trim();
 
-  // ── AUTOMATISCHE PROFIL-FILTER (kein manuelles Einstellen noetig) ──
-  // Die App leitet aus dem eigenen Profil ab, was ein sinnvoller Alters-,
-  // Gewichts-, Sportart-, Umkreis- und Erfahrungs-Rahmen waere, und
-  // lockert automatisch, falls dabei zu wenige Kandidaten uebrig bleiben
-  // (Kaskade: erst genau passend, dann breiter, dann nur noch Basis-
-  // Anforderungen wie ein vorhandenes Foto).
-  const myAgeForFilter=parseInt(myProfile?.age||profile?.age||0);
-  const myWeightForFilter=parseInt(myProfile?.weight||profile?.weight||0);
-  const myIsProForFilter=myProfile?.is_pro===true||profile.isPro===true;
-  const myVerifiedForFilter=myProfile?.record_verified==='verified';
-
-  const candidatesBase=cards
+  const filteredCards=cards
     .filter(f=>!blockedUsers.includes(f.id))
     .filter(f=>!f.banned)
-    // Land-Filter bleibt manuell (Mein Land/Weltweit-Umschalter)
+    // Stil-Filter (wenn manuell gesetzt)
+    .filter(f=>filterStyle==='Alle'||!f.style||(f.style||'').includes(filterStyle))
+    .filter(f=>{
+      if(!f.age)return true; // kein Alter angegeben = immer zeigen
+      const age=parseInt(f.age)||0;
+      return age>=ageFilter.min&&age<=ageFilter.max;
+    })
+    // Land-Filter
     .filter(f=>{
       if(countryFilter==='world')return true;
       if(!f.country||f.country==='OTHER')return true;
       return f.country===(profile.country||myProfile?.country||'DE');
-    });
-
-  const candidateFlags=candidatesBase.map(f=>{
-    const fAge=parseInt(f.age)||0;
-    const fWeight=parseInt(f.weight)||0;
-    const fDist=(myLat&&myLon&&f.lat&&f.lon)
-      ?getDistanceKmCoords(myLat,myLon,f.lat,f.lon)
-      :getDistanceKm(myCity,f.city||'');
-    const fSameStyle=sameStyle(f);
-    const fRelatedStyle=relatedStyle(f);
-    const fActive=f.last_seen&&(Date.now()-new Date(f.last_seen).getTime())<5184000000; // 60 Tage
-    const ageOk10=!myAgeForFilter||!fAge||Math.abs(fAge-myAgeForFilter)<=10;
-    const ageOk20=!myAgeForFilter||!fAge||Math.abs(fAge-myAgeForFilter)<=20;
-    const weightOk15=!myWeightForFilter||!fWeight||Math.abs(fWeight-myWeightForFilter)<=15;
-    const weightOk30=!myWeightForFilter||!fWeight||Math.abs(fWeight-myWeightForFilter)<=30;
-    const styleOkStrict=fSameStyle||fRelatedStyle||!f.style;
-    const proOkStrict=!!(f.is_pro===true)===myIsProForFilter;
-    const verifiedOkStrict=!myVerifiedForFilter||f.record_verified==='verified';
-    return {
-      profile:f,
-      hasPhoto:!!f.avatar_url,
-      passesStrict:ageOk10&&weightOk15&&styleOkStrict&&fDist<=250&&proOkStrict&&verifiedOkStrict&&fActive,
-      passesRelaxed:ageOk20&&weightOk30&&fDist<=1000,
-    };
-  });
-
-  const {results:autoFiltered}=autoFilterCandidates(candidateFlags);
-  const filteredCardsBase=autoFiltered.map(c=>c.profile);
-
-  const filteredCards=filteredCardsBase
+    })
     .map(f=>{
       // ── DISTANZ ──
       // GPS wenn beide haben, sonst Koordinaten-Tabelle, sonst Städte-Name
@@ -3064,17 +3030,37 @@ export default function App(){
       // Geschlecht-Offset: gleiches Geschlecht bekommt Score 0-14, anderes Geschlecht 15-29
       const genderOffset=sameGenderPriority?0:15;
 
-      // STUFENLOSE ENTFERNUNGS-FORMEL statt fester Stufen: die echte
-      // Entfernung in km fliesst DIREKT ein, keine kuenstlichen Spruenge
-      // zwischen "Stadt"/"Naehe"/"Region" mehr. Sportart wirkt als
-      // Kilometer-Aequivalent-Aufschlag: verwandte Sportart entspricht
-      // ca. 20km Nachteil, komplett andere Sportart ca. 65km Nachteil.
-      let score=dist;
-      if(!sameStyleBool){
-        score+=relatedStyleBool?20:65;
-      }
-      // Geschlecht-Offset: dominiert IMMER ueber Entfernung/Sportart
-      score=score+(sameGenderPriority?0:100000);
+      let score;
+      // STUFE 1: Gleiche Sportart + Stadt
+      if(sameStyleBool&&sameCityBool)             score=1;
+      // STUFE 2: Verwandte Sportart + Stadt
+      else if(relatedStyleBool&&sameCityBool)     score=2;
+      // STUFE 3: Gleiche Sportart + Nähe (<30km)
+      else if(sameStyleBool&&nearbyBool)          score=3;
+      // STUFE 4: Verwandte Sportart + Nähe
+      else if(relatedStyleBool&&nearbyBool)       score=4;
+      // STUFE 5: Gleiche Sportart + Region
+      else if(sameStyleBool&&sameRegionBool)      score=5;
+      // STUFE 6: Verwandte Sportart + Region
+      else if(relatedStyleBool&&sameRegionBool)   score=6;
+      // STUFE 7: Gleiche Sportart + Land
+      else if(sameStyleBool&&sameCountryBool)     score=7;
+      // STUFE 8: Verwandte Sportart + Land
+      else if(relatedStyleBool&&sameCountryBool)  score=8;
+      // STUFE 9: Nur gleiche Sportart (anderes Land)
+      else if(sameStyleBool)                      score=9;
+      // STUFE 10: Nur verwandte Sportart
+      else if(relatedStyleBool)                   score=10;
+      // STUFE 11: Gleiche Stadt, andere Sportart
+      else if(sameCityBool)                       score=11;
+      // STUFE 12: Gleiche Region
+      else if(sameRegionBool)                     score=12;
+      // STUFE 13: Gleiches Land
+      else if(sameCountryBool)                    score=13;
+      // STUFE 14: Rest
+      else                                        score=14;
+      // Geschlecht-Offset anwenden: anderes Geschlecht kommt nach allen gleichen
+      score=score+genderOffset;
 
       // ── BONUS-PUNKTE (verbessern Score) ──
       // Gewicht-Kompatibilität (wichtigster Bonus für echte Kämpfe)
@@ -3111,12 +3097,6 @@ export default function App(){
       if(f.avatar_url) score-=0.1;
       // Aktiv in letzten 7 Tagen: -0.2
       if(f.last_seen&&(Date.now()-new Date(f.last_seen).getTime())<604800000) score-=0.2;
-      // Gleiches Gym - starkes Signal, da ein Treffen ohne jede Logistik moeglich ist
-      const myGym=(myProfile?.gym||profile?.gym||'').toLowerCase().trim();
-      const fGym=(f.gym||'').toLowerCase().trim();
-      if(myGym&&fGym&&myGym===fGym) score-=25;
-      // Verifizierter Kampfrekord - vertrauenswuerdiger Gegner
-      if(f.record_verified==='verified') score-=0.3;
 
       return{
         ...f,
