@@ -1134,7 +1134,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,a
               :<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:90}}>🥊</div>}
             <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0.15) 0%,rgba(0,0,0,0.8) 100%)'}}/>
             <button onClick={()=>setShowProfilePanel(false)}
-              style={{position:'absolute',top:'calc(14px + env(safe-area-inset-top))',left:14,background:'rgba(0,0,0,0.5)',border:'none',color:'#fff',fontSize:18,cursor:'pointer',borderRadius:8,padding:'5px 12px',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>
+              style={{position:'absolute',top:14,left:14,background:'rgba(0,0,0,0.5)',border:'none',color:'#fff',fontSize:18,cursor:'pointer',borderRadius:8,padding:'5px 12px',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>
               ← Chat
             </button>
             <div style={{position:'absolute',bottom:16,left:16,right:16}}>
@@ -1225,7 +1225,7 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,a
       {/* FIGHT REQUEST PANEL */}
       {showFightRequest&&(
         <div style={{position:'absolute',inset:0,zIndex:11,background:'#f5f5f7',overflowY:'auto',display:'flex',flexDirection:'column'}}>
-          <div style={{background:'linear-gradient(135deg,#1a1a1a,#c0392b)',padding:'calc(14px + env(safe-area-inset-top)) 16px 14px',flexShrink:0,display:'flex',alignItems:'center',gap:10}}>
+          <div style={{background:'linear-gradient(135deg,#1a1a1a,#c0392b)',padding:'14px 16px',flexShrink:0,display:'flex',alignItems:'center',gap:10}}>
             <button onClick={()=>setShowFightRequest(false)} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',fontSize:18,cursor:'pointer',borderRadius:8,padding:'5px 12px',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
             <div className='rj' style={{color:'#fff',fontSize:20,letterSpacing:2,flex:1}}>{t.fightRequest}</div>
             <div style={{fontSize:22}}>⚔️</div>
@@ -1481,42 +1481,6 @@ export default function App(){
   const [session,setSession]=useState(null);
   const [authReady,setAuthReady]=useState(false);
   const [screen,setScreen]=useState('loading');
-  // Passwort-Reset: erkennt den Klick auf den Reset-Link aus der E-Mail
-  // (Supabase haengt dabei access_token & type=recovery an die URL an)
-  const [recoveryToken,setRecoveryToken]=useState(null);
-  const [recoveryNewPw,setRecoveryNewPw]=useState('');
-  const [recoveryNewPw2,setRecoveryNewPw2]=useState('');
-  const [recoverySaving,setRecoverySaving]=useState(false);
-  const [recoveryErr,setRecoveryErr]=useState('');
-  const [recoveryDone,setRecoveryDone]=useState(false);
-  useEffect(()=>{
-    try{
-      const hash=window.location.hash;
-      if(hash&&hash.includes('type=recovery')){
-        const params=new URLSearchParams(hash.replace('#','?'));
-        const token=params.get('access_token');
-        if(token){
-          setRecoveryToken(token);
-          window.history.replaceState(null,'',window.location.pathname);
-        }
-      }
-    }catch(e){console.error('recovery detect',e);}
-  },[]);
-  async function submitNewPassword(){
-    if(!recoveryNewPw||recoveryNewPw.length<6){setRecoveryErr('Passwort muss mind. 6 Zeichen haben');return;}
-    if(recoveryNewPw!==recoveryNewPw2){setRecoveryErr('Passwörter stimmen nicht überein');return;}
-    setRecoverySaving(true);setRecoveryErr('');
-    try{
-      const r=await fetch(SUPA_URL+'/auth/v1/user',{
-        method:'PUT',
-        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+recoveryToken},
-        body:JSON.stringify({password:recoveryNewPw})
-      });
-      if(r.ok){setRecoveryDone(true);}
-      else{const d=await r.json().catch(()=>({}));setRecoveryErr(d.msg||d.error_description||'Fehler beim Speichern');}
-    }catch(e){setRecoveryErr('Netzwerkfehler: '+e.message);}
-    setRecoverySaving(false);
-  }
   const [tabRaw,setTabRaw]=useState(()=>{try{return localStorage.getItem('fighter_tab')||'swipe'}catch{return 'swipe'}});
   const tab=tabRaw;
   const setTab=(t)=>{try{localStorage.setItem('fighter_tab',t)}catch{}setTabRaw(t);};
@@ -2252,16 +2216,6 @@ export default function App(){
       });
       if(result.status==='permission_denied'){showMsg('⚠️ Push-Erlaubnis nicht erteilt ('+result.receive+')');return;}
       showMsg('📲 Bei Apple registriert, warte auf Token...');
-      // Reagiert darauf, wenn jemand auf eine Benachrichtigung TIPPT (nicht
-      // nur wenn sie ankommt) - leitet je nach Typ zur richtigen Stelle
-      // in der App weiter, statt einfach nur die App zu oeffnen.
-      PushNotifications.addListener('pushNotificationActionPerformed',(action)=>{
-        try{
-          const data=action?.notification?.data||{};
-          if(data.type==='equipment'){setShowEquipment(true);}
-          else if(data.type==='event'){setTab('events');}
-        }catch(e){console.error('push tap navigation',e);}
-      });
     }catch(err){showMsg('❌ registerPush Fehler: '+err.message);}
   }
 
@@ -2642,7 +2596,7 @@ export default function App(){
       fetch(SUPA_URL+'/functions/v1/broadcast-push',{
         method:'POST',
         headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
-        body:JSON.stringify({title:'📅 Neues Event: '+evType,body:evTitle+(evCity?' in '+evCity:'')+' - jetzt anmelden!',data:{type:'event'}})
+        body:JSON.stringify({title:'📅 Neues Event: '+evType,body:evTitle+(evCity?' in '+evCity:'')+' - jetzt anmelden!'})
       }).catch(err=>console.error('event push',err));
     }catch(e){showMsg('Fehler: '+e.message);}
     setCreatingEvent(false);
@@ -3404,7 +3358,7 @@ export default function App(){
           ?<img loading="lazy" src={viewProfile.avatar_url} onClick={()=>setLightboxImg(viewProfile.avatar_url)} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:(viewProfile.img_pos_x||50)+'% '+(viewProfile.img_pos_y||30)+'%',cursor:'zoom-in'}} alt=''/>
           :<div style={{width:'100%',height:'100%',background:'#222',display:'flex',alignItems:'center',justifyContent:'center',fontSize:80}}>🥊</div>}
         <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0.2) 0%,rgba(0,0,0,0.75) 100%)'}}/>
-        <button onClick={()=>{setViewProfile(null);}} style={{position:'absolute',top:'calc(14px + env(safe-area-inset-top))',left:14,background:'rgba(0,0,0,0.45)',border:'none',color:'#fff',fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700,borderRadius:8,padding:'4px 12px'}}>{t.back}</button>
+        <button onClick={()=>{setViewProfile(null);}} style={{position:'absolute',top:14,left:14,background:'rgba(0,0,0,0.45)',border:'none',color:'#fff',fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700,borderRadius:8,padding:'4px 12px'}}>{t.back}</button>
         <div style={{position:'absolute',bottom:16,left:16,right:16}}>
           <div className='rj' style={{color:'#fff',fontSize:28,letterSpacing:2,lineHeight:1}}>{viewProfile.name}</div>
           {viewProfile.last_seen&&<div style={{color:'rgba(255,255,255,0.65)',fontSize:11,marginTop:3}}>{getLastSeen(viewProfile.last_seen)}</div>}
@@ -3525,39 +3479,6 @@ nicht öffentlich gemacht</div>
           <button onClick={(e)=>{e.stopPropagation();setLightboxImg(null);}} style={{position:'absolute',top:16,right:16,background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',fontSize:24,width:44,height:44,borderRadius:'50%',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
         </div>
       )}
-    </div>
-  );
-
-  // PASSWORT-RESET-BILDSCHIRM: hat Vorrang vor allem anderen, sobald ein
-  // gueltiger Reset-Link angeklickt wurde
-  if(recoveryToken)return(
-    <div style={{minHeight:'100vh',background:'#0d0d0d',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
-      <div style={{background:'#fff',borderRadius:16,padding:'28px 22px',width:'100%',maxWidth:360,boxShadow:'0 8px 40px rgba(0,0,0,0.3)'}}>
-        {recoveryDone?(
-          <>
-            <div className='rj' style={{color:'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:10}}>✅ PASSWORT GEÄNDERT</div>
-            <div style={{color:'#666',fontSize:14,marginBottom:18,lineHeight:1.5}}>Dein neues Passwort wurde gespeichert. Du kannst dich jetzt damit einloggen.</div>
-            <button onClick={()=>{setRecoveryToken(null);window.location.reload();}}
-              style={{width:'100%',padding:'12px',borderRadius:8,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
-              ZUM LOGIN
-            </button>
-          </>
-        ):(
-          <>
-            <div className='rj' style={{color:'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:6}}>NEUES PASSWORT</div>
-            <div style={{color:'#888',fontSize:12,marginBottom:16}}>Bitte gib dein neues Passwort ein.</div>
-            <input type='password' placeholder='Neues Passwort' value={recoveryNewPw} onChange={e=>setRecoveryNewPw(e.target.value)}
-              style={{width:'100%',padding:'12px',borderRadius:8,border:'1px solid #e0e0e0',fontSize:15,boxSizing:'border-box',marginBottom:10}}/>
-            <input type='password' placeholder='Passwort wiederholen' value={recoveryNewPw2} onChange={e=>setRecoveryNewPw2(e.target.value)}
-              style={{width:'100%',padding:'12px',borderRadius:8,border:'1px solid #e0e0e0',fontSize:15,boxSizing:'border-box'}}/>
-            {recoveryErr&&<div style={{color:RED,fontSize:12,marginTop:8,textAlign:'center'}}>{recoveryErr}</div>}
-            <button onClick={submitNewPassword} disabled={recoverySaving}
-              style={{width:'100%',marginTop:14,padding:'12px',borderRadius:8,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
-              {recoverySaving?'Speichern...':'PASSWORT SPEICHERN'}
-            </button>
-          </>
-        )}
-      </div>
     </div>
   );
 
@@ -4525,16 +4446,6 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                           </button>
                         ))}
                       </div>
-                    </div>
-                    <div>
-                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>LAND</div>
-                      <select defaultValue={profile.country||'DE'} onChange={e=>setEditProfile(p=>({...p,country:e.target.value}))}
-                        style={{width:'100%',padding:'11px 13px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontFamily:'DM Sans,sans-serif'}}>
-                        {[['DE','🇩🇪 Deutschland'],['AT','🇦🇹 Österreich'],['CH','🇨🇭 Schweiz'],['FR','🇫🇷 Frankreich'],['GB','🇬🇧 UK'],['US','🇺🇸 USA'],['NL','🇳🇱 Niederlande'],['BE','🇧🇪 Belgien'],['IT','🇮🇹 Italien'],['ES','🇪🇸 Spanien'],['OTHER','🌍 Andere']].map(([code,label])=>(
-                          <option key={code} value={code}>{label}</option>
-                        ))}
-                      </select>
-                      <div style={{color:'#999',fontSize:11,marginTop:5,lineHeight:1.4}}>Wirkt sich sofort auf dein Matching aus (z.B. Land-Filter und Rangliste).</div>
                     </div>
                     <button onClick={saveEditProfile} disabled={savingEdit}
                       style={{width:'100%',marginTop:6,padding:'14px',borderRadius:12,background:savingEdit?'#eee':`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:savingEdit?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:savingEdit?'not-allowed':'pointer'}}>
@@ -6154,7 +6065,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         fetch(SUPA_URL+'/functions/v1/broadcast-push',{
                           method:'POST',
                           headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
-                          body:JSON.stringify({title:'🥊 Neues Equipment!',body:savedBrand+' '+savedProduct+' ist jetzt im Shop verfügbar',data:{type:'equipment'}})
+                          body:JSON.stringify({title:'🥊 Neues Equipment!',body:savedBrand+' '+savedProduct+' ist jetzt im Shop verfügbar'})
                         }).catch(err=>console.error('broadcast push',err));
                       }else if(data&&data.code==='42P01'){
                         showMsg('❌ Tabelle fehlt — SQL im Supabase Editor ausführen!');
