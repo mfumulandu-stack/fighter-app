@@ -754,7 +754,7 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest}){
   const categories=['Alle',...new Set(items.map(i=>i.category).filter(Boolean))];
   const filtered=activeCategory==='Alle'?items:items.filter(i=>i.category===activeCategory);
   const featured=filtered.filter(i=>i.featured);
-  const rest=filtered.filter(i=>!i.featured).slice().sort((a,b)=>(b.click_count||0)-(a.click_count||0));
+  const rest=filtered.filter(i=>!i.featured);
 
   if(loading)return(
     <div style={{textAlign:'center',padding:'60px 20px'}}>
@@ -837,14 +837,6 @@ function EquipCard({eq,darkMode,RED}){
       </div>
       {eq.url&&(
         <a href={eq.url} target='_blank' rel='noopener noreferrer'
-          onClick={()=>{
-            // Klick zaehlen (still im Hintergrund, blockiert das Oeffnen nicht)
-            fetch(SUPA_URL+'/functions/v1/track-equipment-click',{
-              method:'POST',
-              headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
-              body:JSON.stringify({equipmentId:eq.id})
-            }).catch(()=>{});
-          }}
           style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,width:'100%',marginTop:10,padding:'10px',borderRadius:10,background:pressed?RED+'dd':'linear-gradient(135deg,'+RED+',#e74c3c)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:'pointer',textDecoration:'none',boxSizing:'border-box'}}
           onMouseEnter={()=>setPressed(true)} onMouseLeave={()=>setPressed(false)}>
           🔗 JETZT ANSEHEN →
@@ -1648,20 +1640,6 @@ export default function App(){
   const [showFeedbackModal,setShowFeedbackModal]=useState(false);
   const [feedbackType,setFeedbackType]=useState('feedback'); // 'feedback' | 'wunsch'
   const [showEquipment,setShowEquipment]=useState(false);
-  const [showNews,setShowNews]=useState(false);
-  const [newsItems,setNewsItems]=useState([]);
-  const [newsLoading,setNewsLoading]=useState(false);
-  async function loadNews(){
-    setNewsLoading(true);
-    try{
-      const r=await fetch(SUPA_URL+'/functions/v1/fetch-news',{
-        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
-      });
-      const d=await r.json();
-      if(Array.isArray(d.items))setNewsItems(d.items);
-    }catch(e){console.error('news laden',e);}
-    setNewsLoading(false);
-  }
   const [showSettings,setShowSettings]=useState(false);
   const [appLang,setAppLang]=useState(()=>{
     try{
@@ -3911,7 +3889,6 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               {/* Navigations-Items */}
               {[
                 {icon:'',label:'Events',action:()=>{setTab('events');setShowMenu(false);loadEvents(session);}},
-                {icon:'',label:'News',action:()=>{setShowNews(true);setShowMenu(false);loadNews();}},
                 {icon:'',label:'Mein Profil',action:()=>{setTab('stats');setShowMenu(false);}},
                 {icon:'',label:'Equipment',action:()=>{setShowEquipment(true);setShowMenu(false);}},
               ].map(item=>(
@@ -4165,7 +4142,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
       {/* ── EQUIPMENT MODAL ── */}
       {showEquipment&&(
         <div style={{position:'fixed',inset:0,background:darkMode?'#0d0d0d':'#f5f5f7',zIndex:900,display:'flex',flexDirection:'column',overflowY:'auto'}}>
-          <div style={{display:'flex',alignItems:'center',gap:12,padding:'calc(14px + env(safe-area-inset-top)) 16px 14px',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee'),position:'sticky',top:0,zIndex:10}}>
+          <div style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee'),position:'sticky',top:0,zIndex:10}}>
             <button onClick={()=>setShowEquipment(false)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
             <div>
               <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:3}}>EQUIPMENT</div>
@@ -4175,38 +4152,6 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
           <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%'}}>
             <EquipmentScreen darkMode={darkMode} appLang={appLang} SUPA_URL={SUPA_URL} SUPA_KEY={SUPA_KEY}
               onSuggest={()=>{setFeedbackType('wunsch');setFeedbackText('Equipment Empfehlung: ');setShowEquipment(false);setShowFeedbackModal(true);setFeedbackSent(false);}}/>
-          </div>
-        </div>
-      )}
-
-      {showNews&&(
-        <div style={{position:'fixed',inset:0,background:darkMode?'#0d0d0d':'#f5f5f7',zIndex:900,display:'flex',flexDirection:'column',overflowY:'auto'}}>
-          <div style={{display:'flex',alignItems:'center',gap:12,padding:'calc(14px + env(safe-area-inset-top)) 16px 14px',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee'),position:'sticky',top:0,zIndex:10}}>
-            <button onClick={()=>setShowNews(false)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
-            <div>
-              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:3}}>NEWS</div>
-              <div style={{color:'#aaa',fontSize:11}}>Aktuelle Kampfsport-News von Sherdog &amp; BoxingScene</div>
-            </div>
-          </div>
-          <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%'}}>
-            {newsLoading?(
-              <div style={{textAlign:'center',padding:'40px 0',color:'#aaa'}}>Lädt...</div>
-            ):newsItems.length===0?(
-              <div style={{textAlign:'center',padding:'40px 0',color:'#aaa'}}>Keine News gefunden. Später nochmal versuchen.</div>
-            ):(
-              newsItems.map((item,i)=>(
-                <a key={i} href={item.link} target='_blank' rel='noopener noreferrer'
-                  style={{display:'block',background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',marginBottom:10,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),textDecoration:'none'}}>
-                  <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:6}}>
-                    <span style={{background:RED+'18',borderRadius:20,padding:'1px 8px',color:RED,fontSize:10,fontWeight:700}}>{item.source}</span>
-                    {item.pubDate&&<span style={{color:'#999',fontSize:10}}>{new Date(item.pubDate).toLocaleDateString('de-DE')}</span>}
-                  </div>
-                  <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,lineHeight:1.4}}>{item.title}</div>
-                  {item.description&&<div style={{color:'#999',fontSize:12,marginTop:5,lineHeight:1.5}}>{item.description}</div>}
-                  <div style={{color:RED,fontSize:11,fontWeight:700,marginTop:8}}>Weiterlesen →</div>
-                </a>
-              ))
-            )}
           </div>
         </div>
       )}
