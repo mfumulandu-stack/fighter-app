@@ -2031,15 +2031,7 @@ export default function App(){
   const [showRegisterGym,setShowRegisterGym]=useState(false);
   const [newGymData,setNewGymData]=useState({name:'',city:'',address:'',style:''});
   const [gymRegSent,setGymRegSent]=useState(false);
-  // Kombiniert die fest einprogrammierte Gym-Liste MIT den echten,
-  // live in der Datenbank gespeicherten Gyms (z.B. ueber das Admin-Panel
-  // oder "Gym anmelden" hinzugefuegt) - vorher fehlten Datenbank-Gyms
-  // hier komplett, weshalb sie bei der Registrierung nie vorgeschlagen
-  // wurden.
-  const ALL_GYMS_FLAT=[
-    ...Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct}))),
-    ...dbGyms.map(g=>({...g,ct:g.city||g.ct||'',styles:g.styles||(g.style?[g.style]:[])})),
-  ];
+  const ALL_GYMS_FLAT=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct})));
   const [darkMode,setDarkMode]=useState(()=>{try{return localStorage.getItem('fighter_dark')==='true'}catch{return false}});
   useEffect(()=>{
     document.body.classList.toggle('dark',darkMode);
@@ -2365,7 +2357,6 @@ export default function App(){
       }else{
         setAuthReady(true);
         setScreen('setup');
-        loadDbGyms(s); // damit echte Gyms schon waehrend der Registrierung vorgeschlagen werden
       }
     }catch{
       setAuthReady(true);
@@ -5826,8 +5817,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     try{
                       const trimmedName=adminGymName.trim();
                       const trimmedCity=adminGymCity.trim();
-                      const gymRes=await adminFetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({name:trimmedName,city:trimmedCity,address:(adminGymAddress||'').trim(),style:adminGymStyles,styles:adminGymStyles?[adminGymStyles]:[],phone:adminGymPhone,hours:adminGymHours,description:adminGymDesc,code,verified:false,members:0,rating:0})},session?.token);
-                      if(!gymRes.ok){const errText=await gymRes.text();showMsg('❌ Fehler beim Speichern: '+errText.slice(0,150));setAdminSaving(false);return;}
+                      await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:trimmedName,city:trimmedCity,address:(adminGymAddress||'').trim(),style:adminGymStyles,styles:adminGymStyles?[adminGymStyles]:[],phone:adminGymPhone,hours:adminGymHours,description:adminGymDesc,code,verified:false,members:0,rating:0})});
                       await loadDbGyms(session);
                       showMsg('✅ '+trimmedName+' in '+trimmedCity+' hinzugefügt!');
                       setAdminGymName('');setAdminGymCity('');setAdminGymStyles('');setAdminGymPhone('');setAdminGymHours('');setAdminGymDesc('');
