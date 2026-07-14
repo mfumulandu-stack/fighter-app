@@ -1097,17 +1097,12 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,a
       // Token wird jetzt serverseitig in send-push nachgeschlagen -
       // der Client muss den Push-Token einer anderen Person nie mehr
       // direkt auslesen
-      const r=await fetch(SUPA_URL+'/functions/v1/send-push',{
+      await fetch(SUPA_URL+'/functions/v1/send-push',{
         method:'POST',
         headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
         body:JSON.stringify({recipientUserId,title,body})
       });
-      const d=await r.json().catch(()=>({}));
-      // TEMPORAERE DIAGNOSE: zeigt das echte Ergebnis an, damit wir sehen
-      // koennen, was bei send-push tatsaechlich passiert - kann spaeter
-      // wieder entfernt werden, sobald Nachrichten-Push zuverlaessig laeuft
-      if(isAdmin)showMsg('🔔 Push-Diagnose (Nachricht): '+JSON.stringify(d).slice(0,200));
-    }catch(err){console.error('sendPushTo',err);if(isAdmin)showMsg('❌ Push-Fehler (Nachricht): '+err.message);}
+    }catch(err){console.error('sendPushTo',err);}
   }
 
   async function send(){
@@ -3294,19 +3289,13 @@ export default function App(){
                 // direkt auslesen
                 if(top.user_id){
                   const myName=(myProfile&&myProfile.name)||'Jemand';
-                  const r=await fetch(SUPA_URL+'/functions/v1/send-push',{
+                  await fetch(SUPA_URL+'/functions/v1/send-push',{
                     method:'POST',
                     headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
                     body:JSON.stringify({recipientUserId:top.user_id,title:'🥊 Neues Match!',body:myName+' hat dich auch geliket!'})
                   });
-                  const d=await r.json().catch(()=>({}));
-                  // TEMPORAERE DIAGNOSE: zeigt das echte Ergebnis, damit wir
-                  // sehen was bei send-push passiert - kann spaeter wieder raus
-                  if(isAdmin)showMsg('🔔 Push-Diagnose (Match): '+JSON.stringify(d).slice(0,200));
-                }else{
-                  if(isAdmin)showMsg('⚠️ Push-Diagnose (Match): top.user_id fehlt - Push wurde gar nicht erst versucht');
                 }
-              }catch(err){console.error('match push',err);if(isAdmin)showMsg('❌ Push-Fehler (Match): '+err.message);}
+              }catch(err){console.error('match push',err);}
             })();
             setTimeout(()=>{setMatched(top);loadMatches(session,myProfile);},300);
           }
