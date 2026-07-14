@@ -1,17 +1,19 @@
-// Supabase Edge Function: broadcast-push
-// Verschickt eine Push-Nachricht an ALLE Nutzer mit registriertem push_token.
-// Erwartet POST mit JSON: { title: string, body: string, data?: object }
-// Nutzt dieselben APNS_* Secrets wie send-push.
+// Supabase Edge Function: rank-check
+// Berechnet die komplette Rangliste neu (Punkte = Siege*3 - Niederlagen*2
+// + Unentschieden, absteigend sortiert), vergleicht jeden Rangplatz mit
+// dem zuletzt gespeicherten Wert, und schickt eine Push-Benachrichtigung
+// an alle Nutzer, die dadurch nach unten gerutscht sind (= ueberholt
+// wurden). Wird nach jeder Aenderung an Sieg/Niederlage-Werten aufgerufen.
 
 import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.2/mod.ts";
+
+const SUPA_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPA_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const APNS_KEY_ID = Deno.env.get("APNS_KEY_ID")!;
 const APNS_TEAM_ID = Deno.env.get("APNS_TEAM_ID")!;
 const APNS_BUNDLE_ID = Deno.env.get("APNS_BUNDLE_ID")!;
 const APNS_PRIVATE_KEY = Deno.env.get("APNS_PRIVATE_KEY")!;
-const SUPA_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPA_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
 const APNS_HOST = "https://api.push.apple.com";
 
 async function importPrivateKey(pem: string): Promise<CryptoKey> {
@@ -21,7 +23,11 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
     .replace(/\s/g, "");
   const der = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   return await crypto.subtle.importKey(
-    "pkcs8", der.buffer, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"],
+    "pkcs8",
+    der.buffer,
+    { name: "ECDSA", namedCurve: "P-256" },
+    false,
+    ["sign"],
   );
 }
 
@@ -34,8 +40,8 @@ async function makeAuthToken(): Promise<string> {
   );
 }
 
-async function sendOne(authToken: string, token: string, title: string, body: string, data: any) {
-  const payload = { aps: { alert: { title, body }, sound: "default" }, ...(data || {}) };
+async function sendOne(authToken: string, token: string, title: string, body: string) {
+  const payload = { aps: { alert: { title, body }, sound: "default" } };
   try {
     const res = await fetch(`${APNS_HOST}/3/device/${token}`, {
       method: "POST",
@@ -48,11 +54,9 @@ async function sendOne(authToken: string, token: string, title: string, body: st
       },
       body: JSON.stringify(payload),
     });
-    if (res.ok) return { ok: true };
-    const errBody = await res.text();
-    return { ok: false, status: res.status, reason: errBody };
-  } catch (e) {
-    return { ok: false, status: 0, reason: String(e) };
+    return res.ok;
+  } catch {
+    return false;
   }
 }
 
@@ -68,43 +72,68 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { title, body, data } = await req.json();
-    if (!title || !body) {
-      return new Response(JSON.stringify({ error: "title und body erforderlich" }), {
-        status: 400,
+    // Alle nicht gesperrten Profile mit Kampfstatistik + letztem Rang holen
+    const profRes = await fetch(
+      `${SUPA_URL}/rest/v1/profiles?select=id,name,wins,losses,draws,push_token,last_rank_position&banned=neq.true`,
+      { headers: { apikey: SUPA_SERVICE_KEY, Authorization: `Bearer ${SUPA_SERVICE_KEY}` } },
+    );
+    const profiles = await profRes.json();
+    if (!Array.isArray(profiles) || profiles.length === 0) {
+      return new Response(JSON.stringify({ success: true, checked: 0, notified: 0 }), {
+        status: 200,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       });
     }
 
-    // Alle Nutzer mit push_token holen
-    const profRes = await fetch(
-      `${SUPA_URL}/rest/v1/profiles?push_token=not.is.null&select=push_token`,
-      { headers: { apikey: SUPA_SERVICE_KEY, Authorization: `Bearer ${SUPA_SERVICE_KEY}` } },
-    );
-    const profiles = await profRes.json();
-    const tokens: string[] = Array.isArray(profiles)
-      ? profiles.map((p: any) => p.push_token).filter(Boolean)
-      : [];
+    // Punkte berechnen und absteigend sortieren -> neuer Rangplatz (1-basiert)
+    const scored = profiles
+      .map((p: any) => ({
+        ...p,
+        score: (p.wins || 0) * 3 - (p.losses || 0) * 2 + (p.draws || 0),
+      }))
+      .sort((a: any, b: any) => b.score - a.score)
+      .map((p: any, i: number) => ({ ...p, newRank: i + 1 }));
 
     const authToken = await makeAuthToken();
+    let notified = 0;
+    const updates: any[] = [];
 
-    let success = 0, failed = 0;
-    const errors: any[] = [];
-    // In kleinen Batches versenden, um APNs nicht zu ueberlasten
-    const batchSize = 20;
-    for (let i = 0; i < tokens.length; i += batchSize) {
-      const batch = tokens.slice(i, i + batchSize);
-      const results = await Promise.all(
-        batch.map((t) => sendOne(authToken, t, title, body, data)),
-      );
-      results.forEach((r) => {
-        if (r.ok) success++;
-        else { failed++; errors.push({ status: r.status, reason: r.reason }); }
-      });
+    for (const p of scored) {
+      const hadPreviousRank = typeof p.last_rank_position === "number";
+      // Nur benachrichtigen, wenn sich der Rang wirklich verschlechtert hat
+      // (neue Platzierungsnummer groesser = weiter unten) UND es einen
+      // frueheren Wert zum Vergleichen gibt (nicht beim allerersten Lauf).
+      if (hadPreviousRank && p.newRank > p.last_rank_position && p.push_token) {
+        const ok = await sendOne(
+          authToken,
+          p.push_token,
+          "📉 Du wurdest überholt!",
+          "Du bist jetzt auf Platz " + p.newRank + " in der Rangliste. Zeit für ein Comeback!",
+        );
+        if (ok) notified++;
+      }
+      updates.push({ id: p.id, last_rank_position: p.newRank });
     }
 
+    // Alle neuen Rangplaetze speichern (einzeln, PostgREST kennt kein
+    // Batch-Update mit unterschiedlichen Werten pro Zeile in einem Call)
+    await Promise.all(
+      updates.map((u) =>
+        fetch(`${SUPA_URL}/rest/v1/profiles?id=eq.${u.id}`, {
+          method: "PATCH",
+          headers: {
+            apikey: SUPA_SERVICE_KEY,
+            Authorization: `Bearer ${SUPA_SERVICE_KEY}`,
+            "Content-Type": "application/json",
+            Prefer: "return=minimal",
+          },
+          body: JSON.stringify({ last_rank_position: u.last_rank_position }),
+        })
+      ),
+    );
+
     return new Response(
-      JSON.stringify({ success: true, totalTokens: tokens.length, sent: success, failed, errors: errors.slice(0,5) }),
+      JSON.stringify({ success: true, checked: scored.length, notified }),
       { status: 200, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } },
     );
   } catch (err) {
