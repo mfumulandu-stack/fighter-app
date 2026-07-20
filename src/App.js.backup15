@@ -3337,21 +3337,6 @@ export default function App(){
               }catch(err){console.error('match push',err);if(isAdmin)showMsg('❌ Push-Fehler (Match): '+err.message);}
             })();
             setTimeout(()=>{setMatched(top);loadMatches(session,myProfile);},300);
-          }else{
-            // Noch kein gegenseitiges Match - trotzdem den anderen benachrichtigen,
-            // dass sich jemand fuer ihn interessiert (Name bewusst nicht verraten,
-            // das motiviert dazu, in der App nachzuschauen, wer es war)
-            (async()=>{
-              try{
-                if(top.user_id){
-                  await fetch(SUPA_URL+'/functions/v1/send-push',{
-                    method:'POST',
-                    headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
-                    body:JSON.stringify({recipientUserId:top.user_id,title:'👀 Jemand interessiert sich für dich!',body:'Schau nach, wer dich geliket hat 🥊'})
-                  });
-                }
-              }catch(err){console.error('like push',err);}
-            })();
           }
           // Keine fake Matches mehr
         }catch{}
