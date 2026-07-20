@@ -1312,17 +1312,11 @@ Bist du dabei?`;
           {other?.avatar_url
             ?<img loading="lazy" src={other.avatar_url} style={{width:42,height:42,borderRadius:'50%',objectFit:'cover',border:'2px solid '+accent}} alt=''/>
             :<div style={{width:42,height:42,borderRadius:'50%',background:accent+'22',border:'2px solid '+accent,display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>🥊</div>}
-          {other?.last_seen&&(Date.now()-new Date(other.last_seen).getTime())<300000&&(
-            <div style={{position:'absolute',bottom:0,right:0,width:10,height:10,borderRadius:'50%',background:'#27ae60',border:'2px solid #fff'}}/>
-          )}
+          <div style={{position:'absolute',bottom:0,right:0,width:10,height:10,borderRadius:'50%',background:'#27ae60',border:'2px solid #fff'}}/>
         </div>
         <div style={{flex:1,minWidth:0}}>
           <div className='rj' style={{color:'#1a1a1a',fontSize:18,letterSpacing:1,lineHeight:1}}>{other?.name}</div>
-          <div style={{color:accent,fontSize:10,fontWeight:700,marginTop:2}}>
-            {other?.last_seen&&(Date.now()-new Date(other.last_seen).getTime())<300000
-              ?'🟢 Online'
-              :(other?.style+' · '+other?.city)}
-          </div>
+          <div style={{color:accent,fontSize:10,fontWeight:700,marginTop:2}}>{other?.style} · {other?.city}</div>
         </div>
         <div style={{background:accent+'15',border:'1px solid '+accent+'33',borderRadius:8,padding:'5px 10px',flexShrink:0}}>
           <div style={{color:accent,fontSize:10,fontWeight:700}}>Profil</div>
@@ -2419,24 +2413,6 @@ export default function App(){
     return()=>clearInterval(interval);
   },[session?.userId,myProfile?.id,tab]);
 
-  // Lebenszeichen fuer einen echten Online-Status: aktualisiert last_seen
-  // regelmaessig, WAEHREND die App aktiv genutzt wird - vorher wurde das
-  // nur einmal beim Login gesetzt, wodurch "online" nach kurzer Zeit
-  // schon veraltet war.
-  useEffect(()=>{
-    if(!session||!myProfile)return;
-    const sendHeartbeat=()=>{
-      fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{
-        method:'PATCH',
-        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
-        body:JSON.stringify({last_seen:new Date().toISOString()})
-      }).catch(()=>{});
-    };
-    sendHeartbeat();
-    const interval=setInterval(sendHeartbeat,120000); // alle 2 Minuten
-    return()=>clearInterval(interval);
-  },[session?.userId,myProfile?.id]);
-
   async function loadAdminMessages(s){
     try{
       const resp=await fetch(SUPA_URL+'/rest/v1/admin_messages?user_id=eq.'+s.userId+'&order=created_at.desc&limit=20',{
@@ -2779,12 +2755,12 @@ export default function App(){
       if(!Array.isArray(m)||m.length===0){setDbMatches([]);return;}
       // Load profiles only for matched users
       const matchIds=[...new Set(m.flatMap(x=>[x.profile_a_id,x.profile_b_id]))].filter(Boolean);
-      const matchProfiles=matchIds.length>0?await dbSelect('profiles','id=in.('+matchIds.join(',')+')'+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,wins,losses,draws,ko,last_seen',s.token):[];
+      const matchProfiles=matchIds.length>0?await dbSelect('profiles','id=in.('+matchIds.join(',')+')'+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,wins,losses,draws,ko',s.token):[];
       // Fallback mit anon key falls Session-Token RLS blockiert
       let profilesArr=Array.isArray(matchProfiles)?matchProfiles:[];
       if(profilesArr.length===0&&matchIds.length>0){
         try{
-          const fb=await fetch(SUPA_URL+'/rest/v1/profiles?id=in.('+matchIds.join(',')+')'+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,wins,losses,draws,ko,last_seen',{
+          const fb=await fetch(SUPA_URL+'/rest/v1/profiles?id=in.('+matchIds.join(',')+')'+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,wins,losses,draws,ko',{
             headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
           });
           const fbData=await fb.json();

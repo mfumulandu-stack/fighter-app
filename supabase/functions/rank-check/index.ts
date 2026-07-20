@@ -85,8 +85,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Punkte berechnen und absteigend sortieren -> neuer Rangplatz (1-basiert)
+    // Punkte berechnen - WICHTIG: nur Nutzer mit mindestens einem Kampf
+    // zaehlen mit, genau wie in der App-Rangliste selbst. Vorher wurden
+    // hier ALLE Nutzer mitgezaehlt (auch mit 0 Kaempfen), wodurch die
+    // errechnete Platzierung nie mit der echten, sichtbaren Rangliste
+    // uebereinstimmte.
     const scored = profiles
+      .filter((p: any) => ((p.wins || 0) + (p.losses || 0) + (p.draws || 0)) > 0)
       .map((p: any) => ({
         ...p,
         score: (p.wins || 0) * 3 - (p.losses || 0) * 2 + (p.draws || 0),
