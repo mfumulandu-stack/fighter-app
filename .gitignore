@@ -1,2 +1,16 @@
+# Abhängigkeiten — wird durch "npm install" wiederhergestellt
+node_modules/
+
+# Build-Ausgabe — wird durch "npm run build" erzeugt
+build/
+
+# Backup-Dateien — Git selbst ist das Backup
+*.backup
+*.backup[0-9]*
+
+# Vercel & Umgebungsvariablen
 .vercel
 .env*.local
+
+# macOS
+.DS_Store
