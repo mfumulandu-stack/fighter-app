@@ -2050,10 +2050,10 @@ export default function App(){
   // oder "Gym anmelden" hinzugefuegt) - vorher fehlten Datenbank-Gyms
   // hier komplett, weshalb sie bei der Registrierung nie vorgeschlagen
   // wurden.
-  const ALL_GYMS_FLAT=React.useMemo(()=>[
+  const ALL_GYMS_FLAT=[
     ...Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct}))),
     ...dbGyms.map(g=>({...g,ct:g.city||g.ct||'',styles:g.styles||(g.style?[g.style]:[])})),
-  ],[dbGyms]);
+  ];
   const [darkMode,setDarkMode]=useState(()=>{try{return localStorage.getItem('fighter_dark')==='true'}catch{return false}});
   useEffect(()=>{
     document.body.classList.toggle('dark',darkMode);
@@ -3094,12 +3094,6 @@ export default function App(){
     return f.gender===profile.gender;
   }
   // ── PERFEKTIONIERTES MATCHING SYSTEM ──
-  // In useMemo verpackt: diese aufwendige Berechnung (Distanz, Sportart,
-  // Gewicht, Erfahrung fuer jeden Kandidaten) lief bisher bei JEDER
-  // einzigen App-Interaktion neu, auch bei voellig unabhaengigen
-  // Aenderungen (z.B. eine Nachricht tippen). Jetzt laeuft sie nur noch
-  // neu, wenn sich wirklich etwas Relevantes fuers Matching geaendert hat.
-  const filteredCards=React.useMemo(()=>{
   const myIsPro=myProfile?.is_pro===true||profile.isPro===true;
   const myWC=(myProfile?.weight_class||profile.weightClass||'').split(' (')[0].trim();
 
@@ -3151,7 +3145,7 @@ export default function App(){
   const {results:autoFiltered}=autoFilterCandidates(candidateFlags);
   const filteredCardsBase=autoFiltered.map(c=>c.profile);
 
-  const filteredCardsInner=filteredCardsBase
+  const filteredCards=filteredCardsBase
     .map(f=>{
       // ── DISTANZ ──
       // GPS wenn beide haben, sonst Koordinaten-Tabelle, sonst Städte-Name
@@ -3254,8 +3248,6 @@ export default function App(){
       // Sekundär: Distanz (näher = weiter hinten = wird zuerst gezeigt)
       return (b._dist||9999)-(a._dist||9999);
     });
-  return filteredCardsInner;
-  },[cards,blockedUsers,countryFilter,profile,myProfile,myLat,myLon,myCity,myBundesland]);
   const top=filteredCards[filteredCards.length-1];
   const lastTapRef=useRef(0);
   function dragStart(e){
@@ -3397,9 +3389,6 @@ export default function App(){
   const kr=stats.wins>0?Math.round((stats.ko/stats.wins)*100):0;
   const allF=profile.name?[{id:0,name:profile.name,age:profile.age,city:profile.city,gym:profile.gym,weight_class:profile.weightClass,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'',accent:RED,isMe:true,avatar_url:avatarUrl}].concat(FIGHTERS):FIGHTERS;
   // Rangliste: ALLE angemeldeten User aus Datenbank
-  // In useMemo verpackt - lief bisher bei jeder App-Interaktion neu,
-  // jetzt nur noch wenn sich Rangliste-relevante Daten wirklich aendern.
-  const ranked=React.useMemo(()=>{
   const userOnly=(()=>{
     const me=profile.name?[{id:0,name:profile.name,city:profile.city,gym:profile.gym,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'',accent:RED,isMe:true,avatar_url:avatarUrl,is_pro:profile.isPro===true,country:profile.country||'DE'}]:[];
     if(allProfiles.length>0){
@@ -3412,7 +3401,7 @@ export default function App(){
     }
     return me;
   })();
-  return rankMode==='trainer'
+  const ranked=rankMode==='trainer'
     ?[]
     :[...userOnly]
       .filter(f=>{
@@ -3422,7 +3411,6 @@ export default function App(){
       .filter(f=>(f.wins||0)+(f.losses||0)+(f.draws||0)>0) // nur User mit mind. 1 Kampf
       .filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF))))
       .sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
-  },[profile,stats,avatarUrl,allProfiles,myProfile,rankMode,rankF]);
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
   const filteredT=TRAINERS.filter(tr=>trainerF==='All'||tr.style.includes(trainerF)).sort((a,b)=>b.rating-a.rating);
 
