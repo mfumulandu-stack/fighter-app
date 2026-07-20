@@ -8,32 +8,55 @@ const Globe=lazy(()=>import('react-globe.gl'));
 function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
   const globeRef=useRef();
   const [points,setPoints]=useState([]);
+  const [totalCount,setTotalCount]=useState(0);
   const [loading,setLoading]=useState(true);
 
   useEffect(()=>{
     let active=true;
     (async()=>{
       try{
-        const res=await fetch(SUPA_URL+'/rest/v1/profiles?select=lat,lon,city&banned=eq.false&lat=not.is.null&lon=not.is.null',{
-          headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
-        });
-        const data=await res.json();
-        if(active&&Array.isArray(data)){
+        // Alle nicht gesperrten Profile seitenweise laden — Supabase liefert
+        // max. 1000 Zeilen pro Anfrage, deshalb Range-Header + Schleife.
+        // Prefer:count=exact liefert im content-range-Header die echte Gesamtzahl.
+        const all=[];
+        let from=0,total=0;
+        while(true){
+          const res=await fetch(SUPA_URL+'/rest/v1/profiles?select=lat,lon,city&banned=eq.false',{
+            headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,Range:from+'-'+(from+999),Prefer:'count=exact'}
+          });
+          const data=await res.json();
+          if(!Array.isArray(data))break;
+          all.push(...data);
+          const range=res.headers.get('content-range'); // z.B. "0-999/1234"
+          total=parseInt((range||'').split('/')[1],10)||all.length;
+          if(data.length===0||all.length>=total)break;
+          from+=1000;
+        }
+        if(active){
+          // Fallback: Nutzer ohne GPS-Freigabe über ihre Profil-Stadt verorten
+          const cityLookup={};
+          Object.keys(CITY_COORDS).forEach(k=>{cityLookup[k.toLowerCase()]=CITY_COORDS[k];});
           // Mehrere Nutzer in derselben Stadt zu einem Punkt zusammenfassen
           // Stadt-Ebene-Rundung (~5km Raster) — bewusst KEINE exakten Koordinaten,
           // damit kein einzelner Nutzer auf seine genaue Adresse zurückverfolgbar ist.
           const CITY_GRID=0.05; // ca. 5km bei mittleren Breitengraden
           const seen={};
           const pts=[];
-          data.forEach(d=>{
-            if(!d.lat||!d.lon)return;
-            const roundedLat=Math.round(d.lat/CITY_GRID)*CITY_GRID;
-            const roundedLon=Math.round(d.lon/CITY_GRID)*CITY_GRID;
+          all.forEach(d=>{
+            let lat=d.lat,lon=d.lon;
+            if(!lat||!lon){
+              const cc=cityLookup[(d.city||'').trim().toLowerCase()];
+              if(!cc)return; // weder GPS noch bekannte Stadt — zählt im Gesamtzähler, aber kein Punkt
+              lat=cc.lat;lon=cc.lon;
+            }
+            const roundedLat=Math.round(lat/CITY_GRID)*CITY_GRID;
+            const roundedLon=Math.round(lon/CITY_GRID)*CITY_GRID;
             const key=roundedLat+'_'+roundedLon;
             if(seen[key]){seen[key].count++;}
             else{const p={lat:roundedLat,lng:roundedLon,city:d.city||'',count:1};seen[key]=p;pts.push(p);}
           });
           setPoints(pts);
+          setTotalCount(total);
         }
       }catch(e){console.error('Globe-Daten laden fehlgeschlagen',e);}
       if(active)setLoading(false);
@@ -76,7 +99,10 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
       </div>
       <div style={{position:'absolute',top:'calc(16px + env(safe-area-inset-top))',left:16,zIndex:10,color:'#fff',fontFamily:'Rajdhani,sans-serif'}}>
         <div style={{fontSize:13,letterSpacing:2,color:'rgba(255,255,255,0.6)'}}>FIGHTER WELTWEIT</div>
-        <div style={{fontSize:22,fontWeight:700,color:'#f5a623'}}>{points.reduce((s,p)=>s+p.count,0)} FIGHTER</div>
+        <div style={{fontSize:22,fontWeight:700,color:'#f5a623'}}>{totalCount} FIGHTER</div>
+        {(()=>{const located=points.reduce((s,p)=>s+p.count,0);return located<totalCount?(
+          <div style={{fontSize:11,color:'rgba(255,255,255,0.45)'}}>{located} auf der Karte verortet</div>
+        ):null;})()}
       </div>
       <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}>
         {loading?(
