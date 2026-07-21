@@ -5,6 +5,29 @@ import { cityToCountry, filterCitiesByCountry } from './cityCountry';
 import { autoFilterCandidates } from './autoFilters';
 const Globe=lazy(()=>import('react-globe.gl'));
 
+// Mobile Geräte (iPhone/Android) haben strenge GPU-Speicherlimits im Browser/WebView —
+// sie bekommen die 4K-Textur, Desktop die scharfe 8K-Version
+const IS_MOBILE_DEVICE=typeof navigator!=='undefined'&&/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+// Fängt Fehler beim Globus-Rendern ab, damit NIE wieder die ganze App
+// schwarz wird — stattdessen erscheint eine Meldung und man kann schließen
+class GlobeErrorBoundary extends React.Component{
+  constructor(props){super(props);this.state={hasError:false};}
+  static getDerivedStateFromError(){return{hasError:true};}
+  componentDidCatch(err){console.error('Globus-Fehler abgefangen:',err);}
+  render(){
+    if(this.state.hasError){
+      return(
+        <div style={{color:'rgba(255,255,255,0.7)',fontFamily:'Rajdhani,sans-serif',fontSize:16,textAlign:'center',padding:24}}>
+          Der Globus konnte auf diesem Gerät nicht geladen werden.<br/>
+          <span style={{fontSize:13,color:'rgba(255,255,255,0.4)'}}>Tippe oben rechts auf ✕ zum Schließen.</span>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
   const globeRef=useRef();
   const [points,setPoints]=useState([]);
@@ -95,9 +118,9 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
         controls.zoomSpeed=Math.min(2,Math.max(0.3,controls.zoomSpeed*3));
       });
     }
-    // volle Retina-Auflösung nutzen — die Bibliothek begrenzt auf 2x,
-    // iPhones haben aber 3x (macht den Globus sonst insgesamt unscharf)
-    if(renderer&&window.devicePixelRatio>2){renderer.setPixelRatio(window.devicePixelRatio);}
+    // WICHTIG: KEINE 3x-Retina-Auflösung erzwingen! Framebuffer bei 3x + Kantenglättung
+    // sprengt das GPU-Speicherlimit von iOS-WebViews -> schwarzer Bildschirm / Tab-Crash.
+    // Die 2x-Begrenzung der Bibliothek ist auf iPhones die sichere Wahl.
     // anisotropes Filtern schärft die Erd-Textur bei Zoom und Schrägsicht;
     // die Textur lädt asynchron, deshalb warten bis sie da ist
     let tries=0;
@@ -131,6 +154,7 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
         {loading?(
           <div style={{color:'rgba(255,255,255,0.5)',fontFamily:'Rajdhani,sans-serif',fontSize:16}}>Lädt Globus...</div>
         ):(
+          <GlobeErrorBoundary>
           <Suspense fallback={<div style={{color:'rgba(255,255,255,0.5)'}}>Lädt...</div>}>
             <Globe
               ref={globeRef}
@@ -138,7 +162,7 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
               width={window.innerWidth}
               height={window.innerHeight}
               backgroundColor='#000000'
-              globeImageUrl='/earth-night-8k.jpg'
+              globeImageUrl={IS_MOBILE_DEVICE?'/earth-night-4k.jpg':'/earth-night-8k.jpg'}
               bumpImageUrl='//unpkg.com/three-globe/example/img/earth-topology.png'
               onZoom={handleZoom}
               labelsData={points}
@@ -155,6 +179,7 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
               atmosphereAltitude={0.18}
             />
           </Suspense>
+          </GlobeErrorBoundary>
         )}
       </div>
       {/* Pflicht-Namensnennung: 8K-Erdtextur von Solar System Scope, Lizenz CC BY 4.0 */}
@@ -1553,7 +1578,15 @@ Leider kann ich diesen Termin nicht wahrnehmen.`;
 }
 
 
+// Test-Zugang: /?globetest=1 rendert nur den Globus, ohne Login —
+// zum schnellen Testen des Globus im Browser
 export default function App(){
+  if(typeof window!=='undefined'&&window.location.search.includes('globetest')){
+    return <UserGlobe darkMode={true} onClose={()=>{window.location.search='';}} SUPA_URL={SUPA_URL} SUPA_KEY={SUPA_KEY}/>;
+  }
+  return <MainApp/>;
+}
+function MainApp(){
   const [session,setSession]=useState(null);
   const [authReady,setAuthReady]=useState(false);
   const [screen,setScreen]=useState('loading');
