@@ -894,13 +894,13 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest}){
           value={searchQuery}
           onChange={e=>setSearchQuery(e.target.value)}
           placeholder={appLang==='FR'?'Rechercher un produit...':appLang==='EN'?'Search products...':'Produkt oder Marke suchen...'}
-          style={{width:'100%',padding:'10px 14px',borderRadius:12,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#1a1a1a':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',marginBottom:8}}
+          style={{width:'100%',padding:'6px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#1a1a1a':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box',marginBottom:6}}
         />
         {categories.length>1&&(
           <div style={{position:'relative'}}>
-            <div onClick={()=>setCategoryOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 14px',borderRadius:12,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),cursor:'pointer'}}>
-              <span style={{fontSize:13}}>🗂️</span>
-              <span style={{flex:1,color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:600}}>{activeCategory}</span>
+            <div onClick={()=>setCategoryOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 12px',borderRadius:10,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),cursor:'pointer'}}>
+              <span style={{fontSize:12}}>🗂️</span>
+              <span style={{flex:1,color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:600}}>{activeCategory}</span>
               <span style={{color:'#aaa',fontSize:10,transform:categoryOpen?'rotate(180deg)':'none',transition:'transform 0.2s'}}>▼</span>
             </div>
             {categoryOpen&&(
