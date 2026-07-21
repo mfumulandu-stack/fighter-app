@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { sortFightersByRank } from './matchScore';
+import { buildTimeSeries, activeUserCounts, countSince, equipmentRanking, totalEquipmentClicks, eventRevenue, eventParticipationStats, gymStats, rankingActiveCount, DAY_MS } from './adminAnalytics';
 import { setupPushRegistration } from './pushRegistration';
 import { cityToCountry, filterCitiesByCountry } from './cityCountry';
 import { autoFilterCandidates } from './autoFilters';
@@ -204,6 +205,11 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
 
 const SUPA_URL = 'https://uykdrmymjvqgebsmndme.supabase.co';
 const ADMIN_ID = '1a697731-458d-4559-a4cf-a89d3150bfa5';
+// ⚠️ HIER DIE ECHTE APP-STORE-ID EINTRAGEN ⚠️
+// Das ist NUR die Zahl aus der App-Store-Adresse: apps.apple.com/app/id123456789
+// -> dann hier zwischen die Anführungszeichen: '123456789'
+// Solange leer, zeigt die Bewertungs-Aufforderung einen Hinweis statt den Store zu öffnen.
+const APP_STORE_ID = '';
 // SUPA_SERVICE_KEY wurde entfernt - der Vollzugriffsschluessel liegt jetzt
 // ausschliesslich sicher auf dem Server (admin-proxy Edge Function Secret),
 // nicht mehr im Client-Code.
@@ -1709,6 +1715,9 @@ function MainApp(){
   const [avatarPreview,setAvatarPreview]=useState(null);
   const [myGallery,setMyGallery]=useState([]);
   const [showGlobe,setShowGlobe]=useState(false);
+  // Bewertungs-Aufforderung ("Gefällt dir die Fighter App?")
+  const [showRating,setShowRating]=useState(false);
+  const ratingCheckedRef=useRef(false);
   const swipeStartX=useRef(null);
   const [uploadingGallery,setUploadingGallery]=useState(false);
   const [uploading,setUploading]=useState(false);
@@ -1785,7 +1794,59 @@ function MainApp(){
   const [adminChatMsgs,setAdminChatMsgs]=useState([]);
   const [adminMatchStatsLoaded,setAdminMatchStatsLoaded]=useState(false);
   const [adminUserSearch,setAdminUserSearch]=useState('');
+  // Analytics-Dashboard: alle Rohdaten in einem State, damit die
+  // useMemo-Berechnungen weiter unten nur bei echter Datenaenderung neu laufen
+  const [dashData,setDashData]=useState(null);
+  const [dashLoading,setDashLoading]=useState(false);
   const isAdmin=session?.userId===ADMIN_ID||myProfile?.id===ADMIN_ID;
+  // Laedt alle Dashboard-Rohdaten NUR ueber die sichere Admin-Schleuse
+  // (adminFetch). Jede Abfrage nutzt eine explizite select=-Spaltenliste und
+  // ein Limit, damit bei wachsender Nutzerzahl nicht unnoetig grosse
+  // Datenmengen uebertragen werden (Vorbild: loadAllProfiles).
+  async function loadDashboard(){
+    if(!session?.token)return;
+    setDashLoading(true);
+    try{
+      const q=(path)=>adminFetch(SUPA_URL+path,{},session.token).then(r=>r.json()).then(d=>Array.isArray(d)?d:[]).catch(()=>[]);
+      const [profiles,equipment,events,participants,gyms,matches,messages]=await Promise.all([
+        q('/rest/v1/profiles?select=id,created_at,last_seen,wins,losses,draws,banned&order=created_at.desc&limit=5000'),
+        q('/rest/v1/equipment?select=brand,product,click_count,category,featured&order=click_count.desc&limit=200'),
+        q('/rest/v1/events?select=id,title,price,event_date&limit=500'),
+        q('/rest/v1/event_participants?select=event_id,paid&limit=5000'),
+        q('/rest/v1/gyms?select=city,verified&limit=2000'),
+        q('/rest/v1/matches?select=id,created_at&order=created_at.desc&limit=5000'),
+        q('/rest/v1/messages?select=id,created_at&order=created_at.desc&limit=5000'),
+      ]);
+      setDashData({profiles,equipment,events,participants,gyms,matches,messages,loadedAt:Date.now()});
+    }catch(e){showMsg('Dashboard-Fehler: '+e.message);}
+    setDashLoading(false);
+  }
+  // Aufwendige Kennzahl-Berechnungen: laufen nur neu, wenn frische Rohdaten
+  // geladen wurden - nicht bei jeder App-Interaktion (useMemo, wie im Rest der App).
+  const dashStats=React.useMemo(()=>{
+    if(!dashData)return null;
+    const now=Date.now();
+    const {profiles,equipment,events,participants,gyms,matches,messages}=dashData;
+    return {
+      totalUsers:profiles.length,
+      bannedUsers:profiles.filter(p=>p.banned).length,
+      active:activeUserCounts(profiles,now),
+      newToday:countSince(profiles,'created_at',now-DAY_MS),
+      newWeek:countSince(profiles,'created_at',now-7*DAY_MS),
+      regSeries:buildTimeSeries(profiles,'created_at','day',now,14),
+      regWeekSeries:buildTimeSeries(profiles,'created_at','week',now,8),
+      matchSeries:buildTimeSeries(matches,'created_at','day',now,14),
+      msgSeries:buildTimeSeries(messages,'created_at','day',now,14),
+      totalMatches:matches.length,
+      totalMessages:messages.length,
+      equipRanking:equipmentRanking(equipment),
+      totalClicks:totalEquipmentClicks(equipment),
+      revenue:eventRevenue(events,participants),
+      participation:eventParticipationStats(events,participants),
+      gyms:gymStats(gyms),
+      rankingActive:rankingActiveCount(profiles),
+    };
+  },[dashData]);
   const [fightHistory,setFightHistory]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_history')||'[]')}catch{return []}});
   const [historyPublic,setHistoryPublic]=useState(()=>{try{return localStorage.getItem('fighter_history_public')==='true'}catch{return false}});
   const [editMode,setEditMode]=useState(false);
@@ -2475,6 +2536,8 @@ function MainApp(){
           if(data.type==='equipment'){setShowEquipment(true);}
           else if(data.type==='event'){setTab('events');}
           else if(data.type==='news'){setShowNews(true);loadNews();}
+          // Tippen auf die Bewertungs-Push = "Ja, ich bewerte" -> direkt zum Store
+          else if(data.type==='rate'){openAppStoreReview();}
         }catch(e){console.error('push tap navigation',e);}
       });
     }catch(err){showMsg('❌ registerPush Fehler: '+err.message);}
@@ -2565,6 +2628,42 @@ function MainApp(){
       if(perm==='granted')showMsg(appLang==='FR'?'🔔 Notifications activées!':appLang==='EN'?'🔔 Notifications enabled!':'🔔 Benachrichtigungen aktiviert!');
     }
   }
+
+  // Öffnet die App-Store-Bewertungsseite (Sterne-Vergabe). Der Parameter
+  // action=write-review öffnet direkt das Bewertungsfenster.
+  function openAppStoreReview(){
+    if(!APP_STORE_ID){
+      showMsg('⚠️ App-Store-ID noch nicht eingetragen (in App.js ganz oben)');
+      return;
+    }
+    try{localStorage.setItem('fighter_rate_done','1');}catch{}
+    setShowRating(false);
+    const url='https://apps.apple.com/app/id'+APP_STORE_ID+'?action=write-review';
+    try{window.open(url,'_blank');}catch(e){window.location.href=url;}
+  }
+  // "Später" gewählt: Aufforderung für 7 Tage pausieren
+  function snoozeRating(){
+    try{localStorage.setItem('fighter_rate_snooze',String(Date.now()+7*86400000));}catch{}
+    setShowRating(false);
+  }
+  // Entscheidet beim App-Start, ob die Bewertungs-Aufforderung gezeigt wird:
+  // erst ab dem 3. Öffnen, nie wenn schon bewertet, und nicht während der
+  // 7-Tage-Pause nach "Später".
+  useEffect(()=>{
+    if(screen!=='main'||!session||ratingCheckedRef.current)return;
+    ratingCheckedRef.current=true;
+    try{
+      if(localStorage.getItem('fighter_rate_done')==='1')return;
+      const snooze=parseInt(localStorage.getItem('fighter_rate_snooze')||'0',10);
+      if(snooze&&Date.now()<snooze)return;
+      const opens=(parseInt(localStorage.getItem('fighter_open_count')||'0',10)||0)+1;
+      localStorage.setItem('fighter_open_count',String(opens));
+      if(opens>=3){
+        // kurz warten, damit der Dialog nicht mitten in den Ladevorgang platzt
+        setTimeout(()=>setShowRating(true),4000);
+      }
+    }catch(e){}
+  },[screen,session]);
 
   function sendLocalNotification(title,body){
     safeLocalNotification(title,body);
@@ -4494,6 +4593,27 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         <UserGlobe darkMode={darkMode} onClose={()=>setShowGlobe(false)} SUPA_URL={SUPA_URL} SUPA_KEY={SUPA_KEY}/>
       )}
 
+      {/* BEWERTUNGS-AUFFORDERUNG */}
+      {showRating&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:1500,display:'flex',alignItems:'center',justifyContent:'center',padding:24}} onClick={snoozeRating}>
+          <div onClick={e=>e.stopPropagation()} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:20,padding:'28px 24px',maxWidth:340,width:'100%',textAlign:'center',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),boxShadow:'0 20px 60px rgba(0,0,0,0.4)'}}>
+            <div style={{fontSize:44,marginBottom:8}}>⭐</div>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:1,marginBottom:8}}>
+              {appLang==='FR'?'Tu aimes Fighter ?':appLang==='EN'?'Do you like Fighter?':'Gefällt dir die Fighter App?'}
+            </div>
+            <div style={{color:darkMode?'#aaa':'#888',fontSize:14,lineHeight:1.6,marginBottom:22}}>
+              {appLang==='FR'?'Ton avis nous aide énormément. Note-nous sur l\'App Store !':appLang==='EN'?'Your rating helps us a lot. Rate us on the App Store!':'Deine Bewertung hilft uns riesig weiter. Vergib ein paar Sterne im App Store!'}
+            </div>
+            <button onClick={openAppStoreReview} style={{width:'100%',padding:'14px',borderRadius:12,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:17,letterSpacing:1,cursor:'pointer',marginBottom:10,boxShadow:'0 4px 16px rgba(192,57,43,0.3)'}}>
+              {appLang==='FR'?'⭐ OUI, NOTER':appLang==='EN'?'⭐ YES, RATE':'⭐ JA, BEWERTEN'}
+            </button>
+            <button onClick={snoozeRating} style={{width:'100%',padding:'10px',borderRadius:12,background:'none',border:'none',color:darkMode?'#888':'#aaa',fontSize:13,fontWeight:600,cursor:'pointer'}}>
+              {appLang==='FR'?'Plus tard':appLang==='EN'?'Maybe later':'Vielleicht später'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* HEADER */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'calc(10px + env(safe-area-inset-top)) 16px 8px',flexShrink:0,borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),background:darkMode?'#1a1a1a':'#fff'}}>
         <div style={{width:36,height:36}}/>
@@ -5896,11 +6016,135 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <button onClick={()=>setShowAdmin(false)} style={{background:'none',border:'none',color:'#fff',fontSize:22,cursor:'pointer'}}>✕</button>
           </div>
           <div style={{display:'flex',overflowX:'auto',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
-            {[['gyms','🏋️'],['addgym','➕'],['addcity','🌍'],['events',''],['users',''],['reports','🚨'],['records','🏅'],['feedback','💬'],['equipment',''],['broadcast','📢'],['stats','📊'],['scanner','🔍']].map(([t,l])=>(
+            {[['dashboard','📈'],['gyms','🏋️'],['addgym','➕'],['addcity','🌍'],['events',''],['users',''],['reports','🚨'],['records','🏅'],['feedback','💬'],['equipment',''],['broadcast','📢'],['stats','📊'],['scanner','🔍']].map(([t,l])=>(
               <button key={t} onClick={()=>setAdminTab(t)} style={{flexShrink:0,padding:'10px 14px',background:'none',border:'none',borderBottom:adminTab===t?'2px solid '+RED:'2px solid transparent',color:adminTab===t?RED:(darkMode?'#aaa':'#888'),fontWeight:700,fontSize:16,cursor:'pointer'}}>{l}</button>
             ))}
           </div>
           <div style={{padding:'16px',flex:1,overflowY:'auto'}}>
+
+            {/* ── ANALYTICS DASHBOARD ── */}
+            {adminTab==='dashboard'&&(()=>{
+              const cardBg=darkMode?'#1a1a1a':'#fff';
+              const cardBorder='1px solid '+(darkMode?'#2a2a2a':'#eee');
+              const subCol=darkMode?'#aaa':'#888';
+              const SectionTitle=({children})=>(<div style={{color:subCol,fontSize:11,fontWeight:700,letterSpacing:1.5,margin:'18px 0 8px'}}>{children}</div>);
+              const StatCard=({icon,label,val})=>(
+                <div style={{background:cardBg,borderRadius:12,padding:'12px 10px',border:cardBorder,textAlign:'center'}}>
+                  <div style={{fontSize:18}}>{icon}</div>
+                  <div style={{color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,lineHeight:1.1}}>{val}</div>
+                  <div style={{color:subCol,fontSize:9,marginTop:2}}>{label}</div>
+                </div>
+              );
+              // Mini-Balkendiagramm fuer eine Zeitreihe [{key,count}]
+              const MiniBars=({series,accent})=>{
+                const max=Math.max(1,...series.map(s=>s.count));
+                return(
+                  <div style={{background:cardBg,borderRadius:12,padding:'12px',border:cardBorder}}>
+                    <div style={{display:'flex',alignItems:'flex-end',gap:3,height:70}}>
+                      {series.map((s,i)=>(
+                        <div key={s.key} title={s.key+': '+s.count} style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'flex-end',height:'100%'}}>
+                          <div style={{height:Math.round((s.count/max)*100)+'%',minHeight:s.count>0?3:1,background:i===series.length-1?(accent||RED):(accent||RED)+'66',borderRadius:'3px 3px 0 0'}}/>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{display:'flex',justifyContent:'space-between',marginTop:6,color:subCol,fontSize:9}}>
+                      <span>{series[0]?.key?.slice(5)}</span>
+                      <span>heute: {series[series.length-1]?.count||0}</span>
+                    </div>
+                  </div>
+                );
+              };
+              return(
+                <div>
+                  <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:2,marginBottom:4}}>📈 ANALYTICS DASHBOARD</div>
+                  <button onClick={loadDashboard} disabled={dashLoading} style={{width:'100%',padding:'10px',borderRadius:8,background:dashLoading?'#888':RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:dashLoading?'default':'pointer',marginBottom:4}}>
+                    {dashLoading?'⏳ LÄDT…':(dashData?'🔄 AKTUALISIEREN':'📊 DATEN LADEN')}
+                  </button>
+                  {dashData&&<div style={{color:subCol,fontSize:10,textAlign:'center',marginBottom:4}}>Stand: {new Date(dashData.loadedAt).toLocaleTimeString('de-DE')}</div>}
+                  {!dashStats&&!dashLoading&&<div style={{color:subCol,fontSize:12,textAlign:'center',padding:'30px 0'}}>Noch keine Daten geladen. Tippe auf „Daten laden".</div>}
+                  {dashStats&&(<>
+                    <SectionTitle>👥 NUTZER</SectionTitle>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:8}}>
+                      <StatCard icon='👥' label='Gesamt' val={dashStats.totalUsers}/>
+                      <StatCard icon='🟢' label='Heute aktiv' val={dashStats.active.today}/>
+                      <StatCard icon='⚡' label='7 Tage aktiv' val={dashStats.active.week}/>
+                      <StatCard icon='📆' label='30 Tage aktiv' val={dashStats.active.month}/>
+                      <StatCard icon='✨' label='Neu heute' val={dashStats.newToday}/>
+                      <StatCard icon='🗓️' label='Neu (7T)' val={dashStats.newWeek}/>
+                      <StatCard icon='🥊' label='Mit Kampf' val={dashStats.rankingActive}/>
+                      <StatCard icon='🚫' label='Gesperrt' val={dashStats.bannedUsers}/>
+                    </div>
+
+                    <SectionTitle>📈 NEUE REGISTRIERUNGEN — LETZTE 14 TAGE</SectionTitle>
+                    <MiniBars series={dashStats.regSeries}/>
+                    <SectionTitle>📅 REGISTRIERUNGEN PRO WOCHE — LETZTE 8 WOCHEN</SectionTitle>
+                    <MiniBars series={dashStats.regWeekSeries} accent='#2980b9'/>
+
+                    <SectionTitle>💕 MATCHES — LETZTE 14 TAGE (gesamt {dashStats.totalMatches})</SectionTitle>
+                    <MiniBars series={dashStats.matchSeries} accent='#27ae60'/>
+                    <SectionTitle>💬 NACHRICHTEN — LETZTE 14 TAGE (gesamt {dashStats.totalMessages})</SectionTitle>
+                    <MiniBars series={dashStats.msgSeries} accent='#d4a017'/>
+
+                    <SectionTitle>🛒 EQUIPMENT-KLICKS ({dashStats.totalClicks} gesamt)</SectionTitle>
+                    <div style={{background:cardBg,borderRadius:12,padding:'8px',border:cardBorder}}>
+                      {dashStats.equipRanking.length===0&&<div style={{color:subCol,fontSize:12,textAlign:'center',padding:'12px'}}>Noch keine Produkte.</div>}
+                      {dashStats.equipRanking.slice(0,15).map((e,i)=>{
+                        const max=Math.max(1,dashStats.equipRanking[0].clicks);
+                        return(
+                          <div key={i} style={{padding:'7px 6px',borderBottom:i<Math.min(14,dashStats.equipRanking.length-1)?('1px solid '+(darkMode?'#242424':'#f2f2f2')):'none'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                              <span style={{color:i<3?RED:subCol,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,width:20,flexShrink:0}}>{i+1}</span>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.brand} {e.product}</div>
+                                {e.category&&<div style={{color:subCol,fontSize:10}}>{e.category}{e.featured?' · ⭐ Featured':''}</div>}
+                              </div>
+                              <span style={{color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,flexShrink:0}}>{e.clicks}</span>
+                            </div>
+                            <div style={{height:5,borderRadius:3,background:darkMode?'#242424':'#f0f0f0',overflow:'hidden'}}>
+                              <div style={{height:'100%',width:Math.round((e.clicks/max)*100)+'%',background:RED,borderRadius:3}}/>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <SectionTitle>🎟️ TICKETING</SectionTitle>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:8}}>
+                      <StatCard icon='💰' label='Umsatz gesamt' val={dashStats.revenue.total.toFixed(0)+'€'}/>
+                      <StatCard icon='🎫' label='Tickets verkauft' val={dashStats.revenue.ticketsSold}/>
+                      <StatCard icon='📊' label='Ø Teiln./Event' val={dashStats.participation.avgPerEvent}/>
+                    </div>
+                    <div style={{background:cardBg,borderRadius:12,padding:'8px',border:cardBorder}}>
+                      {dashStats.revenue.perEvent.filter(e=>e.paidCount>0).length===0&&<div style={{color:subCol,fontSize:12,textAlign:'center',padding:'12px'}}>Noch keine verkauften Tickets.</div>}
+                      {dashStats.revenue.perEvent.filter(e=>e.paidCount>0).slice(0,10).map((e,i)=>(
+                        <div key={e.id} style={{display:'flex',alignItems:'center',gap:8,padding:'6px',borderBottom:i<9?('1px solid '+(darkMode?'#242424':'#f2f2f2')):'none'}}>
+                          <div style={{flex:1,minWidth:0,color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.title||'(ohne Titel)'}</div>
+                          <div style={{color:subCol,fontSize:11}}>{e.paidCount}× · {e.price}€</div>
+                          <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15}}>{e.revenue.toFixed(0)}€</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <SectionTitle>🏋️ GYMS ({dashStats.gyms.total} gesamt · {dashStats.gyms.verified} verifiziert)</SectionTitle>
+                    <div style={{background:cardBg,borderRadius:12,padding:'8px',border:cardBorder}}>
+                      {dashStats.gyms.byCity.slice(0,12).map((c,i)=>{
+                        const max=Math.max(1,dashStats.gyms.byCity[0].count);
+                        return(
+                          <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 6px'}}>
+                            <div style={{width:90,flexShrink:0,color:darkMode?'#fff':'#1a1a1a',fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.city}</div>
+                            <div style={{flex:1,height:8,borderRadius:4,background:darkMode?'#242424':'#f0f0f0',overflow:'hidden'}}>
+                              <div style={{height:'100%',width:Math.round((c.count/max)*100)+'%',background:'#2980b9',borderRadius:4}}/>
+                            </div>
+                            <div style={{color:subCol,fontSize:11,width:22,textAlign:'right'}}>{c.count}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{height:20}}/>
+                  </>)}
+                </div>
+              );
+            })()}
 
             {/* ── GYM LOGOS ── */}
             {adminTab==='gyms'&&(
@@ -5926,8 +6170,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                           </div>
                           <button onClick={async()=>{
                             if(!window.confirm('Löschen: "'+gym.name+'"?'))return;
-                            await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
-                            await loadDbGyms(session);showMsg('✅ Gelöscht');
+                            try{
+                              const r=await adminFetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE'},session?.token);
+                              if(!r.ok){showMsg('❌ Löschen fehlgeschlagen ('+r.status+')');return;}
+                              await loadDbGyms(session);showMsg('✅ Gelöscht');
+                            }catch(e){showMsg('Fehler: '+e.message);}
                           }} style={{padding:'4px 10px',borderRadius:6,background:'#e74c3c',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>{t.deleteBtn}</button>
                         </div>
                       ))}
@@ -5945,8 +6192,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                               </div>
                               {i>0&&<button onClick={async()=>{
                                 if(!window.confirm('Duplikat löschen: "'+gym.name+'" ('+gym.city+')?'))return;
-                                await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
-                                await loadDbGyms(session);showMsg('✅ Duplikat gelöscht');
+                                try{
+                                  const r=await adminFetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE'},session?.token);
+                                  if(!r.ok){showMsg('❌ Löschen fehlgeschlagen ('+r.status+')');return;}
+                                  await loadDbGyms(session);showMsg('✅ Duplikat gelöscht');
+                                }catch(e){showMsg('Fehler: '+e.message);}
                               }} style={{padding:'4px 10px',borderRadius:6,background:'#e74c3c',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',flexShrink:0}}>{t.deleteBtn}</button>}
                               {i===0&&<span style={{color:'#27ae60',fontSize:10,flexShrink:0}}>✓ Behalten</span>}
                             </div>
@@ -5987,15 +6237,14 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                                   const path='gyms/logo_'+gym.code+'_'+Date.now()+'.png';
                                   const url=await uploadPhoto(compressed,path,session.token);
                                   if(url){
-                                    // Delete old logo first, then insert new
-                                    await fetch(SUPA_URL+'/rest/v1/gym_logos?gym_code=eq.'+gym.code,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
-                                    // Delete old + insert new logo
-                                    try{await fetch(SUPA_URL+'/rest/v1/gym_logos?gym_code=eq.'+gym.code,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});}catch{}
-                                    await fetch(SUPA_URL+'/rest/v1/gym_logos',{
+                                    // Altes Logo löschen, dann neues anlegen — über die sichere Admin-Schleuse
+                                    await adminFetch(SUPA_URL+'/rest/v1/gym_logos?gym_code=eq.'+gym.code,{method:'DELETE'},session?.token);
+                                    const insRes=await adminFetch(SUPA_URL+'/rest/v1/gym_logos',{
                                       method:'POST',
-                                      headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+                                      headers:{Prefer:'return=minimal'},
                                       body:JSON.stringify({gym_code:gym.code,logo_url:url,verified:true})
-                                    });
+                                    },session?.token);
+                                    if(!insRes.ok){showMsg('❌ Logo speichern fehlgeschlagen ('+insRes.status+')');return;}
                                     setGymLogos(prev=>({...prev,[gym.code]:{logo_url:url,verified:true}}));
                                     await loadGymLogos();
                                     showMsg('✅ Logo gespeichert!');
@@ -6013,7 +6262,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                             const style=document.getElementById('gs'+gym.id)?.value?.trim();
                             if(!name||!city)return;
                             try{
-                              await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name,city,address,style})});
+                              const r=await adminFetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({name,city,address,style})},session?.token);
+                              if(!r.ok){showMsg('❌ Speichern fehlgeschlagen ('+r.status+')');return;}
                               await loadDbGyms(session);
                               await loadGymLogos();
                               setEditGymId(null);
@@ -6024,7 +6274,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                           <button onClick={async()=>{
                             if(!window.confirm('Gym löschen?'))return;
                             try{
-                              await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                              const r=await adminFetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE'},session?.token);
+                              if(!r.ok){showMsg('❌ Löschen fehlgeschlagen ('+r.status+')');return;}
                               await loadDbGyms(session);
                               setEditGymId(null);
                               showMsg('✅ Gelöscht');
@@ -6044,8 +6295,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         <button onClick={()=>setEditGymId(gym.id)} style={{padding:'5px 8px',borderRadius:6,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontSize:11,cursor:'pointer'}}>✏️</button>
                         <button onClick={async()=>{
                           if(!window.confirm('Gym löschen: "'+gym.name+'"?'))return;
-                          await fetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
-                          await loadDbGyms(session);showMsg('✅ Gelöscht');
+                          try{
+                            const r=await adminFetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE'},session?.token);
+                            if(!r.ok){showMsg('❌ Löschen fehlgeschlagen ('+r.status+')');return;}
+                            await loadDbGyms(session);showMsg('✅ Gelöscht');
+                          }catch(e){showMsg('Fehler: '+e.message);}
                         }} style={{padding:'5px 8px',borderRadius:6,background:'#e74c3c22',border:'1px solid #e74c3c44',color:'#e74c3c',fontSize:11,cursor:'pointer'}}>🗑️</button>
                       </div>
                     )}
@@ -6141,11 +6395,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   if(!city){showMsg('Stadtname eingeben');return;}
                   const gymName=(adminCityGymName||('Kampfsport '+city)).trim();
                   try{
-                    const resp=await fetch(SUPA_URL+'/rest/v1/gyms',{
+                    const resp=await adminFetch(SUPA_URL+'/rest/v1/gyms',{
                       method:'POST',
-                      headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+                      headers:{Prefer:'return=minimal'},
                       body:JSON.stringify({name:gymName,city,code:gymName.replace(/[^A-Z0-9]/gi,'-').toUpperCase().slice(0,15)+'-'+Date.now().toString().slice(-4),emoji:'',members:0,rating:0,style:'Kampfsport',styles:['Kampfsport']})
-                    });
+                    },session?.token);
                     if(resp.ok||resp.status===201){
                       await loadDbGyms(session);
                       showMsg('✅ '+city+' hinzugefügt!');
@@ -6319,10 +6573,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>🚨 MELDUNGEN</div>
                 <button onClick={async()=>{
                   try{
-                    const data=await dbSelect('reports','order=created_at.desc&limit=50',session.token);
-                    if(Array.isArray(data))setAdminReports(data);
-                    else setAdminReports([]);
-                  }catch{setAdminReports([]);}
+                    const resp=await adminFetch(SUPA_URL+'/rest/v1/reports?order=created_at.desc&limit=50',{},session?.token);
+                    const data=await resp.json();
+                    if(Array.isArray(data)){setAdminReports(data);showMsg('✅ '+data.length+' Meldung(en) geladen');}
+                    else{setAdminReports([]);showMsg('❌ Fehler: '+((data&&data.error)||'unerwartete Antwort'));}
+                  }catch(e){setAdminReports([]);showMsg('Fehler: '+e.message);}
                 }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>MELDUNGEN LADEN</button>
                 {adminReports.length===0&&<div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>{t.noReports}</div>}
                 {adminReports.map((r,i)=>(
@@ -6356,10 +6611,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>🏅 REKORD-ANTRÄGE</div>
                 <button onClick={async()=>{
                   try{
-                    const data=await dbSelect('profiles','record_verified=eq.pending&select=id,name,city,style,record_proof_url,created_at&limit=30',session.token);
-                    if(Array.isArray(data))setAdminRecords(data);
-                    else setAdminRecords([]);
-                  }catch{setAdminRecords([]);}
+                    const resp=await adminFetch(SUPA_URL+'/rest/v1/profiles?record_verified=eq.pending&select=id,name,city,style,record_proof_url,created_at&limit=30',{},session?.token);
+                    const data=await resp.json();
+                    if(Array.isArray(data)){setAdminRecords(data);showMsg('✅ '+data.length+' Antrag/Anträge geladen');}
+                    else{setAdminRecords([]);showMsg('❌ Fehler: '+((data&&data.error)||'unerwartete Antwort'));}
+                  }catch(e){setAdminRecords([]);showMsg('Fehler: '+e.message);}
                 }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>ANTRÄGE LADEN</button>
                 {adminRecords.length===0&&<div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>{t.noRequests}</div>}
                 {adminRecords.map((u,i)=>(
@@ -6627,6 +6883,26 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
 
             {adminTab==='broadcast'&&(
               <div>
+                {/* BEWERTUNGS-PUSH */}
+                <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',marginBottom:16,border:'1px solid '+RED+'44'}}>
+                  <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:6}}>⭐ BEWERTUNGS-PUSH</div>
+                  <div style={{color:'#aaa',fontSize:11,marginBottom:10,lineHeight:1.6}}>Schickt allen die Frage „Gefällt dir die Fighter App?". Ein Tipp auf die Benachrichtigung öffnet direkt die App-Store-Bewertung.{!APP_STORE_ID&&<span style={{color:'#e74c3c'}}> ⚠️ App-Store-ID fehlt noch — Push kommt an, öffnet aber noch nicht den Store.</span>}</div>
+                  <button onClick={async()=>{
+                    if(!window.confirm('Bewertungs-Push an ALLE Nutzer senden?'))return;
+                    setAdminSaving(true);
+                    try{
+                      const pushResp=await fetch(SUPA_URL+'/functions/v1/broadcast-push',{
+                        method:'POST',
+                        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
+                        body:JSON.stringify({title:'⭐ Gefällt dir Fighter?',body:'Tippe hier und bewerte uns im App Store 🥊',data:{type:'rate'}})
+                      });
+                      const pd=await pushResp.json().catch(()=>({}));
+                      if(pd&&typeof pd.sent==='number')showMsg('✅ Bewertungs-Push: '+pd.sent+'/'+pd.totalTokens+' zugestellt');
+                      else showMsg('Antwort: '+JSON.stringify(pd).slice(0,120));
+                    }catch(e){showMsg('Fehler: '+e.message);}
+                    setAdminSaving(false);
+                  }} disabled={adminSaving} style={{width:'100%',padding:'11px',borderRadius:8,background:adminSaving?'#888':RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:adminSaving?'default':'pointer'}}>⭐ BEWERTUNGS-PUSH SENDEN</button>
+                </div>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>📢 NACHRICHT AN ALLE</div>
                 <div style={{color:'#aaa',fontSize:11,marginBottom:12,lineHeight:1.6}}>Sende eine Systemnachricht die alle User beim nächsten Öffnen der App sehen.</div>
                 <textarea value={adminBroadcast} onChange={e=>setAdminBroadcast(e.target.value)} placeholder="z.B. Neues Feature: Jetzt Gym-Seiten besuchen! 🏋️" rows={4} style={{width:'100%',padding:'12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',resize:'none',marginBottom:10}}/>
@@ -6830,11 +7106,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <button onClick={async()=>{
                   showMsg('Scanne alle Profile...');
                   try{
-                    // Alle Profile laden
-                    const resp=await fetch(SUPA_URL+'/rest/v1/profiles?select=city,gym&limit=500',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                    // Alle Profile laden — über die sichere Admin-Schleuse
+                    const resp=await adminFetch(SUPA_URL+'/rest/v1/profiles?select=city,gym&limit=500',{},session?.token);
                     const profiles=await resp.json();
-                    // Bekannte Städte aus DB — mit Session Token
-                    const gymResp=await fetch(SUPA_URL+'/rest/v1/gyms?select=city,name',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
+                    // Bekannte Gyms aus DB
+                    const gymResp=await adminFetch(SUPA_URL+'/rest/v1/gyms?select=city,name',{},session?.token);
                     const existingGyms=await gymResp.json();
                     const existingCities=new Set((Array.isArray(existingGyms)?existingGyms:[]).map(g=>g.city?.toLowerCase().trim()));
                     const existingGymNames=new Set((Array.isArray(existingGyms)?existingGyms:[]).map(g=>g.name?.toLowerCase().trim()));
@@ -6902,7 +7178,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                             </div>
                             <button onClick={async()=>{
                               try{
-                                await fetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({name:gym,city:data.city||'Unbekannt',code:gym.toUpperCase().replace(/\s/g,'-').slice(0,20),emoji:'',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})});
+                                const r=await adminFetch(SUPA_URL+'/rest/v1/gyms',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({name:gym,city:data.city||'Unbekannt',code:gym.toUpperCase().replace(/\s/g,'-').slice(0,20),emoji:'',style:'Kampfsport',styles:['Kampfsport'],members:0,rating:0})},session?.token);
+                                if(!r.ok){showMsg('❌ Hinzufügen fehlgeschlagen ('+r.status+')');return;}
                                 setScanResult(prev=>({...prev,gyms:prev.gyms.filter(([g])=>g!==gym)}));
                                 await loadDbGyms(session);
                                 showMsg('✅ '+gym+' hinzugefügt');
@@ -6932,9 +7209,9 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     const data=await resp.json();
                     if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
                     const [sRes,mRes,msgRes]=await Promise.all([
-                      fetch(SUPA_URL+'/rest/v1/swipes?select=direction,created_at&order=created_at.desc&limit=5000',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}}),
-                      fetch(SUPA_URL+'/rest/v1/matches?select=id,created_at&order=created_at.desc&limit=2000',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}}),
-                      fetch(SUPA_URL+'/rest/v1/messages?select=id,match_id,created_at&order=created_at.desc&limit=5000',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}}),
+                      adminFetch(SUPA_URL+'/rest/v1/swipes?select=direction,created_at&order=created_at.desc&limit=5000',{},session?.token),
+                      adminFetch(SUPA_URL+'/rest/v1/matches?select=id,created_at&order=created_at.desc&limit=2000',{},session?.token),
+                      adminFetch(SUPA_URL+'/rest/v1/messages?select=id,match_id,created_at&order=created_at.desc&limit=5000',{},session?.token),
                     ]);
                     const [sData,mData,msgData]=await Promise.all([sRes.json(),mRes.json(),msgRes.json()]);
                     if(Array.isArray(sData))setAdminSwipes(sData);
