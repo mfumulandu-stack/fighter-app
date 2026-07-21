@@ -837,6 +837,9 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest}){
   const [items,setItems]=React.useState([]);
   const [loading,setLoading]=React.useState(true);
   const [activeCategory,setActiveCategory]=React.useState('Alle');
+  const [categoryOpen,setCategoryOpen]=React.useState(false);
+  const [searchQuery,setSearchQuery]=React.useState('');
+  const [sortMode,setSortMode]=React.useState('popular'); // 'popular' | 'newest'
   const RED='#c0392b';
 
   React.useEffect(()=>{
@@ -849,9 +852,19 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest}){
   },[]);
 
   const categories=['Alle',...new Set(items.map(i=>i.category).filter(Boolean))];
-  const filtered=activeCategory==='Alle'?items:items.filter(i=>i.category===activeCategory);
+  const normSearch=(searchQuery||'').toLowerCase().trim();
+  const bySearch=!normSearch?items:items.filter(i=>
+    (i.brand||'').toLowerCase().includes(normSearch)||
+    (i.product||'').toLowerCase().includes(normSearch)||
+    (i.description||'').toLowerCase().includes(normSearch)
+  );
+  const filtered=activeCategory==='Alle'?bySearch:bySearch.filter(i=>i.category===activeCategory);
   const featured=filtered.filter(i=>i.featured);
-  const rest=filtered.filter(i=>!i.featured).slice().sort((a,b)=>(b.click_count||0)-(a.click_count||0));
+  const restUnsorted=filtered.filter(i=>!i.featured);
+  const rest=restUnsorted.slice().sort((a,b)=>{
+    if(sortMode==='newest') return new Date(b.created_at||0)-new Date(a.created_at||0);
+    return (b.click_count||0)-(a.click_count||0); // 'popular' (Standard)
+  });
 
   if(loading)return(
     <div style={{textAlign:'center',padding:'60px 20px'}}>
@@ -875,17 +888,34 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest}){
 
   return(
     <div>
-      {/* Category Filter */}
-      {categories.length>1&&(
-        <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:8,marginBottom:16}}>
-          {categories.map(cat=>(
-            <button key={cat} onClick={()=>setActiveCategory(cat)}
-              style={{flexShrink:0,padding:'5px 12px',borderRadius:16,background:activeCategory===cat?RED:'transparent',border:'1px solid '+(activeCategory===cat?RED:(darkMode?'#333':'#ddd')),color:activeCategory===cat?'#fff':(darkMode?'#aaa':'#666'),fontSize:12,fontWeight:600,cursor:'pointer'}}>
-              {cat}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Suche + Kategorie-Auswahl - bleiben beim Scrollen oben sichtbar */}
+      <div style={{position:'sticky',top:0,zIndex:5,background:darkMode?'#0d0d0d':'#f5f5f7',paddingBottom:10,marginBottom:6}}>
+        <input
+          value={searchQuery}
+          onChange={e=>setSearchQuery(e.target.value)}
+          placeholder={appLang==='FR'?'Rechercher un produit...':appLang==='EN'?'Search products...':'Produkt oder Marke suchen...'}
+          style={{width:'100%',padding:'10px 14px',borderRadius:12,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#1a1a1a':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',marginBottom:8}}
+        />
+        {categories.length>1&&(
+          <div style={{position:'relative'}}>
+            <div onClick={()=>setCategoryOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 14px',borderRadius:12,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),cursor:'pointer'}}>
+              <span style={{fontSize:13}}>🗂️</span>
+              <span style={{flex:1,color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:600}}>{activeCategory}</span>
+              <span style={{color:'#aaa',fontSize:10,transform:categoryOpen?'rotate(180deg)':'none',transition:'transform 0.2s'}}>▼</span>
+            </div>
+            {categoryOpen&&(
+              <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,zIndex:20,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,0.15)',maxHeight:280,overflowY:'auto',padding:6}}>
+                {categories.map(cat=>(
+                  <div key={cat} onClick={()=>{setActiveCategory(cat);setCategoryOpen(false);}}
+                    style={{padding:'9px 12px',borderRadius:8,cursor:'pointer',background:activeCategory===cat?(darkMode?'#2a1414':'#fdecea'):'transparent',color:activeCategory===cat?RED:(darkMode?'#e0e0e0':'#333'),fontSize:13,fontWeight:activeCategory===cat?700:500}}>
+                    {cat}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Featured */}
       {featured.length>0&&(
@@ -895,11 +925,25 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest}){
         </div>
       )}
 
-      {/* Rest */}
+      {/* Rest - mit Ueberschrift und Sortier-Umschalter, immer sichtbar sobald Eintraege da sind */}
       {rest.length>0&&(
         <div>
-          {featured.length>0&&<div style={{color:'#aaa',fontSize:11,fontWeight:700,letterSpacing:2,marginBottom:10}}>WEITERE PRODUKTE</div>}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+            <div style={{color:'#aaa',fontSize:11,fontWeight:700,letterSpacing:2}}>{sortMode==='popular'?'🔥 BELIEBTESTE':'🆕 NEUESTE'}</div>
+            <div style={{display:'flex',gap:4}}>
+              <button onClick={()=>setSortMode('popular')} style={{padding:'4px 10px',borderRadius:14,border:'1px solid '+(sortMode==='popular'?RED:(darkMode?'#333':'#ddd')),background:sortMode==='popular'?RED:'transparent',color:sortMode==='popular'?'#fff':(darkMode?'#aaa':'#666'),fontSize:10,fontWeight:700,cursor:'pointer'}}>Beliebtheit</button>
+              <button onClick={()=>setSortMode('newest')} style={{padding:'4px 10px',borderRadius:14,border:'1px solid '+(sortMode==='newest'?RED:(darkMode?'#333':'#ddd')),background:sortMode==='newest'?RED:'transparent',color:sortMode==='newest'?'#fff':(darkMode?'#aaa':'#666'),fontSize:10,fontWeight:700,cursor:'pointer'}}>Neueste</button>
+            </div>
+          </div>
           {rest.map(eq=><EquipCard key={eq.id} eq={eq} darkMode={darkMode} RED={RED}/>)}
+        </div>
+      )}
+
+      {/* Leerer Zustand, wenn Suche/Kategorie nichts findet (aber generell Produkte existieren) */}
+      {filtered.length===0&&(
+        <div style={{textAlign:'center',padding:'40px 20px',color:'#aaa'}}>
+          <div style={{fontSize:32,marginBottom:8}}>🔍</div>
+          <div style={{fontSize:13}}>Keine Produkte gefunden{activeCategory!=='Alle'?' in "'+activeCategory+'"':''}{searchQuery?' für "'+searchQuery+'"':''}.</div>
         </div>
       )}
 
@@ -920,7 +964,8 @@ function EquipCard({eq,darkMode,RED}){
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:4}}>
             <span style={{background:RED+'18',borderRadius:20,padding:'1px 8px',color:RED,fontSize:10,fontWeight:700}}>{eq.category}</span>
-            {eq.featured&&<span style={{background:'#d4a01718',borderRadius:20,padding:'1px 8px',color:'#d4a017',fontSize:10,fontWeight:700}}>⭐</span>}
+            {eq.featured&&!eq.sponsored&&<span style={{background:'#d4a01718',borderRadius:20,padding:'1px 8px',color:'#d4a017',fontSize:10,fontWeight:700}}>⭐</span>}
+            {eq.sponsored&&<span style={{background:'#88888822',borderRadius:20,padding:'1px 8px',color:'#888',fontSize:10,fontWeight:700}}>ANZEIGE</span>}
           </div>
           <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15}}>{eq.brand}</div>
           <div style={{color:darkMode?'#ddd':'#444',fontSize:13,marginTop:1}}>{eq.product}</div>
@@ -6513,9 +6558,13 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                             ))}
                           </select>
                         </div>
-                        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
                           <input type='checkbox' checked={!!editEquipForm.featured} onChange={e=>setEditEquipForm(p=>({...p,featured:e.target.checked}))} id={'feat_'+eq.id}/>
                           <label htmlFor={'feat_'+eq.id} style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,cursor:'pointer'}}>⭐ Featured</label>
+                        </div>
+                        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                          <input type='checkbox' checked={!!editEquipForm.sponsored} onChange={e=>setEditEquipForm(p=>({...p,sponsored:e.target.checked}))} id={'spon_'+eq.id}/>
+                          <label htmlFor={'spon_'+eq.id} style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,cursor:'pointer'}}>💰 Bezahlte Platzierung (zeigt "ANZEIGE")</label>
                         </div>
                         <div style={{display:'flex',gap:8}}>
                           <button onClick={()=>{setEditingEquip(null);setEditEquipForm(null);}} style={{flex:1,padding:'8px',borderRadius:7,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontWeight:700,fontSize:12,cursor:'pointer'}}>ABBRECHEN</button>
@@ -6551,7 +6600,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         {eq.discount_code&&<div style={{color:'#27ae60',fontSize:11,marginTop:2}}>🏷️ Code: {eq.discount_code}</div>}
                       </div>
                       <div style={{display:'flex',gap:6,flexShrink:0,marginLeft:8}}>
-                        <button onClick={()=>{setEditingEquip(eq.id);setEditEquipForm({brand:eq.brand||'',product:eq.product||'',description:eq.description||'',url:eq.url||'',image_url:eq.image_url||'',discount_code:eq.discount_code||'',category:eq.category||'Boxen',featured:!!eq.featured});}} style={{background:'none',border:'1px solid #2980b944',borderRadius:6,padding:'4px 8px',color:'#2980b9',fontSize:11,cursor:'pointer'}}>
+                        <button onClick={()=>{setEditingEquip(eq.id);setEditEquipForm({brand:eq.brand||'',product:eq.product||'',description:eq.description||'',url:eq.url||'',image_url:eq.image_url||'',discount_code:eq.discount_code||'',category:eq.category||'Boxen',featured:!!eq.featured,sponsored:!!eq.sponsored});}} style={{background:'none',border:'1px solid #2980b944',borderRadius:6,padding:'4px 8px',color:'#2980b9',fontSize:11,cursor:'pointer'}}>
                           ✏️
                         </button>
                         <button onClick={async()=>{
