@@ -22,6 +22,7 @@ const ADMIN_ID = "1a697731-458d-4559-a4cf-a89d3150bfa5";
 const ALLOWED_PREFIXES = [
   "/rest/v1/profiles",
   "/rest/v1/gyms",
+  "/rest/v1/gym_logos",
   "/rest/v1/events",
   "/rest/v1/event_participants",
   "/rest/v1/equipment",
