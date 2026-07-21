@@ -9,6 +9,18 @@ const Globe=lazy(()=>import('react-globe.gl'));
 // sie bekommen die 4K-Textur, Desktop die scharfe 8K-Version
 const IS_MOBILE_DEVICE=typeof navigator!=='undefined'&&/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
+// Browser-Benachrichtigung — sicher für iPhone: Safari auf iOS und die
+// iOS-App (WKWebView) haben die Notification-API GAR NICHT; ein ungeschützter
+// Zugriff darauf wirft einen ReferenceError und kann die ganze App crashen.
+function safeLocalNotification(title,body){
+  try{
+    if(typeof window==='undefined'||!('Notification' in window))return;
+    if(Notification.permission==='granted'){
+      new Notification(title,{body,icon:'/icons/icon-192.png',badge:'/icons/icon-72.png'});
+    }
+  }catch(e){}
+}
+
 // Fängt Fehler beim Globus-Rendern ab, damit NIE wieder die ganze App
 // schwarz wird — stattdessen erscheint eine Meldung und man kann schließen
 class GlobeErrorBoundary extends React.Component{
@@ -486,7 +498,7 @@ textarea{resize:none}
 
 
 function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUpdate,rateGym,onClose,darkMode}){
-  if(!gym)return(<div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:250,display:'flex',alignItems:'center',justifyContent:'center'}}><button onClick={onClose} style={{padding:'12px 24px',background:'#c0392b',color:'#fff',border:'none',borderRadius:10,fontSize:16,cursor:'pointer'}}>{t.back}</button></div>);
+  if(!gym)return(<div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:250,display:'flex',alignItems:'center',justifyContent:'center'}}><button onClick={onClose} style={{padding:'12px 24px',background:'#c0392b',color:'#fff',border:'none',borderRadius:10,fontSize:16,cursor:'pointer'}}>Zurück</button></div>);
   // Normalize gym data to avoid crashes with DB gyms missing fields
   gym={styles:[],members:0,rating:0,founded:'',street:'',zip:'',phone:'',website:'',hours:'',desc:'',code:'',...gym,styles:gym.styles&&gym.styles.length>0?gym.styles:[gym.style||'Kampfsport'],desc:gym.desc||gym.description||''};
   const isDark=darkMode===true;
@@ -805,7 +817,10 @@ class ErrorBoundary extends React.Component {
         <div style={{minHeight:'100vh',background:'#0d0d0d',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'20px',fontFamily:'DM Sans,sans-serif'}}>
           <div style={{fontSize:48,marginBottom:16}}>🥊</div>
           <div style={{fontFamily:'Rajdhani,sans-serif',color:'#fff',fontSize:24,letterSpacing:3,marginBottom:8}}>KURZE PAUSE</div>
-          <div style={{color:'#aaa',fontSize:13,textAlign:'center',marginBottom:24,lineHeight:1.6}}>{appLang==='FR'?'Quelque chose a mal tourné. Rechargez l\'application.':appLang==='EN'?'Something went wrong. Please reload the app.':'Etwas ist schiefgelaufen. Bitte lade die App neu.'}</div>
+          {/* Browser-Sprache statt appLang: appLang existiert in dieser Klasse nicht —
+              der Zugriff darauf ließ den Notfallbildschirm selbst abstürzen,
+              sodass statt "KURZE PAUSE" nur ein schwarzer Bildschirm erschien */}
+          <div style={{color:'#aaa',fontSize:13,textAlign:'center',marginBottom:24,lineHeight:1.6}}>{(navigator.language||'').startsWith('fr')?'Quelque chose a mal tourné. Rechargez l\'application.':(navigator.language||'').startsWith('en')?'Something went wrong. Please reload the app.':'Etwas ist schiefgelaufen. Bitte lade die App neu.'}</div>
           <button onClick={()=>{this.setState({hasError:false,error:null});window.location.reload();}}
             style={{background:'#c0392b',border:'none',borderRadius:10,padding:'14px 32px',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
             APP NEU LADEN 🔄
@@ -1037,11 +1052,11 @@ function AuthScreen({ onSession, appLang }) {
             <div style={{display:'flex',flexDirection:'column',gap:8,marginTop:12}}>
               <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
                 <input type='checkbox' id='privacy' checked={privacy} onChange={e=>setPrivacy(e.target.checked)} style={{marginTop:2,accentColor:RED,width:16,height:16,cursor:'pointer',flexShrink:0}}/>
-                <label htmlFor='privacy' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich stimme der <span style={{color:RED,textDecoration:'underline'}} onClick={(e)=>{e.preventDefault();e.stopPropagation();setShowDatenschutz&&setShowDatenschutz(true);}}>Datenschutzerklärung</span> zu</label>
+                <label htmlFor='privacy' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich stimme der <span style={{color:RED,textDecoration:'underline'}} onClick={(e)=>{e.preventDefault();e.stopPropagation();window.open('/datenschutz.html','_blank');}}>Datenschutzerklärung</span> zu</label>
               </div>
               <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
                 <input type='checkbox' id='agb' checked={agbAccepted} onChange={e=>setAgbAccepted(e.target.checked)} style={{marginTop:2,accentColor:RED,width:16,height:16,cursor:'pointer',flexShrink:0}}/>
-                <label htmlFor='agb' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich akzeptiere die <span style={{color:RED,textDecoration:'underline'}} onClick={(e)=>{e.preventDefault();e.stopPropagation();setShowAGB&&setShowAGB(true);}}>AGB</span></label>
+                <label htmlFor='agb' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich akzeptiere die <span style={{color:RED,textDecoration:'underline'}} onClick={(e)=>{e.preventDefault();e.stopPropagation();window.open('/agb.html','_blank');}}>AGB</span></label>
               </div>
             </div>
           )}
@@ -1076,7 +1091,7 @@ function AuthScreen({ onSession, appLang }) {
   );
 }
 
-function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,appLang}){
+function ChatOverlay({match,myProfileId,myName,token,onClose,onViewProfile,darkMode,t,appLang}){
   // Fallback t object if not passed
   if(!t)t={fightRequest:'FIGHT REQUEST',fightType:'FIGHT TYP',date:'DATUM',placeGym:'ORT / GYM',placePlaceholder:'z.B. Tiger Gym Berlin',waitingResponse:'Warte...',sendFightRequest:'⚔️ SENDEN',fightSent:'GESENDET!',waitingFor:'Wartet auf',accept:'✅ ANNEHMEN',decline:'❌ ABLEHNEN',counterDate:'🔄 GEGEN-TERMIN',backToChat:'💬 ZURÜCK',fightAccepted:'ANGENOMMEN',fightDeclined:'ABGELEHNT',counterTerm:'GEGENVORSCHLAG',message:'Nachricht…',send:'➤',block:'🚫 Blockieren',unblock:'🚫 Entsperren',report:'⚠️ Melden',reported:'✓ Gemeldet'};
   const [messages,setMessages]=useState([]);
@@ -1124,7 +1139,10 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,a
               // Push für neue Nachrichten vom anderen
               const newest=fresh[fresh.length-1];
               if(newest.sender_id!==myProfileId){
-                sendLocalNotification('💬 Neue Nachricht',other?.name+': '+newest.content?.slice(0,60));
+                // safeLocalNotification statt sendLocalNotification: Letzteres existiert
+                // nur in der Haupt-Komponente — der Aufruf hier warf einen ReferenceError
+                // und crashte die App, sobald im offenen Chat eine Nachricht ankam
+                safeLocalNotification('💬 Neue Nachricht',other?.name+': '+newest.content?.slice(0,60));
               }
               const updated=[...prev,...fresh];
               lastMsgTime.current=updated[updated.length-1].created_at;
@@ -1184,12 +1202,8 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,a
         headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
         body:JSON.stringify({recipientUserId,title,body})
       });
-      const d=await r.json().catch(()=>({}));
-      // TEMPORAERE DIAGNOSE: zeigt das echte Ergebnis an, damit wir sehen
-      // koennen, was bei send-push tatsaechlich passiert - kann spaeter
-      // wieder entfernt werden, sobald Nachrichten-Push zuverlaessig laeuft
-      if(isAdmin)showMsg('🔔 Push-Diagnose (Nachricht): '+JSON.stringify(d).slice(0,200));
-    }catch(err){console.error('sendPushTo',err);if(isAdmin)showMsg('❌ Push-Fehler (Nachricht): '+err.message);}
+      await r.json().catch(()=>({}));
+    }catch(err){console.error('sendPushTo',err);}
   }
 
   async function send(){
@@ -1208,9 +1222,9 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,a
         setMessages(m=>m.map(msg=>msg.id===tmpId?saved[0]:msg));
         lastMsgTime.current=saved[0].created_at;
       }
-      // Push an den Empfaenger ausloesen
-      const myName=(myProfile&&myProfile.name)||'Jemand';
-      sendPushTo(other&&other.user_id,myName,text);
+      // Push an den Empfaenger ausloesen — myName kommt als Prop aus der
+      // Haupt-Komponente (myProfile existiert hier im Chat-Overlay nicht)
+      sendPushTo(other&&other.user_id,myName||'Jemand',text);
     }catch{}
   }
 
@@ -1256,7 +1270,9 @@ function ChatOverlay({match,myProfileId,token,onClose,onViewProfile,darkMode,t,a
                 <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7}}>
                   {(Array.isArray(other.gallery)?other.gallery:[]).slice(0,3).map((g,i)=>(
                     <div key={i} style={{aspectRatio:'1/1',borderRadius:11,overflow:'hidden',background:'#f0f0f0',border:'1px solid #eee'}}>
-                      <img loading="lazy" src={g} alt='' onClick={()=>setLightboxImg(g)} style={{width:'100%',height:'100%',objectFit:'contain',cursor:'zoom-in'}}/>
+                      {/* kein Lightbox-Zoom hier: setLightboxImg existiert nur in der
+                          Haupt-Komponente, der Aufruf hätte einen Absturz ausgelöst */}
+                      <img loading="lazy" src={g} alt='' style={{width:'100%',height:'100%',objectFit:'contain'}}/>
                     </div>
                   ))}
                 </div>
@@ -2492,9 +2508,7 @@ function MainApp(){
   }
 
   function sendLocalNotification(title,body){
-    if(Notification.permission==='granted'){
-      new Notification(title,{body,icon:'/icons/icon-192.png',badge:'/icons/icon-72.png'});
-    }
+    safeLocalNotification(title,body);
   }
 
   // Rangliste Profile nachladen — KEINE Karten-Reload
@@ -3513,8 +3527,12 @@ function MainApp(){
   // Rangliste: ALLE angemeldeten User aus Datenbank
   // In useMemo verpackt - lief bisher bei jeder App-Interaktion neu,
   // jetzt nur noch wenn sich Rangliste-relevante Daten wirklich aendern.
-  const ranked=React.useMemo(()=>{
-  const userOnly=(()=>{
+  // userOnly als EIGENES useMemo auf Komponenten-Ebene: Die Memoisierung hatte
+  // diese Liste in die ranked-Berechnung hineinverschoben — die "Mein Platz"-
+  // Anzeige weiter unten griff aber von außen darauf zu -> ReferenceError beim
+  // Rendern der Rangliste -> schwarzer Bildschirm beim App-Start, wenn die
+  // Rangliste der zuletzt geöffnete Tab war.
+  const userOnly=React.useMemo(()=>{
     const me=profile.name?[{id:0,name:profile.name,city:profile.city,gym:profile.gym,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'',accent:RED,isMe:true,avatar_url:avatarUrl,is_pro:profile.isPro===true,country:profile.country||'DE'}]:[];
     if(allProfiles.length>0){
       const others=allProfiles.filter(p=>p.id!==myProfile?.id&&!p.banned).map(p=>({
@@ -3525,7 +3543,8 @@ function MainApp(){
       return [...me,...others];
     }
     return me;
-  })();
+  },[profile,stats,avatarUrl,allProfiles,myProfile]);
+  const ranked=React.useMemo(()=>{
   return rankMode==='trainer'
     ?[]
     :[...userOnly]
@@ -3536,7 +3555,7 @@ function MainApp(){
       .filter(f=>(f.wins||0)+(f.losses||0)+(f.draws||0)>0) // nur User mit mind. 1 Kampf
       .filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF))))
       .sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
-  },[profile,stats,avatarUrl,allProfiles,myProfile,rankMode,rankF]);
+  },[userOnly,profile,rankMode,rankF]);
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
   const filteredT=TRAINERS.filter(tr=>trainerF==='All'||tr.style.includes(trainerF)).sort((a,b)=>b.rating-a.rating);
 
@@ -3826,7 +3845,7 @@ nicht öffentlich gemacht</div>
   );
 
   if(!session)return <AuthScreen onSession={handleSession} appLang={appLang}/>;
-  if(activeChat&&myProfile&&!viewProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>{setViewProfile(p);}} darkMode={darkMode} t={t} appLang={appLang}/></>);
+  if(activeChat&&myProfile&&!viewProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} myName={myProfile.name} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>{setViewProfile(p);}} darkMode={darkMode} t={t} appLang={appLang}/></>);
 
   if(screen==='setup')return(
     <div style={{height:'100dvh',overflowY:'auto',WebkitOverflowScrolling:'touch',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'0 0 40px'}}>
