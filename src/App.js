@@ -1788,6 +1788,19 @@ function MainApp(){
     }catch(e){console.error('news laden',e);}
     setNewsLoading(false);
   }
+  // Beim Öffnen der News: Team-Nachrichten serverseitig als gelesen markieren
+  // (nur auf dem Server — das NEU-Badge bleibt während der Ansicht sichtbar,
+  // beim nächsten App-Start erscheint dann kein Popup mehr dafür)
+  useEffect(()=>{
+    if(!showNews||!session)return;
+    adminMessages.filter(m=>!m.read).forEach(m=>{
+      fetch(SUPA_URL+'/rest/v1/admin_messages?id=eq.'+m.id,{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+        body:JSON.stringify({read:true})
+      }).catch(()=>{});
+    });
+  },[showNews]);
   const [showSettings,setShowSettings]=useState(false);
   const [appLang,setAppLang]=useState(()=>{
     try{
@@ -2416,6 +2429,7 @@ function MainApp(){
           const data=action?.notification?.data||{};
           if(data.type==='equipment'){setShowEquipment(true);}
           else if(data.type==='event'){setTab('events');}
+          else if(data.type==='news'){setShowNews(true);loadNews();}
         }catch(e){console.error('push tap navigation',e);}
       });
     }catch(err){showMsg('❌ registerPush Fehler: '+err.message);}
@@ -4397,6 +4411,18 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             </div>
           </div>
           <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%'}}>
+            {/* Nachrichten vom Fighter Team (Admin-Broadcasts) zuerst — hier kann
+                die komplette Nachricht aus der Push-Benachrichtigung nachgelesen werden */}
+            {adminMessages.slice(0,5).map(am=>(
+              <div key={am.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',marginBottom:10,border:'1.5px solid '+RED+'66'}}>
+                <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:6}}>
+                  <span style={{background:RED,borderRadius:20,padding:'1px 8px',color:'#fff',fontSize:10,fontWeight:700}}>📢 FIGHTER TEAM</span>
+                  {am.created_at&&<span style={{color:'#999',fontSize:10}}>{new Date(am.created_at).toLocaleDateString('de-DE')}</span>}
+                  {!am.read&&<span style={{background:'#27ae60',borderRadius:20,padding:'1px 8px',color:'#fff',fontSize:9,fontWeight:700}}>NEU</span>}
+                </div>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,lineHeight:1.6,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{am.message}</div>
+              </div>
+            ))}
             {newsLoading?(
               <div style={{textAlign:'center',padding:'40px 0',color:'#aaa'}}>Lädt...</div>
             ):newsItems.length===0?(
@@ -6584,7 +6610,10 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       const pushResp=await fetch(SUPA_URL+'/functions/v1/broadcast-push',{
                         method:'POST',
                         headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
-                        body:JSON.stringify({title:'🥊 Fighter News',body:adminBroadcast.slice(0,150)})
+                        // type:'news' sorgt dafür, dass ein Tipp auf die Push-
+                        // Benachrichtigung direkt die News-Ansicht öffnet,
+                        // wo die komplette Nachricht nochmal lesbar ist
+                        body:JSON.stringify({title:'🥊 Fighter News',body:adminBroadcast.slice(0,150),data:{type:'news'}})
                       });
                       const pushData=await pushResp.json();
                       if(pushData&&typeof pushData.sent==='number'){
