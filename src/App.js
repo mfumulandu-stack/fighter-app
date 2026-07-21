@@ -10,6 +10,14 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
   const [points,setPoints]=useState([]);
   const [totalCount,setTotalCount]=useState(0);
   const [loading,setLoading]=useState(true);
+  // Skalierungsfaktor für Punkte/Beschriftung: 1 = ganz rausgezoomt, schrumpft beim Reinzoomen,
+  // damit nah beieinanderliegende Städte (z.B. NRW) nicht zu einem Klumpen verschmelzen
+  const [ptScale,setPtScale]=useState(1);
+  function handleZoom(pov){
+    const s=Math.min(1,Math.max(0.03,pov.altitude/1.6));
+    // nur neu rendern, wenn sich die Skala spürbar geändert hat (>15%)
+    setPtScale(prev=>Math.abs(prev-s)/prev>0.15?s:prev);
+  }
 
   useEffect(()=>{
     let active=true;
@@ -36,24 +44,26 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
           // Fallback: Nutzer ohne GPS-Freigabe über ihre Profil-Stadt verorten
           const cityLookup={};
           Object.keys(CITY_COORDS).forEach(k=>{cityLookup[k.toLowerCase()]=CITY_COORDS[k];});
-          // Mehrere Nutzer in derselben Stadt zu einem Punkt zusammenfassen
-          // Stadt-Ebene-Rundung (~5km Raster) — bewusst KEINE exakten Koordinaten,
+          // Nutzer PRO STADT zu einem Punkt zusammenfassen (nicht pro Rasterzelle),
+          // sonst überlappen sich in dichten Regionen wie NRW die Nachbarpunkte.
+          // Koordinaten-Rundung (~5km Raster) — bewusst KEINE exakten Koordinaten,
           // damit kein einzelner Nutzer auf seine genaue Adresse zurückverfolgbar ist.
           const CITY_GRID=0.05; // ca. 5km bei mittleren Breitengraden
           const seen={};
           const pts=[];
           all.forEach(d=>{
+            const cityKey=(d.city||'').trim().toLowerCase();
             let lat=d.lat,lon=d.lon;
             if(!lat||!lon){
-              const cc=cityLookup[(d.city||'').trim().toLowerCase()];
+              const cc=cityLookup[cityKey];
               if(!cc)return; // weder GPS noch bekannte Stadt — zählt im Gesamtzähler, aber kein Punkt
               lat=cc.lat;lon=cc.lon;
             }
             const roundedLat=Math.round(lat/CITY_GRID)*CITY_GRID;
             const roundedLon=Math.round(lon/CITY_GRID)*CITY_GRID;
-            const key=roundedLat+'_'+roundedLon;
+            const key=cityKey||roundedLat+'_'+roundedLon;
             if(seen[key]){seen[key].count++;}
-            else{const p={lat:roundedLat,lng:roundedLon,city:d.city||'',count:1};seen[key]=p;pts.push(p);}
+            else{const p={lat:roundedLat,lng:roundedLon,city:(d.city||'').trim(),count:1};seen[key]=p;pts.push(p);}
           });
           setPoints(pts);
           setTotalCount(total);
@@ -129,15 +139,18 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
               height={window.innerHeight}
               backgroundColor='#000000'
               globeImageUrl='/earth-night-8k.jpg'
-              pointResolution={12}
               bumpImageUrl='//unpkg.com/three-globe/example/img/earth-topology.png'
-              pointsData={points}
-              pointLat='lat'
-              pointLng='lng'
-              pointColor={()=>'#f5a623'}
-              pointAltitude={0.008}
-              pointRadius={d=>0.06+Math.min(d.count*0.02,0.14)}
-              pointLabel={d=>`${d.city||''} · ${d.count} Fighter`}
+              onZoom={handleZoom}
+              labelsData={points}
+              labelLat='lat'
+              labelLng='lng'
+              labelColor={()=>'#f5a623'}
+              labelAltitude={0.008}
+              labelResolution={2}
+              labelDotRadius={d=>(0.05+Math.min(d.count*0.015,0.1))*ptScale}
+              labelText={d=>ptScale<0.5?(d.city?d.city+(d.count>1?' · '+d.count:''):String(d.count)):''}
+              labelSize={()=>Math.max(0.1,0.4*ptScale)}
+              labelLabel={d=>`${d.city||'Unbekannt'} · ${d.count} Fighter`}
               atmosphereColor='#f5a623'
               atmosphereAltitude={0.18}
             />
