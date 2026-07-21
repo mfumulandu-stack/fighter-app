@@ -4538,7 +4538,6 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         <span style={{color:'rgba(255,255,255,0.85)',fontSize:10,fontWeight:600,letterSpacing:0.5}}>{t.profileSeen}</span>
                       </div>
                     </>)}
-                    {isTop&&f.last_seen&&<div style={{position:'absolute',top:12,left:12,background:'rgba(0,0,0,0.55)',borderRadius:20,padding:'3px 10px',backdropFilter:'blur(4px)',zIndex:2}}><div style={{color:'#fff',fontSize:10,fontWeight:600}}>{getLastSeen(f.last_seen)}</div></div>}
                     <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'12px 16px 16px'}}> 
                       <div style={{display:'flex',gap:8,marginBottom:8}}>
                         {[{v:f.wins||0,l:'SIEGE',c:'#27ae60'},{v:f.losses||0,l:'NIEDER',c:'#e74c3c'},{v:f.draws||0,l:'UNENTSCH',c:'#d4a017'},{v:f.ko||0,l:'KOs',c:'#e74c3c'}].map(({v,l,c})=>(
@@ -4662,9 +4661,14 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     <div key={m.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:13,border:'1px solid '+ac+'33',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.06)'}}>
                       <div style={{height:3,background:'linear-gradient(90deg,'+ac+',transparent)'}}/>
                       <div style={{padding:'13px',display:'flex',alignItems:'center',gap:12}}>
-                        <div onClick={()=>setViewProfile(other)} style={{cursor:'pointer',flexShrink:0}}>
+                        <div onClick={()=>setViewProfile(other)} style={{cursor:'pointer',flexShrink:0,position:'relative'}}>
                           {other.avatar_url?<img loading="lazy" src={other.avatar_url} style={{width:54,height:54,borderRadius:'50%',objectFit:'cover',border:'2px solid '+ac+'44'}} alt={other.name}/>
                           :<div style={{width:54,height:54,borderRadius:'50%',background:ac+'18',border:'2px solid '+ac+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>🥊</div>}
+                          {/* grüner Punkt am Avatar: online = in den letzten 5 Minuten aktiv
+                              (gleiche Schwelle wie der Status im offenen Chat-Fenster) */}
+                          {other.last_seen&&(Date.now()-new Date(other.last_seen).getTime())<300000&&(
+                            <div style={{position:'absolute',bottom:1,right:1,width:13,height:13,borderRadius:'50%',background:'#27ae60',border:'2.5px solid '+(darkMode?'#1a1a1a':'#fff')}}/>
+                          )}
                         </div>
                         <div style={{flex:1}} onClick={()=>setViewProfile(other)} >
                           <div style={{display:'flex',alignItems:'center',gap:6}}>
@@ -4681,6 +4685,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         </div>
                         <div style={{textAlign:'right',flexShrink:0}}>
                           <div style={{color:'#ccc',fontSize:10}}>{m.last_message_at?new Date(m.last_message_at).toLocaleDateString('de',{day:'2-digit',month:'2-digit'}):''}</div>
+                          {other.last_seen&&<div style={{color:'#aaa',fontSize:9,marginTop:3,whiteSpace:'nowrap'}}>{getLastSeen(other.last_seen)}</div>}
                         </div>
                         <div onClick={()=>setActiveChat(m)} style={{padding:'9px 16px',borderRadius:8,background:'linear-gradient(135deg,#c0392b,#e74c3c)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>CHAT →</div>
                       </div>
