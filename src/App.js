@@ -64,33 +64,46 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
     return()=>{active=false;};
   },[SUPA_URL,SUPA_KEY]);
 
-  useEffect(()=>{
-    let cancelled=false;
-    let attempts=0;
-    function trySetup(){
-      if(cancelled)return;
-      attempts++;
-      if(globeRef.current&&globeRef.current.controls){
-        // Kamera auf Mitteleuropa ausrichten, damit Nutzer direkt sichtbar sind
-        globeRef.current.pointOfView({lat:48,lng:9,altitude:1.6},0);
-        const controls=globeRef.current.controls();
-        if(controls){
-          controls.autoRotate=false;
-          controls.enableZoom=true;
-          controls.minDistance=20;   // sehr tiefes Reinzoomen erlaubt
-          controls.maxDistance=800;
-          controls.zoomSpeed=1.1;
-          controls.update&&controls.update();
-        }
-        return; // erfolgreich, Polling beenden
-      }
-      if(attempts<40){ // bis zu ~4 Sekunden lang erneut versuchen
-        setTimeout(trySetup,100);
-      }
+  // Läuft über onGlobeReady — also garantiert NACH der internen Kalibrierung
+  // der Bibliothek, die sonst unsere Werte wieder überschreiben würde
+  function setupGlobe(){
+    const g=globeRef.current;
+    if(!g)return;
+    // Kamera auf Mitteleuropa ausrichten, damit Nutzer direkt sichtbar sind
+    g.pointOfView({lat:48,lng:9,altitude:1.6},0);
+    const renderer=g.renderer&&g.renderer();
+    const controls=g.controls&&g.controls();
+    if(controls){
+      controls.autoRotate=false;
+      controls.enableZoom=true;
+      controls.maxDistance=800;
+      // globe.gl setzt bei JEDER Kamerabewegung zoomSpeed=sqrt(Höhe)*0.5 —
+      // nahe der Oberfläche friert der Zoom dadurch gefühlt ein. Dieser Listener
+      // ist nach dem der Bibliothek registriert, läuft also danach und hebt
+      // die Drossel wieder an (mit Unter-/Obergrenze für angenehmes Tempo).
+      controls.addEventListener('change',()=>{
+        controls.zoomSpeed=Math.min(2,Math.max(0.3,controls.zoomSpeed*3));
+      });
     }
-    trySetup();
-    return()=>{cancelled=true;};
-  },[points]);
+    // volle Retina-Auflösung nutzen — die Bibliothek begrenzt auf 2x,
+    // iPhones haben aber 3x (macht den Globus sonst insgesamt unscharf)
+    if(renderer&&window.devicePixelRatio>2){renderer.setPixelRatio(window.devicePixelRatio);}
+    // anisotropes Filtern schärft die Erd-Textur bei Zoom und Schrägsicht;
+    // die Textur lädt asynchron, deshalb warten bis sie da ist
+    let tries=0;
+    (function sharpen(){
+      let done=false;
+      const scene=g.scene&&g.scene();
+      scene&&scene.traverse(o=>{
+        if(!done&&o.material&&o.material.map){
+          o.material.map.anisotropy=renderer?renderer.capabilities.getMaxAnisotropy():8;
+          o.material.map.needsUpdate=true;
+          done=true;
+        }
+      });
+      if(!done&&tries++<50)setTimeout(sharpen,200);
+    })();
+  }
 
   return(
     <div style={{position:'fixed',inset:0,background:'#000',zIndex:600,display:'flex',flexDirection:'column'}}>
@@ -111,10 +124,11 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
           <Suspense fallback={<div style={{color:'rgba(255,255,255,0.5)'}}>Lädt...</div>}>
             <Globe
               ref={globeRef}
+              onGlobeReady={setupGlobe}
               width={window.innerWidth}
               height={window.innerHeight}
               backgroundColor='#000000'
-              globeImageUrl='https://raw.githubusercontent.com/vasturiano/three-globe/master/example/img/earth-night.jpg'
+              globeImageUrl='/earth-night-8k.jpg'
               pointResolution={12}
               bumpImageUrl='//unpkg.com/three-globe/example/img/earth-topology.png'
               pointsData={points}
@@ -129,6 +143,10 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
             />
           </Suspense>
         )}
+      </div>
+      {/* Pflicht-Namensnennung: 8K-Erdtextur von Solar System Scope, Lizenz CC BY 4.0 */}
+      <div style={{position:'absolute',bottom:'calc(8px + env(safe-area-inset-bottom))',right:12,zIndex:10,fontSize:9,color:'rgba(255,255,255,0.3)',fontFamily:'sans-serif'}}>
+        Textur: Solar System Scope · CC BY 4.0
       </div>
     </div>
   );
