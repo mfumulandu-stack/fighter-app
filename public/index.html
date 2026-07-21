@@ -59,6 +59,42 @@
     </style>
 
     <title>Fighter — Kampfsport Matching App</title>
+
+    <!-- Notfall-Fehleranzeige: zeigt jeden unbehandelten Fehler als rote Box
+         statt eines schwarzen Bildschirms. Läuft vor allem anderen Code. -->
+    <script>
+      (function () {
+        var queue = [];
+        function paint(msg) {
+          var d = document.getElementById('fatal-err');
+          if (!d) {
+            d = document.createElement('div');
+            d.id = 'fatal-err';
+            d.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#7b1010;color:#fff;font:11px/1.5 monospace;padding:10px;white-space:pre-wrap;word-break:break-word;max-height:60vh;overflow:auto';
+            document.body.appendChild(d);
+          }
+          d.textContent += msg + '\n\n';
+        }
+        function show(msg) {
+          try {
+            if (document.body) { paint(msg); }
+            else { queue.push(msg); }
+          } catch (e) {}
+        }
+        window.addEventListener('DOMContentLoaded', function () {
+          for (var i = 0; i < queue.length; i++) paint(queue[i]);
+          queue = [];
+        });
+        window.addEventListener('error', function (e) {
+          show('FEHLER: ' + (e.message || '(ohne Meldung)') + '\n' + (e.filename || '') + ':' + (e.lineno || '') +
+            (e.error && e.error.stack ? '\n' + String(e.error.stack).slice(0, 1200) : ''));
+        }, true);
+        window.addEventListener('unhandledrejection', function (e) {
+          var r = e.reason || {};
+          show('PROMISE-FEHLER: ' + (r.message || String(r)) + (r.stack ? '\n' + String(r.stack).slice(0, 1200) : ''));
+        });
+      })();
+    </script>
   </head>
   <body>
     <noscript>Fighter App benötigt JavaScript.</noscript>
