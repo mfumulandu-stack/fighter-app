@@ -2345,7 +2345,9 @@ function MainApp(){
   const [newPassword2,setNewPassword2]=useState('');
   const [pwChangeMsg,setPwChangeMsg]=useState('');
   const [showAGB,setShowAGB]=useState(false);
-  const [rankMode,setRankMode]=useState('user');
+  // 'all' = jeder mit mind. 1 Kampf (Standard, damit garantiert niemand fehlt),
+  // 'user' = nur Amateure, 'pro' = nur Profis, 'trainer' = Trainer
+  const [rankMode,setRankMode]=useState('all');
   const [filterStyle,setFilterStyle]=useState('Alle');
   const [ageFilter,setAgeFilter]=useState({min:16,max:50});
   const [filterCity,setFilterCity]=useState('');
@@ -2410,11 +2412,16 @@ function MainApp(){
       await initProfile(s);
     }
 
+    // Sicherheitsnetz gegen ewigen Splash. WICHTIG: die gespeicherte Session
+    // (fighter_v5) hier NICHT löschen! Beim Kaltstart durch einen Push-Tipp
+    // ist das Netz oft ein paar Sekunden träge — würden wir die Session
+    // löschen, landet ein eingeloggter Nutzer grundlos auf dem (hellen)
+    // Login-Screen ("weißer Bildschirm"). 20s statt 6s gibt den Wiederhol-
+    // versuchen in initProfile genug Zeit.
     const timeout=setTimeout(()=>{
-      try{localStorage.removeItem('fighter_v5');}catch{}
       setAuthReady(true);
-      setScreen('auth');
-    },6000);
+      setScreen(prev=>prev==='loading'?(()=>{try{return localStorage.getItem('fighter_v5')?'main':'auth';}catch{return 'auth';}})():prev);
+    },20000);
     restoreSession().finally(()=>clearTimeout(timeout));
   },[]);
 
@@ -2538,14 +2545,23 @@ function MainApp(){
           else if(data.type==='news'){setShowNews(true);loadNews();}
           // Tippen auf die Bewertungs-Push = "Ja, ich bewerte" -> direkt zum Store
           else if(data.type==='rate'){openAppStoreReview();}
+          // "Jemand interessiert sich für dich" -> Liste öffnen, wer geliked hat
+          else if(data.type==='like'){setWhoLikedTab(true);}
         }catch(e){console.error('push tap navigation',e);}
       });
     }catch(err){showMsg('❌ registerPush Fehler: '+err.message);}
   }
 
-  async function initProfile(s){
+  async function initProfile(s,attempt=0){
     try{
-      const data=await dbSelect('profiles','user_id=eq.'+s.userId+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery,bio,record_verified,history_public,banned,social_url',s.token);
+      // Profil mit echter ok-Prüfung laden (nicht nur JSON parsen). So können
+      // wir "Server/Netz-Fehler" von "Nutzer hat wirklich noch kein Profil"
+      // unterscheiden — sonst landet ein bestehender Nutzer bei einem kurzen
+      // Verbindungsproblem fälschlich im (hellen) Setup-Screen.
+      const res=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+s.userId+'&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery,bio,record_verified,history_public,banned,social_url',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+s.token}});
+      if(!res.ok)throw new Error('HTTP '+res.status);
+      const data=await res.json();
+      if(!Array.isArray(data))throw new Error('Unerwartete Antwort');
       if(Array.isArray(data)&&data[0]){
         const p=data[0];
         if(p.banned===true){
@@ -2611,13 +2627,25 @@ function MainApp(){
           });
         }
       }else{
+        // Echt leeres Ergebnis (Anfrage war erfolgreich) -> wirklich neuer
+        // Nutzer ohne Profil -> Registrierung.
         setAuthReady(true);
         setScreen('setup');
         loadDbGyms(s); // damit echte Gyms schon waehrend der Registrierung vorgeschlagen werden
       }
-    }catch{
+    }catch(e){
+      // Netz-/Serverfehler (kein "kein Profil"!). Beim Push-Kaltstart ist das
+      // Netz oft kurz träge — mehrmals wiederholen und dabei den dunklen
+      // Splash-Screen zeigen, statt den Nutzer auf einen weißen Screen zu werfen.
+      if(attempt<4){
+        setTimeout(()=>initProfile(s,attempt+1),1200);
+        return;
+      }
+      // Nach mehreren Fehlversuchen: Session NICHT löschen, nur informieren.
+      // (Der Nutzer kann die App neu starten; die Session bleibt erhalten.)
       setAuthReady(true);
       setScreen('auth');
+      showMsg('⚠️ Verbindungsproblem — bitte App neu starten');
     }
   }
 
@@ -3641,7 +3669,7 @@ function MainApp(){
                   await fetch(SUPA_URL+'/functions/v1/send-push',{
                     method:'POST',
                     headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
-                    body:JSON.stringify({recipientUserId:top.user_id,title:'👀 Jemand interessiert sich für dich!',body:'Schau nach, wer dich geliket hat 🥊'})
+                    body:JSON.stringify({recipientUserId:top.user_id,title:'👀 Jemand interessiert sich für dich!',body:'Schau nach, wer dich geliket hat 🥊',data:{type:'like'}})
                   });
                 }
               }catch(err){console.error('like push',err);}
@@ -3708,7 +3736,8 @@ function MainApp(){
     :[...userOnly]
       .filter(f=>{
         if(rankMode==='pro') return f.isMe?(profile.isPro===true):(f.is_pro===true);
-        return true; // 'alle' zeigt wirklich alle
+        if(rankMode==='user') return f.isMe?(profile.isPro!==true):(f.is_pro!==true); // Amateure = Nicht-Profis
+        return true; // 'all' -> jeder (Amateure + Profis)
       })
       .filter(f=>(f.wins||0)+(f.losses||0)+(f.draws||0)>0) // nur User mit mind. 1 Kampf
       .filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF))))
@@ -4703,9 +4732,15 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   </div>
                   <div style={{color:'rgba(255,255,255,0.3)',fontSize:11,marginTop:4}}>{appLang==='FR'?'Conseil: Double-tap sur une carte = voir le profil':appLang==='EN'?'Tip: Double-tap a card = view profile':'Tipp: Doppel-Tap auf eine Karte = Profil ansehen'}</div>
                 </div>
-              ):filteredCards.map((f,idx)=>{
+              ):filteredCards.slice(-3).map((f,idx,arr)=>{
+                // NUR die obersten 3 Karten rendern (nicht alle 150-370)!
+                // Vorher lag jede Karte als <img> position:absolute inset:0
+                // GESTAPELT im DOM - dadurch galten ALLE Bilder als "sichtbar",
+                // loading="lazy" griff nicht, und die iOS-WebView dekodierte
+                // hunderte Fotos gleichzeitig -> Speicher-Absturz -> App startet
+                // bei jedem Swipe neu. 3 Karten reichen für den Stapel-Effekt.
                 if(!f||!f.id||!f.name)return null;
-                const isTop=idx===filteredCards.length-1;const isSec=idx===filteredCards.length-2;const fA=f.accent||'#c0392b';
+                const isTop=idx===arr.length-1;const isSec=idx===arr.length-2;const fA=f.accent||'#c0392b';
                 return(
                   <div key={f.id} onMouseDown={isTop?(e)=>{e.preventDefault();dragStart(e);}:undefined} onTouchStart={e=>{
                       if(isTop){
@@ -5667,10 +5702,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         {tab==='ranking'&&(
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:8}}>{t.worldRanking}</div>
-            <div style={{display:'flex',gap:6,marginBottom:11}}>
-              <button onClick={()=>setRankMode('user')} style={{flex:1,padding:'7px',borderRadius:8,background:rankMode==='user'?RED:'transparent',border:'1px solid '+(rankMode==='user'?RED:(darkMode?'#333':'#ddd')),color:rankMode==='user'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>🏅 AMATEURE</button>
-              <button onClick={()=>setRankMode('pro')} style={{flex:1,padding:'7px',borderRadius:8,background:rankMode==='pro'?'#d4a017':'transparent',border:'1px solid '+(rankMode==='pro'?'#d4a017':(darkMode?'#333':'#ddd')),color:rankMode==='pro'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>⭐ PROFIS</button>
-              <button onClick={()=>setRankMode('trainer')} style={{flex:1,padding:'7px',borderRadius:8,background:rankMode==='trainer'?'#8e44ad':'transparent',border:'1px solid '+(rankMode==='trainer'?'#8e44ad':(darkMode?'#333':'#ddd')),color:rankMode==='trainer'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>{t.trainer}</button>
+            <div style={{display:'flex',gap:5,marginBottom:11}}>
+              <button onClick={()=>setRankMode('all')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='all'?RED:'transparent',border:'1px solid '+(rankMode==='all'?RED:(darkMode?'#333':'#ddd')),color:rankMode==='all'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>🥊 ALLE</button>
+              <button onClick={()=>setRankMode('user')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='user'?'#2980b9':'transparent',border:'1px solid '+(rankMode==='user'?'#2980b9':(darkMode?'#333':'#ddd')),color:rankMode==='user'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>🏅 AMATEURE</button>
+              <button onClick={()=>setRankMode('pro')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='pro'?'#d4a017':'transparent',border:'1px solid '+(rankMode==='pro'?'#d4a017':(darkMode?'#333':'#ddd')),color:rankMode==='pro'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>⭐ PROFIS</button>
+              <button onClick={()=>setRankMode('trainer')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='trainer'?'#8e44ad':'transparent',border:'1px solid '+(rankMode==='trainer'?'#8e44ad':(darkMode?'#333':'#ddd')),color:rankMode==='trainer'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:11,cursor:'pointer'}}>{t.trainer}</button>
             </div>
             {rankMode!=='trainer'&&(
               <div style={{display:'flex',gap:6,marginBottom:8}}>
