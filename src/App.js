@@ -4672,15 +4672,6 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         {tab==='swipe'&&(
           <div onTouchMove={(e)=>{if(!drag)e.preventDefault();}} style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:8,touchAction:'none'}}>
             {/* GPS-HINWEIS BANNER */}
-            {locationSource!=='gps'&&(typeof window!=='undefined'&&!localStorage.getItem('fighter_gps_denied'))&&(
-              <div onClick={getGPSLocation} style={{display:'flex',alignItems:'center',gap:8,width:'calc(100% - 24px)',maxWidth:420,marginBottom:8,padding:'9px 12px',borderRadius:10,background:locationLoading?(darkMode?'#1a1a1a':'#f0f0f0'):'linear-gradient(135deg,#27ae60,#2ecc71)',cursor:locationLoading?'wait':'pointer'}}>
-                <span style={{fontSize:16}}>📍</span>
-                <span style={{flex:1,color:locationLoading?(darkMode?'#888':'#999'):'#fff',fontSize:12,fontWeight:600,lineHeight:1.3}}>
-                  {locationLoading?'Standort wird ermittelt...':'Genauen Standort aktivieren für besseres Matching in deiner Nähe'}
-                </span>
-                {!locationLoading&&<span style={{color:'#fff',fontSize:11,fontWeight:700,whiteSpace:'nowrap'}}>AKTIVIEREN ›</span>}
-              </div>
-            )}
             {/* LAND FILTER */}
             <div style={{display:'flex',gap:4,marginBottom:6,width:'calc(100% - 24px)',maxWidth:420,justifyContent:'center'}}>
               <button onClick={()=>setCountryFilter('mine')} style={{padding:'3px 12px',borderRadius:20,background:'transparent',border:'none',color:countryFilter==='mine'?(darkMode?'#fff':'#1a1a1a'):(darkMode?'#444':'#ccc'),fontSize:11,fontWeight:countryFilter==='mine'?700:400,cursor:'pointer',transition:'all 0.2s'}}>
