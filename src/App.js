@@ -2742,6 +2742,15 @@ function MainApp(){
     return()=>clearInterval(interval);
   },[session?.userId]);
 
+  // Rangliste: Scroll-Position wiederherstellen, sobald man von einer
+  // Profilansicht zurueck zur Rangliste kommt, statt immer ganz oben
+  // (Platz 1) rauszukommen.
+  useEffect(()=>{
+    if(!viewProfile&&tab==='ranking'&&mainScrollRef.current){
+      mainScrollRef.current.scrollTop=savedRankScrollRef.current;
+    }
+  },[viewProfile,tab]);
+
   async function loadAdminMessages(s){
     try{
       const resp=await fetch(SUPA_URL+'/rest/v1/admin_messages?user_id=eq.'+s.userId+'&order=created_at.desc&limit=20',{
@@ -3745,10 +3754,21 @@ function MainApp(){
     }
     return me;
   },[profile,stats,avatarUrl,allProfiles,myProfile]);
+  const mainScrollRef=React.useRef(null);
+  const savedRankScrollRef=React.useRef(0);
   const ranked=React.useMemo(()=>{
+  const myGender=profile.gender||'male';
   return rankMode==='trainer'
     ?[]
     :[...userOnly]
+      // Rangliste zeigt automatisch nur das eigene Geschlecht - Maenner
+      // sehen nur Maenner, Frauen nur Frauen. Nutzer ohne angegebenes
+      // Geschlecht ('other'/leer) werden weiterhin fuer alle angezeigt.
+      .filter(f=>{
+        const fGender=f.isMe?myGender:(f.gender||'male');
+        if(!fGender||fGender==='other')return true;
+        return fGender===myGender;
+      })
       .filter(f=>{
         if(rankMode==='pro') return f.isMe?(profile.isPro===true):(f.is_pro===true);
         if(rankMode==='user') return f.isMe?(profile.isPro!==true):(f.is_pro!==true); // Amateure = Nicht-Profis
@@ -4669,7 +4689,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         </button>
       </div>
 
-      <div style={{flex:1,overflowY:tab==='swipe'?'hidden':'auto',overscrollBehavior:'contain',paddingBottom:tab==='swipe'?0:'calc(68px + env(safe-area-inset-bottom))'}}>
+      <div ref={mainScrollRef} style={{flex:1,overflowY:tab==='swipe'?'hidden':'auto',overscrollBehavior:'contain',paddingBottom:tab==='swipe'?0:'calc(68px + env(safe-area-inset-bottom))'}}>
 
         {myProfile&&!myProfile.avatar_url&&(
           <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(13,13,13,0.97)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 24px',textAlign:'center'}}>
@@ -5803,7 +5823,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <div style={{display:'flex',flexDirection:'column',gap:5}}>
               {ranked.map((f,i)=>{
                 const score=f.wins*3-f.losses*2+f.draws;const rc=['#d4a017','#95a5a6','#cd7f32'];
-                return(<div key={f.id} onClick={()=>{if(!f.isMe&&f.id&&typeof f.id==='string')setViewProfile(f);}} style={{background:f.isMe?(darkMode?'#2a1510':'#fdf0ef'):(darkMode?'#1a1a1a':'#fff'),borderRadius:9,padding:'10px 12px',border:'1px solid '+(f.isMe?RED+'33':i<3?rc[i]+'33':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.04)',cursor:f.isMe?'default':'pointer'}}>
+                return(<div key={f.id} onClick={()=>{if(!f.isMe&&f.id&&typeof f.id==='string'){savedRankScrollRef.current=mainScrollRef.current?mainScrollRef.current.scrollTop:0;setViewProfile(f);}}} style={{background:f.isMe?(darkMode?'#2a1510':'#fdf0ef'):(darkMode?'#1a1a1a':'#fff'),borderRadius:9,padding:'10px 12px',border:'1px solid '+(f.isMe?RED+'33':i<3?rc[i]+'33':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.04)',cursor:f.isMe?'default':'pointer'}}>
                   <div className='rj' style={{color:i<3?rc[i]:'#bbb',fontSize:18,width:24,textAlign:'center'}}>#{i+1}</div>
                   {f.avatar_url?<img loading="lazy" src={f.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover'}} alt={f.name}/>:<div style={{fontSize:22}}>{f.emoji||''}</div>}
                   <div style={{flex:1}}>
