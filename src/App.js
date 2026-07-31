@@ -2727,6 +2727,21 @@ function MainApp(){
     return()=>clearInterval(interval);
   },[session?.userId,myProfile?.id]);
 
+  // Regelmaessige Token-Erneuerung: die 'refreshSession' Funktion gab es
+  // zwar schon, wurde aber nirgends aufgerufen - der Zugangs-Token lief
+  // nach ca. 1 Stunde einfach ab, ohne dass etwas dagegen unternommen
+  // wurde. Das fuehrte bei laengeren Sitzungen (z.B. laengere Zeit im
+  // Admin-Bereich) zu "Ungueltiger oder abgelaufener Token"-Fehlern.
+  // Jetzt wird der Token alle 20 Minuten proaktiv erneuert - deutlich
+  // vor Ablauf der 1-Stunden-Gueltigkeit.
+  useEffect(()=>{
+    if(!session)return;
+    const interval=setInterval(()=>{
+      refreshSession(session);
+    },1200000); // alle 20 Minuten
+    return()=>clearInterval(interval);
+  },[session?.userId]);
+
   async function loadAdminMessages(s){
     try{
       const resp=await fetch(SUPA_URL+'/rest/v1/admin_messages?user_id=eq.'+s.userId+'&order=created_at.desc&limit=20',{
