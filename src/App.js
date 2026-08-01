@@ -5,6 +5,10 @@ import { setupPushRegistration } from './pushRegistration';
 import { cityToCountry, filterCitiesByCountry } from './cityCountry';
 import { autoFilterCandidates } from './autoFilters';
 import { SUPA_URL, SUPA_KEY, ADMIN_ID, APP_STORE_ID, CURRENT_APP_VERSION, SW, RED, LIGHT_RED } from './constants';
+import { authSignUp, authSignIn, authSignOut, dbInsert, dbUpdate, dbSelect, adminFetch, uploadPhoto } from './supabaseApi';
+// Weiterreichen nach aussen: auth.test.js und andere importieren diese
+// Funktionen aus './App' - das bleibt dadurch unveraendert gueltig.
+export { authSignUp, authSignIn, authSignOut, dbInsert, dbUpdate, dbSelect, adminFetch } from './supabaseApi';
 const Globe=lazy(()=>import('react-globe.gl'));
 
 // Mobile Geräte (iPhone/Android) haben strenge GPU-Speicherlimits im Browser/WebView —
@@ -207,73 +211,10 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
 // SUPA_URL, SUPA_KEY, ADMIN_ID, APP_STORE_ID, CURRENT_APP_VERSION stehen
 // jetzt in src/constants.js (siehe Import ganz oben).
 
-export async function authSignUp(email, password) {
-  const r = await fetch(SUPA_URL + '/auth/v1/signup', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY },
-    body: JSON.stringify({ email, password, options: { emailRedirectTo: 'https://fighterapp.de' } }),
-  });
-  return r.json();
-}
-export async function authSignIn(email, password) {
-  const r = await fetch(SUPA_URL + '/auth/v1/token?grant_type=password', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY },
-    body: JSON.stringify({ email, password }),
-  });
-  return r.json();
-}
-export async function authSignOut(token) {
-  await fetch(SUPA_URL + '/auth/v1/logout', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY, Authorization: 'Bearer ' + token },
-  });
-}
-function hdr(token) {
-  return { 'Content-Type': 'application/json', apikey: SUPA_KEY, Authorization: 'Bearer ' + (token || SUPA_KEY) };
-}
-export async function dbInsert(table, data, token) {
-  const r = await fetch(SUPA_URL + '/rest/v1/' + table, {
-    method: 'POST', headers: { ...hdr(token), Prefer: 'return=representation' }, body: JSON.stringify(data),
-  });
-  return r.json();
-}
-export async function dbUpdate(table, data, query, token) {
-  const r = await fetch(SUPA_URL + '/rest/v1/' + table + '?' + query, {
-    method: 'PATCH', headers: { ...hdr(token), Prefer: 'return=representation' }, body: JSON.stringify(data),
-  });
-  return r.json();
-}
-export async function dbSelect(table, query, token) {
-  const r = await fetch(SUPA_URL + '/rest/v1/' + table + (query ? '?' + query : ''), { headers: hdr(token) });
-  return r.json();
-}
-// Sichere Admin-Schleuse: ersetzt direkte Aufrufe mit dem Vollzugriffs-
-// schluessel. Der Schluessel selbst liegt nur noch serverseitig in der
-// admin-proxy Edge Function - hier wird nur der eigene, normale Nutzer-
-// Token mitgeschickt, den der Server dann selbst gegen die Admin-ID prueft.
-export async function adminFetch(url, options = {}, userToken) {
-  const path = url.replace(SUPA_URL, '');
-  const extraHeaders = { ...(options.headers || {}) };
-  delete extraHeaders.apikey;
-  delete extraHeaders.Authorization;
-  delete extraHeaders['Content-Type'];
-  return fetch(SUPA_URL + '/functions/v1/admin-proxy', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY },
-    body: JSON.stringify({
-      userToken,
-      path,
-      method: options.method || 'GET',
-      body: options.body,
-      extraHeaders,
-    }),
-  });
-}
-async function uploadPhoto(file, path, token) {
-  const r = await fetch(SUPA_URL + '/storage/v1/object/avatars/' + path, {
-    method: 'POST', headers: { apikey: SUPA_KEY, Authorization: 'Bearer ' + token, 'Content-Type': file.type }, body: file,
-  });
-  if (!r.ok) return null;
-  return SUPA_URL + '/storage/v1/object/public/avatars/' + path;
-}
+// Die Supabase-Zugriffe (Login, Datenbank, Admin-Schleuse, Foto-Upload)
+// stehen jetzt in src/supabaseApi.js (siehe Import ganz oben).
+// Sie werden dort importiert UND weiter nach aussen durchgereicht, damit
+// bestehende Importe aus './App' (z.B. in auth.test.js) unveraendert gelten.
 
 const WEIGHT_CLASSES = [
   'Strohgewicht (bis 48 kg)','Fliegengewicht (bis 51 kg)','Bantamgewicht (bis 54 kg)',
