@@ -3289,6 +3289,11 @@ function MainApp(){
           style:editProfile.style||profile.style,
           weight_class:editProfile.weightClass||profile.weightClass,
           belt:editProfile.belt!==undefined?editProfile.belt:profile.belt,
+          is_coach:!!(editProfile.isCoach!==undefined?editProfile.isCoach:profile.isCoach),
+          coach_gym:editProfile.coachGym!==undefined?editProfile.coachGym:profile.coachGym,
+          coach_styles:editProfile.coachStyles!==undefined?editProfile.coachStyles:profile.coachStyles,
+          coach_experience:parseInt(editProfile.coachExperience!==undefined?editProfile.coachExperience:profile.coachExperience)||null,
+          coach_bio:editProfile.coachBio!==undefined?editProfile.coachBio:profile.coachBio,
           height:editProfile.height||profile.height,
           weight:editProfile.weight||profile.weight,
           is_pro:editProfile.isPro!==undefined?editProfile.isPro:profile.isPro,
@@ -5250,6 +5255,48 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         </div>
                       </div>
                     )}
+                    <div style={{background:'#f8f4ff',border:'1px solid #e0d4f7',borderRadius:12,padding:'12px 14px'}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                        <div style={{color:'#1a1a1a',fontSize:12,fontWeight:700}}>🎓 Bist du auch Trainer?</div>
+                        <button onClick={()=>setEditProfile(p=>({...p,isCoach:!(p.isCoach!==undefined?p.isCoach:profile.isCoach)}))}
+                          style={{padding:'6px 14px',borderRadius:8,border:'2px solid '+((editProfile.isCoach!==undefined?editProfile.isCoach:profile.isCoach)?'#8e44ad':'#ddd'),background:(editProfile.isCoach!==undefined?editProfile.isCoach:profile.isCoach)?'#8e44ad':'#fff',color:(editProfile.isCoach!==undefined?editProfile.isCoach:profile.isCoach)?'#fff':'#888',fontWeight:700,fontSize:12,cursor:'pointer'}}>
+                          {(editProfile.isCoach!==undefined?editProfile.isCoach:profile.isCoach)?'Ja ✓':'Nein'}
+                        </button>
+                      </div>
+                      {(editProfile.isCoach!==undefined?editProfile.isCoach:profile.isCoach)&&(
+                        <div style={{marginTop:12,display:'flex',flexDirection:'column',gap:10}}>
+                          <div>
+                            <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>GYM / VEREIN</div>
+                            <input value={editProfile.coachGym!==undefined?editProfile.coachGym:(profile.coachGym||'')} onChange={e=>setEditProfile(p=>({...p,coachGym:e.target.value}))} placeholder='z.B. Tiger Gym Berlin'
+                              style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
+                          </div>
+                          <div>
+                            <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>JAHRE ERFAHRUNG ALS TRAINER</div>
+                            <input type='number' value={editProfile.coachExperience!==undefined?editProfile.coachExperience:(profile.coachExperience||'')} onChange={e=>setEditProfile(p=>({...p,coachExperience:e.target.value}))} placeholder='z.B. 8'
+                              style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
+                          </div>
+                          <div>
+                            <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>UNTERRICHTETE KAMPFSTILE</div>
+                            <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
+                              {STYLES.map(s=>{
+                                const currentStyles=editProfile.coachStyles!==undefined?editProfile.coachStyles:(profile.coachStyles||'');
+                                const selected=currentStyles.split(',').map(x=>x.trim()).filter(Boolean);
+                                const isSelected=selected.includes(s);
+                                return(<button key={s} onClick={()=>{
+                                  const next=isSelected?selected.filter(x=>x!==s):[...selected,s];
+                                  setEditProfile(p=>({...p,coachStyles:next.join(', ')}));
+                                }} style={{padding:'6px 11px',borderRadius:4,border:'1px solid '+(isSelected?'#8e44ad':'#ddd'),background:isSelected?'#f5edfc':'transparent',color:isSelected?'#8e44ad':(darkMode?'#aaa':'#666'),fontSize:12,fontWeight:700,cursor:'pointer'}}>{s}</button>);
+                              })}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>TRAINER-BIO</div>
+                            <input value={editProfile.coachBio!==undefined?editProfile.coachBio:(profile.coachBio||'')} onChange={e=>setEditProfile(p=>({...p,coachBio:e.target.value}))} placeholder='Erfolge, dein Ansatz...'
+                              style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     <button onClick={saveEditProfile} disabled={savingEdit}
                       style={{width:'100%',marginTop:6,padding:'14px',borderRadius:12,background:savingEdit?'#eee':`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:savingEdit?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:savingEdit?'not-allowed':'pointer'}}>
                       {savingEdit?'Speichern...':'SPEICHERN'}
