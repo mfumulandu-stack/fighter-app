@@ -3425,8 +3425,10 @@ function MainApp(){
   async function saveEditProfile(){
     if(!session||!myProfile)return;
     setSavingEdit(true);
+    const finalIsCoach=!!(editProfile.isCoach!==undefined?editProfile.isCoach:profile.isCoach);
+    if(isAdmin)showMsg('🔧 Diagnose: is_coach wird gespeichert als: '+finalIsCoach+' (editProfile.isCoach='+editProfile.isCoach+', profile.isCoach='+profile.isCoach+')');
     try{
-      await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{
+      const patchRes=await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{
         method:'PATCH',
         headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
         body:JSON.stringify({
@@ -3437,7 +3439,7 @@ function MainApp(){
           style:editProfile.style||profile.style,
           weight_class:editProfile.weightClass||profile.weightClass,
           belt:editProfile.belt!==undefined?editProfile.belt:profile.belt,
-          is_coach:!!(editProfile.isCoach!==undefined?editProfile.isCoach:profile.isCoach),
+          is_coach:finalIsCoach,
           coach_gym:editProfile.coachGym!==undefined?editProfile.coachGym:profile.coachGym,
           coach_styles:editProfile.coachStyles!==undefined?editProfile.coachStyles:profile.coachStyles,
           coach_experience:parseInt(editProfile.coachExperience!==undefined?editProfile.coachExperience:profile.coachExperience)||null,
@@ -3449,16 +3451,29 @@ function MainApp(){
           gender:editProfile.gender||profile.gender||'male',
         })
       });
+      if(!patchRes.ok){
+        const errText=await patchRes.text().catch(()=>'');
+        showMsg('❌ Fehler beim Speichern (Status '+patchRes.status+'): '+errText.slice(0,150));
+        setSavingEdit(false);
+        return;
+      }
       setProfile(p=>({...p,...editProfile}));
       setMyProfile(mp=>({...mp,...editProfile,
         name:editProfile.name||mp.name,
         city:editProfile.city||mp.city,
         gym:editProfile.gym||mp.gym,
         bio:editProfile.bio!==undefined?editProfile.bio:mp.bio,
+        is_coach:finalIsCoach,
+        coach_gym:editProfile.coachGym!==undefined?editProfile.coachGym:mp.coach_gym,
+        coach_styles:editProfile.coachStyles!==undefined?editProfile.coachStyles:mp.coach_styles,
+        coach_experience:editProfile.coachExperience!==undefined?editProfile.coachExperience:mp.coach_experience,
+        coach_bio:editProfile.coachBio!==undefined?editProfile.coachBio:mp.coach_bio,
+        belt:editProfile.belt!==undefined?editProfile.belt:mp.belt,
       }));
+      if(isAdmin)showMsg('✅ Diagnose: Server hat OK zurückgegeben, is_coach sollte jetzt '+finalIsCoach+' sein');
+      else showMsg(appLang==='FR'?'Profil enregistré ✓':appLang==='EN'?'Profile saved ✓':'Profil gespeichert ✓');
       setEditMode(false);
-      showMsg(appLang==='FR'?'Profil enregistré ✓':appLang==='EN'?'Profile saved ✓':'Profil gespeichert ✓');
-    }catch(e){showMsg(appLang==='FR'?'Erreur lors de la sauvegarde':appLang==='EN'?'Error saving':'Fehler beim Speichern');}
+    }catch(e){showMsg(appLang==='FR'?'Erreur lors de la sauvegarde':appLang==='EN'?'Error saving':'Fehler beim Speichern: '+e.message);}
     setSavingEdit(false);
   }
 
@@ -3844,8 +3859,19 @@ function MainApp(){
       return (b._dist||9999)-(a._dist||9999);
     });
   return filteredCardsInner;
-  },[cards,blockedUsers,countryFilter,profile,myProfile,myLat,myLon,myCity,myBundesland,swipeVersion]);
-  const top=filteredCards[filteredCards.length-1];
+  },[cards,blockedUsers,countryFilter,profile,myProfile,myLat,myLon,myCity,myBundesland]);
+  // Leichte, zusaetzliche Filterung NACH der teuren Berechnung: entfernt
+  // bereits in dieser Sitzung geswipte Karten, ohne die aufwendige
+  // Distanz-/Sportart-Berechnung erneut laufen zu lassen. Vorher stand
+  // swipeVersion in der Abhaengigkeitsliste der teuren Berechnung selbst,
+  // wodurch bei JEDEM Swipe die komplette Pipeline neu rechnete - das hat
+  // die Swipes spuerbar traege gemacht. Dieser Schritt hier ist dagegen
+  // nur ein einfacher Array-Filter, kostet praktisch nichts.
+  const visibleCards=React.useMemo(()=>{
+    if(sessionSwipedRef.current.size===0)return filteredCards;
+    return filteredCards.filter(f=>!sessionSwipedRef.current.has(f.id));
+  },[filteredCards,swipeVersion]);
+  const top=visibleCards[visibleCards.length-1];
   const lastTapRef=useRef(0);
   function dragStart(e){
     if(e.touches)e.preventDefault();
@@ -5086,7 +5112,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             </div>
             {/* FILTER LEISTE - leer, kein Stil-Filter in Swipe Tab */}
             <div style={{position:'relative',width:'min(330px, calc(100vw - 40px))',height:'min(430px, 58dvh)',flexShrink:0,touchAction:'none'}}>
-              {filteredCards.length===0?(
+              {visibleCards.length===0?(
                 <div style={{width:'100%',height:'100%',borderRadius:20,background:'linear-gradient(160deg,#1a1a1a 0%,#2d1a1a 100%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:'30px 24px',textAlign:'center'}}>
                   <div style={{fontSize:64,marginBottom:4}}>🏆</div>
                   <div className='rj' style={{color:'#fff',fontSize:26,letterSpacing:3,lineHeight:1}}>{t.allFightersSeen}</div>
@@ -5102,7 +5128,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   </div>
                   <div style={{color:'rgba(255,255,255,0.3)',fontSize:11,marginTop:4}}>{appLang==='FR'?'Conseil: Double-tap sur une carte = voir le profil':appLang==='EN'?'Tip: Double-tap a card = view profile':'Tipp: Doppel-Tap auf eine Karte = Profil ansehen'}</div>
                 </div>
-              ):filteredCards.slice(-3).map((f,idx,arr)=>{
+              ):visibleCards.slice(-3).map((f,idx,arr)=>{
                 // NUR die obersten 3 Karten rendern (nicht alle 150-370)!
                 // Vorher lag jede Karte als <img> position:absolute inset:0
                 // GESTAPELT im DOM - dadurch galten ALLE Bilder als "sichtbar",
