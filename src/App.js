@@ -2834,6 +2834,7 @@ function MainApp(){
 
   // IDs die in dieser Session bereits geswiped wurden — verhindert Karten-Reset bei Reload
   const sessionSwipedRef=React.useRef(new Set());
+  const [swipeVersion,setSwipeVersion]=React.useState(0);
 
   async function loadRealFighters(s,myP,isInitial=false){
     try{
@@ -3696,7 +3697,7 @@ function MainApp(){
       return (b._dist||9999)-(a._dist||9999);
     });
   return filteredCardsInner;
-  },[cards,blockedUsers,countryFilter,profile,myProfile,myLat,myLon,myCity,myBundesland]);
+  },[cards,blockedUsers,countryFilter,profile,myProfile,myLat,myLon,myCity,myBundesland,swipeVersion]);
   const top=filteredCards[filteredCards.length-1];
   const lastTapRef=useRef(0);
   function dragStart(e){
@@ -3748,6 +3749,7 @@ function MainApp(){
       setLastSwiped({profile:top,dir:'like'});
       setRecentSwiped(prev=>[{profile:top,dir:'like'},...prev].slice(0,4));
       sessionSwipedRef.current.add(top.id);
+      setSwipeVersion(v=>v+1);
       if(session&&myProfile&&!String(top.id).startsWith('demo_')){
         try{
           await dbInsert('swipes',{swiper_id:myProfile.id,target_id:top.id,direction:'like'},session.token);
@@ -3810,6 +3812,7 @@ function MainApp(){
       setLastSwiped({profile:top,dir:'pass'});
       setRecentSwiped(prev=>[{profile:top,dir:'pass'},...prev].slice(0,4));
       sessionSwipedRef.current.add(top.id);
+      setSwipeVersion(v=>v+1);
       if(session&&myProfile&&!String(top.id).startsWith('demo_')){try{await dbInsert('swipes',{swiper_id:myProfile.id,target_id:top.id,direction:'pass'},session.token);}catch{}}
     }
     setTimeout(()=>{
@@ -5972,7 +5975,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <div style={{display:'flex',gap:5,marginBottom:11}}>
               <button onClick={()=>setRankMode('user')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='user'?'#2980b9':'transparent',border:'1px solid '+(rankMode==='user'?'#2980b9':(darkMode?'#333':'#ddd')),color:rankMode==='user'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>🏅 AMATEURE</button>
               <button onClick={()=>setRankMode('pro')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='pro'?'#d4a017':'transparent',border:'1px solid '+(rankMode==='pro'?'#d4a017':(darkMode?'#333':'#ddd')),color:rankMode==='pro'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>⭐ PROFIS</button>
-              <button onClick={()=>{setRankMode('trainer');if(coaches.length===0)loadCoaches(session);}} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='trainer'?'#8e44ad':'transparent',border:'1px solid '+(rankMode==='trainer'?'#8e44ad':(darkMode?'#333':'#ddd')),color:rankMode==='trainer'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:11,cursor:'pointer'}}>{t.trainer}</button>
+              <button onClick={()=>{setRankMode('trainer');loadCoaches(session);}} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='trainer'?'#8e44ad':'transparent',border:'1px solid '+(rankMode==='trainer'?'#8e44ad':(darkMode?'#333':'#ddd')),color:rankMode==='trainer'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:11,cursor:'pointer'}}>{t.trainer}</button>
             </div>
             {rankMode!=='trainer'&&(
               <div style={{display:'flex',gap:6,marginBottom:8}}>
