@@ -4427,7 +4427,12 @@ nicht öffentlich gemacht</div>
                 <div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',borderRadius:10,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',border:'1px solid #eee',zIndex:100,overflow:'hidden',marginTop:4}}>
                   {gymSuggestions.map((g,i)=>(
                     <div key={i} onClick={()=>{setProfile(p=>({...p,gym:g.name}));setShowGymSuggestions(false);}} style={{padding:'10px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',borderBottom:i<gymSuggestions.length-1?'1px solid #f5f5f5':'none'}} onMouseEnter={e=>e.currentTarget.style.background='#fdf0ef'} onMouseLeave={e=>e.currentTarget.style.background='#fff'}>
-                      <div style={{fontSize:22,flexShrink:0}}>{g.emoji}</div>
+                      <div style={{width:36,height:36,borderRadius:8,flexShrink:0,overflow:'hidden',background:'#f5f5f7',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                        {(gymLogos[g.code]?.logo_url||g.logo_url)
+                          ?<img loading="lazy" src={gymLogos[g.code]?.logo_url||g.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>
+                          :g.emoji?<div style={{fontSize:20}}>{g.emoji}</div>
+                          :<div style={{color:'#bbb',fontSize:10,fontWeight:700}}>{(g.name||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
+                      </div>
                       <div style={{flex:1}}>
                         <div style={{color:'#1a1a1a',fontWeight:700,fontSize:13}}>{g.name}</div>
                         <div style={{color:'#aaa',fontSize:11}}>📍 {g.ct} · {g.styles?.join(', ')}</div>
