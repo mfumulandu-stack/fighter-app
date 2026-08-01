@@ -210,6 +210,10 @@ const ADMIN_ID = '1a697731-458d-4559-a4cf-a89d3150bfa5';
 // -> dann hier zwischen die Anführungszeichen: '123456789'
 // Solange leer, zeigt die Bewertungs-Aufforderung einen Hinweis statt den Store zu öffnen.
 const APP_STORE_ID = '6779692192';
+// WICHTIG: Diese Zahl bei JEDEM neuen nativen Build (Xcode-Version)
+// manuell mit hochsetzen, exakt passend zur "Version" in Xcode
+// (General-Tab). Sonst erkennt die App neue Updates nicht richtig.
+const CURRENT_APP_VERSION = '1.20';
 // SUPA_SERVICE_KEY wurde entfernt - der Vollzugriffsschluessel liegt jetzt
 // ausschliesslich sicher auf dem Server (admin-proxy Edge Function Secret),
 // nicht mehr im Client-Code.
@@ -1691,6 +1695,30 @@ function MainApp(){
     },15000);
     return()=>clearTimeout(failsafe);
   },[]);
+
+  // Prueft beim App-Start, ob im App Store eine neuere Version verfuegbar
+  // ist, als die, die gerade laeuft. Ein echtes, erzwungenes Auto-Update
+  // kann keine App selbst ausloesen (das steuert ausschliesslich die
+  // iPhone-Systemeinstellung) - das hier ist der naechstbeste, ueblichere
+  // Weg: ein auffaelliger Hinweis mit direktem Link zum Update.
+  useEffect(()=>{
+    if(!window.Capacitor||!window.Capacitor.isNativePlatform||!window.Capacitor.isNativePlatform())return;
+    if(!APP_STORE_ID)return;
+    fetch('https://itunes.apple.com/lookup?id='+APP_STORE_ID+'&country=de')
+      .then(r=>r.json())
+      .then(d=>{
+        const storeVersion=d?.results?.[0]?.version;
+        if(!storeVersion)return;
+        const parse=v=>String(v).split('.').map(n=>parseInt(n)||0);
+        const cur=parse(CURRENT_APP_VERSION);
+        const store=parse(storeVersion);
+        for(let i=0;i<Math.max(cur.length,store.length);i++){
+          const c=cur[i]||0,s=store[i]||0;
+          if(s>c){setLatestVersion(storeVersion);setUpdateAvailable(true);break;}
+          if(s<c)break;
+        }
+      }).catch(()=>{}); // Kein Internet o.ä. - einfach ignorieren, nicht kritisch
+  },[]);
   const [screen,setScreen]=useState('loading');
   // Passwort-Reset: erkennt den Klick auf den Reset-Link aus der E-Mail
   // (Supabase haengt dabei access_token & type=recovery an die URL an)
@@ -1921,6 +1949,8 @@ function MainApp(){
   const [coachGymSuggestions,setCoachGymSuggestions]=useState([]);
   const [showCoachGymSuggestions,setShowCoachGymSuggestions]=useState(false);
   const [showPushReminder,setShowPushReminder]=useState(false);
+  const [updateAvailable,setUpdateAvailable]=useState(false);
+  const [latestVersion,setLatestVersion]=useState('');
   const [showSupplements,setShowSupplements]=useState(false);
   const [showNews,setShowNews]=useState(false);
   const [newsItems,setNewsItems]=useState([]);
@@ -5058,6 +5088,17 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         </button>
       </div>
 
+      {updateAvailable&&(
+        <div style={{background:'linear-gradient(135deg,#16a085,#27ae60)',padding:'10px 16px',display:'flex',alignItems:'center',gap:10}}>
+          <span style={{fontSize:18}}>⬆️</span>
+          <div style={{flex:1}}>
+            <div style={{color:'#fff',fontSize:12,fontWeight:700}}>Neue Version verfügbar ({latestVersion})</div>
+            <div style={{color:'rgba(255,255,255,0.85)',fontSize:10,marginTop:2,lineHeight:1.4}}>Aktualisiere jetzt für die neuesten Funktionen & Fixes</div>
+          </div>
+          <button onClick={()=>{try{window.open('https://apps.apple.com/app/id'+APP_STORE_ID,'_blank');}catch{window.location.href='https://apps.apple.com/app/id'+APP_STORE_ID;}}} style={{background:'rgba(255,255,255,0.25)',border:'none',borderRadius:8,color:'#fff',fontSize:11,fontWeight:700,padding:'6px 12px',cursor:'pointer',flexShrink:0,whiteSpace:'nowrap'}}>UPDATE</button>
+          <button onClick={()=>setUpdateAvailable(false)} style={{background:'rgba(255,255,255,0.2)',border:'none',borderRadius:6,color:'#fff',fontSize:16,padding:'4px 8px',cursor:'pointer',flexShrink:0}}>✕</button>
+        </div>
+      )}
       {showPushReminder&&(
         <div style={{background:'linear-gradient(135deg,#c0392b,#e74c3c)',padding:'10px 16px',display:'flex',alignItems:'center',gap:10}}>
           <span style={{fontSize:18}}>🔔</span>
