@@ -8,6 +8,8 @@
 	<string>Fighter benötigt Zugriff auf deine Fotos, damit du ein Profilbild auswählen kannst.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Fighter benötigt Zugriff auf deine Kamera, damit du ein Profilfoto aufnehmen kannst.</string>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>Fighter nutzt deinen Standort, um dir passende Trainingspartner und Gyms in deiner Nähe zu zeigen.</string>
 	<key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
