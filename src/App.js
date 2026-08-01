@@ -6,6 +6,7 @@ import { cityToCountry, filterCitiesByCountry } from './cityCountry';
 import { autoFilterCandidates } from './autoFilters';
 import { SUPA_URL, SUPA_KEY, ADMIN_ID, APP_STORE_ID, CURRENT_APP_VERSION, SW, RED, LIGHT_RED } from './constants';
 import { authSignUp, authSignIn, authSignOut, dbInsert, dbUpdate, dbSelect, adminFetch, uploadPhoto } from './supabaseApi';
+import { safeLocalNotification } from './notifications';
 // Weiterreichen nach aussen: auth.test.js und andere importieren diese
 // Funktionen aus './App' - das bleibt dadurch unveraendert gueltig.
 export { authSignUp, authSignIn, authSignOut, dbInsert, dbUpdate, dbSelect, adminFetch } from './supabaseApi';
@@ -15,17 +16,7 @@ const Globe=lazy(()=>import('react-globe.gl'));
 // sie bekommen die 4K-Textur, Desktop die scharfe 8K-Version
 const IS_MOBILE_DEVICE=typeof navigator!=='undefined'&&/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-// Browser-Benachrichtigung — sicher für iPhone: Safari auf iOS und die
-// iOS-App (WKWebView) haben die Notification-API GAR NICHT; ein ungeschützter
-// Zugriff darauf wirft einen ReferenceError und kann die ganze App crashen.
-function safeLocalNotification(title,body){
-  try{
-    if(typeof window==='undefined'||!('Notification' in window))return;
-    if(Notification.permission==='granted'){
-      new Notification(title,{body,icon:'/icons/icon-192.png',badge:'/icons/icon-72.png'});
-    }
-  }catch(e){}
-}
+// safeLocalNotification steht jetzt in src/notifications.js (Import ganz oben).
 
 // Fängt Fehler beim Globus-Rendern ab, damit NIE wieder die ganze App
 // schwarz wird — stattdessen erscheint eine Meldung und man kann schließen
