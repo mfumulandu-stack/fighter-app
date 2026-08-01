@@ -1918,6 +1918,8 @@ function MainApp(){
   const [feedbackType,setFeedbackType]=useState('feedback'); // 'feedback' | 'wunsch'
   const [showEquipment,setShowEquipment]=useState(false);
   const [adminCityFilter,setAdminCityFilter]=useState('');
+  const [coachGymSuggestions,setCoachGymSuggestions]=useState([]);
+  const [showCoachGymSuggestions,setShowCoachGymSuggestions]=useState(false);
   const [showPushReminder,setShowPushReminder]=useState(false);
   const [showSupplements,setShowSupplements]=useState(false);
   const [showNews,setShowNews]=useState(false);
@@ -5448,10 +5450,39 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       </div>
                       {(editProfile.isCoach!==undefined?editProfile.isCoach:profile.isCoach)&&(
                         <div style={{marginTop:12,display:'flex',flexDirection:'column',gap:10}}>
-                          <div>
+                          <div style={{position:'relative'}}>
                             <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>GYM / VEREIN</div>
-                            <input value={editProfile.coachGym!==undefined?editProfile.coachGym:(profile.coachGym||'')} onChange={e=>setEditProfile(p=>({...p,coachGym:e.target.value}))} placeholder='z.B. Tiger Gym Berlin'
+                            <input value={editProfile.coachGym!==undefined?editProfile.coachGym:(profile.coachGym||'')} onChange={e=>{
+                                const v=e.target.value;
+                                setEditProfile(p=>({...p,coachGym:v}));
+                                if(v.length>=2){
+                                  const q=v.toLowerCase();
+                                  const matches=ALL_GYMS_FLAT.filter(g=>g.name.toLowerCase().includes(q)||g.ct.toLowerCase().includes(q));
+                                  setCoachGymSuggestions(matches.slice(0,6));
+                                  setShowCoachGymSuggestions(true);
+                                }else{
+                                  setShowCoachGymSuggestions(false);
+                                }
+                              }} placeholder='z.B. Tiger Gym Berlin'
                               style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
+                            {showCoachGymSuggestions&&coachGymSuggestions.length>0&&(
+                              <div style={{position:'absolute',top:'100%',left:0,right:0,background:darkMode?'#1a1a1a':'#fff',borderRadius:10,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),zIndex:100,overflow:'hidden',marginTop:4}}>
+                                {coachGymSuggestions.map((g,i)=>(
+                                  <div key={i} onClick={()=>{setEditProfile(p=>({...p,coachGym:g.name}));setShowCoachGymSuggestions(false);}} style={{padding:'10px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',borderBottom:i<coachGymSuggestions.length-1?'1px solid '+(darkMode?'#2a2a2a':'#f5f5f5'):'none'}}>
+                                    <div style={{width:32,height:32,borderRadius:8,flexShrink:0,overflow:'hidden',background:darkMode?'#111':'#f5f5f7',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                                      {(gymLogos[g.code]?.logo_url||g.logo_url)
+                                        ?<img loading="lazy" src={gymLogos[g.code]?.logo_url||g.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>
+                                        :g.emoji?<div style={{fontSize:18}}>{g.emoji}</div>
+                                        :<div style={{color:'#bbb',fontSize:9,fontWeight:700}}>{(g.name||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
+                                    </div>
+                                    <div style={{flex:1}}>
+                                      <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{g.name}</div>
+                                      <div style={{color:'#aaa',fontSize:11}}>📍 {g.ct}</div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <div>
                             <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>JAHRE ERFAHRUNG ALS TRAINER</div>
