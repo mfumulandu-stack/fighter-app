@@ -5432,14 +5432,20 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       </div>
                     ))}
                     <div>
-                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>KAMPFSTIL</div>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>KAMPFSTIL (mehrere möglich)</div>
                       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                        {STYLES.map(s=>(
-                          <button key={s} onClick={()=>setEditProfile(p=>({...p,style:s}))}
-                            style={{padding:'7px 13px',borderRadius:20,background:(editProfile.style||profile.style)===s?RED:'transparent',border:'1px solid '+((editProfile.style||profile.style)===s?RED:(darkMode?'#333':'#ddd')),color:(editProfile.style||profile.style)===s?'#fff':(darkMode?'#aaa':'#666'),fontSize:12,fontWeight:700,cursor:'pointer'}}>
+                        {STYLES.map(s=>{
+                          const currentStyles=(editProfile.style!==undefined?editProfile.style:profile.style)||'';
+                          const selected=currentStyles.split(',').map(x=>x.trim()).filter(Boolean);
+                          const isSelected=selected.includes(s);
+                          return(<button key={s} onClick={()=>{
+                            const cur=currentStyles.split(',').map(x=>x.trim()).filter(Boolean);
+                            const next=isSelected?cur.filter(x=>x!==s):[...cur,s];
+                            setEditProfile(p=>({...p,style:next.join(', ')}));
+                          }} style={{padding:'7px 13px',borderRadius:20,background:isSelected?RED:'transparent',border:'1px solid '+(isSelected?RED:(darkMode?'#333':'#ddd')),color:isSelected?'#fff':(darkMode?'#aaa':'#666'),fontSize:12,fontWeight:700,cursor:'pointer'}}>
                             {s}
-                          </button>
-                        ))}
+                          </button>);
+                        })}
                       </div>
                     </div>
                     <div>
