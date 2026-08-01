@@ -4,6 +4,7 @@ import { buildTimeSeries, activeUserCounts, countSince, equipmentRanking, totalE
 import { setupPushRegistration } from './pushRegistration';
 import { cityToCountry, filterCitiesByCountry } from './cityCountry';
 import { autoFilterCandidates } from './autoFilters';
+import { SUPA_URL, SUPA_KEY, ADMIN_ID, APP_STORE_ID, CURRENT_APP_VERSION, SW, RED, LIGHT_RED } from './constants';
 const Globe=lazy(()=>import('react-globe.gl'));
 
 // Mobile Geräte (iPhone/Android) haben strenge GPU-Speicherlimits im Browser/WebView —
@@ -203,21 +204,8 @@ function UserGlobe({darkMode,onClose,SUPA_URL,SUPA_KEY}){
   );
 }
 
-const SUPA_URL = 'https://uykdrmymjvqgebsmndme.supabase.co';
-const ADMIN_ID = '1a697731-458d-4559-a4cf-a89d3150bfa5';
-// ⚠️ HIER DIE ECHTE APP-STORE-ID EINTRAGEN ⚠️
-// Das ist NUR die Zahl aus der App-Store-Adresse: apps.apple.com/app/id123456789
-// -> dann hier zwischen die Anführungszeichen: '123456789'
-// Solange leer, zeigt die Bewertungs-Aufforderung einen Hinweis statt den Store zu öffnen.
-const APP_STORE_ID = '6779692192';
-// WICHTIG: Diese Zahl bei JEDEM neuen nativen Build (Xcode-Version)
-// manuell mit hochsetzen, exakt passend zur "Version" in Xcode
-// (General-Tab). Sonst erkennt die App neue Updates nicht richtig.
-const CURRENT_APP_VERSION = '1.12';
-// SUPA_SERVICE_KEY wurde entfernt - der Vollzugriffsschluessel liegt jetzt
-// ausschliesslich sicher auf dem Server (admin-proxy Edge Function Secret),
-// nicht mehr im Client-Code.
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk';
+// SUPA_URL, SUPA_KEY, ADMIN_ID, APP_STORE_ID, CURRENT_APP_VERSION stehen
+// jetzt in src/constants.js (siehe Import ganz oben).
 
 export async function authSignUp(email, password) {
   const r = await fetch(SUPA_URL + '/auth/v1/signup', {
@@ -486,7 +474,7 @@ const SPORTS = {
   'Kampfsport':{color:'#c0392b',emoji:'🥋',games:[{id:1,title:'Open Mat BJJ',location:'Tiger Gym Berlin',time:'So 11:00',cur:8,max:20,level:'Alle',host:'Kai M.'},{id:2,title:'Boxing Sparring',location:'Berserker BC',time:'Do 19:00',cur:3,max:10,level:'Mittel',host:'Felix W.'}]},
 };
 
-const SW=60, RED='#c0392b', LIGHT_RED='#e74c3c';
+// SW, RED, LIGHT_RED stehen jetzt in src/constants.js (Import ganz oben).
 const css=`
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#f5f5f7;font-family:'DM Sans',sans-serif}
