@@ -209,7 +209,7 @@ const ADMIN_ID = '1a697731-458d-4559-a4cf-a89d3150bfa5';
 // Das ist NUR die Zahl aus der App-Store-Adresse: apps.apple.com/app/id123456789
 // -> dann hier zwischen die Anführungszeichen: '123456789'
 // Solange leer, zeigt die Bewertungs-Aufforderung einen Hinweis statt den Store zu öffnen.
-const APP_STORE_ID = '';
+const APP_STORE_ID = '6779692192';
 // SUPA_SERVICE_KEY wurde entfernt - der Vollzugriffsschluessel liegt jetzt
 // ausschliesslich sicher auf dem Server (admin-proxy Edge Function Secret),
 // nicht mehr im Client-Code.
@@ -1890,6 +1890,8 @@ function MainApp(){
   const [sport,setSport]=useState('Basketball');
   const [joined,setJoined]=useState({});
   const [gymRatings,setGymRatings]=useState(()=>{try{return JSON.parse(localStorage.getItem('gymRatings')||'{}')}catch{return {}}});
+  const [coaches,setCoaches]=useState([]);
+  const [coachesLoading,setCoachesLoading]=useState(false);
   const [dbGyms,setDbGyms]=useState([]);
   const [gymRankMode,setGymRankMode]=useState(false);
   const [countryFilter,setCountryFilter]=useState('mine'); // 'mine' | 'world'
@@ -3093,6 +3095,52 @@ function MainApp(){
     setCreatingEvent(false);
   }
 
+  // Laedt alle echten, registrierten Trainer + ihre Durchschnitts-
+  // Bewertung. Ersetzt die vorherige fest einprogrammierte Beispiel-Liste.
+  async function loadCoaches(s){
+    setCoachesLoading(true);
+    try{
+      const profs=await dbSelect('profiles','is_coach=eq.true&select=id,user_id,name,city,avatar_url,coach_gym,coach_styles,coach_experience,coach_bio',s?.token||session?.token);
+      const ratings=await dbSelect('coach_ratings','',s?.token||session?.token);
+      const byCoach={};
+      if(Array.isArray(ratings))ratings.forEach(r=>{
+        if(!byCoach[r.coach_id])byCoach[r.coach_id]={total:0,count:0};
+        byCoach[r.coach_id].total+=r.stars;
+        byCoach[r.coach_id].count+=1;
+      });
+      const myId=myProfile?.id;
+      const list=(Array.isArray(profs)?profs:[]).map(c=>{
+        const r=byCoach[c.id]||{total:0,count:0};
+        const mine=Array.isArray(ratings)?ratings.find(x=>x.coach_id===c.id&&x.user_id===(s?.userId||session?.userId)):null;
+        return{...c,avgRating:r.count>0?(r.total/r.count):0,ratingCount:r.count,myRating:mine?mine.stars:0};
+      }).sort((a,b)=>b.avgRating-a.avgRating);
+      setCoaches(list);
+    }catch(e){console.error('loadCoaches',e);}
+    setCoachesLoading(false);
+  }
+
+  async function rateCoach(coachId,stars){
+    if(!session)return;
+    try{
+      const existing=await dbSelect('coach_ratings','coach_id=eq.'+coachId+'&user_id=eq.'+session.userId,session.token);
+      if(Array.isArray(existing)&&existing.length>0){
+        await fetch(SUPA_URL+'/rest/v1/coach_ratings?id=eq.'+existing[0].id,{
+          method:'PATCH',
+          headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+          body:JSON.stringify({stars,updated_at:new Date().toISOString()})
+        });
+      }else{
+        await fetch(SUPA_URL+'/rest/v1/coach_ratings',{
+          method:'POST',
+          headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+          body:JSON.stringify({coach_id:coachId,user_id:session.userId,stars})
+        });
+      }
+      showMsg('⭐ Bewertung gespeichert');
+      await loadCoaches(session);
+    }catch(e){showMsg('Fehler: '+e.message);}
+  }
+
   async function loadGymRatings(s){
     try{
       const data=await dbSelect('gym_ratings','user_id=eq.'+s.userId,s.token);
@@ -3292,6 +3340,11 @@ function MainApp(){
       weight_class:profile.weightClass||null,
       style:profile.style,
       belt:profile.belt||null,
+      is_coach:!!profile.isCoach,
+      coach_gym:profile.coachGym||null,
+      coach_styles:profile.coachStyles||null,
+      coach_experience:parseInt(profile.coachExperience)||null,
+      coach_bio:profile.coachBio||null,
       bio:profile.bio||null,
       wins:parseInt(stats.wins)||0,
       losses:parseInt(stats.losses)||0,
@@ -3773,6 +3826,7 @@ function MainApp(){
     if(step===1)return !!(profile.name&&profile.age&&profile.city&&(avatarPreview||avatarUrl));
     if(step===2)return !!(profile.style);
     if(step===3)return true; // Alles optional auf Step 3
+    if(step===4)return !!(profile.coachGym&&profile.coachStyles); // Trainer-Pflichtfelder
     return true;
   }
   const tf=stats.wins+stats.losses+stats.draws;
@@ -3933,6 +3987,24 @@ function MainApp(){
             </div>
           ))}
         </div>
+        {viewProfile.is_coach&&(
+          <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid #8e44ad33',marginTop:10}}>
+            <div style={{color:'#8e44ad',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>🎓 TRAINER-PROFIL</div>
+            {viewProfile.coach_bio&&<div style={{color:darkMode?'#ccc':'#555',fontSize:12,lineHeight:1.5,marginBottom:10}}>{viewProfile.coach_bio}</div>}
+            {!myProfile||viewProfile.id!==myProfile.id?(
+              <>
+                <div style={{color:'#999',fontSize:10,marginBottom:6}}>Bewerte diesen Trainer:</div>
+                <div style={{display:'flex',gap:6}}>
+                  {[1,2,3,4,5].map(n=>(
+                    <button key={n} onClick={()=>rateCoach(viewProfile.id,n)} style={{background:'none',border:'none',fontSize:26,cursor:'pointer',padding:0,color:(coaches.find(c=>c.id===viewProfile.id)?.myRating||0)>=n?'#d4a017':'#ddd'}}>★</button>
+                  ))}
+                </div>
+              </>
+            ):(
+              <div style={{color:'#999',fontSize:11}}>Das ist dein eigenes Trainer-Profil.</div>
+            )}
+          </div>
+        )}
         {/* BLOCK / MELDEN */}
         {/* TRAININGS-HISTORIE auf fremdem Profil — immer anzeigen */}
         <div style={{padding:'0 12px',marginTop:12}}>
@@ -4117,6 +4189,16 @@ nicht öffentlich gemacht</div>
       <div style={{width:'100%',maxWidth:380,padding:'22px 20px 0'}}>
         {step===1&&(
           <div style={{display:'flex',flexDirection:'column',gap:13}}>
+            <div style={{background:'#f8f4ff',border:'1px solid #e0d4f7',borderRadius:12,padding:'12px 14px'}}>
+              <div style={{color:'#1a1a1a',fontSize:12,fontWeight:700,marginBottom:8}}>Was trifft auf dich zu?</div>
+              <div style={{display:'flex',gap:8}}>
+                <button type='button' onClick={()=>setProfile(p=>({...p,isFighter:!p.isFighter}))}
+                  style={{flex:1,padding:'9px',borderRadius:8,border:'2px solid '+(profile.isFighter!==false?RED:'#ddd'),background:profile.isFighter!==false?'#fdf0ef':'#fff',color:profile.isFighter!==false?RED:'#888',fontWeight:700,fontSize:12,cursor:'pointer'}}>🥊 Kämpfer</button>
+                <button type='button' onClick={()=>setProfile(p=>({...p,isCoach:!p.isCoach}))}
+                  style={{flex:1,padding:'9px',borderRadius:8,border:'2px solid '+(profile.isCoach?'#8e44ad':'#ddd'),background:profile.isCoach?'#f5edfc':'#fff',color:profile.isCoach?'#8e44ad':'#888',fontWeight:700,fontSize:12,cursor:'pointer'}}>🎓 Trainer</button>
+              </div>
+              <div style={{color:'#999',fontSize:10,marginTop:6}}>Beides ist möglich — als Trainer kommen am Ende noch ein paar zusätzliche Fragen.</div>
+            </div>
             <div style={{display:'flex',justifyContent:'center',marginBottom:8}}> 
               <label style={{cursor:'pointer',textAlign:'center'}}>
                 <input type='file' accept='image/*' onChange={handlePhoto} style={{display:'none'}}/>
@@ -4338,11 +4420,39 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             </div>
           </div>
         )}
+        {step===4&&(
+          <div style={{display:'flex',flexDirection:'column',gap:13}}>
+            <div style={{color:'#8e44ad',fontSize:13,fontWeight:700,marginBottom:2}}>🎓 Noch ein paar Fragen als Trainer</div>
+            <Lbl>Gym / Verein, wo du unterrichtest</Lbl>
+            <Inp placeholder='z.B. Tiger Gym Berlin' value={profile.coachGym||''} onChange={v=>setProfile(p=>({...p,coachGym:v}))}/>
+            <Lbl>Jahre Erfahrung als Trainer</Lbl>
+            <Inp placeholder='z.B. 8' type='number' value={profile.coachExperience||''} onChange={v=>setProfile(p=>({...p,coachExperience:v}))}/>
+            <Lbl>Kampfstile, die du unterrichtest</Lbl>
+            <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
+              {STYLES.map(s=>{
+                const selected=(profile.coachStyles||'').split(',').map(x=>x.trim()).filter(Boolean);
+                const isSelected=selected.includes(s);
+                return(<button key={s} onClick={()=>{
+                  const cur=(profile.coachStyles||'').split(',').map(x=>x.trim()).filter(Boolean);
+                  const next=isSelected?cur.filter(x=>x!==s):[...cur,s];
+                  setProfile(p=>({...p,coachStyles:next.join(', ')}));
+                }} style={{padding:'7px 13px',borderRadius:4,border:'1px solid '+(isSelected?'#8e44ad':'#ddd'),background:isSelected?'#f5edfc':'#fff',color:isSelected?'#8e44ad':'#666',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:700,cursor:'pointer'}}>{s}</button>);
+              })}
+            </div>
+            <Lbl>Trainer-Bio (Erfolge, dein Ansatz)</Lbl>
+            <Inp placeholder='z.B. 10 Jahre Erfahrung, spezialisiert auf...' value={profile.coachBio||''} onChange={v=>setProfile(p=>({...p,coachBio:v}))}/>
+          </div>
+        )}
         <div style={{display:'flex',gap:9,marginTop:22}}>
           {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{flex:1,padding:'13px',borderRadius:8,background:'#fff',border:'1px solid #ddd',color:'#666',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>Zurueck</button>}
           <div style={{flex:2,display:'flex',flexDirection:'column',gap:4}}>
-            <button onClick={async()=>{if(!canGo())return;if(step<3)setStep(s=>s+1);else await saveProfile();}} style={{width:'100%',padding:'13px',borderRadius:8,background:canGo()?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#eee',border:'none',color:canGo()?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:canGo()?'pointer':'not-allowed',transition:'all 0.2s'}}>
-              {saving?t.saving:step===3?t.letsGo:t.next}
+            <button onClick={async()=>{
+              if(!canGo())return;
+              const maxStep=profile.isCoach?4:3;
+              if(step<maxStep)setStep(s=>s+1);
+              else await saveProfile();
+            }} style={{width:'100%',padding:'13px',borderRadius:8,background:canGo()?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#eee',border:'none',color:canGo()?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:canGo()?'pointer':'not-allowed',transition:'all 0.2s'}}>
+              {saving?t.saving:(step===3&&!profile.isCoach)||step===4?t.letsGo:t.next}
             </button>
             {step===1&&!(avatarPreview||avatarUrl)&&<div style={{color:RED,fontSize:10,textAlign:'center',fontWeight:600}}>{appLang==='FR'?'⬆ Télécharger une photo pour continuer':appLang==='EN'?'⬆ Upload profile photo to continue':'⬆ Profilbild hochladen um fortzufahren'}</div>}
           </div>
@@ -5815,7 +5925,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <div style={{display:'flex',gap:5,marginBottom:11}}>
               <button onClick={()=>setRankMode('user')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='user'?'#2980b9':'transparent',border:'1px solid '+(rankMode==='user'?'#2980b9':(darkMode?'#333':'#ddd')),color:rankMode==='user'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>🏅 AMATEURE</button>
               <button onClick={()=>setRankMode('pro')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='pro'?'#d4a017':'transparent',border:'1px solid '+(rankMode==='pro'?'#d4a017':(darkMode?'#333':'#ddd')),color:rankMode==='pro'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>⭐ PROFIS</button>
-              <button onClick={()=>setRankMode('trainer')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='trainer'?'#8e44ad':'transparent',border:'1px solid '+(rankMode==='trainer'?'#8e44ad':(darkMode?'#333':'#ddd')),color:rankMode==='trainer'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:11,cursor:'pointer'}}>{t.trainer}</button>
+              <button onClick={()=>{setRankMode('trainer');if(coaches.length===0)loadCoaches(session);}} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='trainer'?'#8e44ad':'transparent',border:'1px solid '+(rankMode==='trainer'?'#8e44ad':(darkMode?'#333':'#ddd')),color:rankMode==='trainer'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:11,cursor:'pointer'}}>{t.trainer}</button>
             </div>
             {rankMode!=='trainer'&&(
               <div style={{display:'flex',gap:6,marginBottom:8}}>
@@ -5834,32 +5944,38 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             )}
             {rankMode==='trainer'&&(
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {[...TRAINERS].filter(tr=>!myProfile||tr.name!==myProfile.name).sort((a,b)=>b.rating-a.rating).map((tr,i)=>{
+                {coachesLoading?(
+                  <div style={{textAlign:'center',padding:'40px 0',color:'#aaa'}}>Lädt...</div>
+                ):coaches.length===0?(
+                  <div style={{textAlign:'center',padding:'40px 20px',color:'#aaa'}}>
+                    <div style={{fontSize:32,marginBottom:8}}>🎓</div>
+                    <div style={{fontSize:13}}>Noch keine registrierten Trainer. Wer sich bei der Registrierung als Trainer einträgt, erscheint hier.</div>
+                  </div>
+                ):coaches.map((c,i)=>{
                   const medal=['🥇','🥈','🥉'];
-                  const medalColor=['#d4a017','#95a5a6','#cd7f32'];
                   const isTop3=i<3;
+                  const isMe=myProfile&&c.id===myProfile.id;
                   return(
-                    <div key={tr.id} style={{background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:13,padding:'12px 13px',border:'1px solid '+(isTop3?'#d4a01733':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.1)':'none',display:'flex',alignItems:'center',gap:11}}>
+                    <div key={c.id} onClick={()=>!isMe&&setViewProfile(c)} style={{background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:13,padding:'12px 13px',border:'1px solid '+(isTop3?'#d4a01733':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.1)':'none',display:'flex',alignItems:'center',gap:11,cursor:isMe?'default':'pointer'}}>
                       <div style={{fontSize:isTop3?26:18,width:32,textAlign:'center',flexShrink:0}}>
                         {isTop3?medal[i]:<span className='rj' style={{color:'#bbb'}}>#{i+1}</span>}
                       </div>
-                      <div style={{width:46,height:46,borderRadius:10,background:tr.accent+'22',border:'2px solid '+tr.accent+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>{tr.emoji}</div>
+                      {c.avatar_url?<img loading="lazy" src={c.avatar_url} style={{width:46,height:46,borderRadius:10,objectFit:'cover',flexShrink:0}} alt=''/>:<div style={{width:46,height:46,borderRadius:10,background:'#8e44ad22',border:'2px solid #8e44ad44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>🎓</div>}
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{display:'flex',alignItems:'center',gap:5}}>
-                          <div className='rj' style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontSize:15,letterSpacing:0.5}}>{tr.name}</div>
+                          <div className='rj' style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontSize:15,letterSpacing:0.5}}>{c.name}</div>
                           <div style={{background:'#8e44ad22',border:'1px solid #8e44ad44',borderRadius:10,padding:'1px 6px',color:'#8e44ad',fontSize:9,fontWeight:700,flexShrink:0}}>🎓 TRAINER</div>
                         </div>
-                        <div style={{color:tr.accent,fontSize:11,fontWeight:700,marginTop:1}}>{tr.style} · {tr.country}</div>
-                        <div style={{color:darkMode?'#555':'#bbb',fontSize:10,marginTop:1}}>🏋️ {tr.gym}</div>
-                        <div style={{color:darkMode?'#444':'#ccc',fontSize:10,marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>👥 {tr.pupils}</div>
+                        <div style={{color:'#8e44ad',fontSize:11,fontWeight:700,marginTop:1}}>{c.coach_styles||'-'}</div>
+                        <div style={{color:darkMode?'#555':'#bbb',fontSize:10,marginTop:1}}>🏋️ {c.coach_gym||'-'} · {c.city||'-'}</div>
                       </div>
                       <div style={{textAlign:'right',flexShrink:0}}>
                         <div style={{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}}>
                           <span style={{color:'#d4a017',fontSize:13}}>★</span>
-                          <span className='rj' style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontSize:18}}>{tr.rating}</span>
+                          <span className='rj' style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontSize:18}}>{c.avgRating>0?c.avgRating.toFixed(1):'-'}</span>
                         </div>
-                        <div style={{color:'#bbb',fontSize:9,marginTop:2}}>{tr.exp} Jahre</div>
-                        <div style={{color:'#d4a017',fontSize:9}}>{tr.titles} Titel</div>
+                        <div style={{color:'#bbb',fontSize:9,marginTop:2}}>{c.ratingCount} Bew.</div>
+                        {c.coach_experience&&<div style={{color:'#d4a017',fontSize:9}}>{c.coach_experience} Jahre</div>}
                       </div>
                     </div>
                   );
