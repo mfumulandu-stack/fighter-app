@@ -3502,8 +3502,15 @@ function MainApp(){
         coach_experience:editProfile.coachExperience!==undefined?editProfile.coachExperience:mp.coach_experience,
         coach_bio:editProfile.coachBio!==undefined?editProfile.coachBio:mp.coach_bio,
         belt:editProfile.belt!==undefined?editProfile.belt:mp.belt,
+        gender:editProfile.gender||mp.gender,
       }));
-      if(isAdmin)showMsg('✅ Diagnose: Server hat OK zurückgegeben, is_coach sollte jetzt '+finalIsCoach+' sein');
+      // Erzwingt zusaetzlich ein frisches Nachladen aller Profile, damit
+      // die Rangliste garantiert den neuesten Stand hat (nicht nur ueber
+      // die lokale State-Aktualisierung, sondern wirklich frisch aus der
+      // Datenbank) - reine Vorsichtsmassnahme fuer maximale Konsistenz.
+      loadAllProfiles(session);
+      const finalGender=editProfile.gender||profile.gender;
+      if(isAdmin)showMsg('✅ Diagnose: gespeichert - Geschlecht ist jetzt "'+finalGender+'", is_coach="'+finalIsCoach+'"');
       else showMsg(appLang==='FR'?'Profil enregistré ✓':appLang==='EN'?'Profile saved ✓':'Profil gespeichert ✓');
       setEditMode(false);
     }catch(e){showMsg(appLang==='FR'?'Erreur lors de la sauvegarde':appLang==='EN'?'Error saving':'Fehler beim Speichern: '+e.message);}
@@ -4437,7 +4444,7 @@ nicht öffentlich gemacht</div>
             <Lbl>Standort</Lbl><Inp placeholder='z.B. Berlin' value={profile.city} onChange={v=>setProfile(p=>({...p,city:v}))}/>
             <Lbl>Ich bin</Lbl>
             <div style={{display:'flex',gap:10,marginTop:2,marginBottom:4}}>
-              {[['Mann','♂️','male'],['Frau','♀️','female'],['Divers','⚧️','other']].map(([label,icon,val])=>(
+              {[['Mann','♂️','male'],['Frau','♀️','female']].map(([label,icon,val])=>(
                 <button key={val} onClick={()=>setProfile(p=>({...p,gender:val}))}
                   style={{flex:1,padding:'12px 6px',borderRadius:10,border:'2px solid '+(profile.gender===val?RED:'#e0e0e0'),background:profile.gender===val?'#fdf0ef':'#fff',cursor:'pointer',textAlign:'center',transition:'all 0.2s'}}>
                   <div style={{fontSize:22,marginBottom:3}}>{icon}</div>
@@ -5446,7 +5453,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     <div>
                       <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>GESCHLECHT</div>
                       <div style={{display:'flex',gap:8,marginBottom:12}}>
-                        {[['Mann','♂️','male'],['Frau','♀️','female'],['Divers','⚧️','other']].map(([label,icon,val])=>(
+                        {[['Mann','♂️','male'],['Frau','♀️','female']].map(([label,icon,val])=>(
                           <button key={val} onClick={()=>setEditProfile(p=>({...p,gender:val}))}
                             style={{flex:1,padding:'8px 4px',borderRadius:10,border:'2px solid '+((editProfile.gender!==undefined?editProfile.gender:(profile.gender||'male'))===val?RED:(darkMode?'#333':'#e0e0e0')),background:(editProfile.gender!==undefined?editProfile.gender:(profile.gender||'male'))===val?'#fdf0ef':'transparent',cursor:'pointer',textAlign:'center'}}>
                             <div style={{fontSize:18}}>{icon}</div>
