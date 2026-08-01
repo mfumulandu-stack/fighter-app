@@ -536,7 +536,7 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUp
     <div style={{position:'fixed',inset:0,background:bg,zIndex:250,overflowY:'auto',display:'flex',flexDirection:'column'}}>
       {/* HEADER */}
       <div style={{background:`linear-gradient(135deg,#1a1a1a,#2d2d2d)`,padding:'0 0 20px',flexShrink:0}}>
-        <div style={{display:'flex',alignItems:'center',padding:'14px 16px 0',gap:10}}>
+        <div style={{display:'flex',alignItems:'center',padding:'calc(14px + env(safe-area-inset-top)) 16px 0',gap:10}}>
           <button onClick={onClose} style={{background:'rgba(255,255,255,0.1)',border:'none',color:'#fff',fontSize:18,cursor:'pointer',borderRadius:8,padding:'6px 12px',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
           <div style={{flex:1}}/>
           {isAdmin&&<button onClick={()=>setEditMode(e=>!e)} style={{background:editMode?'#27ae60':'rgba(255,255,255,0.15)',border:'none',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',borderRadius:8,padding:'6px 12px',fontFamily:'Rajdhani,sans-serif',letterSpacing:1}}>{editMode?'✓ MODUS':'✏️ BEARBEITEN'}</button>}
@@ -2895,6 +2895,12 @@ function MainApp(){
     }
   },[viewProfile,tab]);
 
+  useEffect(()=>{
+    if(!viewGym&&tab==='gyms'&&mainScrollRef.current){
+      mainScrollRef.current.scrollTop=savedGymScrollRef.current;
+    }
+  },[viewGym,tab]);
+
   // Gyms regelmaessig neu laden, damit Aenderungen (neues Gym, geaendertes
   // Logo/Foto, aktualisierte Adresse usw.) fuer alle Nutzer zeitnah
   // ankommen - vorher wurden Gyms nur einmal beim App-Start geladen und
@@ -4038,6 +4044,7 @@ function MainApp(){
   },[profile,stats,avatarUrl,allProfiles,myProfile]);
   const mainScrollRef=React.useRef(null);
   const savedRankScrollRef=React.useRef(0);
+  const savedGymScrollRef=React.useRef(0);
   const ranked=React.useMemo(()=>{
   return rankMode==='trainer'
     ?[]
@@ -5792,6 +5799,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               const rest=allRanked.slice(5);
               const medal=['🥇','🥈','🥉'];
               const openGym=(g)=>{
+                savedGymScrollRef.current=mainScrollRef.current?mainScrollRef.current.scrollTop:0;
                 const hard=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(gx=>({...gx,ct}))).find(gx=>gx.name===g.name);
                 const db=dbGyms.find(dg=>dg.name===g.name);
                 const base=hard||db||g;
