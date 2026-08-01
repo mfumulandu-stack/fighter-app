@@ -1902,6 +1902,7 @@ function MainApp(){
   const [showFeedbackModal,setShowFeedbackModal]=useState(false);
   const [feedbackType,setFeedbackType]=useState('feedback'); // 'feedback' | 'wunsch'
   const [showEquipment,setShowEquipment]=useState(false);
+  const [showPushReminder,setShowPushReminder]=useState(false);
   const [showSupplements,setShowSupplements]=useState(false);
   const [showNews,setShowNews]=useState(false);
   const [newsItems,setNewsItems]=useState([]);
@@ -2555,7 +2556,12 @@ function MainApp(){
           showMsg('❌ APNs-Registrierung fehlgeschlagen: '+JSON.stringify(err).slice(0,150));
         }
       });
-      if(result.status==='permission_denied'){showMsg('⚠️ Push-Erlaubnis nicht erteilt ('+result.receive+')');return;}
+      if(result.status==='permission_denied'){
+        showMsg('⚠️ Push-Erlaubnis nicht erteilt ('+result.receive+')');
+        setShowPushReminder(true); // zeigt eine wiederkehrende Erinnerung, bis Push aktiviert ist
+        return;
+      }
+      setShowPushReminder(false);
       showMsg('📲 Bei Apple registriert, warte auf Token...');
       // Reagiert darauf, wenn jemand auf eine Benachrichtigung TIPPT (nicht
       // nur wenn sie ankommt) - leitet je nach Typ zur richtigen Stelle
@@ -4745,6 +4751,16 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         </button>
       </div>
 
+      {showPushReminder&&(
+        <div style={{background:'linear-gradient(135deg,#c0392b,#e74c3c)',padding:'10px 16px',display:'flex',alignItems:'center',gap:10}}>
+          <span style={{fontSize:18}}>🔔</span>
+          <div style={{flex:1}}>
+            <div style={{color:'#fff',fontSize:12,fontWeight:700}}>Verpasse keine Matches & Nachrichten!</div>
+            <div style={{color:'rgba(255,255,255,0.85)',fontSize:10,marginTop:2,lineHeight:1.4}}>iPhone-Einstellungen → Fighter → Mitteilungen → Erlauben</div>
+          </div>
+          <button onClick={()=>setShowPushReminder(false)} style={{background:'rgba(255,255,255,0.2)',border:'none',borderRadius:6,color:'#fff',fontSize:16,padding:'4px 10px',cursor:'pointer',flexShrink:0}}>✕</button>
+        </div>
+      )}
       <div style={{flex:1,overflowY:tab==='swipe'?'hidden':'auto',overscrollBehavior:'contain',paddingBottom:tab==='swipe'?0:'calc(68px + env(safe-area-inset-bottom))'}}>
 
         {myProfile&&!myProfile.avatar_url&&(
@@ -7444,7 +7460,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                               <div style={{color:darkMode?'#666':'#aaa',fontSize:10}}>{u.style||'?'} · {u.city||'?'}</div>
                             </div>
                           </div>
-                          <button onClick={()=>startAdminChat(u)} title='Nachricht schreiben' style={{background:'none',border:'none',fontSize:16,cursor:'pointer',padding:'4px 6px',flexShrink:0}}>💬</button>
+                          <button onClick={()=>startAdminChat(u)} title='Chat starten' style={{background:RED,border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:10,fontWeight:700,cursor:'pointer',flexShrink:0,whiteSpace:'nowrap'}}>🗨️ CHAT</button>
                           <div style={{color:darkMode?'#555':'#888',fontSize:10,flexShrink:0}}>{u.created_at?new Date(u.created_at).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}):'?'}</div>
                         </div>
                       ))}
