@@ -4384,7 +4384,6 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 {icon:'',label:'Mein Profil',action:()=>{setTab('stats');setShowMenu(false);}},
                 {icon:'',label:'Equipment',action:()=>{setShowEquipment(true);setShowMenu(false);}},
                 {icon:'',label:'Supplements',action:()=>{setShowSupplements(true);setShowMenu(false);}},
-                {icon:'',label:'Supplements',action:()=>{setShowSupplements(true);setShowMenu(false);}},
               ].map(item=>(
                 <div key={item.label} onClick={item.action}
                   style={{display:'flex',alignItems:'center',gap:12,padding:'10px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px',transition:'background 0.15s'}}
