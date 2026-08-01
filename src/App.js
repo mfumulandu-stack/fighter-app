@@ -1678,6 +1678,19 @@ export default function App(){
 function MainApp(){
   const [session,setSession]=useState(null);
   const [authReady,setAuthReady]=useState(false);
+  // Sicherheitsnetz: Egal was beim Start schiefgehen sollte (unerwarteter
+  // Fehler, haengender Netzwerk-Aufruf ohne Timeout) - die App bleibt nie
+  // laenger als 15 Sekunden auf dem Ladebildschirm haengen. Zeigt danach
+  // notfalls den Login-Bildschirm, statt fuer immer zu laden.
+  useEffect(()=>{
+    const failsafe=setTimeout(()=>{
+      setAuthReady(ready=>{
+        if(!ready){console.warn('Auth-Sicherheitsnetz ausgeloest nach 15s');}
+        return true;
+      });
+    },15000);
+    return()=>clearTimeout(failsafe);
+  },[]);
   const [screen,setScreen]=useState('loading');
   // Passwort-Reset: erkennt den Klick auf den Reset-Link aus der E-Mail
   // (Supabase haengt dabei access_token & type=recovery an die URL an)
@@ -1904,6 +1917,7 @@ function MainApp(){
   const [showFeedbackModal,setShowFeedbackModal]=useState(false);
   const [feedbackType,setFeedbackType]=useState('feedback'); // 'feedback' | 'wunsch'
   const [showEquipment,setShowEquipment]=useState(false);
+  const [adminCityFilter,setAdminCityFilter]=useState('');
   const [showPushReminder,setShowPushReminder]=useState(false);
   const [showSupplements,setShowSupplements]=useState(false);
   const [showNews,setShowNews]=useState(false);
@@ -1942,6 +1956,7 @@ function MainApp(){
       const bl=(navigator.language||navigator.userLanguage||'de').toLowerCase();
       if(bl.startsWith('fr'))return 'FR';
       if(bl.startsWith('en'))return 'EN';
+      if(bl.startsWith('es'))return 'ES';
       return 'DE'; // Default für DACH
     }catch{return 'DE';}
   });
@@ -1971,7 +1986,7 @@ function MainApp(){
       sendLink:'LINK SENDEN', cancel:'Abbrechen',
       // Setup
       yourName:'Dein Name', age:'Alter', location:'Standort', photo:'FOTO',
-      photoRequired:'Profilbild hochladen (Pflicht)', photoUploaded:'Foto hochgeladen ✓',
+      photoRequired:'Profilbild hinzufügen (optional)', photoUploaded:'Foto hochgeladen ✓',
       yourGym:'Dein Gym', aboutYou:'Über dich', fightStyle:'Kampfstil (mehrere möglich)',
       height:'Größe (cm)', fightWeight:'Kampfgewicht (kg)', weightClass:'Gewichtsklasse',
       chooseWeightClass:'Gewichtsklasse wählen', fightRecord:'Kampfrekord (optional)',
@@ -2284,6 +2299,120 @@ function MainApp(){
       close:'FERMER', registerGym:'➕ INSCRIRE',
       pwChangeTitle:'🔑 CHANGER LE MOT DE PASSE', pwChangeSub:'Au moins 6 caractères', newPw:'Nouveau mot de passe',
       pwSave:'ENREGISTRER', pwError:'Au moins 6 caractères!', pwSuccess:'✅ Mot de passe changé!',
+    };
+  T.ES = {
+      // Navigation
+      fight:'FIGHT', chat:'CHAT', rang:'RANKING', gyms:'GIMNASIOS', profil:'PERFIL',
+      // Additional UI strings
+      noOneLiked:'Nadie te ha dado like todavia',
+      keepSwiping:'Sigue deslizando - tu match esta por llegar!',
+      notifications:'Notificaciones',
+      noEvents:'No hay eventos disponibles',
+      findEventsCity:'Encuentra eventos en tu ciudad',
+      deleteBtn:'🗑️ Eliminar',
+      gymNotFound:'No se encontro ningun gimnasio',
+      gymBeingAdded:'Tu gimnasio esta siendo revisado y anadido',
+      myGymNotListed:'Mi gimnasio no esta en la lista → registrar',
+      noReports:'Sin reportes - o pulsa "Cargar"',
+      noRequests:'No hay solicitudes pendientes',
+      noFeedbackYet:'Aun no hay comentarios - pulsa Cargar',
+      weiterSwipen:'Seguir deslizando',
+      // Auth
+      login:'Iniciar sesion', register:'Registrarse', email:'Correo electronico', password:'Contrasena (min. 6 caracteres)',
+      loginBtn:'ENTRAR', registerBtn:'REGISTRARSE', forgotPw:'Olvidaste tu contrasena?',
+      privacyAgree:'Acepto la', agbAgree:'Acepto los',
+      pwReset:'RESTABLECER CONTRASENA', pwResetSub:'Te enviaremos un enlace de restablecimiento por correo electronico.',
+      sendLink:'ENVIAR ENLACE', cancel:'Cancelar',
+      // Setup
+      yourName:'Tu nombre', age:'Edad', location:'Ubicacion', photo:'FOTO',
+      photoRequired:'Anadir foto de perfil (opcional)', photoUploaded:'Foto subida ✓',
+      yourGym:'Tu gimnasio', aboutYou:'Sobre ti', fightStyle:'Estilo de combate (varios posibles)',
+      height:'Altura (cm)', fightWeight:'Peso de combate (kg)', weightClass:'Categoria de peso',
+      chooseWeightClass:'Elegir categoria de peso', fightRecord:'Record de combate (opcional)',
+      back:'Atras', next:'Siguiente', letsGo:'Vamos a luchar', saving:'Guardando…',
+      // Swipe/Fight Tab
+      profileSeen:'Ver perfil', justNow:'🟢 En linea ahora', minAgo:'Hace', min:'min',
+      hoursAgo:'Hace', hour:'h', daysAgo:'Hace', day:'dia', days:'dias', aWhileAgo:'⚪ Hace un tiempo',
+      allFightersSeen:'TODOS LOS LUCHADORES', allFightersSeen2:'VISTOS',
+      noFightersNearby:'No se encontraron luchadores cerca de ti.',
+      allFightersSwiped:'Has visto a todos los luchadores! Cada dia se anaden nuevos.',
+      newFighters:'🔄 NUEVOS LUCHADORES', goToChats:'💬 CHATS',
+      recentlySeen:'VISTOS RECIENTEMENTE', fightRequests:'SOLICITUDES DE COMBATE – toca para chatear',
+      interestedIn:'Luchadores interesados en ti',
+      myCountry:'Mi pais', worldwide:'Mundial',
+      // Chat Tab
+      messages:'MENSAJES', matches:'Match', matchPlural:'es',
+      noMatches:'AUN NO HAY MATCHES',
+      noMatchesSub:'Desliza a la derecha en los luchadores que quieras retar - si hay match mutuo podreis chatear directamente!',
+      swipeNow:'⚔️ DESLIZAR AHORA', newFightersDaily:'Cada dia se anaden nuevos luchadores',
+      noFighterFound:'No se encontro ningun luchador', noMatchesFor:'No hay matches para',
+      searchFighter:'Buscar luchador...', chatBtn:'CHAT →',
+      // Fight Request
+      fightRequest:'SOLICITUD DE COMBATE', fightType:'TIPO DE COMBATE', date:'FECHA', placeGym:'LUGAR / GIMNASIO',
+      placePlaceholder:'ej. Tiger Gym Berlin, Centro', waitingResponse:'Esperando respuesta…',
+      sendFightRequest:'⚔️ ENVIAR SOLICITUD', fightSent:'SOLICITUD ENVIADA!',
+      waitingFor:'Esperando respuesta de', accept:'✅ ACEPTAR', decline:'❌ RECHAZAR',
+      counterDate:'🔄 CONTRAPROPUESTA', backToChat:'💬 VOLVER AL CHAT',
+      fightAccepted:'COMBATE ACEPTADO', fightDeclined:'COMBATE RECHAZADO', counterTerm:'FECHA ALTERNATIVA',
+      // Ranking
+      worldRanking:'RANKING MUNDIAL', amateurs:'🏅 AMATEURS', pros:'🌍 PROFESIONALES', trainer:'🎓 ENTRENADOR',
+      all:'Todos', wins:'VICTORIAS', losses:'DERROTAS', draws:'EMPATES', kos:'KOs',
+      points:'Pts', winRate:'% VICTORIAS', fights:'Combates totales',
+      rankFormula:'VICTORIA +3 · EMPATE +1 · DERROTA -2',
+      // Gyms
+      findGyms:'BUSCAR GIMNASIOS', cities:'🏙️ Ciudades', topGyms:'🏆 MEJORES GIMNASIOS',
+      gymRanking:'🏆 RANKING DE GIMNASIOS', sortedByRatings:'Ordenado por valoraciones',
+      rateThisGym:'VALORA ESTE GIMNASIO', notRatedYet:'Aun sin valorar · ',
+      firstToRate:'Se el primero!', myRating:'Tu valoracion:', star:'Estrella', stars:'Estrellas',
+      ratings:'Valoracion', ratingsPlural:'es', members:'Miembros', founded:'Fundado',
+      contact:'CONTACTO Y DIRECCION', address:'DIRECCION', phone:'TELEFONO',
+      website:'SITIO WEB', fighterCode:'CODIGO FIGHTER-APP', gymCode:'Pide este codigo en el gimnasio → verificar perfil',
+      openingHours:'HORARIO', aboutGym:'SOBRE EL GIMNASIO',
+      // Profile/Stats
+      profileView:'PERFIL', editProfile:'EDITAR PERFIL', changePhoto:'Cambiar foto',
+      editSave:'GUARDAR', fightRecordEdit:'EDITAR RECORD', saveProfil:'Guardar perfil',
+      verifyRecord:'🏅 VERIFICAR RECORD DE COMBATE', verifyRecordSub:'Sube una foto de tu diploma, medalla o resultado oficial de combate. Tu record recibira una insignia ✅ Verificado.',
+      verified:'RECORD VERIFICADO', pending:'EN REVISION', upTo48h:'Hasta 48 horas',
+      uploadProof:'Subir diploma / medalla', maxSize:'JPG, PNG · max 5MB',
+      gymVerify:'Verificar membresia de gimnasio', gymVerified2:'Gimnasio verificado ✅',
+      gymCodeEnter:'Introducir codigo de gimnasio → obtener insignia',
+      trainingHistory:'🤝 HISTORIAL DE ENTRENAMIENTOS', trainingWith:'Con quien has entrenado?',
+      noHistory:'Aun no hay entradas de entrenamiento', historyHint:'Acepta una solicitud de combate → se guardara aqui',
+      public2:'Publico', private2:'Privado',
+      // Settings
+      settings:'AJUSTES', darkMode:'Modo oscuro', impressum:'Aviso legal',
+      privacy:'Privacidad', agb:'Terminos', deleteAccount:'Eliminar cuenta',
+      changePw:'Cambiar contrasena', logout:'Cerrar sesion',
+      // Misc
+      undone:'↩️ Deshecho!', photoUploading:'Subiendo foto...',
+      matchConfirmed:'Match confirmado!', writeFirst:'Escribe el primer mensaje',
+      message:'Mensaje…', send:'➤',
+      block:'🚫 Bloquear', unblock:'🚫 Desbloquear', report:'⚠️ Reportar', reported:'✓ Reportado',
+      trainingPublic:'El historial de entrenamientos ahora es publico 👁', trainingPrivate:'El historial de entrenamientos ahora es privado 🔒',
+      profileLink:'Enlace de perfil copiado! 📋',
+      // Onboarding
+      ob1title:'ENCUENTRA A TU RIVAL', ob1sub:'Descubre luchadores cerca de ti - ya sea para sparring, entrenamiento tecnico o combate oficial.',
+      ob2title:'MATCH Y CHAT', ob2sub:'Si ambos han dado like, teneis un match. Escribios, organizad entrenamientos y construid vuestro record.',
+      ob3title:'CONSTRUYE TU RECORD', ob3sub:'Historial de entrenamientos, record de combate verificado, membresia de gimnasio. Muestra a la comunidad quien eres.',
+      skip:'Omitir', continueBtn:'SIGUIENTE →', startNow:'EMPEZAR AHORA 🥊',
+      // Interest banner
+      interestBanner:'Luchadores interesados en ti',
+      interestTitle:'INTERES EN TI', interestSub:'Luchadores te han dado like',
+      matchBtn:'⚔️ MATCH',
+      // Gym verify
+      gymVerifyTitle:'VERIFICAR GIMNASIO', gymVerifyConfirm:'Confirma tu membresia de gimnasio',
+      howToCode:'💡 COMO OBTENGO EL CODIGO?',
+      howToCodeText:'Pregunta en la recepcion de tu gimnasio por el codigo de Fighter-App. El codigo de 8 digitos (ej. TGB-2847) se te comunicara directamente.',
+      gymCodeLabel:'INTRODUCIR CODIGO DE GIMNASIO', verifyBtn:'✅ VERIFICAR', invalidCode:'Codigo invalido. Por favor pregunta a tu gimnasio por el codigo Fighter.',
+      alreadyVerified:'✅ MIEMBRO VERIFICADO', verifiedSince:'Desde:', removeVerification:'Eliminar verificacion',
+      // Gym register
+      gymRegisterTitle:'REGISTRAR GIMNASIO', gymRegisterSub:'Tu gimnasio sera revisado y anadido',
+      gymName:'NOMBRE DEL GIMNASIO *', city2:'CIUDAD *', gymAddress:'DIRECCION', fightStyleLabel:'ESTILO DE COMBATE',
+      gymRegSentTitle:'REGISTRO ENVIADO!', gymRegSentSub:'Revisaremos tu gimnasio y lo anadiremos en un plazo de 48h.',
+      close:'CERRAR', registerGym:'➕ REGISTRAR',
+      // Password change
+      pwChangeTitle:'🔑 CAMBIAR CONTRASENA', pwChangeSub:'Minimo 6 caracteres', newPw:'Nueva contrasena',
+      pwSave:'GUARDAR', pwError:'Minimo 6 caracteres!', pwSuccess:'✅ Contrasena cambiada!',
     };
 
   const t = T[appLang]||T.DE;
@@ -2757,6 +2886,24 @@ function MainApp(){
     const interval=setInterval(sendHeartbeat,120000); // alle 2 Minuten
     return()=>clearInterval(interval);
   },[session?.userId,myProfile?.id]);
+
+  useEffect(()=>{
+    if(!viewProfile&&tab==='ranking'&&mainScrollRef.current){
+      mainScrollRef.current.scrollTop=savedRankScrollRef.current;
+    }
+  },[viewProfile,tab]);
+
+  // Gyms regelmaessig neu laden, damit Aenderungen (neues Gym, geaendertes
+  // Logo/Foto, aktualisierte Adresse usw.) fuer alle Nutzer zeitnah
+  // ankommen - vorher wurden Gyms nur einmal beim App-Start geladen und
+  // blieben danach fuer die ganze Sitzung unveraendert.
+  useEffect(()=>{
+    if(!session)return;
+    const interval=setInterval(()=>{
+      loadDbGyms(session);
+    },180000); // alle 3 Minuten
+    return()=>clearInterval(interval);
+  },[session?.userId]);
 
   async function loadAdminMessages(s){
     try{
@@ -3831,7 +3978,7 @@ function MainApp(){
     :{transform:'translateX(0) rotate(0deg)',transition:'transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275)'};
 
   function canGo(){
-    if(step===1)return !!(profile.name&&profile.age&&profile.city&&(avatarPreview||avatarUrl));
+    if(step===1)return !!(profile.name&&profile.age&&profile.city); // Foto nicht mehr Pflicht fuer die Registrierung selbst - nur fuers Sichtbarwerden im Swipe-Stapel bei anderen
     if(step===2)return !!(profile.style);
     if(step===3)return true; // Alles optional auf Step 3
     if(step===4)return !!(profile.coachGym&&profile.coachStyles); // Trainer-Pflichtfelder
@@ -3861,6 +4008,8 @@ function MainApp(){
     }
     return me;
   },[profile,stats,avatarUrl,allProfiles,myProfile]);
+  const mainScrollRef=React.useRef(null);
+  const savedRankScrollRef=React.useRef(0);
   const ranked=React.useMemo(()=>{
   return rankMode==='trainer'
     ?[]
@@ -4216,11 +4365,11 @@ nicht öffentlich gemacht</div>
                       :avatarPreview?<img loading="lazy" src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='avatar'/>
                       :<div style={{textAlign:'center'}}><div style={{fontSize:36}}>📸</div><div style={{color:RED,fontSize:10,marginTop:4,fontWeight:700}}>FOTO</div></div>}
                   </div>
-                  {!avatarPreview&&<div style={{position:'absolute',top:-4,right:-4,background:RED,borderRadius:10,padding:'2px 6px',fontSize:9,color:'#fff',fontWeight:700,fontFamily:'Rajdhani,sans-serif',letterSpacing:1}}>PFLICHT</div>}
+
                   {avatarPreview&&<div style={{position:'absolute',bottom:4,right:4,background:'#27ae60',borderRadius:'50%',width:24,height:24,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,border:'2px solid #fff'}}>✓</div>}
                 </div>
-                <div style={{color:avatarPreview?'#27ae60':RED,fontSize:12,marginTop:8,fontWeight:700}}>{avatarPreview?'Foto hochgeladen ✓':'Profilbild hochladen (Pflicht)'}</div>
-                {!avatarPreview&&<div style={{color:'#bbb',fontSize:10,marginTop:2}}>{appLang==='FR'?'Sans photo vous ne pouvez pas continuer':appLang==='EN'?'Without a photo you cannot continue':'Ohne Foto kannst du nicht weitermachen'}</div>}
+                <div style={{color:avatarPreview?'#27ae60':'#888',fontSize:12,marginTop:8,fontWeight:700}}>{avatarPreview?'Foto hochgeladen ✓':'Profilbild hinzufügen (optional)'}</div>
+                {!avatarPreview&&<div style={{color:'#bbb',fontSize:10,marginTop:2}}>{appLang==='FR'?'Sans photo, ton profil apparaît moins souvent aux autres':appLang==='EN'?'Without a photo, your profile appears less to others':'Ohne Foto taucht dein Profil bei anderen nicht im Swipe-Stapel auf'}</div>}
               </label>
             </div>
             <Lbl>{appLang==='FR'?'Votre nom':appLang==='EN'?'Your name':'Dein Name'}</Lbl><Inp placeholder='z.B. Max Mueller' value={profile.name} onChange={v=>setProfile(p=>({...p,name:v}))}/>
@@ -4621,8 +4770,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 <div style={{color:darkMode?'#aaa':'#666',fontSize:12,fontWeight:600}}>Sprache</div>
               </div>
               <div style={{display:'flex',gap:3,background:darkMode?'#222':'#ebebeb',borderRadius:16,padding:3}}>
-                {[['DE','🇩🇪'],['EN','🇬🇧'],['FR','🇫🇷']].map(([lang,flag])=>(
-                  <button key={lang} onClick={()=>{setAppLang(lang);try{localStorage.setItem('fighter_lang',lang);}catch{}showMsg(lang==='DE'?'Deutsch 🇩🇪':lang==='FR'?'Français 🇫🇷':'English 🇬🇧');}}
+                {[['DE','🇩🇪'],['EN','🇬🇧'],['FR','🇫🇷'],['ES','🇪🇸']].map(([lang,flag])=>(
+                  <button key={lang} onClick={()=>{setAppLang(lang);try{localStorage.setItem('fighter_lang',lang);}catch{}showMsg(lang==='DE'?'Deutsch 🇩🇪':lang==='FR'?'Français 🇫🇷':lang==='ES'?'Español 🇪🇸':'English 🇬🇧');}}
                     style={{padding:'3px 9px',borderRadius:13,background:appLang===lang?(darkMode?'#333':'#fff'):'transparent',border:'none',color:appLang===lang?(darkMode?'#fff':'#111'):(darkMode?'#555':'#999'),fontSize:11,fontWeight:700,cursor:'pointer',transition:'all 0.15s',boxShadow:appLang===lang?'0 1px 3px rgba(0,0,0,0.12)':'none'}}>
                     {flag} {lang}
                   </button>
@@ -4879,7 +5028,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
           <button onClick={()=>setShowPushReminder(false)} style={{background:'rgba(255,255,255,0.2)',border:'none',borderRadius:6,color:'#fff',fontSize:16,padding:'4px 10px',cursor:'pointer',flexShrink:0}}>✕</button>
         </div>
       )}
-      <div style={{flex:1,overflowY:tab==='swipe'?'hidden':'auto',overscrollBehavior:'contain',paddingBottom:tab==='swipe'?0:'calc(68px + env(safe-area-inset-bottom))'}}>
+      <div ref={mainScrollRef} style={{flex:1,overflowY:tab==='swipe'?'hidden':'auto',overscrollBehavior:'contain',paddingBottom:tab==='swipe'?0:'calc(68px + env(safe-area-inset-bottom))'}}>
 
         {myProfile&&!myProfile.avatar_url&&(
           <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(13,13,13,0.97)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 24px',textAlign:'center'}}>
@@ -6072,7 +6221,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <div style={{display:'flex',flexDirection:'column',gap:5}}>
               {ranked.map((f,i)=>{
                 const score=f.wins*3-f.losses*2+f.draws;const rc=['#d4a017','#95a5a6','#cd7f32'];
-                return(<div key={f.id} onClick={()=>{if(!f.isMe&&f.id&&typeof f.id==='string')setViewProfile(f);}} style={{background:f.isMe?(darkMode?'#2a1510':'#fdf0ef'):(darkMode?'#1a1a1a':'#fff'),borderRadius:9,padding:'10px 12px',border:'1px solid '+(f.isMe?RED+'33':i<3?rc[i]+'33':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.04)',cursor:f.isMe?'default':'pointer'}}>
+                return(<div key={f.id} onClick={()=>{if(!f.isMe&&f.id&&typeof f.id==='string'){savedRankScrollRef.current=mainScrollRef.current?mainScrollRef.current.scrollTop:0;setViewProfile(f);}}} style={{background:f.isMe?(darkMode?'#2a1510':'#fdf0ef'):(darkMode?'#1a1a1a':'#fff'),borderRadius:9,padding:'10px 12px',border:'1px solid '+(f.isMe?RED+'33':i<3?rc[i]+'33':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.04)',cursor:f.isMe?'default':'pointer'}}>
                   <div className='rj' style={{color:i<3?rc[i]:'#bbb',fontSize:18,width:24,textAlign:'center'}}>#{i+1}</div>
                   {f.avatar_url?<img loading="lazy" src={f.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover'}} alt={f.name}/>:<div style={{fontSize:22}}>{f.emoji||''}</div>}
                   <div style={{flex:1}}>
@@ -7617,7 +7766,12 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     {/* Alle User */}
                     <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:8}}>
                       <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>ALLE USER ({adminUsers.length})</div>
-                      {adminUsers.map((u,i)=>(
+                      <input value={adminCityFilter} onChange={e=>setAdminCityFilter(e.target.value)} placeholder='🔍 Nach Stadt filtern...'
+                        style={{width:'100%',padding:'8px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:12,boxSizing:'border-box',marginBottom:10}}/>
+                      {adminCityFilter.trim()&&(
+                        <div style={{color:'#8e44ad',fontSize:11,fontWeight:700,marginBottom:8}}>{adminUsers.filter(u=>(u.city||'').toLowerCase().includes(adminCityFilter.trim().toLowerCase())).length} Kämpfer in "{adminCityFilter.trim()}"</div>
+                      )}
+                      {adminUsers.filter(u=>!adminCityFilter.trim()||(u.city||'').toLowerCase().includes(adminCityFilter.trim().toLowerCase())).map((u,i)=>(
                         <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
                           <div onClick={()=>{setShowAdmin(false);setViewProfile(u);}} style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0,cursor:'pointer'}}>
                             {u.avatar_url?<img loading="lazy" src={u.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover',flexShrink:0,opacity:u.banned?0.4:1}} alt=''/>:<div style={{width:32,height:32,borderRadius:'50%',background:u.banned?'#555':RED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#fff',fontWeight:700,flexShrink:0}}>{u.name?u.name[0].toUpperCase():'?'}</div>}
