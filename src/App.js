@@ -290,6 +290,9 @@ const WEIGHT_CLASSES = [
   'Supermittelgewicht (bis 76 kg)','Halbschwergewicht (bis 79 kg)','Cruisergewicht (bis 91 kg)','Schwergewicht (ueber 91 kg)'
 ];
 const STYLES = ['Boxing','Kickboxing','MMA','Muay Thai','Grappling','BJJ','Wrestling','Kung Fu','Karate','Taekwondo','Judo','Sambo'];
+// Sportarten, bei denen ein Guertelrang ueblich ist
+const BELT_STYLES = ['BJJ','Karate','Taekwondo','Judo'];
+const BELT_RANKS = ['Weiss','Gelb','Orange','Gruen','Blau','Lila','Braun','Schwarz'];
 const PRO_FIGHTERS = [];
 
 const FIGHTERS=[];
@@ -839,7 +842,7 @@ class ErrorBoundary extends React.Component {
 }
 
 
-function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest}){
+function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest,itemType='equipment'}){
   const [items,setItems]=React.useState([]);
   const [loading,setLoading]=React.useState(true);
   const [activeCategory,setActiveCategory]=React.useState('Alle');
@@ -849,7 +852,10 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest}){
   const RED='#c0392b';
 
   React.useEffect(()=>{
-    fetch(SUPA_URL+'/rest/v1/equipment?order=featured.desc,sort_order.asc',{
+    // Equipment und Supplements teilen sich dieselbe Tabelle, getrennt
+    // ueber das 'item_type' Feld - so kann derselbe Bildschirm fuer beide
+    // Bereiche wiederverwendet werden
+    fetch(SUPA_URL+'/rest/v1/equipment?order=featured.desc,sort_order.asc&item_type=eq.'+itemType,{
       headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
     }).then(r=>r.json()).then(data=>{
       setItems(Array.isArray(data)?data:[]);
@@ -884,7 +890,7 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest}){
       <div style={{fontSize:64,marginBottom:16}}>🥊</div>
       <div style={{fontFamily:'Rajdhani,sans-serif',color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:3,marginBottom:8}}>COMING SOON</div>
       <div style={{color:'#aaa',fontSize:13,lineHeight:1.7,maxWidth:280,margin:'0 auto'}}>
-        {appLang==='FR'?'Bientôt disponible — la meilleure équipement de sport de combat.':appLang==='EN'?'Coming soon — the best combat sports equipment, curated by real athletes.':'Bald findest du hier die beste Kampfsport-Ausrüstung — kuratiert von echten Athleten.'}
+        {itemType==='supplement'?(appLang==='FR'?'Bientôt disponible — les meilleurs suppléments pour sportifs de combat.':appLang==='EN'?'Coming soon — the best supplements for combat athletes.':'Bald findest du hier die besten Supplements für Kampfsportler.'):(appLang==='FR'?'Bientôt disponible — la meilleure équipement de sport de combat.':appLang==='EN'?'Coming soon — the best combat sports equipment, curated by real athletes.':'Bald findest du hier die beste Kampfsport-Ausrüstung — kuratiert von echten Athleten.')}
       </div>
       <button onClick={onSuggest} style={{marginTop:20,padding:'12px 24px',borderRadius:10,background:'linear-gradient(135deg,#c0392b,#e74c3c)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:'pointer'}}>
         ⭐ {appLang==='FR'?'SUGGÉRER':appLang==='EN'?'SUGGEST':'VORSCHLAGEN'}
@@ -1785,7 +1791,7 @@ function MainApp(){
   const [feedbackFilter,setFeedbackFilter]=useState('alle');
   const [equipmentList,setEquipmentList]=useState([]);
   const [equipLoading,setEquipLoading]=useState(false);
-  const [newEquip,setNewEquip]=useState({brand:'',product:'',description:'',category:'Boxen',url:'',image_url:'',discount_code:'',featured:false});
+  const [newEquip,setNewEquip]=useState({brand:'',product:'',description:'',category:'Boxen',url:'',image_url:'',discount_code:'',featured:false,item_type:'equipment'});
   const [editingEquip,setEditingEquip]=useState(null);
   const [editEquipForm,setEditEquipForm]=useState(null);
   const [adminUsersLoaded,setAdminUsersLoaded]=useState(false);
@@ -1880,6 +1886,7 @@ function MainApp(){
   const [showFeedbackModal,setShowFeedbackModal]=useState(false);
   const [feedbackType,setFeedbackType]=useState('feedback'); // 'feedback' | 'wunsch'
   const [showEquipment,setShowEquipment]=useState(false);
+  const [showSupplements,setShowSupplements]=useState(false);
   const [showNews,setShowNews]=useState(false);
   const [newsItems,setNewsItems]=useState([]);
   const [newsLoading,setNewsLoading]=useState(false);
@@ -2727,30 +2734,6 @@ function MainApp(){
     return()=>clearInterval(interval);
   },[session?.userId,myProfile?.id]);
 
-  // Regelmaessige Token-Erneuerung: die 'refreshSession' Funktion gab es
-  // zwar schon, wurde aber nirgends aufgerufen - der Zugangs-Token lief
-  // nach ca. 1 Stunde einfach ab, ohne dass etwas dagegen unternommen
-  // wurde. Das fuehrte bei laengeren Sitzungen (z.B. laengere Zeit im
-  // Admin-Bereich) zu "Ungueltiger oder abgelaufener Token"-Fehlern.
-  // Jetzt wird der Token alle 20 Minuten proaktiv erneuert - deutlich
-  // vor Ablauf der 1-Stunden-Gueltigkeit.
-  useEffect(()=>{
-    if(!session)return;
-    const interval=setInterval(()=>{
-      refreshSession(session);
-    },1200000); // alle 20 Minuten
-    return()=>clearInterval(interval);
-  },[session?.userId]);
-
-  // Rangliste: Scroll-Position wiederherstellen, sobald man von einer
-  // Profilansicht zurueck zur Rangliste kommt, statt immer ganz oben
-  // (Platz 1) rauszukommen.
-  useEffect(()=>{
-    if(!viewProfile&&tab==='ranking'&&mainScrollRef.current){
-      mainScrollRef.current.scrollTop=savedRankScrollRef.current;
-    }
-  },[viewProfile,tab]);
-
   async function loadAdminMessages(s){
     try{
       const resp=await fetch(SUPA_URL+'/rest/v1/admin_messages?user_id=eq.'+s.userId+'&order=created_at.desc&limit=20',{
@@ -2969,6 +2952,44 @@ function MainApp(){
       }
     }catch(e){console.error('loadEvents',e);}
     setEventsLoading(false);
+  }
+
+  // Admin kann jeden Nutzer direkt anschreiben - legt (falls noch nicht
+  // vorhanden) ein ganz normales Match zwischen Admin und dieser Person
+  // an und oeffnet den Chat, genau wie bei jedem anderen Match auch. Der
+  // Nutzer sieht einfach eine ganz normale Chat-Nachricht, keine
+  // Sonderbehandlung.
+  async function startAdminChat(targetUser){
+    if(!myProfile||!targetUser?.id)return;
+    try{
+      await fetch(SUPA_URL+'/rest/v1/matches',{
+        method:'POST',
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'resolution=ignore-duplicates,return=minimal'},
+        body:JSON.stringify({profile_a_id:myProfile.id,profile_b_id:targetUser.id})
+      });
+      // Bestehendes (oder gerade erstelltes) Match laden - Profile werden
+      // separat nachgeladen und manuell zusammengefuegt (gleiches Muster
+      // wie beim normalen Laden aller Matches), statt uns auf genaue
+      // Fremdschluessel-Namen in der Datenbank zu verlassen.
+      const r=await fetch(SUPA_URL+'/rest/v1/matches?or=(and(profile_a_id.eq.'+myProfile.id+',profile_b_id.eq.'+targetUser.id+'),and(profile_a_id.eq.'+targetUser.id+',profile_b_id.eq.'+myProfile.id+'))&limit=1',{
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
+      });
+      const rows=await r.json();
+      if(Array.isArray(rows)&&rows[0]){
+        const m=rows[0];
+        const profRes=await fetch(SUPA_URL+'/rest/v1/profiles?id=in.('+myProfile.id+','+targetUser.id+')&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,wins,losses,draws,ko,last_seen',{
+          headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
+        });
+        const profs=await profRes.json();
+        const byId=Array.isArray(profs)?Object.fromEntries(profs.map(p=>[p.id,p])):{};
+        m.profile_a=byId[m.profile_a_id];
+        m.profile_b=byId[m.profile_b_id];
+        setShowAdmin(false);
+        setActiveChat(m);
+      }else{
+        showMsg('❌ Chat konnte nicht geöffnet werden');
+      }
+    }catch(e){showMsg('❌ Fehler: '+e.message);}
   }
 
   async function joinEvent(eventId,price){
@@ -3197,6 +3218,7 @@ function MainApp(){
           bio:editProfile.bio!==undefined?editProfile.bio:profile.bio,
           style:editProfile.style||profile.style,
           weight_class:editProfile.weightClass||profile.weightClass,
+          belt:editProfile.belt!==undefined?editProfile.belt:profile.belt,
           height:editProfile.height||profile.height,
           weight:editProfile.weight||profile.weight,
           is_pro:editProfile.isPro!==undefined?editProfile.isPro:profile.isPro,
@@ -3247,6 +3269,7 @@ function MainApp(){
       weight:parseInt(profile.weight)||null,
       weight_class:profile.weightClass||null,
       style:profile.style,
+      belt:profile.belt||null,
       bio:profile.bio||null,
       wins:parseInt(stats.wins)||0,
       losses:parseInt(stats.losses)||0,
@@ -3754,21 +3777,10 @@ function MainApp(){
     }
     return me;
   },[profile,stats,avatarUrl,allProfiles,myProfile]);
-  const mainScrollRef=React.useRef(null);
-  const savedRankScrollRef=React.useRef(0);
   const ranked=React.useMemo(()=>{
-  const myGender=profile.gender||'male';
   return rankMode==='trainer'
     ?[]
     :[...userOnly]
-      // Rangliste zeigt automatisch nur das eigene Geschlecht - Maenner
-      // sehen nur Maenner, Frauen nur Frauen. Nutzer ohne angegebenes
-      // Geschlecht ('other'/leer) werden weiterhin fuer alle angezeigt.
-      .filter(f=>{
-        const fGender=f.isMe?myGender:(f.gender||'male');
-        if(!fGender||fGender==='other')return true;
-        return fGender===myGender;
-      })
       .filter(f=>{
         if(rankMode==='pro') return f.isMe?(profile.isPro===true):(f.is_pro===true);
         if(rankMode==='user') return f.isMe?(profile.isPro!==true):(f.is_pro!==true); // Amateure = Nicht-Profis
@@ -3892,7 +3904,7 @@ function MainApp(){
           ))}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
-          {[[appLang==='FR'?'CATÉGORIE':appLang==='EN'?'WEIGHT CLASS':'GEWICHTSKLASSE',viewProfile.weight_class||'-','#2980b9'],[appLang==='FR'?'SALLE':'GYM',viewProfile.gym||'-','#8e44ad'],['GRÖSSE',viewProfile.height?(viewProfile.height+'cm'):'-','#27ae60'],['GEWICHT',viewProfile.weight?(viewProfile.weight+'kg'):'-','#e67e22']].map(([label,val,color])=>(
+          {[[appLang==='FR'?'CATÉGORIE':appLang==='EN'?'WEIGHT CLASS':'GEWICHTSKLASSE',viewProfile.weight_class||'-','#2980b9'],[appLang==='FR'?'SALLE':'GYM',viewProfile.gym||'-','#8e44ad'],['GRÖSSE',viewProfile.height?(viewProfile.height+'cm'):'-','#27ae60'],['GEWICHT',viewProfile.weight?(viewProfile.weight+'kg'):'-','#e67e22'],...(viewProfile.belt?[['GÜRTELRANG',viewProfile.belt,'#d4a017']]:[])].map(([label,val,color])=>(
             <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 12px',border:'1px solid '+color+'22'}}>
               <div style={{color:'#bbb',fontSize:9,letterSpacing:1}}>{label}</div>
               <div style={{color:color,fontWeight:700,fontSize:12,marginTop:3}}>{val}</div>
@@ -4269,6 +4281,17 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 }} style={{padding:'7px 13px',borderRadius:4,border:'1px solid '+(isSelected?RED:'#ddd'),background:isSelected?'#fdf0ef':'#fff',color:isSelected?RED:'#666',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:700,cursor:'pointer',transition:'all 0.2s'}}>{s}</button>);
               })}
             </div>
+            {(profile.style||'').split(',').map(x=>x.trim()).some(s=>BELT_STYLES.includes(s))&&(
+              <>
+                <Lbl>Guertelrang</Lbl>
+                <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
+                  {BELT_RANKS.map(b=>(
+                    <button key={b} onClick={()=>setProfile(p=>({...p,belt:b}))}
+                      style={{padding:'7px 13px',borderRadius:4,border:'1px solid '+(profile.belt===b?RED:'#ddd'),background:profile.belt===b?'#fdf0ef':'#fff',color:profile.belt===b?RED:'#666',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:700,cursor:'pointer'}}>{b}</button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
         {step===3&&(
@@ -4344,6 +4367,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                 {icon:'',label:'News',action:()=>{setShowNews(true);setShowMenu(false);loadNews();}},
                 {icon:'',label:'Mein Profil',action:()=>{setTab('stats');setShowMenu(false);}},
                 {icon:'',label:'Equipment',action:()=>{setShowEquipment(true);setShowMenu(false);}},
+                {icon:'',label:'Supplements',action:()=>{setShowSupplements(true);setShowMenu(false);}},
+                {icon:'',label:'Supplements',action:()=>{setShowSupplements(true);setShowMenu(false);}},
               ].map(item=>(
                 <div key={item.label} onClick={item.action}
                   style={{display:'flex',alignItems:'center',gap:12,padding:'10px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px',transition:'background 0.15s'}}
@@ -4603,8 +4628,24 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             </div>
           </div>
           <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%'}}>
-            <EquipmentScreen darkMode={darkMode} appLang={appLang} SUPA_URL={SUPA_URL} SUPA_KEY={SUPA_KEY}
+            <EquipmentScreen darkMode={darkMode} appLang={appLang} SUPA_URL={SUPA_URL} SUPA_KEY={SUPA_KEY} itemType='equipment'
               onSuggest={()=>{setFeedbackType('wunsch');setFeedbackText('Equipment Empfehlung: ');setShowEquipment(false);setShowFeedbackModal(true);setFeedbackSent(false);}}/>
+          </div>
+        </div>
+      )}
+
+      {showSupplements&&(
+        <div style={{position:'fixed',inset:0,background:darkMode?'#0d0d0d':'#f5f5f7',zIndex:900,display:'flex',flexDirection:'column',overflowY:'auto'}}>
+          <div style={{display:'flex',alignItems:'center',gap:12,padding:'calc(14px + env(safe-area-inset-top)) 16px 14px',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee'),position:'sticky',top:0,zIndex:10}}>
+            <button onClick={()=>setShowSupplements(false)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
+            <div>
+              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:3}}>SUPPLEMENTS</div>
+              <div style={{color:'#aaa',fontSize:11}}>{appLang==='FR'?'Compléments pour sportifs de combat':appLang==='EN'?'Supplements for Combat Athletes':'Supplements für Kampfsportler'}</div>
+            </div>
+          </div>
+          <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%'}}>
+            <EquipmentScreen darkMode={darkMode} appLang={appLang} SUPA_URL={SUPA_URL} SUPA_KEY={SUPA_KEY} itemType='supplement'
+              onSuggest={()=>{setFeedbackType('wunsch');setFeedbackText('Supplement Empfehlung: ');setShowSupplements(false);setShowFeedbackModal(true);setFeedbackSent(false);}}/>
           </div>
         </div>
       )}
@@ -4689,7 +4730,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
         </button>
       </div>
 
-      <div ref={mainScrollRef} style={{flex:1,overflowY:tab==='swipe'?'hidden':'auto',overscrollBehavior:'contain',paddingBottom:tab==='swipe'?0:'calc(68px + env(safe-area-inset-bottom))'}}>
+      <div style={{flex:1,overflowY:tab==='swipe'?'hidden':'auto',overscrollBehavior:'contain',paddingBottom:tab==='swipe'?0:'calc(68px + env(safe-area-inset-bottom))'}}>
 
         {myProfile&&!myProfile.avatar_url&&(
           <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(13,13,13,0.97)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 24px',textAlign:'center'}}>
@@ -5056,6 +5097,18 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       </select>
                       <div style={{color:'#999',fontSize:11,marginTop:5,lineHeight:1.4}}>Wirkt sich sofort auf dein Matching aus (z.B. Land-Filter und Rangliste).</div>
                     </div>
+                    {(editProfile.style||profile.style||'').split(',').map(x=>x.trim()).some(s=>BELT_STYLES.includes(s))&&(
+                      <div>
+                        <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>GUERTELRANG</div>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
+                          {BELT_RANKS.map(b=>{
+                            const currentBelt=editProfile.belt!==undefined?editProfile.belt:profile.belt;
+                            return(<button key={b} onClick={()=>setEditProfile(p=>({...p,belt:b}))}
+                              style={{padding:'7px 13px',borderRadius:8,border:'1px solid '+(currentBelt===b?RED:(darkMode?'#333':'#ddd')),background:currentBelt===b?'#fdf0ef':'transparent',color:currentBelt===b?RED:(darkMode?'#aaa':'#666'),fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:700,cursor:'pointer'}}>{b}</button>);
+                          })}
+                        </div>
+                      </div>
+                    )}
                     <button onClick={saveEditProfile} disabled={savingEdit}
                       style={{width:'100%',marginTop:6,padding:'14px',borderRadius:12,background:savingEdit?'#eee':`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:savingEdit?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:savingEdit?'not-allowed':'pointer'}}>
                       {savingEdit?'Speichern...':'SPEICHERN'}
@@ -5823,7 +5876,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             <div style={{display:'flex',flexDirection:'column',gap:5}}>
               {ranked.map((f,i)=>{
                 const score=f.wins*3-f.losses*2+f.draws;const rc=['#d4a017','#95a5a6','#cd7f32'];
-                return(<div key={f.id} onClick={()=>{if(!f.isMe&&f.id&&typeof f.id==='string'){savedRankScrollRef.current=mainScrollRef.current?mainScrollRef.current.scrollTop:0;setViewProfile(f);}}} style={{background:f.isMe?(darkMode?'#2a1510':'#fdf0ef'):(darkMode?'#1a1a1a':'#fff'),borderRadius:9,padding:'10px 12px',border:'1px solid '+(f.isMe?RED+'33':i<3?rc[i]+'33':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.04)',cursor:f.isMe?'default':'pointer'}}>
+                return(<div key={f.id} onClick={()=>{if(!f.isMe&&f.id&&typeof f.id==='string')setViewProfile(f);}} style={{background:f.isMe?(darkMode?'#2a1510':'#fdf0ef'):(darkMode?'#1a1a1a':'#fff'),borderRadius:9,padding:'10px 12px',border:'1px solid '+(f.isMe?RED+'33':i<3?rc[i]+'33':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.04)',cursor:f.isMe?'default':'pointer'}}>
                   <div className='rj' style={{color:i<3?rc[i]:'#bbb',fontSize:18,width:24,textAlign:'center'}}>#{i+1}</div>
                   {f.avatar_url?<img loading="lazy" src={f.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover'}} alt={f.name}/>:<div style={{fontSize:22}}>{f.emoji||''}</div>}
                   <div style={{flex:1}}>
@@ -6801,6 +6854,15 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       ))}
                     </select>
                   </div>
+                  <div style={{marginBottom:10}}>
+                    <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>BEREICH</div>
+                    <div style={{display:'flex',gap:8}}>
+                      {[['equipment','🥊 Equipment'],['supplement','💊 Supplement']].map(([val,lbl])=>(
+                        <button key={val} onClick={()=>setNewEquip(p=>({...p,item_type:val}))}
+                          style={{flex:1,padding:'8px',borderRadius:8,border:'1px solid '+(newEquip.item_type===val?RED:(darkMode?'#333':'#ddd')),background:newEquip.item_type===val?RED:'transparent',color:newEquip.item_type===val?'#fff':(darkMode?'#aaa':'#666'),fontSize:12,fontWeight:700,cursor:'pointer'}}>{lbl}</button>
+                      ))}
+                    </div>
+                  </div>
                   <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
                     <input type='checkbox' checked={newEquip.featured} onChange={e=>setNewEquip(p=>({...p,featured:e.target.checked}))} id='featured_cb'/>
                     <label htmlFor='featured_cb' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,cursor:'pointer'}}>⭐ Featured (oben anzeigen)</label>
@@ -7360,12 +7422,15 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                     <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:8}}>
                       <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>ALLE USER ({adminUsers.length})</div>
                       {adminUsers.map((u,i)=>(
-                        <div key={i} onClick={()=>{setShowAdmin(false);setViewProfile(u);}} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0'),cursor:'pointer'}}>
-                          {u.avatar_url?<img loading="lazy" src={u.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover',flexShrink:0,opacity:u.banned?0.4:1}} alt=''/>:<div style={{width:32,height:32,borderRadius:'50%',background:u.banned?'#555':RED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#fff',fontWeight:700,flexShrink:0}}>{u.name?u.name[0].toUpperCase():'?'}</div>}
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{color:u.banned?'#e74c3c':(darkMode?'#fff':'#1a1a1a'),fontSize:12,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{u.name||'Unbekannt'} {u.banned&&'🚫'}</div>
-                            <div style={{color:darkMode?'#666':'#aaa',fontSize:10}}>{u.style||'?'} · {u.city||'?'}</div>
+                        <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 0',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
+                          <div onClick={()=>{setShowAdmin(false);setViewProfile(u);}} style={{display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0,cursor:'pointer'}}>
+                            {u.avatar_url?<img loading="lazy" src={u.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover',flexShrink:0,opacity:u.banned?0.4:1}} alt=''/>:<div style={{width:32,height:32,borderRadius:'50%',background:u.banned?'#555':RED,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:'#fff',fontWeight:700,flexShrink:0}}>{u.name?u.name[0].toUpperCase():'?'}</div>}
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{color:u.banned?'#e74c3c':(darkMode?'#fff':'#1a1a1a'),fontSize:12,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{u.name||'Unbekannt'} {u.banned&&'🚫'}</div>
+                              <div style={{color:darkMode?'#666':'#aaa',fontSize:10}}>{u.style||'?'} · {u.city||'?'}</div>
+                            </div>
                           </div>
+                          <button onClick={()=>startAdminChat(u)} title='Nachricht schreiben' style={{background:'none',border:'none',fontSize:16,cursor:'pointer',padding:'4px 6px',flexShrink:0}}>💬</button>
                           <div style={{color:darkMode?'#555':'#888',fontSize:10,flexShrink:0}}>{u.created_at?new Date(u.created_at).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}):'?'}</div>
                         </div>
                       ))}
