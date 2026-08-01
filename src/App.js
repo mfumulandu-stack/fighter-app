@@ -1148,7 +1148,7 @@ function AuthScreen({ onSession, appLang }) {
   );
 }
 
-function ChatOverlay({match,myProfileId,myName,token,onClose,onViewProfile,darkMode,t,appLang}){
+function ChatOverlay({match,myProfileId,myName,token,onClose,onViewProfile,darkMode,t,appLang,isAdmin}){
   // Fallback t object if not passed
   if(!t)t={fightRequest:'FIGHT REQUEST',fightType:'FIGHT TYP',date:'DATUM',placeGym:'ORT / GYM',placePlaceholder:'z.B. Tiger Gym Berlin',waitingResponse:'Warte...',sendFightRequest:'⚔️ SENDEN',fightSent:'GESENDET!',waitingFor:'Wartet auf',accept:'✅ ANNEHMEN',decline:'❌ ABLEHNEN',counterDate:'🔄 GEGEN-TERMIN',backToChat:'💬 ZURÜCK',fightAccepted:'ANGENOMMEN',fightDeclined:'ABGELEHNT',counterTerm:'GEGENVORSCHLAG',message:'Nachricht…',send:'➤',block:'🚫 Blockieren',unblock:'🚫 Entsperren',report:'⚠️ Melden',reported:'✓ Gemeldet'};
   const [messages,setMessages]=useState([]);
@@ -1249,18 +1249,34 @@ function ChatOverlay({match,myProfileId,myName,token,onClose,onViewProfile,darkM
   }
 
   async function sendPushTo(recipientUserId,title,body){
-    if(!recipientUserId)return;
+    if(!recipientUserId){
+      console.error('sendPushTo: keine recipientUserId - Push wurde gar nicht erst versucht');
+      return;
+    }
     try{
-      // Token wird jetzt serverseitig in send-push nachgeschlagen -
-      // der Client muss den Push-Token einer anderen Person nie mehr
-      // direkt auslesen
       const r=await fetch(SUPA_URL+'/functions/v1/send-push',{
         method:'POST',
         headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
         body:JSON.stringify({recipientUserId,title,body})
       });
-      await r.json().catch(()=>({}));
-    }catch(err){console.error('sendPushTo',err);}
+      const d=await r.json().catch(()=>({}));
+      if(isAdmin&&typeof window!=='undefined'){
+        const el=document.createElement('div');
+        el.textContent='🔔 Push-Diagnose (Nachricht): '+JSON.stringify(d).slice(0,200);
+        el.style.cssText='position:fixed;bottom:90px;left:12px;right:12px;background:#1a1a1a;color:#fff;padding:10px 14px;border-radius:10px;font-size:12px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3)';
+        document.body.appendChild(el);
+        setTimeout(()=>el.remove(),6000);
+      }
+    }catch(err){
+      console.error('sendPushTo Fehler (Nachricht)',err);
+      if(isAdmin&&typeof window!=='undefined'){
+        const el=document.createElement('div');
+        el.textContent='❌ Push-Fehler (Nachricht): '+err.message;
+        el.style.cssText='position:fixed;bottom:90px;left:12px;right:12px;background:#c0392b;color:#fff;padding:10px 14px;border-radius:10px;font-size:12px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3)';
+        document.body.appendChild(el);
+        setTimeout(()=>el.remove(),6000);
+      }
+    }
   }
 
   async function send(){
@@ -2354,7 +2370,7 @@ function MainApp(){
   const [showAGB,setShowAGB]=useState(false);
   // 'all' = jeder mit mind. 1 Kampf (Standard, damit garantiert niemand fehlt),
   // 'user' = nur Amateure, 'pro' = nur Profis, 'trainer' = Trainer
-  const [rankMode,setRankMode]=useState('all');
+  const [rankMode,setRankMode]=useState('user');
   const [filterStyle,setFilterStyle]=useState('Alle');
   const [ageFilter,setAgeFilter]=useState({min:16,max:50});
   const [filterCity,setFilterCity]=useState('');
@@ -4079,7 +4095,7 @@ nicht öffentlich gemacht</div>
   );
 
   if(!session)return <AuthScreen onSession={handleSession} appLang={appLang}/>;
-  if(activeChat&&myProfile&&!viewProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} myName={myProfile.name} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>{setViewProfile(p);}} darkMode={darkMode} t={t} appLang={appLang}/></>);
+  if(activeChat&&myProfile&&!viewProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} myName={myProfile.name} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>{setViewProfile(p);}} darkMode={darkMode} t={t} appLang={appLang} isAdmin={isAdmin}/></>);
 
   if(screen==='setup')return(
     <div style={{height:'100dvh',overflowY:'auto',WebkitOverflowScrolling:'touch',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'0 0 40px'}}>
@@ -5782,7 +5798,6 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:8}}>{t.worldRanking}</div>
             <div style={{display:'flex',gap:5,marginBottom:11}}>
-              <button onClick={()=>setRankMode('all')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='all'?RED:'transparent',border:'1px solid '+(rankMode==='all'?RED:(darkMode?'#333':'#ddd')),color:rankMode==='all'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>🥊 ALLE</button>
               <button onClick={()=>setRankMode('user')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='user'?'#2980b9':'transparent',border:'1px solid '+(rankMode==='user'?'#2980b9':(darkMode?'#333':'#ddd')),color:rankMode==='user'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>🏅 AMATEURE</button>
               <button onClick={()=>setRankMode('pro')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='pro'?'#d4a017':'transparent',border:'1px solid '+(rankMode==='pro'?'#d4a017':(darkMode?'#333':'#ddd')),color:rankMode==='pro'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>⭐ PROFIS</button>
               <button onClick={()=>setRankMode('trainer')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='trainer'?'#8e44ad':'transparent',border:'1px solid '+(rankMode==='trainer'?'#8e44ad':(darkMode?'#333':'#ddd')),color:rankMode==='trainer'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:11,cursor:'pointer'}}>{t.trainer}</button>
