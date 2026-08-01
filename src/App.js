@@ -1696,11 +1696,6 @@ function MainApp(){
     return()=>clearTimeout(failsafe);
   },[]);
 
-  // Prueft beim App-Start, ob im App Store eine neuere Version verfuegbar
-  // ist, als die, die gerade laeuft. Ein echtes, erzwungenes Auto-Update
-  // kann keine App selbst ausloesen (das steuert ausschliesslich die
-  // iPhone-Systemeinstellung) - das hier ist der naechstbeste, ueblichere
-  // Weg: ein auffaelliger Hinweis mit direktem Link zum Update.
   useEffect(()=>{
     if(!window.Capacitor||!window.Capacitor.isNativePlatform||!window.Capacitor.isNativePlatform())return;
     if(!APP_STORE_ID)return;
@@ -1717,7 +1712,7 @@ function MainApp(){
           if(s>c){setLatestVersion(storeVersion);setUpdateAvailable(true);break;}
           if(s<c)break;
         }
-      }).catch(()=>{}); // Kein Internet o.ä. - einfach ignorieren, nicht kritisch
+      }).catch(()=>{});
   },[]);
   const [screen,setScreen]=useState('loading');
   // Passwort-Reset: erkennt den Klick auf den Reset-Link aus der E-Mail
@@ -1989,7 +1984,7 @@ function MainApp(){
       if(bl.startsWith('fr'))return 'FR';
       if(bl.startsWith('en'))return 'EN';
       if(bl.startsWith('es'))return 'ES';
-      return 'DE'; // Default für DACH
+      return 'EN'; // Fuer alle nicht ausdruecklich unterstuetzten Sprachen/Laender ist Englisch der sinnvollste Standard, nicht Deutsch
     }catch{return 'DE';}
   });
   const T = {
@@ -4463,7 +4458,7 @@ nicht öffentlich gemacht</div>
             </div>
             <Lbl>Land</Lbl>
             <div style={{display:'flex',flexWrap:'wrap',gap:7,marginTop:2}}>
-              {[['🇩🇪','DE','Deutschland'],['🇦🇹','AT','Österreich'],['🇨🇭','CH','Schweiz'],['🇫🇷','FR','Frankreich'],['🇬🇧','GB','UK'],['🇺🇸','US','USA'],['🇳🇱','NL','Niederlande'],['🇧🇪','BE','Belgien'],['🇮🇹','IT','Italien'],['🇪🇸','ES','Spanien'],['🌍','OTHER','Andere']].map(([flag,code,name])=>(
+              {[['🇩🇪','DE','Deutschland'],['🇦🇹','AT','Österreich'],['🇨🇭','CH','Schweiz'],['🇫🇷','FR','Frankreich'],['🇬🇧','GB','UK'],['🇺🇸','US','USA'],['🇳🇱','NL','Niederlande'],['🇧🇪','BE','Belgien'],['🇮🇹','IT','Italien'],['🇪🇸','ES','Spanien'],['🇧🇬','BG','Bulgarien'],['🇭🇷','HR','Kroatien'],['🇨🇾','CY','Zypern'],['🇨🇿','CZ','Tschechien'],['🇩🇰','DK','Dänemark'],['🇪🇪','EE','Estland'],['🇫🇮','FI','Finnland'],['🇬🇷','GR','Griechenland'],['🇭🇺','HU','Ungarn'],['🇮🇪','IE','Irland'],['🇱🇻','LV','Lettland'],['🇱🇹','LT','Litauen'],['🇱🇺','LU','Luxemburg'],['🇲🇹','MT','Malta'],['🇵🇱','PL','Polen'],['🇵🇹','PT','Portugal'],['🇷🇴','RO','Rumänien'],['🇸🇰','SK','Slowakei'],['🇸🇮','SI','Slowenien'],['🇸🇪','SE','Schweden'],['🌍','OTHER','Andere']].map(([flag,code,name])=>(
                 <button key={code} onClick={()=>setProfile(p=>({...p,country:code}))}
                   style={{padding:'8px 12px',borderRadius:10,border:'2px solid '+(profile.country===code?RED:'#e0e0e0'),background:profile.country===code?'#fdf0ef':'#fff',cursor:'pointer',display:'flex',alignItems:'center',gap:5,transition:'all 0.2s'}}>
                   <span style={{fontSize:18}}>{flag}</span>
@@ -5476,7 +5471,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>LAND</div>
                       <select defaultValue={profile.country||'DE'} onChange={e=>setEditProfile(p=>({...p,country:e.target.value}))}
                         style={{width:'100%',padding:'11px 13px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontFamily:'DM Sans,sans-serif'}}>
-                        {[['DE','🇩🇪 Deutschland'],['AT','🇦🇹 Österreich'],['CH','🇨🇭 Schweiz'],['FR','🇫🇷 Frankreich'],['GB','🇬🇧 UK'],['US','🇺🇸 USA'],['NL','🇳🇱 Niederlande'],['BE','🇧🇪 Belgien'],['IT','🇮🇹 Italien'],['ES','🇪🇸 Spanien'],['OTHER','🌍 Andere']].map(([code,label])=>(
+                        {[['DE','🇩🇪 Deutschland'],['AT','🇦🇹 Österreich'],['CH','🇨🇭 Schweiz'],['FR','🇫🇷 Frankreich'],['GB','🇬🇧 UK'],['US','🇺🇸 USA'],['NL','🇳🇱 Niederlande'],['BE','🇧🇪 Belgien'],['IT','🇮🇹 Italien'],['ES','🇪🇸 Spanien'],['BG','🇧🇬 Bulgarien'],['HR','🇭🇷 Kroatien'],['CY','🇨🇾 Zypern'],['CZ','🇨🇿 Tschechien'],['DK','🇩🇰 Dänemark'],['EE','🇪🇪 Estland'],['FI','🇫🇮 Finnland'],['GR','🇬🇷 Griechenland'],['HU','🇭🇺 Ungarn'],['IE','🇮🇪 Irland'],['LV','🇱🇻 Lettland'],['LT','🇱🇹 Litauen'],['LU','🇱🇺 Luxemburg'],['MT','🇲🇹 Malta'],['PL','🇵🇱 Polen'],['PT','🇵🇹 Portugal'],['RO','🇷🇴 Rumänien'],['SK','🇸🇰 Slowakei'],['SI','🇸🇮 Slowenien'],['SE','🇸🇪 Schweden'],['OTHER','🌍 Andere']].map(([code,label])=>(
                           <option key={code} value={code}>{label}</option>
                         ))}
                       </select>
