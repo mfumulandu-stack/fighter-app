@@ -162,7 +162,6 @@ function MainApp(){
   const [lastSwiped,setLastSwiped]=useState(null);
   const [lightboxImg,setLightboxImg]=useState(null);
   const [imgEditorSrc,setImgEditorSrc]=useState(null);
-  const [imgEditorPos,setImgEditorPos]=useState({x:50,y:50});
   const [imgEditorCallback,setImgEditorCallback]=useState(null);
   const [showImgEditor,setShowImgEditor]=useState(false);
   const [recentSwiped,setRecentSwiped]=useState([]);
@@ -171,7 +170,6 @@ function MainApp(){
   const [showAdminMsg,setShowAdminMsg]=useState(false);
   const [allProfiles,setAllProfiles]=useState([]);
   const [rankingLoading,setRankingLoading]=useState(false);
-  const [adminGymWebsite,setAdminGymWebsite]=useState('');
   const [whoLikedTab,setWhoLikedTab]=useState(false);
   const [newLikesCount,setNewLikesCount]=useState(0);
   const [lastLikesCheck,setLastLikesCheck]=useState(()=>{try{return localStorage.getItem('fighter_likes_check')||'2000-01-01'}catch{return '2000-01-01'}});
@@ -190,11 +188,6 @@ function MainApp(){
   const [onboardSlide,setOnboardSlide]=useState(0);
   const [gymLogos,setGymLogos]=useState({});
   const [showAdmin,setShowAdmin]=useState(false);
-  const [adminGymCode,setAdminGymCode]=useState('');
-  const [adminGymLogoUrl,setAdminGymLogoUrl]=useState('');
-  const [adminCityLat,setAdminCityLat]=useState('');
-  const [adminCityLon,setAdminCityLon]=useState('');
-  const [adminCityBL,setAdminCityBL]=useState('');
   const isAdmin=session?.userId===ADMIN_ID||myProfile?.id===ADMIN_ID;
   const [fightHistory,setFightHistory]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_history')||'[]')}catch{return []}});
   const [historyPublic,setHistoryPublic]=useState(()=>{try{return localStorage.getItem('fighter_history_public')==='true'}catch{return false}});
@@ -222,7 +215,6 @@ function MainApp(){
   const [dbGyms,setDbGyms]=useState([]);
   const [gymRankMode,setGymRankMode]=useState(false);
   const [countryFilter,setCountryFilter]=useState('mine'); // 'mine' | 'world'
-  const [gymRatingInput,setGymRatingInput]=useState({});
   const [myLat,setMyLat]=useState(null);
   const [myLon,setMyLon]=useState(null);
   const [locationSource,setLocationSource]=useState('city'); // 'city' | 'ip' | 'gps'
@@ -366,9 +358,6 @@ function MainApp(){
   // 'all' = jeder mit mind. 1 Kampf (Standard, damit garantiert niemand fehlt),
   // 'user' = nur Amateure, 'pro' = nur Profis, 'trainer' = Trainer
   const [rankMode,setRankMode]=useState('user');
-  const [filterStyle,setFilterStyle]=useState('Alle');
-  const [ageFilter,setAgeFilter]=useState({min:16,max:50});
-  const [filterCity,setFilterCity]=useState('');
   const [filterWeightClass,setFilterWeightClass]=useState(true);
   const [chatSearch,setChatSearch]=useState('');
 
