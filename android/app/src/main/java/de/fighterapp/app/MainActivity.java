@@ -1,4 +1,4 @@
-package com.juniorlandu.fighter;
+package de.fighterapp.app;
 
 import com.getcapacitor.BridgeActivity;
 

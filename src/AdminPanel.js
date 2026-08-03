@@ -1181,6 +1181,60 @@ export default function AdminPanel({
                 </div>
 
                 <div style={{marginTop:20,paddingTop:16,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                  <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,letterSpacing:2,marginBottom:6}}>🛍️ EQUIPMENT-BEREICH BEWERBEN</div>
+                  <div style={{color:'#aaa',fontSize:11,marginBottom:10,lineHeight:1.6}}>Verschickt eine E-Mail an ALLE bestätigten Nutzer, die auf den Equipment-Bereich und echte Rabattcodes hinweist. Der Link erkennt automatisch, ob jemand vom Handy (→ öffnet direkt die App) oder vom Computer (→ öffnet die Website) aus klickt.</div>
+                  <button onClick={async()=>{
+                    if(!window.confirm('Equipment-Werbe-Mail an ALLE bestätigten Nutzer senden? Das kann nicht rückgängig gemacht werden.'))return;
+                    showMsg('Lade alle User...');
+                    try{
+                      let allUsers=[];
+                      let page=1;
+                      while(true){
+                        const resp=await adminFetch(SUPA_URL+'/auth/v1/admin/users?page='+page+'&per_page=1000',{},session?.token);
+                        const data=await resp.json();
+                        const batch=data.users||[];
+                        allUsers=allUsers.concat(batch);
+                        if(batch.length<1000)break;
+                        page++;
+                        if(page>20)break;
+                      }
+                      const confirmedUsers=allUsers.filter(u=>u.email_confirmed_at);
+                      const estMinutesE=Math.ceil(confirmedUsers.length*4/60);
+                      showMsg('Sende '+confirmedUsers.length+' Equipment-Mails - dauert ca. '+estMinutesE+' Min, bitte Tab offen lassen...');
+                      let sent=0;
+                      let firstError=null;
+                      let processedE=0;
+                      const smartLink='https://uykdrmymjvqgebsmndme.supabase.co/functions/v1/smart-redirect?to=equipment';
+                      for(const u of confirmedUsers){
+                        try{
+                          const r=await fetch(SUPA_URL+'/functions/v1/send-email',{
+                            method:'POST',
+                            headers:{'Content-Type':'application/json'},
+                            body:JSON.stringify({
+                              userToken:session?.token,
+                              to:u.email,
+                              subject:'🥊 Exklusive Rabatte auf Kampfsport-Equipment warten auf dich',
+                              html:'<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#0d0d0d;color:#fff;border-radius:12px"><h1 style="color:#c0392b;font-size:28px;letter-spacing:4px;margin:0 0 16px">FIGHTER</h1><p style="font-size:15px;line-height:1.6">Hey,<br><br>im Equipment-Bereich von Fighter warten <strong style="color:#d4a017">echte Rabattcodes</strong> von unseren Partnermarken auf dich — Handschuhe, Schutzausrüstung und mehr, ausgewählt für Kampfsportler.</p><a href="'+smartLink+'" style="display:inline-block;background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:bold;font-size:16px;margin:16px 0">🛍️ Jetzt Rabatte entdecken</a><p style="color:#888;font-size:13px;margin-top:16px">Öffnet sich automatisch in der App, falls du gerade auf dem Handy bist.</p><p style="color:#444;font-size:11px;margin-top:24px;border-top:1px solid #222;padding-top:12px">© 2026 Fighter App · fighterapp.de</p></div>'
+                            })
+                          });
+                          if(r.ok)sent++;
+                          else if(!firstError){
+                            const errText=await r.text();
+                            firstError='Status '+r.status+': '+errText.slice(0,200);
+                          }
+                        }catch(err){
+                          if(!firstError)firstError='Netzwerkfehler: '+err.message;
+                        }
+                        processedE++;
+                        showMsg('⏳ '+processedE+'/'+confirmedUsers.length+' verarbeitet ('+sent+' erfolgreich)...');
+                        await new Promise(res=>setTimeout(res,4000));
+                      }
+                      showMsg('✅ '+sent+'/'+confirmedUsers.length+' Equipment-Mails versendet.'+(firstError?' Fehler: '+firstError:''));
+                    }catch(e){showMsg('Fehler: '+e.message);}
+                  }} style={{width:'100%',padding:'12px',borderRadius:10,background:'linear-gradient(135deg,#c0392b,#e74c3c)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',letterSpacing:1}}>🛍️ EQUIPMENT-MAIL AN ALLE SENDEN</button>
+                </div>
+
+                <div style={{marginTop:20,paddingTop:16,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
                   <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,letterSpacing:2,marginBottom:6}}>🖼️ ALTE FOTOS KOMPRIMIEREN</div>
                   <div style={{color:'#aaa',fontSize:11,marginBottom:10,lineHeight:1.6}}>Verkleinert nachträglich alle Profilfotos, die vor der automatischen Komprimierung hochgeladen wurden. Läuft in kleinen Portionen (8 auf einmal) und zeigt den Fortschritt live an - kann jederzeit erneut gestartet werden, macht dann einfach dort weiter, wo es aufgehört hat.</div>
                   <button onClick={async()=>{
