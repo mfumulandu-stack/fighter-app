@@ -3048,7 +3048,13 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         else{lastTapRef.current=now;dragStart(e);}
                       }
                     }}
-                    style={{position:'absolute',inset:0,borderRadius:16,background:'#111',boxShadow:isTop?'0 8px 32px rgba(0,0,0,0.2)':'none',cursor:isTop?'grab':'default',zIndex:isTop?10:isSec?5:1,transform:isTop?cStyle.transform:isSec?'scale(0.96) translateY(10px)':'scale(0.92) translateY(20px)',transition:isTop?cStyle.transition:'none',overflow:'hidden',userSelect:'none'}}>
+                    style={{position:'absolute',inset:0,borderRadius:16,background:'#111',boxShadow:isTop?'0 8px 32px rgba(0,0,0,0.2)':'none',cursor:isTop?'grab':'default',zIndex:isTop?10:isSec?5:1,transform:isTop?cStyle.transform:isSec?'scale(0.96) translateY(10px)':'scale(0.92) translateY(20px)',
+                      // Karten dahinter ruecken jetzt sanft nach vorne, statt
+                      // beim Wegswipen ruckartig zu "springen" - nur waehrend
+                      // des aktiven Ziehens bleibt es uebergangslos, damit die
+                      // Karten nicht seltsam mitwackeln.
+                      transition:isTop?cStyle.transition:(drag?'none':'transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94)'),
+                      overflow:'hidden',userSelect:'none'}}>
                     {f.avatar_url
                       // Bewusst KEIN loading="lazy" hier - bei den gestapelten
                       // Karten (position:absolute) bringt das nichts (siehe
@@ -3056,7 +3062,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       // unnoetig verzoegern. Die oberste Karte bekommt zudem
                       // hohe Ladepriorisierung, damit sie so schnell wie
                       // moeglich erscheint.
-                      ?<img src={f.avatar_url} fetchpriority={isTop?'high':'auto'} decoding="async" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:(f.img_pos_x||50)+'% '+(f.img_pos_y||30)+'%'}} alt={f.name}/>
+                      ?<img src={f.avatar_url} fetchpriority={isTop?'high':'auto'} decoding="async" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:(f.img_pos_x||50)+'% '+(f.img_pos_y||30)+'%',filter:isTop?'none':'blur(14px) brightness(0.6)'}} alt={f.name}/>
                       :<div style={{position:'absolute',inset:0,background:`linear-gradient(160deg,${fA}55 0%,#111 100%)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:120}}>{f.emoji||''}</div>
                     }
                     <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0) 30%,rgba(0,0,0,0.95) 100%)'}}/>
