@@ -1024,13 +1024,13 @@ function MainApp(){
 
   async function joinEvent(eventId,price){
     if(!session||!myProfile)return;
-    // Bezahltes Event: zur sicheren Stripe-Zahlungsseite weiterleiten,
+    // Bezahltes Event: zur sicheren Revolut-Zahlungsseite weiterleiten,
     // statt direkt anzumelden - die Anmeldung passiert erst automatisch
-    // NACH erfolgreicher Zahlung (ueber den stripe-webhook im Hintergrund)
+    // NACH erfolgreicher Zahlung (ueber den revolut-webhook im Hintergrund)
     if(price&&price>0){
       try{
         showMsg('Zahlungsseite wird geöffnet...');
-        const r=await fetch(SUPA_URL+'/functions/v1/create-checkout',{
+        const r=await fetch(SUPA_URL+'/functions/v1/create-revolut-order',{
           method:'POST',
           headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
           body:JSON.stringify({eventId,userToken:session.token})
