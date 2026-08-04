@@ -739,15 +739,33 @@ function MainApp(){
     return()=>clearInterval(interval);
   },[session?.userId,myProfile?.id]);
 
+  // Kleine Verzoegerung noetig: direkt nach dem Zurueckkommen ist der
+  // Inhalt (Bilder, Listeneintraege) manchmal noch nicht vollstaendig
+  // aufgebaut - dann "klemmt" der Browser die Scroll-Position zurueck,
+  // weil noch nicht genug Hoehe zum Scrollen da ist. Mehrere Versuche
+  // kurz nacheinander stellen sicher, dass die Position auch dann
+  // greift, wenn der Inhalt etwas laenger zum Laden braucht.
   useEffect(()=>{
     if(!viewProfile&&tab==='ranking'&&mainScrollRef.current){
-      mainScrollRef.current.scrollTop=savedRankScrollRef.current;
+      const el=mainScrollRef.current;
+      const target=savedRankScrollRef.current;
+      el.scrollTop=target;
+      const t1=setTimeout(()=>{if(el)el.scrollTop=target;},50);
+      const t2=setTimeout(()=>{if(el)el.scrollTop=target;},200);
+      const t3=setTimeout(()=>{if(el)el.scrollTop=target;},500);
+      return()=>{clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);};
     }
   },[viewProfile,tab]);
 
   useEffect(()=>{
     if(!viewGym&&tab==='gyms'&&mainScrollRef.current){
-      mainScrollRef.current.scrollTop=savedGymScrollRef.current;
+      const el=mainScrollRef.current;
+      const target=savedGymScrollRef.current;
+      el.scrollTop=target;
+      const t1=setTimeout(()=>{if(el)el.scrollTop=target;},50);
+      const t2=setTimeout(()=>{if(el)el.scrollTop=target;},200);
+      const t3=setTimeout(()=>{if(el)el.scrollTop=target;},500);
+      return()=>{clearTimeout(t1);clearTimeout(t2);clearTimeout(t3);};
     }
   },[viewGym,tab]);
 
