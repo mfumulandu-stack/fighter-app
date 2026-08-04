@@ -1903,9 +1903,16 @@ function MainApp(){
   const savedRankScrollRef=React.useRef(0);
   const savedGymScrollRef=React.useRef(0);
   const ranked=React.useMemo(()=>{
+  const myGender=profile.gender||myProfile?.gender||'male';
   return rankMode==='trainer'
     ?[]
     :[...userOnly]
+      // Rangliste zeigt automatisch nur das eigene Geschlecht
+      .filter(f=>{
+        const fGender=f.isMe?myGender:(f.gender||'male');
+        if(!fGender||fGender==='other')return true;
+        return fGender===myGender;
+      })
       .filter(f=>{
         if(rankMode==='pro') return f.isMe?(profile.isPro===true):(f.is_pro===true);
         if(rankMode==='user') return f.isMe?(profile.isPro!==true):(f.is_pro!==true); // Amateure = Nicht-Profis
@@ -1914,7 +1921,7 @@ function MainApp(){
       .filter(f=>(f.wins||0)+(f.losses||0)+(f.draws||0)>0) // nur User mit mind. 1 Kampf
       .filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF))))
       .sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
-  },[userOnly,profile,rankMode,rankF]);
+  },[userOnly,profile,myProfile,rankMode,rankF]);
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
   const filteredT=TRAINERS.filter(tr=>trainerF==='All'||tr.style.includes(trainerF)).sort((a,b)=>b.rating-a.rating);
 
@@ -4105,7 +4112,10 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   const isTop3=i<3;
                   const isMe=myProfile&&c.id===myProfile.id;
                   return(
-                    <div key={c.id} onClick={()=>!isMe&&setViewProfile(c)} style={{background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:13,padding:'12px 13px',border:'1px solid '+(isTop3?'#d4a01733':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.1)':'none',display:'flex',alignItems:'center',gap:11,cursor:isMe?'default':'pointer'}}>
+                    <div key={c.id} onClick={()=>{
+                      if(isAdmin)showMsg('🔧 Diagnose: Trainer-Klick erkannt, c.id='+c.id+', isMe='+isMe+', myProfile.id='+myProfile?.id);
+                      if(!isMe)setViewProfile(c);
+                    }} style={{background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:13,padding:'12px 13px',border:'1px solid '+(isTop3?'#d4a01733':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.1)':'none',display:'flex',alignItems:'center',gap:11,cursor:isMe?'default':'pointer'}}>
                       <div style={{fontSize:isTop3?26:18,width:32,textAlign:'center',flexShrink:0}}>
                         {isTop3?medal[i]:<span className='rj' style={{color:'#bbb'}}>#{i+1}</span>}
                       </div>
