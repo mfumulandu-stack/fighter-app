@@ -158,6 +158,7 @@ function MainApp(){
   const [drag,setDrag]=useState(false);
   const [offset,setOffset]=useState({x:0,y:0});
   const [start,setStart]=useState({x:0,y:0});
+  const dragVelocityRef=React.useRef({x:0,time:0}); // fuer schnelle, kurze Wisch-Gesten
   const [lastAct,setLastAct]=useState(null);
   const [lastSwiped,setLastSwiped]=useState(null);
   const [lightboxImg,setLightboxImg]=useState(null);
@@ -1761,6 +1762,7 @@ function MainApp(){
     const p=e.touches&&e.touches[0]?e.touches[0]:e;
     if(!p||p.clientX===undefined)return;
     setStart({x:p.clientX,y:p.clientY});
+    dragVelocityRef.current={x:0,time:Date.now()};
     setDrag(true);
   }
   function dragMove(e){
@@ -1775,12 +1777,22 @@ function MainApp(){
     // ersten Bewegung, statt erst nach 10px ploetzlich "aufzuwachen". Das
     // hatte sich wie ein kurzes Haengenbleiben/Kleben am Anfang angefuehlt.
     setOffset({x:dx,y:dy*0.2});
+    dragVelocityRef.current={x:dx,time:Date.now()};
   }
   function dragEnd(e){
     if(!drag)return;
     setDrag(false);
-    if(offset.x>SW)doSwipe('ch');
-    else if(offset.x<-SW)doSwipe('de');
+    // Geschwindigkeit der letzten Bewegung berechnen (px pro Millisekunde) -
+    // damit auch ein schneller, kurzer "Wisch" zuverlaessig als Swipe zaehlt,
+    // nicht nur eine grosse zurueckgelegte Distanz. Ohne das musste man die
+    // Karte "brav" bis zur Schwelle ziehen, sonst schnappte sie zurueck -
+    // das fuehlte sich unnoetig zoegerlich an.
+    const now=Date.now();
+    const dt=Math.max(now-dragVelocityRef.current.time,1);
+    const velocity=(offset.x-dragVelocityRef.current.x)/dt; // px/ms
+    const isFastFlick=Math.abs(velocity)>0.5&&Math.abs(offset.x)>15;
+    if(offset.x>SW||(isFastFlick&&offset.x>0))doSwipe('ch');
+    else if(offset.x<-SW||(isFastFlick&&offset.x<0))doSwipe('de');
     else setOffset({x:0,y:0});
   }
 
