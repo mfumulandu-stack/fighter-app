@@ -10,10 +10,12 @@
 // HINWEIS: Der Inhalt ist unveraendert aus App.js hierher verschoben.
 
 const WEIGHT_CLASSES = [
-  'Strohgewicht (bis 48 kg)','Fliegengewicht (bis 51 kg)','Bantamgewicht (bis 54 kg)',
-  'Federgewicht (bis 57 kg)','Leichtgewicht (bis 61 kg)','Halbweltergewicht (bis 64 kg)',
-  'Weltergewicht (bis 67 kg)','Halbmittelgewicht (bis 70 kg)','Mittelgewicht (bis 73 kg)',
-  'Supermittelgewicht (bis 76 kg)','Halbschwergewicht (bis 79 kg)','Cruisergewicht (bis 91 kg)','Schwergewicht (ueber 91 kg)'
+  'Strohgewicht (bis 48 kg)','Leichtfliegengewicht (bis 49 kg)','Fliegengewicht (bis 51 kg)',
+  'Superfliegengewicht (bis 52 kg)','Bantamgewicht (bis 53,5 kg)','Superbantamgewicht (bis 55 kg)',
+  'Federgewicht (bis 57 kg)','Superfedergewicht (bis 59 kg)','Leichtgewicht (bis 61 kg)',
+  'Halbweltergewicht (bis 63,5 kg)','Weltergewicht (bis 66,7 kg)','Halbmittelgewicht (bis 69,9 kg)',
+  'Mittelgewicht (bis 72,6 kg)','Supermittelgewicht (bis 76,2 kg)','Halbschwergewicht (bis 79,4 kg)',
+  'Cruisergewicht (bis 90,7 kg)','Schwergewicht (ueber 90,7 kg)'
 ];
 const STYLES = ['Boxing','Kickboxing','MMA','Muay Thai','Grappling','BJJ','Wrestling','Kung Fu','Karate','Taekwondo','Judo','Sambo'];
 // Sportarten, bei denen ein Guertelrang ueblich ist
