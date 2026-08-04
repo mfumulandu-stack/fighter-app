@@ -1771,7 +1771,10 @@ function MainApp(){
     const dx=p.clientX-start.x;
     const dy=p.clientY-start.y;
     // Immer horizontal updaten - auch bei leicht schrägen Swipes
-    if(Math.abs(dx)>10)setOffset({x:dx,y:dy*0.2});
+    // Keine "Totzone" mehr - die Karte folgt dem Finger sofort ab der
+    // ersten Bewegung, statt erst nach 10px ploetzlich "aufzuwachen". Das
+    // hatte sich wie ein kurzes Haengenbleiben/Kleben am Anfang angefuehlt.
+    setOffset({x:dx,y:dy*0.2});
   }
   function dragEnd(e){
     if(!drag)return;
@@ -1884,7 +1887,10 @@ function MainApp(){
   const cStyle=drag?{transform:`translateX(${offset.x}px) translateY(${offset.y*0.25}px) rotate(${rot}deg)`,transition:'none',cursor:'grabbing'}
     :lastAct==='ch'?{transform:'translateX(140%) rotate(18deg)',transition:'transform 0.26s ease'}
     :lastAct==='de'?{transform:'translateX(-140%) rotate(-18deg)',transition:'transform 0.26s ease'}
-    :{transform:'translateX(0) rotate(0deg)',transition:'transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275)'};
+    // Vorher eine Kurve, die bewusst ueberschwingt (Bounce-Effekt) - das
+    // hatte sich "wabbelig"/unsauber angefuehlt. Jetzt ein sauberes,
+    // schnelles Ease-Out ohne Ueberschwingen.
+    :{transform:'translateX(0) rotate(0deg)',transition:'transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94)'};
 
   function canGo(){
     if(step===1)return !!(profile.name&&profile.age&&profile.city); // Foto nicht mehr Pflicht fuer die Registrierung selbst - nur fuers Sichtbarwerden im Swipe-Stapel bei anderen
