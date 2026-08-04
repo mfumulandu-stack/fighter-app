@@ -108,19 +108,19 @@ function AuthScreen({ onSession, appLang }) {
             ))}
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:11}}>
-            <Inp placeholder='E-Mail' value={email} onChange={setEmail} type='email'/>
-            <Inp placeholder='Passwort (min. 6 Zeichen)' value={password} onChange={setPassword} type='password' onKeyDown={e=>e.key==='Enter'&&submit()}/>
+            <Inp placeholder='E-Mail' value={email} onChange={setEmail} type='email' autoComplete='email'/>
+            <Inp placeholder='Passwort (min. 6 Zeichen)' value={password} onChange={setPassword} type='password' autoComplete={mode==='register'?'new-password':'current-password'} onKeyDown={e=>e.key==='Enter'&&submit()}/>
           </div>
           {err&&<div style={{color:RED,fontSize:12,marginTop:10,textAlign:'center'}}>{err}</div>}
           {mode==='register'&&(
             <div style={{display:'flex',flexDirection:'column',gap:8,marginTop:12}}>
               <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
                 <input type='checkbox' id='privacy' checked={privacy} onChange={e=>setPrivacy(e.target.checked)} style={{marginTop:2,accentColor:RED,width:16,height:16,cursor:'pointer',flexShrink:0}}/>
-                <label htmlFor='privacy' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich stimme der <span style={{color:RED,textDecoration:'underline'}} onClick={(e)=>{e.preventDefault();e.stopPropagation();window.open('/datenschutz.html','_blank');}}>Datenschutzerklärung</span> zu</label>
+                <label htmlFor='privacy' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich stimme der <a href='/datenschutz.html' target='_blank' rel='noopener noreferrer' onClick={(e)=>e.stopPropagation()} style={{color:RED,textDecoration:'underline'}}>Datenschutzerklärung</a> zu</label>
               </div>
               <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
                 <input type='checkbox' id='agb' checked={agbAccepted} onChange={e=>setAgbAccepted(e.target.checked)} style={{marginTop:2,accentColor:RED,width:16,height:16,cursor:'pointer',flexShrink:0}}/>
-                <label htmlFor='agb' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich akzeptiere die <span style={{color:RED,textDecoration:'underline'}} onClick={(e)=>{e.preventDefault();e.stopPropagation();window.open('/agb.html','_blank');}}>AGB</span></label>
+                <label htmlFor='agb' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich akzeptiere die <a href='/agb.html' target='_blank' rel='noopener noreferrer' onClick={(e)=>e.stopPropagation()} style={{color:RED,textDecoration:'underline'}}>AGB</a></label>
               </div>
             </div>
           )}
@@ -137,7 +137,7 @@ function AuthScreen({ onSession, appLang }) {
           <div style={{background:'#fff',borderRadius:16,padding:'24px 20px',width:'100%',maxWidth:340,boxShadow:'0 8px 40px rgba(0,0,0,0.2)'}}>
             <div className='rj' style={{color:'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:6}}>PASSWORT RESET</div>
             <div style={{color:'#888',fontSize:12,marginBottom:16}}>Wir senden dir einen Reset-Link per E-Mail.</div>
-            <Inp placeholder='Deine E-Mail' value={email} onChange={setEmail} type='email'/>
+            <Inp placeholder='Deine E-Mail' value={email} onChange={setEmail} type='email' autoComplete='email'/>
             {err&&<div style={{color:RED,fontSize:12,marginTop:8,textAlign:'center'}}>{err}</div>}
             {info&&<div style={{color:'#27ae60',fontSize:12,marginTop:8,textAlign:'center'}}>{info}</div>}
             <button onClick={sendPasswordReset} disabled={loading}

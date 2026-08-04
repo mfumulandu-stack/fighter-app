@@ -10,8 +10,9 @@ import { useState } from 'react';
 import { RED } from './constants';
 
 function Lbl({children}){return <div style={{color:'#555',fontSize:11,fontWeight:600,letterSpacing:1.5,textTransform:'uppercase'}}>{children}</div>;}
-function Inp({placeholder,value,onChange,type='text',onKeyDown}){
+function Inp({placeholder,value,onChange,type='text',onKeyDown,autoComplete,name}){
   return(<input type={type} placeholder={placeholder} value={value} onChange={e=>onChange(e.target.value)} onKeyDown={onKeyDown}
+    autoComplete={autoComplete} name={name||autoComplete}
     style={{width:'100%',background:'#fff',border:'1px solid #e0e0e0',borderRadius:8,padding:'12px 13px',color:'#1a1a1a',fontSize:15,fontFamily:'DM Sans,sans-serif',transition:'border-color 0.2s'}}
     onFocus={e=>e.target.style.borderColor=RED} onBlur={e=>e.target.style.borderColor='#e0e0e0'}/>);
 }
