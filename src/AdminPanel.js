@@ -592,11 +592,23 @@ export default function AdminPanel({
               <div>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>👤 USER ({adminUsers.length})</div>
                 <button onClick={async()=>{
+                  const log=[];
+                  log.push('Klick erkannt, session='+!!session+', token='+!!session?.token);
                   try{
                     const resp=await adminFetch(SUPA_URL+'/rest/v1/profiles?order=created_at.desc&limit=1000',{},session?.token);
+                    log.push('Antwort Status='+resp.status);
                     const data=await resp.json();
-                    if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
-                  }catch(e){showMsg('Fehler: '+e.message);}
+                    if(Array.isArray(data)){
+                      setAdminUsers(data);setAdminUsersLoaded(true);
+                      log.push(data.length+' User geladen ✅');
+                    }else{
+                      log.push('Keine Liste: '+JSON.stringify(data).slice(0,150));
+                    }
+                  }catch(e){log.push('FEHLER: '+e.message);}
+                  // Alles auf einmal anzeigen (nicht mehrere Meldungen, die
+                  // sich gegenseitig ueberschreiben wuerden, bevor man sie
+                  // lesen kann) und laenger stehen lassen.
+                  showMsg('🔧 '+log.join(' → '));
                 }} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:12}}>{adminUsersLoaded?'🔄 AKTUALISIEREN':'USER LADEN'}</button>
                 {adminUsersLoaded&&(
                   <input

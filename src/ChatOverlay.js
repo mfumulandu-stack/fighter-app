@@ -31,7 +31,12 @@ function ChatOverlay({match,myProfileId,myName,token,onClose,onViewProfile,darkM
   const endRef=useRef(null);
   const pollRef=useRef(null);
   const typingRef=useRef(null);
-  const other=match.profile_a_id===myProfileId?(match.profile_b||match.profile_a):(match.profile_a||match.profile_b);
+  // WICHTIG: Kein Rueckfall auf das eigene Profil mehr. Vorher stand hier
+  // "match.profile_b||match.profile_a" - falls profile_b aus irgendeinem
+  // Grund mal nicht korrekt geladen war, fiel der Code faelschlich auf
+  // das EIGENE Profil zurueck, wodurch man sich selbst eine Push-
+  // Benachrichtigung fuer die eigene, gerade gesendete Nachricht schickte.
+  const other=match.profile_a_id===myProfileId?match.profile_b:match.profile_a;
   const accent=other?.style==='Boxing'?'#c0392b':other?.style==='MMA'?'#2980b9':other?.style==='Muay Thai'?'#d35400':'#27ae60';
   // Safety: if other is completely null, show loading
   if(!other)return(<div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:12}}><div style={{fontSize:32}} className='spin'>⏳</div><div style={{color:'#aaa',fontSize:13}}>{appLang==='FR'?'Chargement...':appLang==='EN'?'Loading...':'Laden...'}</div><button onClick={onClose} style={{marginTop:8,background:'#c0392b',border:'none',borderRadius:8,padding:'10px 20px',color:'#fff',fontWeight:700,cursor:'pointer'}}>{t.back}</button></div>);
