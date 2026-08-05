@@ -17,6 +17,7 @@ import { css } from './styles';
 import AuthScreen from './AuthScreen';
 import { Lbl, Inp, Tag, Btn } from './uiHelpers';
 import GymVerifyModal from './GymVerifyModal';
+import SwipeableChatRow from './SwipeableChatRow';
 import ErrorBoundary from './ErrorBoundary';
 import ImgPositionEditor from './ImgPositionEditor';
 import { WEIGHT_CLASSES, STYLES, BELT_STYLES, BELT_RANKS, PRO_FIGHTERS, FIGHTERS, CITY_COORDS, CITY_BUNDESLAND, GYMS, TRAINERS, SPORTS, getDistanceKm, getDistanceKmCoords, getBundesland, getLocationByIP } from './appData';
@@ -1167,6 +1168,19 @@ function MainApp(){
       setCoaches(list);
     }catch(e){console.error('loadCoaches',e);}
     setCoachesLoading(false);
+  }
+
+  async function deleteChat(matchId){
+    try{
+      await fetch(SUPA_URL+'/rest/v1/messages?match_id=eq.'+matchId,{
+        method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
+      });
+      await fetch(SUPA_URL+'/rest/v1/matches?id=eq.'+matchId,{
+        method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
+      });
+      setDbMatches(prev=>prev.filter(m=>m.id!==matchId));
+      showMsg('Chat gelöscht');
+    }catch(e){showMsg('Fehler beim Löschen: '+e.message);}
   }
 
   async function rateCoach(coachId,stars){
@@ -3246,7 +3260,8 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   const ac=(other?.style||'')==='Boxing'?'#c0392b':(other?.style||'')==='MMA'?'#2980b9':'#27ae60';
                   if(!m.id)return null;
                   return(
-                    <div key={m.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:13,border:'1px solid '+ac+'33',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.06)'}}>
+                    <SwipeableChatRow key={m.id} darkMode={darkMode} onDelete={()=>deleteChat(m.id)}>
+                    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:13,border:'1px solid '+ac+'33',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.06)'}}>
                       <div style={{height:3,background:'linear-gradient(90deg,'+ac+',transparent)'}}/>
                       <div style={{padding:'13px',display:'flex',alignItems:'center',gap:12}}>
                         <div onClick={()=>setViewProfile(other)} style={{cursor:'pointer',flexShrink:0,position:'relative'}}>
@@ -3278,6 +3293,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         <div onClick={()=>setActiveChat(m)} style={{padding:'9px 16px',borderRadius:8,background:'linear-gradient(135deg,#c0392b,#e74c3c)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>CHAT →</div>
                       </div>
                     </div>
+                    </SwipeableChatRow>
                   );
                 })}
               </div>
@@ -4188,10 +4204,11 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   const isTop3=i<3;
                   const isMe=myProfile&&c.id===myProfile.id;
                   return(
-                    <div key={c.id} onClick={()=>{
+                    <div key={c.id} style={{background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:13,border:'1px solid '+(isTop3?'#d4a01733':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.1)':'none'}}>
+                    <div onClick={()=>{
                       if(isAdmin)showMsg('🔧 Diagnose: Trainer-Klick erkannt, c.id='+c.id+', isMe='+isMe+', myProfile.id='+myProfile?.id);
                       if(!isMe)setViewProfile(c);
-                    }} style={{background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:13,padding:'12px 13px',border:'1px solid '+(isTop3?'#d4a01733':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.1)':'none',display:'flex',alignItems:'center',gap:11,cursor:isMe?'default':'pointer'}}>
+                    }} style={{padding:'12px 13px',display:'flex',alignItems:'center',gap:11,cursor:isMe?'default':'pointer'}}>
                       <div style={{fontSize:isTop3?26:18,width:32,textAlign:'center',flexShrink:0}}>
                         {isTop3?medal[i]:<span className='rj' style={{color:'#bbb'}}>#{i+1}</span>}
                       </div>
@@ -4212,6 +4229,16 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                         <div style={{color:'#bbb',fontSize:9,marginTop:2}}>{c.ratingCount} Bew.</div>
                         {c.coach_experience&&<div style={{color:'#d4a017',fontSize:9}}>{c.coach_experience} Jahre</div>}
                       </div>
+                    </div>
+                    {/* Direkte Bewertung ohne erst ins Profil zu muessen. */}
+                    {!isMe&&(
+                      <div style={{display:'flex',alignItems:'center',gap:4,padding:'0 13px 12px'}}>
+                        <span style={{color:'#999',fontSize:10,marginRight:2}}>Bewerten:</span>
+                        {[1,2,3,4,5].map(n=>(
+                          <button key={n} onClick={()=>rateCoach(c.id,n)} style={{background:'none',border:'none',fontSize:18,cursor:'pointer',padding:0,color:(c.myRating||0)>=n?'#d4a017':'#ddd'}}>★</button>
+                        ))}
+                      </div>
+                    )}
                     </div>
                   );
                 })}
