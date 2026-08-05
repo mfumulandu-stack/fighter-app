@@ -1587,6 +1587,7 @@ function MainApp(){
   // einzigen App-Interaktion neu, auch bei voellig unabhaengigen
   // Aenderungen (z.B. eine Nachricht tippen). Jetzt laeuft sie nur noch
   // neu, wenn sich wirklich etwas Relevantes fuers Matching geaendert hat.
+  const matchTierRef=useRef('minimal');
   const filteredCards=React.useMemo(()=>{
   const myIsPro=myProfile?.is_pro===true||profile.isPro===true;
   const myWC=(myProfile?.weight_class||profile.weightClass||'').split(' (')[0].trim();
@@ -1638,6 +1639,7 @@ function MainApp(){
   });
 
   const {results:autoFiltered,tier:matchTier}=autoFilterCandidates(candidateFlags);
+  matchTierRef.current=matchTier;
   const filteredCardsBase=autoFiltered.map(c=>c.profile);
 
   const filteredCardsInner=filteredCardsBase
@@ -3032,7 +3034,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               <div style={{color:'#aaa',fontSize:10,textAlign:'right'}}>{profile.height}cm<br/>{profile.weight}kg</div>
             </div>
             {/* FILTER LEISTE - leer, kein Stil-Filter in Swipe Tab */}
-            {matchTier==='minimal'&&visibleCards.length>0&&(
+            {matchTierRef.current==='minimal'&&visibleCards.length>0&&(
               <div style={{width:'calc(100% - 24px)',maxWidth:380,margin:'0 0 8px',background:'#8e44ad15',border:'1px solid #8e44ad33',borderRadius:10,padding:'8px 12px',display:'flex',alignItems:'center',gap:8}}>
                 <span style={{fontSize:16}}>💡</span>
                 <div style={{color:darkMode?'#ccc':'#666',fontSize:11,lineHeight:1.4}}>Noch wenige Kämpfer in deiner Nähe — wir zeigen dir daher einen größeren Umkreis. Lad Freunde ein, um die Auswahl zu vergrößern!</div>
