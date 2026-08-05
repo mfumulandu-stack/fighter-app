@@ -7,8 +7,6 @@
 // Die eigenen Uebersetzungen (T_AUTH) liegen bewusst hier in der Datei -
 // sie werden nur von diesem Bildschirm gebraucht. Die uebrigen Texte der
 // App stehen in translations.js.
-//
-// HINWEIS: Der Code ist unveraendert aus App.js hierher verschoben worden.
 
 import { useState } from 'react';
 import { SUPA_URL, SUPA_KEY, RED, LIGHT_RED } from './constants';
@@ -29,6 +27,8 @@ function AuthScreen({ onSession, appLang }) {
   const [err,setErr]=useState('');
   const [info,setInfo]=useState('');const [privacy,setPrivacy]=useState(false);
   const [agbAccepted,setAgbAccepted]=useState(false);
+  const [showAGB,setShowAGB]=useState(false);
+  const [showDatenschutz,setShowDatenschutz]=useState(false);
   const [showForgot,setShowForgot]=useState(false);
 
   async function sendPasswordReset(){
@@ -59,16 +59,13 @@ function AuthScreen({ onSession, appLang }) {
           setErr(r.error.message||'Registrierung fehlgeschlagen');
         }
       }else if(r.session&&r.session.access_token){
-        // Direkt einloggen (E-Mail Bestätigung deaktiviert)
         onSession({token:r.session.access_token,userId:r.user.id,refresh_token:r.session.refresh_token||null,expires_at:Date.now()+(3600*1000)});
       }else if(r.access_token){
         onSession({token:r.access_token,userId:r.user?.id});
       }else if(r.user&&r.user.id){
-        // E-Mail Bestätigung aktiv → Hinweis zeigen
         setInfo('✅ Fast fertig! Wir haben eine Bestätigungsmail an '+email+' gesendet. Bitte öffne sie und klicke auf den Link, dann kannst du dich hier einloggen.');
         setMode('login');
       }else if(r.id&&r.aud==='authenticated'){
-        // Supabase gibt User direkt zurück — E-Mail Bestätigung nötig
         setInfo('✅ Fast fertig! Wir haben eine Bestätigungsmail an '+email+' gesendet. Bitte öffne sie und klicke auf den Link, dann kannst du dich hier einloggen.');
         setMode('login');
       }else if(r.error){
@@ -116,11 +113,11 @@ function AuthScreen({ onSession, appLang }) {
             <div style={{display:'flex',flexDirection:'column',gap:8,marginTop:12}}>
               <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
                 <input type='checkbox' id='privacy' checked={privacy} onChange={e=>setPrivacy(e.target.checked)} style={{marginTop:2,accentColor:RED,width:16,height:16,cursor:'pointer',flexShrink:0}}/>
-                <label htmlFor='privacy' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich stimme der <a href='/datenschutz.html' target='_blank' rel='noopener noreferrer' onClick={(e)=>e.stopPropagation()} style={{color:RED,textDecoration:'underline'}}>Datenschutzerklärung</a> zu</label>
+                <label htmlFor='privacy' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich stimme der <span onClick={(e)=>{e.preventDefault();e.stopPropagation();setShowDatenschutz(true);}} style={{color:RED,textDecoration:'underline',cursor:'pointer'}}>Datenschutzerklärung</span> zu</label>
               </div>
               <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
                 <input type='checkbox' id='agb' checked={agbAccepted} onChange={e=>setAgbAccepted(e.target.checked)} style={{marginTop:2,accentColor:RED,width:16,height:16,cursor:'pointer',flexShrink:0}}/>
-                <label htmlFor='agb' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich akzeptiere die <a href='/agb.html' target='_blank' rel='noopener noreferrer' onClick={(e)=>e.stopPropagation()} style={{color:RED,textDecoration:'underline'}}>AGB</a></label>
+                <label htmlFor='agb' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich akzeptiere die <span onClick={(e)=>{e.preventDefault();e.stopPropagation();setShowAGB(true);}} style={{color:RED,textDecoration:'underline',cursor:'pointer'}}>AGB</span></label>
               </div>
             </div>
           )}
@@ -148,6 +145,41 @@ function AuthScreen({ onSession, appLang }) {
               style={{width:'100%',marginTop:8,padding:'10px',borderRadius:8,background:'transparent',border:'1px solid #eee',color:'#aaa',fontFamily:'DM Sans,sans-serif',fontSize:13,cursor:'pointer'}}>
               Abbrechen
             </button>
+          </div>
+        </div>
+      )}
+      {showDatenschutz&&(
+        <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:500,overflowY:'auto',padding:'20px 16px 40px'}}>
+          <div style={{maxWidth:480,margin:'0 auto'}}>
+            <button onClick={()=>setShowDatenschutz(false)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>← Zurück</button>
+            <div style={{background:'#fff',borderRadius:14,padding:'20px',border:'1px solid #eee'}}>
+              <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,color:'#1a1a1a',letterSpacing:2,marginBottom:4}}>DATENSCHUTZ</div>
+              <div style={{color:RED,fontSize:10,letterSpacing:2,marginBottom:20}}>Datenschutzerklärung gemäß DSGVO</div>
+              <div style={{marginBottom:14}}><div style={{fontWeight:700,color:'#1a1a1a',fontSize:13,marginBottom:5,borderLeft:'3px solid '+RED,paddingLeft:8}}>1. Verantwortlicher</div><div style={{color:'#555',fontSize:13,lineHeight:1.8}}>Junior Landu Mfumu, Ottostraße 43, 52070 Aachen. E-Mail: mfumulandu@gmail.com</div></div>
+              <div style={{marginBottom:14}}><div style={{fontWeight:700,color:'#1a1a1a',fontSize:13,marginBottom:5,borderLeft:'3px solid '+RED,paddingLeft:8}}>2. Erhobene Daten</div><div style={{color:'#555',fontSize:13,lineHeight:1.8}}>E-Mail, Name, Alter, Stadt, Gym, Kampfstil, Profilbild, Nachrichten, Swipes und Matches.</div></div>
+              <div style={{marginBottom:14}}><div style={{fontWeight:700,color:'#1a1a1a',fontSize:13,marginBottom:5,borderLeft:'3px solid '+RED,paddingLeft:8}}>3. Zweck</div><div style={{color:'#555',fontSize:13,lineHeight:1.8}}>Bereitstellung der App, Matching, Chat, Gym-Verzeichnis und Ranglisten.</div></div>
+              <div style={{marginBottom:14}}><div style={{fontWeight:700,color:'#1a1a1a',fontSize:13,marginBottom:5,borderLeft:'3px solid '+RED,paddingLeft:8}}>4. Datenweitergabe</div><div style={{color:'#555',fontSize:13,lineHeight:1.8}}>Keine Weitergabe an Dritte. Dienste: Supabase (EU), Vercel, Resend.</div></div>
+              <div style={{marginBottom:14}}><div style={{fontWeight:700,color:'#1a1a1a',fontSize:13,marginBottom:5,borderLeft:'3px solid '+RED,paddingLeft:8}}>5. Deine Rechte</div><div style={{color:'#555',fontSize:13,lineHeight:1.8}}>Auskunft, Berichtigung, Löschung. Account löschen: Profil → Einstellungen.</div></div>
+              <div style={{marginBottom:14}}><div style={{fontWeight:700,color:'#1a1a1a',fontSize:13,marginBottom:5,borderLeft:'3px solid '+RED,paddingLeft:8}}>6. Kontakt</div><div style={{color:'#555',fontSize:13,lineHeight:1.8}}>mfumulandu@gmail.com</div></div>
+              <div style={{color:'#aaa',fontSize:10,textAlign:'center',marginTop:8}}>Stand: Mai 2026</div>
+            </div>
+          </div>
+        </div>
+      )}
+      {showAGB&&(
+        <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:500,overflowY:'auto',padding:'20px 16px 40px'}}>
+          <div style={{maxWidth:480,margin:'0 auto'}}>
+            <button onClick={()=>setShowAGB(false)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>← Zurück</button>
+            <div style={{background:'#fff',borderRadius:14,padding:'20px',border:'1px solid #eee'}}>
+              <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,color:'#1a1a1a',letterSpacing:2,marginBottom:4}}>AGB</div>
+              <div style={{color:RED,fontSize:10,letterSpacing:2,marginBottom:20}}>Allgemeine Geschäftsbedingungen</div>
+              <div style={{marginBottom:14}}><div style={{fontWeight:700,color:'#1a1a1a',fontSize:13,marginBottom:5,borderLeft:'3px solid '+RED,paddingLeft:8}}>1. Leistungsumfang</div><div style={{color:'#555',fontSize:13,lineHeight:1.8}}>Kampfsport-Profil, Matching, Chat, Gym-Suche und Ranglisten. Kein Anspruch auf dauerhaften Betrieb.</div></div>
+              <div style={{marginBottom:14}}><div style={{fontWeight:700,color:'#1a1a1a',fontSize:13,marginBottom:5,borderLeft:'3px solid '+RED,paddingLeft:8}}>2. Nutzung</div><div style={{color:'#555',fontSize:13,lineHeight:1.8}}>Ab 18 Jahren. Beleidigungen oder illegale Inhalte führen zur Sperrung.</div></div>
+              <div style={{marginBottom:14}}><div style={{fontWeight:700,color:'#1a1a1a',fontSize:13,marginBottom:5,borderLeft:'3px solid '+RED,paddingLeft:8}}>3. Haftung</div><div style={{color:'#555',fontSize:13,lineHeight:1.8}}>Keine Haftung für Schäden aus der Nutzung oder Treffen zwischen Nutzern.</div></div>
+              <div style={{marginBottom:14}}><div style={{fontWeight:700,color:'#1a1a1a',fontSize:13,marginBottom:5,borderLeft:'3px solid '+RED,paddingLeft:8}}>4. Kündigung</div><div style={{color:'#555',fontSize:13,lineHeight:1.8}}>Account jederzeit löschbar: Profil → Einstellungen → Account löschen.</div></div>
+              <div style={{marginBottom:14}}><div style={{fontWeight:700,color:'#1a1a1a',fontSize:13,marginBottom:5,borderLeft:'3px solid '+RED,paddingLeft:8}}>5. Geltendes Recht</div><div style={{color:'#555',fontSize:13,lineHeight:1.8}}>Deutsches Recht. Gerichtsstand: Aachen.</div></div>
+              <div style={{color:'#aaa',fontSize:10,textAlign:'center',marginTop:8}}>Stand: Mai 2026</div>
+            </div>
           </div>
         </div>
       )}

@@ -362,6 +362,31 @@ function MainApp(){
   const [filterWeightClass,setFilterWeightClass]=useState(true);
   const [chatSearch,setChatSearch]=useState('');
 
+  // ── AUTOMATISCHER TOKEN-REFRESH ──
+  // Ohne dies laeuft das Supabase-Token nach ca. 1 Stunde ab und alle
+  // adminFetch-Aufrufe (z.B. Equipment hinzufuegen/bearbeiten im Admin-Panel)
+  // schlagen mit "Token abgelaufen" fehl, bis man sich manuell neu einloggt.
+  // Erneuert das Token proaktiv alle 45 Minuten im Hintergrund, solange
+  // eine Session besteht - ganz unabhaengig davon, was der Nutzer gerade tut.
+  useEffect(()=>{
+    if(!session?.refresh_token)return;
+    const interval=setInterval(async()=>{
+      try{
+        const r=await fetch(SUPA_URL+'/auth/v1/token?grant_type=refresh_token',{
+          method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
+          body:JSON.stringify({refresh_token:session.refresh_token})
+        });
+        const data=await r.json();
+        if(data.access_token){
+          const newS={...session,token:data.access_token,refresh_token:data.refresh_token||session.refresh_token};
+          setSession(newS);
+          try{localStorage.setItem('fighter_v5',JSON.stringify(newS));}catch{}
+        }
+      }catch{}
+    },45*60*1000);
+    return ()=>clearInterval(interval);
+  },[session?.refresh_token]);
+
   useEffect(()=>{
     async function restoreSession(){
       // Schritt 1: localStorage lesen
