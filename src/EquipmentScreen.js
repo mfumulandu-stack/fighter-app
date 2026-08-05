@@ -145,9 +145,31 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest,itemType=
 
 function EquipCard({eq,darkMode,RED}){
   const [pressed,setPressed]=React.useState(false);
+  const [shareMsg,setShareMsg]=React.useState('');
+
+  async function shareEquip(e){
+    e.stopPropagation();
+    const shareText=eq.brand+' — '+eq.product+' 🥊 Gesehen in der Fighter App: https://fighterapp.de';
+    if(navigator.share){
+      try{
+        await navigator.share({title:eq.brand+' - '+eq.product,text:shareText,url:'https://fighterapp.de'});
+      }catch{/* Nutzer hat Teilen-Dialog abgebrochen - kein Fehler */}
+    }else{
+      try{
+        await navigator.clipboard.writeText(shareText);
+        setShareMsg('Link kopiert!');
+        setTimeout(()=>setShareMsg(''),1800);
+      }catch{}
+    }
+  }
+
   return(
-    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',marginBottom:10,border:'1px solid '+(eq.featured?'#d4a01733':(darkMode?'#2a2a2a':'#eee')),boxShadow:eq.featured?'0 2px 12px rgba(212,160,23,0.08)':'none'}}>
-      <div style={{display:'flex',gap:12,alignItems:'flex-start'}}>
+    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',marginBottom:10,border:'1px solid '+(eq.featured?'#d4a01733':(darkMode?'#2a2a2a':'#eee')),boxShadow:eq.featured?'0 2px 12px rgba(212,160,23,0.08)':'none',position:'relative'}}>
+      <button onClick={shareEquip} aria-label='Teilen' style={{position:'absolute',top:10,right:10,background:darkMode?'#2a2a2a':'#f5f5f7',border:'none',borderRadius:8,width:30,height:30,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14,zIndex:1}}>
+        📤
+      </button>
+      {shareMsg&&<div style={{position:'absolute',top:44,right:10,background:'#27ae60',color:'#fff',fontSize:10,fontWeight:700,padding:'4px 8px',borderRadius:6,zIndex:2}}>{shareMsg}</div>}
+      <div style={{display:'flex',gap:12,alignItems:'flex-start',paddingRight:36}}>
         {eq.image_url&&<img loading="lazy" src={eq.image_url} style={{width:64,height:64,borderRadius:10,objectFit:'cover',flexShrink:0}} alt={eq.product} onError={e=>e.target.style.display='none'}/>}
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:4}}>
