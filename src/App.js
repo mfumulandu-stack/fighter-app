@@ -547,32 +547,27 @@ function MainApp(){
     // Nur in der nativen App (nicht im Web-Browser)
     if(!window.Capacitor||!window.Capacitor.isNativePlatform||!window.Capacitor.isNativePlatform()){return;}
     try{
-      showMsg('📲 Push wird eingerichtet...');
       const {PushNotifications}=await import('@capacitor/push-notifications');
       const result=await setupPushRegistration(PushNotifications,{
         onToken:async(tokenData)=>{
-          showMsg('✅ Token erhalten: '+tokenData.value.slice(0,12)+'...');
           try{
             const patchRes=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=eq.'+userId,{
               method:'PATCH',
               headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=minimal'},
               body:JSON.stringify({push_token:tokenData.value})
             });
-            if(patchRes.ok){showMsg('✅ Push-Token gespeichert!');}
-            else{showMsg('❌ Token-Speichern fehlgeschlagen ('+patchRes.status+')');}
-          }catch(err){showMsg('❌ Fehler beim Speichern: '+err.message);}
+            if(!patchRes.ok){console.error('Push-Token-Speichern fehlgeschlagen',patchRes.status);}
+          }catch(err){console.error('Push-Token-Speichern Fehler',err);}
         },
         onError:(err)=>{
-          showMsg('❌ APNs-Registrierung fehlgeschlagen: '+JSON.stringify(err).slice(0,150));
+          console.error('APNs-Registrierung fehlgeschlagen',err);
         }
       });
       if(result.status==='permission_denied'){
-        showMsg('⚠️ Push-Erlaubnis nicht erteilt ('+result.receive+')');
         setShowPushReminder(true); // zeigt eine wiederkehrende Erinnerung, bis Push aktiviert ist
         return;
       }
       setShowPushReminder(false);
-      showMsg('📲 Bei Apple registriert, warte auf Token...');
       // Reagiert darauf, wenn jemand auf eine Benachrichtigung TIPPT (nicht
       // nur wenn sie ankommt) - leitet je nach Typ zur richtigen Stelle
       // in der App weiter, statt einfach nur die App zu oeffnen.
@@ -588,7 +583,7 @@ function MainApp(){
           else if(data.type==='like'){setWhoLikedTab(true);}
         }catch(e){console.error('push tap navigation',e);}
       });
-    }catch(err){showMsg('❌ registerPush Fehler: '+err.message);}
+    }catch(err){console.error('registerPush Fehler',err);}
   }
 
   async function initProfile(s,attempt=0){
@@ -1342,7 +1337,6 @@ function MainApp(){
     if(!session||!myProfile)return;
     setSavingEdit(true);
     const finalIsCoach=!!(editProfile.isCoach!==undefined?editProfile.isCoach:profile.isCoach);
-    if(isAdmin)showMsg('🔧 Diagnose: is_coach wird gespeichert als: '+finalIsCoach+' (editProfile.isCoach='+editProfile.isCoach+', profile.isCoach='+profile.isCoach+')');
     try{
       const patchRes=await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{
         method:'PATCH',
@@ -1393,8 +1387,7 @@ function MainApp(){
       // Datenbank) - reine Vorsichtsmassnahme fuer maximale Konsistenz.
       loadAllProfiles(session);
       const finalGender=editProfile.gender||profile.gender;
-      if(isAdmin)showMsg('✅ Diagnose: gespeichert - Geschlecht ist jetzt "'+finalGender+'", is_coach="'+finalIsCoach+'"');
-      else showMsg(appLang==='FR'?'Profil enregistré ✓':appLang==='EN'?'Profile saved ✓':'Profil gespeichert ✓');
+      showMsg(appLang==='FR'?'Profil enregistré ✓':appLang==='EN'?'Profile saved ✓':'Profil gespeichert ✓');
       setEditMode(false);
     }catch(e){showMsg(appLang==='FR'?'Erreur lors de la sauvegarde':appLang==='EN'?'Error saving':'Fehler beim Speichern: '+e.message);}
     setSavingEdit(false);
@@ -1894,11 +1887,9 @@ function MainApp(){
                   const d=await r.json().catch(()=>({}));
                   // TEMPORAERE DIAGNOSE: zeigt das echte Ergebnis, damit wir
                   // sehen was bei send-push passiert - kann spaeter wieder raus
-                  if(isAdmin)showMsg('🔔 Push-Diagnose (Match): '+JSON.stringify(d).slice(0,200));
                 }else{
-                  if(isAdmin)showMsg('⚠️ Push-Diagnose (Match): top.user_id fehlt - Push wurde gar nicht erst versucht');
                 }
-              }catch(err){console.error('match push',err);if(isAdmin)showMsg('❌ Push-Fehler (Match): '+err.message);}
+              }catch(err){console.error('match push',err);}
             })();
             setTimeout(()=>{setMatched(top);loadMatches(session,myProfile);},300);
           }else{
@@ -4206,7 +4197,6 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                   return(
                     <div key={c.id} style={{background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:13,border:'1px solid '+(isTop3?'#d4a01733':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.1)':'none'}}>
                     <div onClick={()=>{
-                      if(isAdmin)showMsg('🔧 Diagnose: Trainer-Klick erkannt, c.id='+c.id+', isMe='+isMe+', myProfile.id='+myProfile?.id);
                       if(!isMe)setViewProfile(c);
                     }} style={{padding:'12px 13px',display:'flex',alignItems:'center',gap:11,cursor:isMe?'default':'pointer'}}>
                       <div style={{fontSize:isTop3?26:18,width:32,textAlign:'center',flexShrink:0}}>
