@@ -1599,8 +1599,6 @@ function MainApp(){
   // Anforderungen wie ein vorhandenes Foto).
   const myAgeForFilter=parseInt(myProfile?.age||profile?.age||0);
   const myWeightForFilter=parseInt(myProfile?.weight||profile?.weight||0);
-  const myIsProForFilter=myProfile?.is_pro===true||profile.isPro===true;
-  const myVerifiedForFilter=myProfile?.record_verified==='verified';
 
   const candidatesBase=cards
     .filter(f=>!blockedUsers.includes(f.id))
@@ -1626,17 +1624,20 @@ function MainApp(){
     const weightOk15=!myWeightForFilter||!fWeight||Math.abs(fWeight-myWeightForFilter)<=15;
     const weightOk30=!myWeightForFilter||!fWeight||Math.abs(fWeight-myWeightForFilter)<=30;
     const styleOkStrict=fSameStyle||fRelatedStyle||!f.style;
-    const proOkStrict=!!(f.is_pro===true)===myIsProForFilter;
-    const verifiedOkStrict=!myVerifiedForFilter||f.record_verified==='verified';
+    // Pro/Amateur-Status und verifizierter Rekord sind jetzt reine
+    // Score-Bonuspunkte (siehe weiter unten), keine harten Ausschluss-
+    // Kriterien mehr - vorher wurde z.B. ein verifizierter Nutzer fast
+    // immer in die lockerste Stufe gedraengt, weil es zu wenige andere
+    // Verifizierte gab, obwohl sonst gute Treffer verfuegbar waeren.
     return {
       profile:f,
       hasPhoto:!!f.avatar_url,
-      passesStrict:ageOk10&&weightOk15&&styleOkStrict&&fDist<=250&&proOkStrict&&verifiedOkStrict&&fActive,
+      passesStrict:ageOk10&&weightOk15&&styleOkStrict&&fDist<=250&&fActive,
       passesRelaxed:ageOk20&&weightOk30&&fDist<=1000,
     };
   });
 
-  const {results:autoFiltered}=autoFilterCandidates(candidateFlags);
+  const {results:autoFiltered,tier:matchTier}=autoFilterCandidates(candidateFlags);
   const filteredCardsBase=autoFiltered.map(c=>c.profile);
 
   const filteredCardsInner=filteredCardsBase
@@ -3031,6 +3032,12 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               <div style={{color:'#aaa',fontSize:10,textAlign:'right'}}>{profile.height}cm<br/>{profile.weight}kg</div>
             </div>
             {/* FILTER LEISTE - leer, kein Stil-Filter in Swipe Tab */}
+            {matchTier==='minimal'&&visibleCards.length>0&&(
+              <div style={{width:'calc(100% - 24px)',maxWidth:380,margin:'0 0 8px',background:'#8e44ad15',border:'1px solid #8e44ad33',borderRadius:10,padding:'8px 12px',display:'flex',alignItems:'center',gap:8}}>
+                <span style={{fontSize:16}}>💡</span>
+                <div style={{color:darkMode?'#ccc':'#666',fontSize:11,lineHeight:1.4}}>Noch wenige Kämpfer in deiner Nähe — wir zeigen dir daher einen größeren Umkreis. Lad Freunde ein, um die Auswahl zu vergrößern!</div>
+              </div>
+            )}
             <div style={{position:'relative',width:'min(330px, calc(100vw - 40px))',height:'min(430px, 58dvh)',flexShrink:0,touchAction:'none'}}>
               {visibleCards.length===0?(
                 <div style={{width:'100%',height:'100%',borderRadius:20,background:'linear-gradient(160deg,#1a1a1a 0%,#2d1a1a 100%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:'30px 24px',textAlign:'center'}}>

@@ -7,7 +7,7 @@
 // Rangfolge: STRICT (am genauesten passend) -> RELAXED (breiter) ->
 // MINIMAL (nur noch Basis-Anforderungen wie ein vorhandenes Foto).
 
-export const MIN_POOL_SIZE = 8;
+export const MIN_POOL_SIZE = 5;
 
 export function selectFilterTier(candidateFlags, minPoolSize = MIN_POOL_SIZE) {
   const withPhoto = candidateFlags.filter((c) => c.hasPhoto);

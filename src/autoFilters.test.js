@@ -60,7 +60,7 @@ describe('autoFilterCandidates', () => {
     expect(results).toHaveLength(10);
   });
 
-  test('MIN_POOL_SIZE ist auf 8 gesetzt (Dokumentations-Test)', () => {
-    expect(MIN_POOL_SIZE).toBe(8);
+  test('MIN_POOL_SIZE ist auf 5 gesetzt (Dokumentations-Test)', () => {
+    expect(MIN_POOL_SIZE).toBe(5);
   });
 });
