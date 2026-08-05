@@ -1,12 +1,3 @@
-// Entscheidet automatisch, wie streng die Profil-Filter (Alter, Gewicht,
-// Sportart, Umkreis, Pro/Amateur) angewendet werden sollen - je nachdem,
-// wie viele Kandidaten bei der jeweiligen Strenge uebrig bleiben. Keine
-// manuellen Regler: die App waehlt selbst die lockerste Stufe, die noch
-// genug Auswahl bietet.
-//
-// Rangfolge: STRICT (am genauesten passend) -> RELAXED (breiter) ->
-// MINIMAL (nur noch Basis-Anforderungen wie ein vorhandenes Foto).
-
 export const MIN_POOL_SIZE = 5;
 
 export function selectFilterTier(candidateFlags, minPoolSize = MIN_POOL_SIZE) {
@@ -25,8 +16,10 @@ export function applyFilterTier(candidateFlags, tier) {
   return withPhoto;
 }
 
-// Bequeme Kombination beider Schritte fuer den Regelfall.
 export function autoFilterCandidates(candidateFlags, minPoolSize = MIN_POOL_SIZE) {
+  if (!candidateFlags || !Array.isArray(candidateFlags)) {
+    return { tier: 'minimal', results: [] };
+  }
   const tier = selectFilterTier(candidateFlags, minPoolSize);
   return { tier, results: applyFilterTier(candidateFlags, tier) };
 }
