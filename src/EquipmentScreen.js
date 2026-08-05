@@ -30,9 +30,16 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest,itemType=
   React.useEffect(()=>{
     // Equipment und Supplements teilen sich dieselbe Tabelle, getrennt
     // ueber das 'item_type' Feld - so kann derselbe Bildschirm fuer beide
-    // Bereiche wiederverwendet werden
-    fetch(SUPA_URL+'/rest/v1/equipment?order=featured.desc,sort_order.asc&item_type=eq.'+itemType,{
-      headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+    // Bereiche wiederverwendet werden.
+    //
+    // WICHTIG: cache:'no-store' + Zeitstempel im Query verhindern, dass
+    // iOS/Safari eine VERALTETE Antwort dieser exakten URL zwischenspeichert
+    // und beim naechsten Oeffnen wiederverwendet. Ohne das konnte es passieren,
+    // dass frisch hinzugefuegte Produkte fuer Nutzer "verschwunden" wirkten,
+    // obwohl sie in der Datenbank die ganze Zeit vorhanden waren.
+    fetch(SUPA_URL+'/rest/v1/equipment?order=featured.desc,sort_order.asc&item_type=eq.'+itemType+'&_ts='+Date.now(),{
+      headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,'Cache-Control':'no-cache'},
+      cache:'no-store'
     }).then(r=>r.json()).then(data=>{
       setItems(Array.isArray(data)?data:[]);
       setLoading(false);
