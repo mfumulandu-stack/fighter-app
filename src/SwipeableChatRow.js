@@ -3,7 +3,7 @@ import { useState, useRef } from 'react';
 const DELETE_WIDTH = 76;
 
 function SwipeableChatRow({ children, onDelete, darkMode }) {
-  const [dragX, setDragX] = useState(0);
+  const [dragX, setDragX] = useState(0); // 0 = geschlossen, -DELETE_WIDTH = offen
   const [open, setOpen] = useState(false);
   const startX = useRef(null);
   const dragging = useRef(false);
@@ -15,16 +15,16 @@ function SwipeableChatRow({ children, onDelete, darkMode }) {
   function onTouchMove(e) {
     if (!dragging.current || startX.current == null) return;
     const dx = e.touches[0].clientX - startX.current;
-    const base = open ? DELETE_WIDTH : 0;
+    const base = open ? -DELETE_WIDTH : 0;
     let next = base + dx;
-    if (next < 0) next = 0;
-    if (next > DELETE_WIDTH) next = DELETE_WIDTH;
+    if (next > 0) next = 0;
+    if (next < -DELETE_WIDTH) next = -DELETE_WIDTH;
     setDragX(next);
   }
   function onTouchEnd() {
     dragging.current = false;
-    if (dragX > DELETE_WIDTH / 2) {
-      setDragX(DELETE_WIDTH);
+    if (dragX < -DELETE_WIDTH / 2) {
+      setDragX(-DELETE_WIDTH);
       setOpen(true);
     } else {
       setDragX(0);
@@ -43,7 +43,7 @@ function SwipeableChatRow({ children, onDelete, darkMode }) {
           setOpen(false);
         }}
         style={{
-          position: 'absolute', left: 0, top: 0, bottom: 0, width: DELETE_WIDTH,
+          position: 'absolute', right: 0, top: 0, bottom: 0, width: DELETE_WIDTH,
           background: 'linear-gradient(135deg,#e74c3c,#c0392b)', display: 'flex',
           alignItems: 'center', justifyContent: 'center', color: '#fff',
           fontSize: 22, cursor: 'pointer',
