@@ -1185,8 +1185,9 @@ function MainApp(){
         return{...c,avgRating:r.count>0?(r.total/r.count):0,ratingCount:r.count,myRating:mine?mine.stars:0};
       }).sort((a,b)=>b.avgRating-a.avgRating);
       setCoaches(list);
-    }catch(e){console.error('loadCoaches',e);}
-    setCoachesLoading(false);
+      return list;
+    }catch(e){console.error('loadCoaches',e);return [];}
+    finally{setCoachesLoading(false);}
   }
 
   async function deleteChat(matchId){
@@ -1205,6 +1206,9 @@ function MainApp(){
   async function rateCoach(coachId,stars){
     if(!session)return;
     try{
+      const oldIndex=coaches.findIndex(c=>c.id===coachId);
+      const target=coaches.find(c=>c.id===coachId);
+
       const existing=await dbSelect('coach_ratings','coach_id=eq.'+coachId+'&user_id=eq.'+session.userId,session.token);
       if(Array.isArray(existing)&&existing.length>0){
         await fetch(SUPA_URL+'/rest/v1/coach_ratings?id=eq.'+existing[0].id,{
@@ -1220,7 +1224,25 @@ function MainApp(){
         });
       }
       showMsg('⭐ Bewertung gespeichert');
-      await loadCoaches(session);
+      const newList=await loadCoaches(session);
+
+      if(target?.user_id&&target.user_id!==session.userId){
+        const raterName=(myProfile&&myProfile.name)||'Jemand';
+        fetch(SUPA_URL+'/functions/v1/send-push',{
+          method:'POST',
+          headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
+          body:JSON.stringify({recipientUserId:target.user_id,title:'⭐ Neue Bewertung!',body:raterName+' hat dich mit '+stars+' Sternen bewertet',data:{type:'coach_rating'}})
+        }).catch(err=>console.error('coach rating push',err));
+
+        const newIndex=newList.findIndex(c=>c.id===coachId);
+        if(oldIndex!==-1&&newIndex!==-1&&newIndex<oldIndex){
+          fetch(SUPA_URL+'/functions/v1/send-push',{
+            method:'POST',
+            headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
+            body:JSON.stringify({recipientUserId:target.user_id,title:'🏆 Du bist aufgestiegen!',body:'Du stehst jetzt auf Platz '+(newIndex+1)+' in der Trainer-Rangliste',data:{type:'coach_rank_up'}})
+          }).catch(err=>console.error('coach rank push',err));
+        }
+      }
     }catch(e){showMsg('Fehler: '+e.message);}
   }
 
