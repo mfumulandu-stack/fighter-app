@@ -8,7 +8,7 @@
 // sie werden nur von diesem Bildschirm gebraucht. Die uebrigen Texte der
 // App stehen in translations.js.
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SUPA_URL, SUPA_KEY, RED, LIGHT_RED } from './constants';
 import { authSignIn, authSignUp } from './supabaseApi';
 import { css } from './styles';
@@ -30,6 +30,54 @@ function AuthScreen({ onSession, appLang }) {
   const [showAGB,setShowAGB]=useState(false);
   const [showDatenschutz,setShowDatenschutz]=useState(false);
   const [showForgot,setShowForgot]=useState(false);
+  const [oauthLoading,setOauthLoading]=useState(false);
+
+  useEffect(()=>{
+    let removeListener=null;
+    (async()=>{
+      try{
+        const {Capacitor}=await import('@capacitor/core');
+        if(!Capacitor.isNativePlatform())return;
+        const {App}=await import('@capacitor/app');
+        const sub=await App.addListener('appUrlOpen',async({url})=>{
+          if(!url||!url.includes('access_token'))return;
+          const hash=url.split('#')[1]||url.split('?')[1]||'';
+          const params=new URLSearchParams(hash);
+          const access_token=params.get('access_token');
+          const refresh_token=params.get('refresh_token');
+          if(access_token){
+            try{
+              const {Browser}=await import('@capacitor/browser');
+              Browser.close().catch(()=>{});
+            }catch{}
+            const userRes=await fetch(SUPA_URL+'/auth/v1/user',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+access_token}});
+            const user=await userRes.json();
+            if(user&&user.id){onSession({token:access_token,userId:user.id,refresh_token});}
+          }
+          setOauthLoading(false);
+        });
+        removeListener=()=>sub.remove();
+      }catch{}
+    })();
+    return ()=>{if(removeListener)removeListener();};
+  },[]);
+
+  async function signInWithProvider(provider){
+    setOauthLoading(true);setErr('');
+    const redirectTo='de.fighterapp.app://auth-callback';
+    const authUrl=SUPA_URL+'/auth/v1/authorize?provider='+provider+'&redirect_to='+encodeURIComponent(redirectTo);
+    try{
+      const {Capacitor}=await import('@capacitor/core');
+      if(Capacitor.isNativePlatform()){
+        const {Browser}=await import('@capacitor/browser');
+        await Browser.open({url:authUrl});
+      }else{
+        window.location.href=authUrl;
+      }
+    }catch{
+      window.location.href=authUrl;
+    }
+  }
   const [showOtp,setShowOtp]=useState(false);
   const [otpStep,setOtpStep]=useState('email');
   const [otpCode,setOtpCode]=useState('');
@@ -139,6 +187,19 @@ function AuthScreen({ onSession, appLang }) {
               </button>
             ))}
           </div>
+
+          <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:14}}>
+            <button onClick={()=>signInWithProvider('google')} disabled={oauthLoading}
+              style={{width:'100%',padding:'11px',borderRadius:8,background:'#fff',border:'1px solid #ddd',color:'#1a1a1a',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:14,cursor:oauthLoading?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:10}}>
+              <span style={{fontSize:16}}>🔴</span> {oauthLoading?'Weiterleiten...':'Mit Google fortfahren'}
+            </button>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+            <div style={{flex:1,height:1,background:'#eee'}}/>
+            <div style={{color:'#bbb',fontSize:11}}>ODER</div>
+            <div style={{flex:1,height:1,background:'#eee'}}/>
+          </div>
+
           <div style={{display:'flex',flexDirection:'column',gap:11}}>
             <Inp placeholder='E-Mail' value={email} onChange={setEmail} type='email' autoComplete='email'/>
             <Inp placeholder='Passwort (min. 6 Zeichen)' value={password} onChange={setPassword} type='password' autoComplete={mode==='register'?'new-password':'current-password'} onKeyDown={e=>e.key==='Enter'&&submit()}/>
