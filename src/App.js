@@ -1146,7 +1146,7 @@ function MainApp(){
   async function loadCoaches(s){
     setCoachesLoading(true);
     try{
-      const profs=await dbSelect('profiles','is_coach=eq.true&select=id,user_id,name,city,avatar_url,coach_gym,coach_styles,coach_experience,coach_bio',s?.token||session?.token);
+      const profs=await dbSelect('profiles','is_coach=eq.true&select=id,user_id,name,city,avatar_url,is_coach,coach_gym,coach_styles,coach_experience,coach_bio',s?.token||session?.token);
       const ratings=await dbSelect('coach_ratings','',s?.token||session?.token);
       const byCoach={};
       if(Array.isArray(ratings))ratings.forEach(r=>{
