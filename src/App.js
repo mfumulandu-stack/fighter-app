@@ -148,6 +148,8 @@ function MainApp(){
   const [stats,setStats]=useState({wins:0,losses:0,draws:0,ko:0});
   const [avatarUrl,setAvatarUrl]=useState(null);
   const [avatarPreview,setAvatarPreview]=useState(null);
+  const [coachAvatarPreview,setCoachAvatarPreview]=useState(null);
+  const [uploadingCoachAvatar,setUploadingCoachAvatar]=useState(false);
   const [myGallery,setMyGallery]=useState([]);
   const [showGlobe,setShowGlobe]=useState(false);
   // Bewertungs-Aufforderung ("Gefällt dir die Fighter App?")
@@ -632,6 +634,7 @@ function MainApp(){
         if(p.lat&&p.lon){setMyLat(p.lat);setMyLon(p.lon);setLocationSource(p.location_source||'gps');}
         setStats({wins:p.wins||0,losses:p.losses||0,draws:p.draws||0,ko:p.ko||0});
         if(p.avatar_url){setAvatarUrl(p.avatar_url);setAvatarPreview(p.avatar_url);}
+        if(p.coach_avatar_url){setCoachAvatarPreview(p.coach_avatar_url);}
         setAuthReady(true);
         setScreen('main');
         // Push Permission anfragen (nach kurzer Verzögerung)
@@ -1166,7 +1169,7 @@ function MainApp(){
   async function loadCoaches(s){
     setCoachesLoading(true);
     try{
-      const profs=await dbSelect('profiles','is_coach=eq.true&select=id,user_id,name,city,avatar_url,is_coach,coach_gym,coach_styles,coach_experience,coach_bio',s?.token||session?.token);
+      const profs=await dbSelect('profiles','is_coach=eq.true&select=id,user_id,name,city,avatar_url,is_coach,coach_gym,coach_styles,coach_experience,coach_bio,coach_avatar_url',s?.token||session?.token);
       const ratings=await dbSelect('coach_ratings','',s?.token||session?.token);
       const byCoach={};
       if(Array.isArray(ratings))ratings.forEach(r=>{
@@ -1374,6 +1377,7 @@ function MainApp(){
           coach_styles:editProfile.coachStyles!==undefined?editProfile.coachStyles:profile.coachStyles,
           coach_experience:parseInt(editProfile.coachExperience!==undefined?editProfile.coachExperience:profile.coachExperience)||null,
           coach_bio:editProfile.coachBio!==undefined?editProfile.coachBio:profile.coachBio,
+          coach_avatar_url:editProfile.coachAvatarUrl!==undefined?editProfile.coachAvatarUrl:profile.coachAvatarUrl,
           height:editProfile.height||profile.height,
           weight:editProfile.weight||profile.weight,
           is_pro:editProfile.isPro!==undefined?editProfile.isPro:profile.isPro,
@@ -1398,6 +1402,7 @@ function MainApp(){
         coach_styles:editProfile.coachStyles!==undefined?editProfile.coachStyles:mp.coach_styles,
         coach_experience:editProfile.coachExperience!==undefined?editProfile.coachExperience:mp.coach_experience,
         coach_bio:editProfile.coachBio!==undefined?editProfile.coachBio:mp.coach_bio,
+        coach_avatar_url:editProfile.coachAvatarUrl!==undefined?editProfile.coachAvatarUrl:mp.coach_avatar_url,
         belt:editProfile.belt!==undefined?editProfile.belt:mp.belt,
         gender:editProfile.gender||mp.gender,
       }));
@@ -1449,6 +1454,7 @@ function MainApp(){
       coach_styles:profile.coachStyles||null,
       coach_experience:parseInt(profile.coachExperience)||null,
       coach_bio:profile.coachBio||null,
+      coach_avatar_url:profile.coachAvatarUrl||null,
       bio:profile.bio||null,
       wins:parseInt(stats.wins)||0,
       losses:parseInt(stats.losses)||0,
@@ -1566,6 +1572,25 @@ function MainApp(){
       else showMsg('Upload fehlgeschlagen');
     }catch{showMsg('Upload fehlgeschlagen');}
     setUploading(false);
+  }
+
+  async function handleCoachAvatarUpload(e){
+    const file=e.target.files[0];if(!file||!session)return;
+    setUploadingCoachAvatar(true);
+    setCoachAvatarPreview(URL.createObjectURL(file));
+    showMsg('Trainer-Foto wird komprimiert...');
+    try{
+      const compressed=await compressImage(file,800,0.82);
+      const path='coach_'+session.userId+'_'+Date.now()+'.jpg';
+      const url=await uploadPhoto(compressed,path,session.token);
+      if(url){
+        setCoachAvatarPreview(url);
+        setProfile(p=>({...p,coachAvatarUrl:url}));
+        setEditProfile(p=>({...p,coachAvatarUrl:url}));
+        showMsg('Trainer-Foto hochgeladen!');
+      }else showMsg('Upload fehlgeschlagen');
+    }catch{showMsg('Upload fehlgeschlagen');}
+    setUploadingCoachAvatar(false);
   }
 
   async function handleGalleryUpload(e){
@@ -2091,8 +2116,8 @@ function MainApp(){
     <div style={{height:'100dvh',overflowY:'auto',WebkitOverflowScrolling:'touch',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column'}}>
       <style>{css}</style>
       <div style={{position:'relative',width:'100%',height:340,overflow:'hidden',flexShrink:0}}>
-        {viewProfile.avatar_url
-          ?<img loading="lazy" src={viewProfile.avatar_url} onClick={()=>setLightboxImg(viewProfile.avatar_url)} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:(viewProfile.img_pos_x||50)+'% '+(viewProfile.img_pos_y||30)+'%',cursor:'zoom-in'}} alt=''/>
+        {(viewProfile.is_coach&&viewProfile.coach_avatar_url?viewProfile.coach_avatar_url:viewProfile.avatar_url)
+          ?<img loading="lazy" src={viewProfile.is_coach&&viewProfile.coach_avatar_url?viewProfile.coach_avatar_url:viewProfile.avatar_url} onClick={()=>setLightboxImg(viewProfile.is_coach&&viewProfile.coach_avatar_url?viewProfile.coach_avatar_url:viewProfile.avatar_url)} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:(viewProfile.img_pos_x||50)+'% '+(viewProfile.img_pos_y||30)+'%',cursor:'zoom-in'}} alt=''/>
           :<div style={{width:'100%',height:'100%',background:'#222',display:'flex',alignItems:'center',justifyContent:'center',fontSize:80}}>🥊</div>}
         <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0.2) 0%,rgba(0,0,0,0.75) 100%)'}}/>
         <button onClick={()=>{setViewProfile(null);}} style={{position:'absolute',top:'calc(14px + env(safe-area-inset-top))',left:14,background:'rgba(0,0,0,0.45)',border:'none',color:'#fff',fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700,borderRadius:8,padding:'4px 12px'}}>{t.back}</button>
@@ -2597,6 +2622,19 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
             </div>
             <Lbl>Trainer-Bio (Erfolge, dein Ansatz)</Lbl>
             <Inp placeholder='z.B. 10 Jahre Erfahrung, spezialisiert auf...' value={profile.coachBio||''} onChange={v=>setProfile(p=>({...p,coachBio:v}))}/>
+            <Lbl>Trainer-Profilbild (optional)</Lbl>
+            <div style={{color:'#888',fontSize:11,marginBottom:8,lineHeight:1.5}}>Wird in der Trainer-Rangliste und deinem Trainer-Profil gezeigt — kann sich von deinem normalen Profilbild unterscheiden.</div>
+            <div style={{display:'flex',alignItems:'center',gap:14}}>
+              <div style={{width:70,height:70,borderRadius:14,background:coachAvatarPreview?'#000':'#f5edfc',border:'2px solid '+(coachAvatarPreview?'#8e44ad':'#ddd'),overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                {coachAvatarPreview
+                  ?<img loading="lazy" src={coachAvatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='Trainer-Profilbild'/>
+                  :<div style={{fontSize:24}}>🎓</div>}
+              </div>
+              <label style={{padding:'10px 16px',borderRadius:8,background:'#8e44ad',color:'#fff',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+                {uploadingCoachAvatar?'Lädt...':coachAvatarPreview?'Foto ändern':'Foto auswählen'}
+                <input type='file' accept='image/*' onChange={handleCoachAvatarUpload} disabled={uploadingCoachAvatar} style={{display:'none'}}/>
+              </label>
+            </div>
           </div>
         )}
         <div style={{display:'flex',gap:9,marginTop:22}}>
@@ -3511,6 +3549,21 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                             <input value={editProfile.coachBio!==undefined?editProfile.coachBio:(profile.coachBio||'')} onChange={e=>setEditProfile(p=>({...p,coachBio:e.target.value}))} placeholder='Erfolge, dein Ansatz...'
                               style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
                           </div>
+                          <div>
+                            <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>TRAINER-PROFILBILD</div>
+                            <div style={{color:'#888',fontSize:11,marginBottom:8,lineHeight:1.5}}>Wird in der Trainer-Rangliste gezeigt — kann sich von deinem normalen Profilbild unterscheiden.</div>
+                            <div style={{display:'flex',alignItems:'center',gap:14}}>
+                              <div style={{width:60,height:60,borderRadius:12,background:coachAvatarPreview?'#000':(darkMode?'#111':'#f5edfc'),border:'2px solid '+(coachAvatarPreview?'#8e44ad':(darkMode?'#333':'#ddd')),overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                                {coachAvatarPreview
+                                  ?<img loading="lazy" src={coachAvatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='Trainer-Profilbild'/>
+                                  :<div style={{fontSize:20}}>🎓</div>}
+                              </div>
+                              <label style={{padding:'9px 14px',borderRadius:8,background:'#8e44ad',color:'#fff',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>
+                                {uploadingCoachAvatar?'Lädt...':coachAvatarPreview?'Foto ändern':'Foto auswählen'}
+                                <input type='file' accept='image/*' onChange={handleCoachAvatarUpload} disabled={uploadingCoachAvatar} style={{display:'none'}}/>
+                              </label>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -4228,7 +4281,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
                       <div style={{fontSize:isTop3?26:18,width:32,textAlign:'center',flexShrink:0}}>
                         {isTop3?medal[i]:<span className='rj' style={{color:'#bbb'}}>#{i+1}</span>}
                       </div>
-                      {c.avatar_url?<img loading="lazy" src={c.avatar_url} style={{width:46,height:46,borderRadius:10,objectFit:'cover',flexShrink:0}} alt=''/>:<div style={{width:46,height:46,borderRadius:10,background:'#8e44ad22',border:'2px solid #8e44ad44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>🎓</div>}
+                      {(c.coach_avatar_url||c.avatar_url)?<img loading="lazy" src={c.coach_avatar_url||c.avatar_url} style={{width:46,height:46,borderRadius:10,objectFit:'cover',flexShrink:0}} alt=''/>:<div style={{width:46,height:46,borderRadius:10,background:'#8e44ad22',border:'2px solid #8e44ad44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>🎓</div>}
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{display:'flex',alignItems:'center',gap:5}}>
                           <div className='rj' style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontSize:15,letterSpacing:0.5}}>{c.name}</div>
