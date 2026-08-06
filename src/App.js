@@ -1471,6 +1471,11 @@ function MainApp(){
         if(profile_data&&profile_data.id){
           setMyProfile(profile_data);
           showMsg(appLang==='FR'?'Profil créé! 🥊':appLang==='EN'?'Profile created! 🥊':'Profil erstellt! 🥊');
+          fetch(SUPA_URL+'/functions/v1/send-welcome-email',{
+            method:'POST',
+            headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
+            body:JSON.stringify({userToken:session.token,name:profile_data.name})
+          }).catch(err=>console.error('send-welcome-email',err));
           setScreen('main');
           loadRealFighters(session,profile_data,true);
           loadMatches(session,profile_data);
