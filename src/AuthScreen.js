@@ -30,6 +30,41 @@ function AuthScreen({ onSession, appLang }) {
   const [showAGB,setShowAGB]=useState(false);
   const [showDatenschutz,setShowDatenschutz]=useState(false);
   const [showForgot,setShowForgot]=useState(false);
+  const [showOtp,setShowOtp]=useState(false);
+  const [otpStep,setOtpStep]=useState('email');
+  const [otpCode,setOtpCode]=useState('');
+
+  async function sendOtpCode(){
+    if(!email){setErr('Bitte E-Mail eingeben');return;}
+    setLoading(true);setErr('');
+    try{
+      const r=await fetch(SUPA_URL+'/auth/v1/otp',{
+        method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
+        body:JSON.stringify({email,create_user:true})
+      });
+      if(r.ok){setOtpStep('code');setInfo('');}
+      else{const d=await r.json().catch(()=>({}));setErr(d.msg||d.error_description||'Code konnte nicht gesendet werden');}
+    }catch{setErr('Netzwerkfehler');}
+    setLoading(false);
+  }
+
+  async function verifyOtpCode(){
+    if(!otpCode||otpCode.length<6){setErr('Bitte den 6-stelligen Code eingeben');return;}
+    setLoading(true);setErr('');
+    try{
+      const r=await fetch(SUPA_URL+'/auth/v1/verify',{
+        method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
+        body:JSON.stringify({type:'email',email,token:otpCode})
+      });
+      const d=await r.json();
+      if(d.access_token){
+        onSession({token:d.access_token,userId:d.user.id,refresh_token:d.refresh_token});
+      }else{
+        setErr(d.msg||d.error_description||'Code ungültig oder abgelaufen');
+      }
+    }catch{setErr('Netzwerkfehler');}
+    setLoading(false);
+  }
 
   async function sendPasswordReset(){
     if(!email){setErr('Bitte E-Mail eingeben');return;}
@@ -127,6 +162,7 @@ function AuthScreen({ onSession, appLang }) {
             {loading?'...':(mode==='login'?t.loginBtn:t.registerBtn)}
           </button>
           {mode==='login'&&<div onClick={()=>{setShowForgot(true);setErr('');setInfo('');}} style={{textAlign:'center',marginTop:12,color:'#aaa',fontSize:12,cursor:'pointer',textDecoration:'underline'}}>{t.forgotPw}</div>}
+          {mode==='login'&&<div onClick={()=>{setShowOtp(true);setOtpStep('email');setOtpCode('');setErr('');setInfo('');}} style={{textAlign:'center',marginTop:8,color:RED,fontSize:12,cursor:'pointer',fontWeight:700}}>Stattdessen mit Code einloggen</div>}
         </div>
       </div>
       {showForgot&&(
@@ -142,6 +178,47 @@ function AuthScreen({ onSession, appLang }) {
               {loading?'Senden...':'LINK SENDEN'}
             </button>
             <button onClick={()=>{setShowForgot(false);setErr('');}}
+              style={{width:'100%',marginTop:8,padding:'10px',borderRadius:8,background:'transparent',border:'1px solid #eee',color:'#aaa',fontFamily:'DM Sans,sans-serif',fontSize:13,cursor:'pointer'}}>
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      )}
+      {showOtp&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:500,padding:'20px'}}>
+          <div style={{background:'#fff',borderRadius:16,padding:'24px 20px',width:'100%',maxWidth:340,boxShadow:'0 8px 40px rgba(0,0,0,0.2)'}}>
+            <div className='rj' style={{color:'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:6}}>MIT CODE EINLOGGEN</div>
+            {otpStep==='email'?(
+              <>
+                <div style={{color:'#888',fontSize:12,marginBottom:16}}>Wir senden dir einen 6-stelligen Code per E-Mail — kein Passwort nötig.</div>
+                <Inp placeholder='Deine E-Mail' value={email} onChange={setEmail} type='email' autoComplete='email' onKeyDown={e=>e.key==='Enter'&&sendOtpCode()}/>
+                {err&&<div style={{color:RED,fontSize:12,marginTop:8,textAlign:'center'}}>{err}</div>}
+                <button onClick={sendOtpCode} disabled={loading}
+                  style={{width:'100%',marginTop:14,padding:'12px',borderRadius:8,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
+                  {loading?'Senden...':'CODE SENDEN'}
+                </button>
+              </>
+            ):(
+              <>
+                <div style={{color:'#888',fontSize:12,marginBottom:16}}>Code wurde an {email} gesendet. Trag ihn hier ein:</div>
+                <input
+                  value={otpCode}
+                  onChange={e=>{setOtpCode(e.target.value.replace(/\D/g,'').slice(0,6));setErr('');}}
+                  onKeyDown={e=>e.key==='Enter'&&verifyOtpCode()}
+                  placeholder='000000'
+                  maxLength={6}
+                  inputMode='numeric'
+                  style={{width:'100%',padding:'12px 14px',borderRadius:10,border:'2px solid '+(err?'#e74c3c':'#e0e0e0'),background:'#f5f5f7',color:'#1a1a1a',fontSize:22,fontFamily:'Rajdhani,sans-serif',fontWeight:700,letterSpacing:6,textAlign:'center',boxSizing:'border-box'}}
+                />
+                {err&&<div style={{color:RED,fontSize:12,marginTop:8,textAlign:'center'}}>{err}</div>}
+                <button onClick={verifyOtpCode} disabled={loading||otpCode.length<6}
+                  style={{width:'100%',marginTop:14,padding:'12px',borderRadius:8,background:(otpCode.length>=6&&!loading)?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#eee',border:'none',color:(otpCode.length>=6&&!loading)?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:(otpCode.length>=6&&!loading)?'pointer':'not-allowed'}}>
+                  {loading?'Prüfe...':'BESTÄTIGEN'}
+                </button>
+                <div onClick={()=>{setOtpStep('email');setOtpCode('');setErr('');}} style={{textAlign:'center',marginTop:10,color:'#aaa',fontSize:12,cursor:'pointer',textDecoration:'underline'}}>Andere E-Mail / neuer Code</div>
+              </>
+            )}
+            <button onClick={()=>{setShowOtp(false);setErr('');setOtpCode('');setOtpStep('email');}}
               style={{width:'100%',marginTop:8,padding:'10px',borderRadius:8,background:'transparent',border:'1px solid #eee',color:'#aaa',fontFamily:'DM Sans,sans-serif',fontSize:13,cursor:'pointer'}}>
               Abbrechen
             </button>
