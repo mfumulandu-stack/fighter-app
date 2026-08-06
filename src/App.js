@@ -271,7 +271,8 @@ function MainApp(){
       if(bl.startsWith('fr'))return 'FR';
       if(bl.startsWith('en'))return 'EN';
       if(bl.startsWith('es'))return 'ES';
-      return 'EN'; // Fuer alle nicht ausdruecklich unterstuetzten Sprachen/Laender ist Englisch der sinnvollste Standard, nicht Deutsch
+      if(bl.startsWith('de'))return 'DE';
+      return 'DE'; // Fighter App zielt primaer auf die DACH-Region, Deutsch ist der sinnvollste Standard fuer alle nicht ausdruecklich unterstuetzten Sprachen
     }catch{return 'DE';}
   });
 
