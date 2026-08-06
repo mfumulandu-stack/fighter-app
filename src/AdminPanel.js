@@ -15,7 +15,7 @@
 // erneutem Oeffnen wieder leer - man drueckt "Laden" dann nochmal.
 // Das betrifft ausschliesslich den Admin, nie die normalen Nutzer.
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SUPA_URL, SUPA_KEY, RED, APP_STORE_ID } from './constants';
 import { adminFetch, uploadPhoto } from './supabaseApi';
 import { buildTimeSeries, activeUserCounts, countSince, equipmentRanking, totalEquipmentClicks, eventRevenue, eventParticipationStats, gymStats, rankingActiveCount, DAY_MS } from './adminAnalytics';
@@ -52,6 +52,24 @@ export default function AdminPanel({
   const [newEquip,setNewEquip]=useState({brand:'',product:'',description:'',category:'Boxen',url:'',image_url:'',discount_code:'',featured:false,item_type:'equipment'});
   const [editingEquip,setEditingEquip]=useState(null);
   const [editEquipForm,setEditEquipForm]=useState(null);
+  const [equipLoadedOnce,setEquipLoadedOnce]=useState(false);
+
+  async function loadEquipmentList(){
+    setEquipLoading(true);
+    try{
+      const res=await adminFetch(SUPA_URL+'/rest/v1/equipment?order=featured.desc,sort_order.asc',{},session?.token);
+      const data=await res.json();
+      setEquipmentList(Array.isArray(data)?data:[]);
+    }catch(e){showMsg('Fehler: '+e.message);}
+    setEquipLoading(false);
+    setEquipLoadedOnce(true);
+  }
+
+  useEffect(()=>{
+    if(adminTab==='equipment'&&!equipLoadedOnce&&!equipLoading){
+      loadEquipmentList();
+    }
+  },[adminTab]);
   const [adminUsersLoaded,setAdminUsersLoaded]=useState(false);
   const [adminSwipes,setAdminSwipes]=useState([]);
   const [adminMatches,setAdminMatches]=useState([]);
@@ -901,16 +919,8 @@ export default function AdminPanel({
                 </div>
 
                 {/* LISTE LADEN */}
-                <button onClick={async()=>{
-                  setEquipLoading(true);
-                  try{
-                    const res=await adminFetch(SUPA_URL+'/rest/v1/equipment?order=featured.desc,sort_order.asc',{},session?.token);
-                    const data=await res.json();
-                    setEquipmentList(Array.isArray(data)?data:[]);
-                  }catch(e){showMsg('Fehler: '+e.message);}
-                  setEquipLoading(false);
-                }} style={{width:'100%',padding:'9px',borderRadius:8,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:12}}>
-                  {equipLoading?'Laden...':'🔄 ALLE PRODUKTE LADEN'}
+                <button onClick={loadEquipmentList} style={{width:'100%',padding:'9px',borderRadius:8,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:12}}>
+                  {equipLoading?'Laden...':'🔄 ALLE PRODUKTE NEU LADEN'}
                 </button>
 
                 {/* PRODUKT LISTE */}

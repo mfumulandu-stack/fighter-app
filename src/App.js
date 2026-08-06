@@ -17,6 +17,7 @@ import { css } from './styles';
 import AuthScreen from './AuthScreen';
 import { Lbl, Inp, Tag, Btn } from './uiHelpers';
 import GymVerifyModal from './GymVerifyModal';
+import OnboardingTour from './OnboardingTour';
 import SwipeableChatRow from './SwipeableChatRow';
 import ErrorBoundary from './ErrorBoundary';
 import ImgPositionEditor from './ImgPositionEditor';
@@ -190,6 +191,7 @@ function MainApp(){
   const [onboardSlide,setOnboardSlide]=useState(0);
   const [gymLogos,setGymLogos]=useState({});
   const [showAdmin,setShowAdmin]=useState(false);
+  const [showFeatureTour,setShowFeatureTour]=useState(false);
   const isAdmin=session?.userId===ADMIN_ID||myProfile?.id===ADMIN_ID;
   const [fightHistory,setFightHistory]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_history')||'[]')}catch{return []}});
   const [historyPublic,setHistoryPublic]=useState(()=>{try{return localStorage.getItem('fighter_history_public')==='true'}catch{return false}});
@@ -199,7 +201,6 @@ function MainApp(){
   const [showGymVerify,setShowGymVerify]=useState(false);
   const [gymCodeInput,setGymCodeInput]=useState('');
   const [gymVerifyError,setGymVerifyError]=useState('');
-  const GYM_CODES=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct,key:ct+'-'+g.name})));
   const [reportSent,setReportSent]=useState({});
   const [viewProfileHistory,setViewProfileHistory]=useState([]);
   const [city,setCity]=useState('Berlin');
@@ -297,7 +298,26 @@ function MainApp(){
     ...Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(g=>({...g,ct}))),
     ...dbGyms.map(g=>({...g,ct:g.city||g.ct||'',styles:g.styles||(g.style?[g.style]:[])})),
   ],[dbGyms]);
-  const [darkMode,setDarkMode]=useState(()=>{try{return localStorage.getItem('fighter_dark')==='true'}catch{return false}});
+  const [darkMode,setDarkMode]=useState(()=>{
+    try{
+      const saved=localStorage.getItem('fighter_dark');
+      const manual=localStorage.getItem('fighter_dark_manual')==='true';
+      if(manual&&saved!==null)return saved==='true';
+      return !!(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }catch{return false}
+  });
+  useEffect(()=>{
+    if(!window.matchMedia)return;
+    const mq=window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange=(e)=>{
+      try{
+        if(localStorage.getItem('fighter_dark_manual')==='true')return;
+        setDarkMode(e.matches);
+      }catch{}
+    };
+    mq.addEventListener?mq.addEventListener('change',onChange):mq.addListener(onChange);
+    return ()=>{mq.removeEventListener?mq.removeEventListener('change',onChange):mq.removeListener(onChange);};
+  },[]);
   useEffect(()=>{
     document.body.classList.toggle('dark',darkMode);
     try{localStorage.setItem('fighter_dark',String(darkMode));}catch{}
@@ -1476,6 +1496,7 @@ function MainApp(){
             headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
             body:JSON.stringify({userToken:session.token,name:profile_data.name})
           }).catch(err=>console.error('send-welcome-email',err));
+          setShowFeatureTour(true);
           setScreen('main');
           loadRealFighters(session,profile_data,true);
           loadMatches(session,profile_data);
@@ -2669,7 +2690,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
               </div>
 
               {/* DARK MODE */}
-              <div onClick={()=>setDarkMode(d=>!d)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px'}}
+              <div onClick={()=>{try{localStorage.setItem('fighter_dark_manual','true');}catch{}setDarkMode(d=>!d);}} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px'}}
                 onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#222':'#f0f0f0'}
                 onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                 <div style={{display:'flex',alignItems:'center',gap:12}}>
@@ -4470,7 +4491,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
           </div>
         </div>
       )}
-      {showGymVerify&&<div style={{position:'fixed',inset:0,zIndex:500}}><style>{css}</style><GymVerifyModal onClose={()=>{setShowGymVerify(false);setGymCodeInput('');setGymVerifyError('');}} gymCodeInput={gymCodeInput} setGymCodeInput={setGymCodeInput} gymVerifyError={gymVerifyError} setGymVerifyError={setGymVerifyError} gymVerified={gymVerified} setGymVerified={setGymVerified} gymCodes={GYM_CODES} darkMode={darkMode} showMsg={showMsg}/></div>}
+      {showGymVerify&&<div style={{position:'fixed',inset:0,zIndex:500}}><style>{css}</style><GymVerifyModal onClose={()=>{setShowGymVerify(false);setGymCodeInput('');setGymVerifyError('');}} gymCodeInput={gymCodeInput} setGymCodeInput={setGymCodeInput} gymVerifyError={gymVerifyError} setGymVerifyError={setGymVerifyError} gymVerified={gymVerified} setGymVerified={setGymVerified} darkMode={darkMode} showMsg={showMsg}/></div>}
       {/* IMPRESSUM MODAL */}
       {showImpressum&&(
         <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:400,overflowY:'auto',padding:'20px 16px 40px'}}>
@@ -4526,6 +4547,7 @@ Angemeldet von: ${profile.name||'Unbekannt'}`;
           </div>
         </div>
       )}
+      {showFeatureTour&&<OnboardingTour darkMode={darkMode} onFinish={()=>setShowFeatureTour(false)}/>}
       {/* ADMIN PANEL */}
       {showAdmin&&isAdmin&&(
         <AdminPanel
