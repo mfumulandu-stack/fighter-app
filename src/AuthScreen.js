@@ -62,20 +62,44 @@ function AuthScreen({ onSession, appLang }) {
     return ()=>{if(removeListener)removeListener();};
   },[]);
 
+  useEffect(()=>{
+    if(!window.location.hash||!window.location.hash.includes('access_token'))return;
+    (async()=>{
+      const params=new URLSearchParams(window.location.hash.slice(1));
+      const access_token=params.get('access_token');
+      const refresh_token=params.get('refresh_token');
+      if(access_token){
+        setOauthLoading(true);
+        try{
+          const userRes=await fetch(SUPA_URL+'/auth/v1/user',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+access_token}});
+          const user=await userRes.json();
+          if(user&&user.id){
+            window.history.replaceState(null,'',window.location.pathname);
+            onSession({token:access_token,userId:user.id,refresh_token});
+          }
+        }catch{}
+        setOauthLoading(false);
+      }
+    })();
+  },[]);
+
   async function signInWithProvider(provider){
     setOauthLoading(true);setErr('');
-    const redirectTo='de.fighterapp.app://auth-callback';
-    const authUrl=SUPA_URL+'/auth/v1/authorize?provider='+provider+'&redirect_to='+encodeURIComponent(redirectTo);
     try{
       const {Capacitor}=await import('@capacitor/core');
       if(Capacitor.isNativePlatform()){
+        const redirectTo='de.fighterapp.app://auth-callback';
+        const authUrl=SUPA_URL+'/auth/v1/authorize?provider='+provider+'&redirect_to='+encodeURIComponent(redirectTo);
         const {Browser}=await import('@capacitor/browser');
         await Browser.open({url:authUrl});
       }else{
+        const redirectTo=window.location.origin+window.location.pathname;
+        const authUrl=SUPA_URL+'/auth/v1/authorize?provider='+provider+'&redirect_to='+encodeURIComponent(redirectTo);
         window.location.href=authUrl;
       }
     }catch{
-      window.location.href=authUrl;
+      setOauthLoading(false);
+      setErr('Weiterleitung fehlgeschlagen — bitte erneut versuchen.');
     }
   }
   const [showOtp,setShowOtp]=useState(false);
