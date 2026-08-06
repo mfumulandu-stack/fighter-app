@@ -189,6 +189,10 @@ function AuthScreen({ onSession, appLang }) {
           </div>
 
           <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:14}}>
+            <button onClick={()=>signInWithProvider('apple')} disabled={oauthLoading}
+              style={{width:'100%',padding:'11px',borderRadius:8,background:'#000',border:'none',color:'#fff',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:14,cursor:oauthLoading?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:10}}>
+              <span style={{fontSize:16}}></span> {oauthLoading?'Weiterleiten...':'Mit Apple fortfahren'}
+            </button>
             <button onClick={()=>signInWithProvider('google')} disabled={oauthLoading}
               style={{width:'100%',padding:'11px',borderRadius:8,background:'#fff',border:'1px solid #ddd',color:'#1a1a1a',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:14,cursor:oauthLoading?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:10}}>
               <span style={{fontSize:16}}>🔴</span> {oauthLoading?'Weiterleiten...':'Mit Google fortfahren'}
