@@ -97,7 +97,23 @@ Deno.serve(async (req) => {
     });
 
     const resultText = await targetRes.text();
-    return new Response(resultText, {
+
+    // WICHTIG: Bei den Status-Codes 204 (Kein Inhalt), 205 und 304 schreibt
+    // der Web-Standard vor, dass die Antwort KEINEN Inhalt haben darf -
+    // auch keinen leeren Text. Uebergibt man hier trotzdem "" statt null,
+    // wirft die Laufzeitumgebung:
+    //   TypeError: Response with null body status cannot have body
+    // und der Aufruf scheitert mit 500.
+    //
+    // Genau das ist passiert: Die Datenbank antwortet auf JEDES Loeschen
+    // mit 204, ebenso auf Aendern/Anlegen mit Prefer: return=minimal.
+    // Dadurch war praktisch jede veraendernde Admin-Aktion kaputt
+    // (Gyms loeschen/bearbeiten, Equipment loeschen, Meldungen loeschen,
+    // Nutzer sperren, Rekorde freigeben, Broadcast senden), waehrend reine
+    // Leseabfragen einwandfrei liefen.
+    const ohneInhalt = targetRes.status === 204 || targetRes.status === 205 || targetRes.status === 304;
+
+    return new Response(ohneInhalt ? null : resultText, {
       status: targetRes.status,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
     });
