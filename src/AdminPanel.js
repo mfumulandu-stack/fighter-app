@@ -293,7 +293,7 @@ export default function AdminPanel({
                             if(!window.confirm('Löschen: "'+gym.name+'"?'))return;
                             try{
                               const r=await adminFetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE'},session?.token);
-                              if(!r.ok){showMsg('❌ Löschen fehlgeschlagen ('+r.status+')');return;}
+                              if(!r.ok){const t=await r.text().catch(()=>'');showMsg('❌ Löschen fehlgeschlagen ('+r.status+'): '+t.slice(0,150));return;}
                               await loadDbGyms(session);showMsg('✅ Gelöscht');
                             }catch(e){showMsg('Fehler: '+e.message);}
                           }} style={{padding:'4px 10px',borderRadius:6,background:'#e74c3c',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>{t.deleteBtn}</button>
@@ -315,7 +315,7 @@ export default function AdminPanel({
                                 if(!window.confirm('Duplikat löschen: "'+gym.name+'" ('+gym.city+')?'))return;
                                 try{
                                   const r=await adminFetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE'},session?.token);
-                                  if(!r.ok){showMsg('❌ Löschen fehlgeschlagen ('+r.status+')');return;}
+                                  if(!r.ok){const t=await r.text().catch(()=>'');showMsg('❌ Löschen fehlgeschlagen ('+r.status+'): '+t.slice(0,150));return;}
                                   await loadDbGyms(session);showMsg('✅ Duplikat gelöscht');
                                 }catch(e){showMsg('Fehler: '+e.message);}
                               }} style={{padding:'4px 10px',borderRadius:6,background:'#e74c3c',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',flexShrink:0}}>{t.deleteBtn}</button>}
@@ -393,7 +393,7 @@ export default function AdminPanel({
                             if(!name||!city)return;
                             try{
                               const r=await adminFetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({name,city,address,style})},session?.token);
-                              if(!r.ok){showMsg('❌ Speichern fehlgeschlagen ('+r.status+')');return;}
+                              if(!r.ok){const t=await r.text().catch(()=>'');showMsg('❌ Speichern fehlgeschlagen ('+r.status+'): '+t.slice(0,150));return;}
                               await loadDbGyms(session);
                               await loadGymLogos();
                               setEditGymId(null);
@@ -405,7 +405,7 @@ export default function AdminPanel({
                             if(!window.confirm('Gym löschen?'))return;
                             try{
                               const r=await adminFetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE'},session?.token);
-                              if(!r.ok){showMsg('❌ Löschen fehlgeschlagen ('+r.status+')');return;}
+                              if(!r.ok){const t=await r.text().catch(()=>'');showMsg('❌ Löschen fehlgeschlagen ('+r.status+'): '+t.slice(0,150));return;}
                               await loadDbGyms(session);
                               setEditGymId(null);
                               showMsg('✅ Gelöscht');
@@ -426,7 +426,7 @@ export default function AdminPanel({
                           <button onClick={async()=>{
                             try{
                               const r=await adminFetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({verified:true})},session?.token);
-                              if(!r.ok){showMsg('❌ Fehler ('+r.status+')');return;}
+                              if(!r.ok){const t=await r.text().catch(()=>'');showMsg('❌ Fehler ('+r.status+'): '+t.slice(0,150));return;}
                               await loadDbGyms(session);showMsg('✅ Gym als geprüft markiert');
                             }catch(e){showMsg('Fehler: '+e.message);}
                           }} style={{padding:'5px 8px',borderRadius:6,background:'#27ae6022',border:'1px solid #27ae6044',color:'#27ae60',fontSize:11,cursor:'pointer'}}>✅ Geprüft</button>
@@ -436,7 +436,7 @@ export default function AdminPanel({
                           if(!window.confirm('Gym löschen: "'+gym.name+'"?'))return;
                           try{
                             const r=await adminFetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE'},session?.token);
-                            if(!r.ok){showMsg('❌ Löschen fehlgeschlagen ('+r.status+')');return;}
+                            if(!r.ok){const t=await r.text().catch(()=>'');showMsg('❌ Löschen fehlgeschlagen ('+r.status+'): '+t.slice(0,150));return;}
                             await loadDbGyms(session);showMsg('✅ Gelöscht');
                           }catch(e){showMsg('Fehler: '+e.message);}
                         }} style={{padding:'5px 8px',borderRadius:6,background:'#e74c3c22',border:'1px solid #e74c3c44',color:'#e74c3c',fontSize:11,cursor:'pointer'}}>🗑️</button>
