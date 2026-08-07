@@ -2536,16 +2536,8 @@ nicht öffentlich gemacht</div>
                           <button onClick={()=>{setShowRegisterGym(false);setGymRegSent(false);}} style={{flex:1,padding:'11px',borderRadius:10,background:'transparent',border:'1px solid #eee',color:'#aaa',fontFamily:'DM Sans,sans-serif',fontSize:13,cursor:'pointer'}}>{t.cancel}</button>
                           <button onClick={async()=>{
                             if(!newGymData.name||!newGymData.city)return;
-                            const body=`GYM ANMELDUNG
-
-Name: ${newGymData.name}
-Stadt: ${newGymData.city}
-Adresse: ${newGymData.address||'-'}
-Stil: ${newGymData.style||'-'}
-
-Angemeldet von: ${profile.name||'Unbekannt'}`;
-                            fetch('https://api.emailjs.com/api/v1.0/email/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({service_id:'default_service',template_id:'template_default',user_id:'user_default',template_params:{message:body,to_email:'mfumulandu@gmail.com'}})}).catch(()=>{});
-                            // Gym in DB speichern
+                            // Gym in DB speichern - taucht danach automatisch im
+                            // Admin-Panel unter "neue Gym-Anmeldungen zu pruefen" auf.
                             try{
                               await fetch(SUPA_URL+'/rest/v1/gyms',{
                                 method:'POST',

@@ -98,7 +98,7 @@ function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,set
                   onKeyDown={e=>e.key==='Enter'&&verify()}
                   placeholder='z.B. RHKMB0HA'
                   maxLength={8}
-                  style={{width:'100%',padding:'12px 14px',borderRadius:10,border:'2px solid '+(gymVerifyError?'#e74c3c':darkMode?'#333':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:text,fontSize:18,fontFamily:'Rajdhani,sans-serif',fontWeight:700,letterSpacing:3,textAlign:'center',boxSizing:'border-box'}}
+                  style={{width:'100%',padding:'12px 10px',borderRadius:10,border:'2px solid '+(gymVerifyError?'#e74c3c':darkMode?'#333':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:text,fontSize:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700,letterSpacing:1.5,textAlign:'center',boxSizing:'border-box'}}
                 />
                 {gymVerifyError&&<div style={{color:'#e74c3c',fontSize:11,marginTop:6,textAlign:'center'}}>{gymVerifyError}</div>}
               </div>

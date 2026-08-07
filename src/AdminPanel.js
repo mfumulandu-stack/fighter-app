@@ -30,6 +30,7 @@ export default function AdminPanel({
   const [editGymId,setEditGymId]=useState(null);
   const [gymSearchLoading,setGymSearchLoading]=useState(false);
   const [gymSearchQuery,setGymSearchQuery]=useState('');
+  const [gymShowUnverifiedOnly,setGymShowUnverifiedOnly]=useState(false);
   const [adminTab,setAdminTab]=useState('gyms');
   const [adminUsers,setAdminUsers]=useState([]);
   const [adminReports,setAdminReports]=useState([]);
@@ -333,9 +334,18 @@ export default function AdminPanel({
                     style={{width:'100%',padding:'8px 12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
                 </div>
 
-                <div style={{color:'#aaa',fontSize:11,marginBottom:8}}>{dbGyms.filter(g=>!gymSearchQuery||(g.name||'').toLowerCase().includes(gymSearchQuery.toLowerCase())||(g.city||'').toLowerCase().includes(gymSearchQuery.toLowerCase())).length} / {dbGyms.length} Gyms</div>
-                {dbGyms.filter(g=>!gymSearchQuery||(g.name||'').toLowerCase().includes(gymSearchQuery.toLowerCase())||(g.city||'').toLowerCase().includes(gymSearchQuery.toLowerCase())).map((gym,i)=>(
-                  <div key={gym.id||i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 12px',marginBottom:8,border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                {dbGyms.filter(g=>g.verified===false).length>0&&(
+                  <button onClick={()=>setGymShowUnverifiedOnly(v=>!v)} style={{width:'100%',marginBottom:8,padding:'9px',borderRadius:8,background:gymShowUnverifiedOnly?'#d4a017':(darkMode?'#2a2a2a':'#fdf3d9'),border:'1px solid #d4a017',color:gymShowUnverifiedOnly?'#fff':'#d4a017',fontWeight:700,fontSize:12,cursor:'pointer'}}>
+                    ⚠️ {dbGyms.filter(g=>g.verified===false).length} neue Gym-Anmeldung(en) zu prüfen {gymShowUnverifiedOnly?'— alle anzeigen':'— nur diese anzeigen'}
+                  </button>
+                )}
+
+                <div style={{color:'#aaa',fontSize:11,marginBottom:8}}>{dbGyms.filter(g=>(!gymSearchQuery||(g.name||'').toLowerCase().includes(gymSearchQuery.toLowerCase())||(g.city||'').toLowerCase().includes(gymSearchQuery.toLowerCase()))&&(!gymShowUnverifiedOnly||g.verified===false)).length} / {dbGyms.length} Gyms</div>
+                {dbGyms.filter(g=>(!gymSearchQuery||(g.name||'').toLowerCase().includes(gymSearchQuery.toLowerCase())||(g.city||'').toLowerCase().includes(gymSearchQuery.toLowerCase()))&&(!gymShowUnverifiedOnly||g.verified===false)).map((gym,i)=>(
+                  <div key={gym.id||i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 12px',marginBottom:8,border:'1px solid '+(gym.verified===false?'#d4a017':(darkMode?'#2a2a2a':'#eee'))}}>
+                    {gym.verified===false&&(
+                      <div style={{display:'inline-block',background:'#d4a01722',color:'#d4a017',fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:6,marginBottom:6}}>⚠️ NEU — VON NUTZER ANGEMELDET, NOCH NICHT GEPRÜFT</div>
+                    )}
                     {editGymId===gym.id?(
                       <div style={{display:'flex',flexDirection:'column',gap:6}}>
                         <input defaultValue={gym.name} id={'gn'+gym.id} style={{padding:'6px 8px',borderRadius:6,border:'1px solid #c0392b',background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:13,width:'100%',boxSizing:'border-box'}} placeholder='Name'/>
@@ -412,6 +422,15 @@ export default function AdminPanel({
                           <div style={{fontWeight:700,fontSize:13,color:darkMode?'#fff':'#1a1a1a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{gym.name||'(kein Name)'}</div>
                           <div style={{fontSize:11,color:'#888'}}>{gym.city}{gym.style?' · '+gym.style:''}</div>
                         </div>
+                        {gym.verified===false&&(
+                          <button onClick={async()=>{
+                            try{
+                              const r=await adminFetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({verified:true})},session?.token);
+                              if(!r.ok){showMsg('❌ Fehler ('+r.status+')');return;}
+                              await loadDbGyms(session);showMsg('✅ Gym als geprüft markiert');
+                            }catch(e){showMsg('Fehler: '+e.message);}
+                          }} style={{padding:'5px 8px',borderRadius:6,background:'#27ae6022',border:'1px solid #27ae6044',color:'#27ae60',fontSize:11,cursor:'pointer'}}>✅ Geprüft</button>
+                        )}
                         <button onClick={()=>setEditGymId(gym.id)} style={{padding:'5px 8px',borderRadius:6,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontSize:11,cursor:'pointer'}}>✏️</button>
                         <button onClick={async()=>{
                           if(!window.confirm('Gym löschen: "'+gym.name+'"?'))return;
