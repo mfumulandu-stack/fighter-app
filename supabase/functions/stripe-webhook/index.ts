@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
       const amountPaid = (session.amount_total || 0) / 100;
 
       if (eventId && profileId) {
-        await fetch(`${SUPA_URL}/rest/v1/event_participants`, {
+        const insert = await fetch(`${SUPA_URL}/rest/v1/event_participants`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -69,6 +69,30 @@ Deno.serve(async (req) => {
             amount_paid: amountPaid,
           }),
         });
+
+        // WICHTIG: Ergebnis pruefen! Frueher wurde die Antwort ignoriert.
+        // Dadurch blieb monatelang unbemerkt, dass die Spalten paid,
+        // amount_paid und stripe_session_id in der Datenbank fehlten -
+        // der Eintrag schlug jedes Mal still fehl. Jemand haette bezahlen
+        // koennen, ohne angemeldet zu werden.
+        if (!insert.ok) {
+          const detail = await insert.text();
+          console.error(
+            "KRITISCH: Zahlung erfolgt, aber Teilnehmer NICHT eingetragen!",
+            "status:", insert.status,
+            "event_id:", eventId,
+            "profile_id:", profileId,
+            "stripe_session:", session.id,
+            "betrag:", amountPaid,
+            "antwort:", detail,
+          );
+          // 500 zurueckgeben, damit Stripe den Webhook erneut zustellt -
+          // sonst waere die Zahlung endgueltig verloren.
+          return new Response(
+            JSON.stringify({ error: "Teilnehmer konnte nicht eingetragen werden", detail }),
+            { status: 500 },
+          );
+        }
       }
     }
 
