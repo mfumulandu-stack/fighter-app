@@ -31,5 +31,11 @@ class RootErrorBoundary extends React.Component {
   }
 }
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((r) => r.unregister());
+  }).catch(() => {});
+}
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<RootErrorBoundary><App /></RootErrorBoundary>);
