@@ -103,6 +103,7 @@ export default function AdminPanel({
   const [equipmentTypeFilter,setEquipmentTypeFilter]=useState('equipment');
   const [gymCodesList,setGymCodesList]=useState(null);
   const [gymCodesLoading,setGymCodesLoading]=useState(false);
+  const [sidebarCollapsed,setSidebarCollapsed]=useState(false);
   const [editingEquip,setEditingEquip]=useState(null);
   const [editEquipForm,setEditEquipForm]=useState(null);
   const [equipLoadedOnce,setEquipLoadedOnce]=useState(false);
@@ -189,10 +190,13 @@ export default function AdminPanel({
         <div style={{position:'fixed',inset:0,background:darkMode?'#0d0d0d':'#f5f5f7',zIndex:600,display:'flex',flexDirection:'column',overflow:'hidden'}}>
           <div style={{background:RED,padding:'calc(14px + env(safe-area-inset-top)) 16px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
             <div className='rj' style={{color:'#fff',fontSize:18,letterSpacing:3}}>⚙️ ADMIN</div>
-            <button onClick={()=>setShowAdmin(false)} style={{background:'none',border:'none',color:'#fff',fontSize:22,cursor:'pointer'}}>✕</button>
+            <div style={{display:'flex',alignItems:'center',gap:14}}>
+              <button onClick={()=>setSidebarCollapsed(v=>!v)} title='Seitenleiste ein-/ausklappen' style={{background:'none',border:'none',color:'#fff',fontSize:19,cursor:'pointer',opacity:0.9}}>⚙️</button>
+              <button onClick={()=>setShowAdmin(false)} style={{background:'none',border:'none',color:'#fff',fontSize:22,cursor:'pointer'}}>✕</button>
+            </div>
           </div>
           <div style={{flex:1,display:'flex',overflow:'hidden'}}>
-            <div style={{width:150,flexShrink:0,background:darkMode?'#141414':'#fff',borderRight:'1px solid '+(darkMode?'#262626':'#eee'),overflowY:'auto',padding:'12px 0'}}>
+            <div style={{width:sidebarCollapsed?0:150,flexShrink:0,background:darkMode?'#141414':'#fff',borderRight:sidebarCollapsed?'none':'1px solid '+(darkMode?'#262626':'#eee'),overflowY:'auto',overflowX:'hidden',padding:sidebarCollapsed?0:'12px 0',transition:'width 0.2s ease, padding 0.2s ease'}}>
               {[
                 {label:'ÜBERSICHT',items:[['dashboard','📈','Dashboard']]},
                 {label:'GYMS',items:[['gyms','🏋️','Gyms verwalten'],['gymcodes','🔑','Codes'],['addcity','🌍','Neue Stadt']]},
@@ -201,7 +205,7 @@ export default function AdminPanel({
                 {label:'SONSTIGES',items:[['events','📅','Events'],['stats','📊','Statistiken'],['scanner','🔍','Scanner']]},
               ].map(group=>(
                 <div key={group.label} style={{marginBottom:14}}>
-                  <div style={{color:darkMode?'#555':'#999',fontSize:9,letterSpacing:1,padding:'0 12px',marginBottom:4}}>{group.label}</div>
+                  <div style={{color:darkMode?'#555':'#999',fontSize:9,letterSpacing:1,padding:'0 12px',marginBottom:4,whiteSpace:'nowrap'}}>{group.label}</div>
                   {group.items.map(([id,icon,name])=>{
                     // "Supplements" nutzt denselben Tab wie Equipment, nur mit
                     // anderem Filter - so wird kein Code dupliziert.
