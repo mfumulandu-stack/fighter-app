@@ -100,6 +100,9 @@ export default function AdminPanel({
   const [equipmentList,setEquipmentList]=useState([]);
   const [equipLoading,setEquipLoading]=useState(false);
   const [newEquip,setNewEquip]=useState({brand:'',product:'',description:'',category:'Boxen',url:'',image_url:'',discount_code:'',featured:false,item_type:'equipment'});
+  const [equipmentTypeFilter,setEquipmentTypeFilter]=useState('equipment');
+  const [gymCodesList,setGymCodesList]=useState(null);
+  const [gymCodesLoading,setGymCodesLoading]=useState(false);
   const [editingEquip,setEditingEquip]=useState(null);
   const [editEquipForm,setEditEquipForm]=useState(null);
   const [equipLoadedOnce,setEquipLoadedOnce]=useState(false);
@@ -183,17 +186,42 @@ export default function AdminPanel({
     };
   },[dashData]);
   return (
-        <div style={{position:'fixed',inset:0,background:darkMode?'#0d0d0d':'#f5f5f7',zIndex:600,display:'flex',flexDirection:'column',overflowY:'auto'}}>
-          <div style={{background:RED,padding:'calc(14px + env(safe-area-inset-top)) 16px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
+        <div style={{position:'fixed',inset:0,background:darkMode?'#0d0d0d':'#f5f5f7',zIndex:600,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+          <div style={{background:RED,padding:'calc(14px + env(safe-area-inset-top)) 16px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
             <div className='rj' style={{color:'#fff',fontSize:18,letterSpacing:3}}>⚙️ ADMIN</div>
             <button onClick={()=>setShowAdmin(false)} style={{background:'none',border:'none',color:'#fff',fontSize:22,cursor:'pointer'}}>✕</button>
           </div>
-          <div style={{display:'flex',overflowX:'auto',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
-            {[['dashboard','📈'],['gyms','🏋️'],['addgym','➕'],['addcity','🌍'],['events',''],['users',''],['reports','🚨'],['records','🏅'],['feedback','💬'],['equipment',''],['broadcast','📢'],['stats','📊'],['scanner','🔍']].map(([t,l])=>(
-              <button key={t} onClick={()=>setAdminTab(t)} style={{flexShrink:0,padding:'10px 14px',background:'none',border:'none',borderBottom:adminTab===t?'2px solid '+RED:'2px solid transparent',color:adminTab===t?RED:(darkMode?'#aaa':'#888'),fontWeight:700,fontSize:16,cursor:'pointer'}}>{l}</button>
-            ))}
-          </div>
-          <div style={{padding:'16px',flex:1,overflowY:'auto'}}>
+          <div style={{flex:1,display:'flex',overflow:'hidden'}}>
+            <div style={{width:150,flexShrink:0,background:darkMode?'#141414':'#fff',borderRight:'1px solid '+(darkMode?'#262626':'#eee'),overflowY:'auto',padding:'12px 0'}}>
+              {[
+                {label:'ÜBERSICHT',items:[['dashboard','📈','Dashboard']]},
+                {label:'GYMS',items:[['gyms','🏋️','Gyms verwalten'],['gymcodes','🔑','Codes'],['addcity','🌍','Neue Stadt']]},
+                {label:'COMMUNITY',items:[['users','👤','Nutzer'],['broadcast','📢','Push & Broadcast'],['reports','🚨','Meldungen'],['records','🏅','Rekorde'],['feedback','💬','Feedback']]},
+                {label:'PARTNER',items:[['equipment','🥊','Equipment'],['supplements','💊','Supplements']]},
+                {label:'SONSTIGES',items:[['events','📅','Events'],['stats','📊','Statistiken'],['scanner','🔍','Scanner']]},
+              ].map(group=>(
+                <div key={group.label} style={{marginBottom:14}}>
+                  <div style={{color:darkMode?'#555':'#999',fontSize:9,letterSpacing:1,padding:'0 12px',marginBottom:4}}>{group.label}</div>
+                  {group.items.map(([id,icon,name])=>{
+                    // "Supplements" nutzt denselben Tab wie Equipment, nur mit
+                    // anderem Filter - so wird kein Code dupliziert.
+                    const targetTab=id==='supplements'?'equipment':id;
+                    const isActive=id==='supplements'?(adminTab==='equipment'&&equipmentTypeFilter==='supplement'):(id==='equipment'?(adminTab==='equipment'&&equipmentTypeFilter==='equipment'):adminTab===id);
+                    return(
+                      <div key={id} onClick={()=>{
+                        setAdminTab(targetTab);
+                        if(id==='supplements')setEquipmentTypeFilter('supplement');
+                        if(id==='equipment')setEquipmentTypeFilter('equipment');
+                      }} style={{display:'flex',alignItems:'center',gap:7,padding:'7px 12px',cursor:'pointer',background:isActive?RED+'18':'transparent',borderLeft:'2px solid '+(isActive?RED:'transparent'),color:isActive?RED:(darkMode?'#999':'#666'),fontSize:12,fontWeight:isActive?700:400}}>
+                        <span style={{fontSize:13,flexShrink:0}}>{icon}</span>
+                        <span>{name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            <div style={{flex:1,padding:'16px',overflowY:'auto'}}>
 
             {/* ── ANALYTICS DASHBOARD ── */}
             {adminTab==='dashboard'&&(()=>{
@@ -323,7 +351,10 @@ export default function AdminPanel({
             {adminTab==='gyms'&&(
               <div>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:8}}>🏋️ GYM MANAGER</div>
-                <button style={{width:'100%',marginBottom:8,padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}} onClick={()=>loadDbGyms(session)}>🔄 GYMS NEU LADEN</button>
+                <div style={{display:'flex',gap:8,marginBottom:8}}>
+                  <button style={{flex:1,padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}} onClick={()=>setAdminTab('addgym')}>➕ NEUES GYM</button>
+                  <button style={{flex:1,padding:'10px',borderRadius:8,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#1a1a1a',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}} onClick={()=>loadDbGyms(session)}>🔄 NEU LADEN</button>
+                </div>
 
                 {/* DUPLIKATE ERKENNEN */}
                 {(()=>{
@@ -501,6 +532,7 @@ export default function AdminPanel({
 
                         {adminTab==='addgym'&&(
               <div>
+                <button onClick={()=>setAdminTab('gyms')} style={{background:'none',border:'none',color:darkMode?'#999':'#666',fontSize:12,cursor:'pointer',marginBottom:10,padding:0}}>← Zurück zu Gyms</button>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:8}}>➕ NEUES GYM</div>
                 {/* KI Suche */}
                 <div style={{background:darkMode?'#111d2a':'#e8f4fd',borderRadius:10,padding:'12px',marginBottom:12,border:'1px solid #2980b944'}}>
@@ -563,6 +595,7 @@ export default function AdminPanel({
                       await loadDbGyms(session);
                       showMsg('✅ '+trimmedName+' in '+trimmedCity+' hinzugefügt!');
                       setAdminGymName('');setAdminGymCity('');setAdminGymStyles('');setAdminGymPhone('');setAdminGymHours('');setAdminGymDesc('');
+                      setAdminTab('gyms');
                     }catch(e){showMsg('Fehler: '+e.message);}
                     setAdminSaving(false);
                   }} style={{padding:'11px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer',letterSpacing:2}}>GYM HINZUFÜGEN</button>
@@ -571,6 +604,46 @@ export default function AdminPanel({
             )}
 
             {/* ── STADT HINZUFÜGEN ── */}
+            {/* ── GYM VERIFIZIERUNGS-CODES (nur fuer Junior sichtbar) ── */}
+            {adminTab==='gymcodes'&&(
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:4}}>🔑 GYM-VERIFIZIERUNGSCODES</div>
+                <div style={{color:darkMode?'#aaa':'#888',fontSize:12,marginBottom:12,lineHeight:1.5}}>Diese Codes gibst du persönlich an die Gyms weiter (z.B. an der Rezeption). Nutzer geben den Code in der App ein, um sich als Mitglied zu verifizieren.</div>
+                <button style={{width:'100%',marginBottom:14,padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}} onClick={async()=>{
+                  setGymCodesLoading(true);
+                  try{
+                    const r=await fetch(SUPA_URL+'/rest/v1/rpc/admin_list_gym_codes',{
+                      method:'POST',
+                      headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token},
+                      body:JSON.stringify({})
+                    });
+                    const data=await r.json();
+                    setGymCodesList(Array.isArray(data)?data:[]);
+                  }catch(e){showMsg('Fehler: '+e.message);}
+                  setGymCodesLoading(false);
+                }}>{gymCodesLoading?'Lade...':'🔄 CODES LADEN'}</button>
+                {gymCodesList===null&&!gymCodesLoading&&(
+                  <div style={{color:darkMode?'#666':'#aaa',fontSize:13,textAlign:'center',padding:'20px'}}>Klick auf "Codes laden", um die Liste anzuzeigen.</div>
+                )}
+                {gymCodesList!==null&&gymCodesList.length===0&&(
+                  <div style={{color:darkMode?'#666':'#aaa',fontSize:13,textAlign:'center',padding:'20px'}}>Keine Codes gefunden.</div>
+                )}
+                {gymCodesList!==null&&gymCodesList.length>0&&(
+                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                    {gymCodesList.map((g,i)=>(
+                      <div key={i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <div>
+                          <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{g.gym_name}</div>
+                          <div style={{color:darkMode?'#888':'#999',fontSize:11}}>{g.gym_city}</div>
+                        </div>
+                        <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,color:RED,background:darkMode?'#2a1515':'#fdf0ef',padding:'6px 10px',borderRadius:6}}>{g.gym_code}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {adminTab==='addcity'&&(
               <div>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:8}}>🌍 NEUE STADT + GYM</div>
@@ -928,7 +1001,7 @@ export default function AdminPanel({
 
             {adminTab==='equipment'&&(
               <div>
-                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>🥊 EQUIPMENT VERWALTEN</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>{equipmentTypeFilter==='supplement'?'💊 SUPPLEMENTS VERWALTEN':'🥊 EQUIPMENT VERWALTEN'}</div>
 
                 {/* NEUES PRODUKT HINZUFÜGEN */}
                 <div style={{background:darkMode?'#1a1a1a':'#f9f9f9',borderRadius:12,padding:'14px',marginBottom:16,border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
@@ -1010,7 +1083,7 @@ export default function AdminPanel({
                 </button>
 
                 {/* PRODUKT LISTE */}
-                {equipmentList.map(eq=>(
+                {equipmentList.filter(eq=>(eq.item_type||'equipment')===equipmentTypeFilter).map(eq=>(
                   <div key={eq.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'12px',marginBottom:8,border:'1px solid '+(eq.featured?'#d4a01744':(darkMode?'#2a2a2a':'#eee'))}}>
                     {editingEquip===eq.id?(
                       <div>
@@ -1617,6 +1690,7 @@ export default function AdminPanel({
               </div>
             )}
 
+          </div>
           </div>
         </div>  );
 }
