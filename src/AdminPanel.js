@@ -1561,11 +1561,23 @@ export default function AdminPanel({
                     const data=await resp.json();
                     if(Array.isArray(data)){setAdminUsers(data);setAdminUsersLoaded(true);}
                     const [sRes,mRes,msgRes]=await Promise.all([
-                      adminFetch(SUPA_URL+'/rest/v1/swipes?select=direction,created_at&order=created_at.desc&limit=5000',{},session?.token),
+                      // WICHTIG: Die swipes-Tabelle hat KEINE created_at-Spalte
+                      // (nur id, swiper_id, target_id, direction). Wird sie hier
+                      // abgefragt oder sortiert, antwortet Supabase mit
+                      // "column swipes.created_at does not exist" (HTTP 400) und
+                      // die Swipe-Zahlen blieben leer. Ausgewertet wird ohnehin
+                      // nur 'direction' (Likes/Passes zaehlen).
+                      adminFetch(SUPA_URL+'/rest/v1/swipes?select=direction&limit=5000',{},session?.token),
                       adminFetch(SUPA_URL+'/rest/v1/matches?select=id,created_at&order=created_at.desc&limit=2000',{},session?.token),
                       adminFetch(SUPA_URL+'/rest/v1/messages?select=id,match_id,created_at&order=created_at.desc&limit=5000',{},session?.token),
                     ]);
                     const [sData,mData,msgData]=await Promise.all([sRes.json(),mRes.json(),msgRes.json()]);
+                    // Fehlerantworten sichtbar machen, statt still eine leere Liste
+                    // zu behalten - genau diese Stille hatte den fehlenden
+                    // created_at-Fehler oben lange verborgen.
+                    [['Swipes',sData],['Matches',mData],['Nachrichten',msgData]].forEach(([n,d])=>{
+                      if(!Array.isArray(d))console.error('Statistik '+n+' laden fehlgeschlagen:',d);
+                    });
                     if(Array.isArray(sData))setAdminSwipes(sData);
                     if(Array.isArray(mData))setAdminMatches(mData);
                     if(Array.isArray(msgData))setAdminChatMsgs(msgData);
