@@ -2012,7 +2012,7 @@ function MainApp(){
     :{transform:'translateX(0) rotate(0deg)',transition:'transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94)'};
 
   function canGo(){
-    if(step===1)return !!(profile.name&&profile.age&&profile.city); // Foto nicht mehr Pflicht fuer die Registrierung selbst - nur fuers Sichtbarwerden im Swipe-Stapel bei anderen
+    if(step===1)return !!(profile.name&&profile.age&&profile.city&&(avatarPreview||avatarUrl)); // Profilbild wieder Pflicht
     if(step===2)return !!(profile.style);
     if(step===3)return true; // Alles optional auf Step 3
     if(step===4)return !!(profile.coachGym&&profile.coachStyles); // Trainer-Pflichtfelder
@@ -2047,7 +2047,7 @@ function MainApp(){
   const savedGymScrollRef=React.useRef(0);
   const ranked=React.useMemo(()=>{
   const myGender=profile.gender||myProfile?.gender||'male';
-  const myCountry=profile.country||myProfile?.country||'DE';
+  const myCountry=profile.country||myProfile?.country||null;
   return rankMode==='trainer'
     ?[]
     :[...userOnly]
@@ -2057,9 +2057,10 @@ function MainApp(){
         return fGender===myGender;
       })
       .filter(f=>{
+        const fCountry=f.isMe?myCountry:(f.country||null);
+        if(!fCountry)return false;
         if(countryFilter==='world')return true;
-        const fCountry=f.isMe?myCountry:(f.country||'DE');
-        return fCountry===myCountry;
+        return myCountry&&fCountry===myCountry;
       })
       .filter(f=>{
         if(rankMode==='pro') return f.isMe?(profile.isPro===true):(f.is_pro===true);
@@ -4368,6 +4369,16 @@ nicht öffentlich gemacht</div>
                     <div style={{width:'100%',height:heights[i],background:colors[i]+'18',border:'1px solid '+colors[i]+'44',borderRadius:'5px 5px 0 0',marginTop:5,display:'flex',alignItems:'center',justifyContent:'center'}}><div className='rj' style={{color:colors[i],fontSize:28}}>#{places[i]}</div></div>
                   </div>);
                 })}
+              </div>
+            )}
+            {rankMode!=='trainer'&&!(profile.country||myProfile?.country)&&(
+              <div style={{background:darkMode?'#2a1f10':'#fff8e8',borderRadius:12,padding:'16px',border:'1px solid #d4a01755',marginBottom:12,textAlign:'center'}}>
+                <div style={{fontSize:24,marginBottom:6}}>🌍</div>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,marginBottom:4}}>Vervollständige dein Profil</div>
+                <div style={{color:'#888',fontSize:12,lineHeight:1.5,marginBottom:12}}>Um in der Rangliste aufzutauchen, musst du dein Land angeben.</div>
+                <button onClick={()=>{setEditProfile({});setEditMode(true);}} style={{padding:'9px 20px',borderRadius:8,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+                  JETZT VERVOLLSTÄNDIGEN
+                </button>
               </div>
             )}
             <div style={{display:'flex',flexDirection:'column',gap:5}}>
