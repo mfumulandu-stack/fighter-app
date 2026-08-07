@@ -103,6 +103,7 @@ export default function AdminPanel({
   const [equipmentTypeFilter,setEquipmentTypeFilter]=useState('equipment');
   const [gymCodesList,setGymCodesList]=useState(null);
   const [gymCodesLoading,setGymCodesLoading]=useState(false);
+  const [gymCodeSearch,setGymCodeSearch]=useState('');
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false);
   const [editingEquip,setEditingEquip]=useState(null);
   const [editEquipForm,setEditEquipForm]=useState(null);
@@ -632,9 +633,41 @@ export default function AdminPanel({
                 {gymCodesList!==null&&gymCodesList.length===0&&(
                   <div style={{color:darkMode?'#666':'#aaa',fontSize:13,textAlign:'center',padding:'20px'}}>Keine Codes gefunden.</div>
                 )}
-                {gymCodesList!==null&&gymCodesList.length>0&&(
+                {gymCodesList!==null&&gymCodesList.length>0&&(()=>{
+                  // Alphabetisch nach Gym-Name sortieren. localeCompare mit 'de'
+                  // sorgt dafuer, dass Umlaute richtig einsortiert werden
+                  // (Ä bei A, Ö bei O statt ganz ans Ende).
+                  const sortiert=[...gymCodesList].sort((a,b)=>
+                    (a.gym_name||'').localeCompare(b.gym_name||'','de',{sensitivity:'base'})
+                  );
+                  // Suche ueber Gym-Name, Stadt UND Code - so findet man ein Gym
+                  // ueber den Namen, aber auch umgekehrt den Code einem Gym zu.
+                  const suche=gymCodeSearch.trim().toLowerCase();
+                  const gefiltert=suche
+                    ? sortiert.filter(g=>
+                        (g.gym_name||'').toLowerCase().includes(suche)||
+                        (g.gym_city||'').toLowerCase().includes(suche)||
+                        (g.gym_code||'').toLowerCase().includes(suche))
+                    : sortiert;
+                  return(
+                  <div>
+                    <div style={{position:'relative',marginBottom:8}}>
+                      <input placeholder='🔍 Gym, Stadt oder Code suchen...' value={gymCodeSearch}
+                        onChange={e=>setGymCodeSearch(e.target.value)}
+                        style={{width:'100%',padding:'8px 12px',paddingRight:gymCodeSearch?32:12,borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
+                      {gymCodeSearch&&(
+                        <div onClick={()=>setGymCodeSearch('')}
+                          style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',color:'#aaa',cursor:'pointer',fontSize:14}}>✕</div>
+                      )}
+                    </div>
+                    <div style={{color:darkMode?'#888':'#999',fontSize:11,marginBottom:8}}>
+                      {gefiltert.length} von {sortiert.length} Gyms
+                    </div>
+                    {gefiltert.length===0&&(
+                      <div style={{color:darkMode?'#666':'#aaa',fontSize:13,textAlign:'center',padding:'20px'}}>Kein Gym gefunden für „{gymCodeSearch}".</div>
+                    )}
                   <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                    {gymCodesList.map((g,i)=>(
+                    {gefiltert.map((g,i)=>(
                       <div key={i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                         <div>
                           <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{g.gym_name}</div>
@@ -644,7 +677,9 @@ export default function AdminPanel({
                       </div>
                     ))}
                   </div>
-                )}
+                  </div>
+                  );
+                })()}
               </div>
             )}
 
