@@ -38,7 +38,7 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest,itemType=
     // dass frisch hinzugefuegte Produkte fuer Nutzer "verschwunden" wirkten,
     // obwohl sie in der Datenbank die ganze Zeit vorhanden waren.
     fetch(SUPA_URL+'/rest/v1/equipment?order=featured.desc,sort_order.asc&item_type=eq.'+itemType+'&_ts='+Date.now(),{
-      headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,'Cache-Control':'no-cache'},
+      headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
       cache:'no-store'
     }).then(r=>r.json()).then(data=>{
       setItems(Array.isArray(data)?data:[]);
