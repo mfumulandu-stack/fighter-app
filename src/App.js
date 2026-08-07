@@ -17,6 +17,7 @@ import { css } from './styles';
 import AuthScreen from './AuthScreen';
 import { Lbl, Inp, Tag, Btn } from './uiHelpers';
 import GymVerifyModal from './GymVerifyModal';
+import BrandDashboard from './BrandDashboard';
 import OnboardingTour from './OnboardingTour';
 import SwipeableChatRow from './SwipeableChatRow';
 import ErrorBoundary from './ErrorBoundary';
@@ -53,6 +54,13 @@ export { authSignUp, authSignIn, authSignOut, dbInsert, dbUpdate, dbSelect, admi
 export default function App(){
   if(typeof window!=='undefined'&&window.location.search.includes('globetest')){
     return <UserGlobe darkMode={true} onClose={()=>{window.location.search='';}} SUPA_URL={SUPA_URL} SUPA_KEY={SUPA_KEY}/>;
+  }
+  if(typeof window!=='undefined'){
+    const params=new URLSearchParams(window.location.search);
+    const partnerSlug=params.get('partner');
+    if(partnerSlug){
+      return <BrandDashboard brandSlug={partnerSlug} SUPA_URL={SUPA_URL} SUPA_KEY={SUPA_KEY}/>;
+    }
   }
   return <MainApp/>;
 }

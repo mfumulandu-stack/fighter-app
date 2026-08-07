@@ -31,6 +31,55 @@ export default function AdminPanel({
   const [gymSearchLoading,setGymSearchLoading]=useState(false);
   const [gymSearchQuery,setGymSearchQuery]=useState('');
   const [gymShowUnverifiedOnly,setGymShowUnverifiedOnly]=useState(false);
+  const [templates,setTemplates]=useState([]);
+  const [templatesLoaded,setTemplatesLoaded]=useState(false);
+  const [messagingUserId,setMessagingUserId]=useState(null);
+  const [messagingText,setMessagingText]=useState('');
+
+  async function loadTemplates(){
+    try{
+      const r=await adminFetch(SUPA_URL+'/rest/v1/admin_message_templates?order=created_at.desc',{},session?.token);
+      const data=await r.json();
+      setTemplates(Array.isArray(data)?data:[]);
+      setTemplatesLoaded(true);
+    }catch(e){console.error('loadTemplates',e);}
+  }
+
+  async function saveAsTemplate(text){
+    if(!text||!text.trim())return;
+    const name=window.prompt('Name für diese Vorlage:');
+    if(!name||!name.trim())return;
+    try{
+      await adminFetch(SUPA_URL+'/rest/v1/admin_message_templates',{
+        method:'POST',headers:{Prefer:'return=minimal'},
+        body:JSON.stringify({name:name.trim(),text:text.trim()})
+      },session?.token);
+      showMsg('✅ Vorlage gespeichert');
+      await loadTemplates();
+    }catch(e){showMsg('Fehler: '+e.message);}
+  }
+
+  async function deleteTemplate(id){
+    if(!window.confirm('Vorlage löschen?'))return;
+    try{
+      await adminFetch(SUPA_URL+'/rest/v1/admin_message_templates?id=eq.'+id,{method:'DELETE'},session?.token);
+      await loadTemplates();
+    }catch(e){showMsg('Fehler: '+e.message);}
+  }
+
+  function renderTemplateChips(onPick){
+    if(templates.length===0)return null;
+    return(
+      <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:8}}>
+        {templates.map(t=>(
+          <div key={t.id} style={{display:'flex',alignItems:'center',gap:4,padding:'4px 4px 4px 10px',borderRadius:14,background:darkMode?'#1a1a1a':'#f0f0f0',border:'1px solid '+(darkMode?'#2a2a2a':'#ddd')}}>
+            <span onClick={()=>onPick(t.text)} style={{color:darkMode?'#ccc':'#333',fontSize:11,cursor:'pointer'}}>{t.name}</span>
+            <span onClick={()=>deleteTemplate(t.id)} style={{color:'#e74c3c',fontSize:11,cursor:'pointer',padding:'0 4px'}}>×</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
   const [adminTab,setAdminTab]=useState('gyms');
   const [adminUsers,setAdminUsers]=useState([]);
   const [adminReports,setAdminReports]=useState([]);
@@ -69,6 +118,9 @@ export default function AdminPanel({
   useEffect(()=>{
     if(adminTab==='equipment'&&!equipLoadedOnce&&!equipLoading){
       loadEquipmentList();
+    }
+    if((adminTab==='users'||adminTab==='broadcast')&&!templatesLoaded){
+      loadTemplates();
     }
   },[adminTab]);
   const [adminUsersLoaded,setAdminUsersLoaded]=useState(false);
@@ -661,7 +713,8 @@ export default function AdminPanel({
                   if(!q)return true;
                   return (u.name||'').toLowerCase().includes(q)||(u.city||'').toLowerCase().includes(q);
                 }).map(u=>(
-                  <div key={u.id} style={{display:'flex',alignItems:'center',gap:8,padding:'9px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,border:'1px solid '+(u.banned?'#e74c3c44':(darkMode?'#2a2a2a':'#eee')),marginBottom:5}}>
+                  <React.Fragment key={u.id}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,padding:'9px 10px',background:darkMode?'#1a1a1a':'#fff',borderRadius:8,border:'1px solid '+(u.banned?'#e74c3c44':(darkMode?'#2a2a2a':'#eee')),marginBottom:5}}>
                     {u.avatar_url?<img loading="lazy" src={u.avatar_url} style={{width:34,height:34,borderRadius:'50%',objectFit:'cover',opacity:u.banned?0.4:1}} alt=''/>:<div style={{width:34,height:34,borderRadius:'50%',background:'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>👤</div>}
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{color:u.banned?'#e74c3c':(darkMode?'#fff':'#1a1a1a'),fontSize:12,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{u.name||'?'} {u.banned&&'🚫'}</div>
@@ -675,17 +728,9 @@ export default function AdminPanel({
                         if(ban) setAllProfiles(prev=>prev.filter(x=>x.id!==u.id));
                         showMsg(ban?'User gesperrt 🚫':'User entsperrt ✅');
                       }} style={{background:u.banned?'#27ae60':'#e74c3c',border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:10,fontWeight:700,cursor:'pointer'}}>{u.banned?'Freig.':'Sperren'}</button>
-                      <button onClick={async()=>{
-                        const msg=window.prompt('Nachricht an '+u.name+':');
-                        if(!msg||!msg.trim())return;
-                        try{
-                          await adminFetch(SUPA_URL+'/rest/v1/admin_messages',{
-                            method:'POST',
-                            headers:{Prefer:'return=minimal'},
-                            body:JSON.stringify({user_id:u.id,message:msg,from_admin:true,read:false})
-                          },session?.token);
-                          showMsg('✅ Nachricht gesendet an '+(u.name||'User'));
-                        }catch(e){showMsg('Fehler: '+e.message);}
+                      <button onClick={()=>{
+                        setMessagingUserId(prev=>prev===u.id?null:u.id);
+                        setMessagingText('');
                       }} style={{background:'#2980b9',border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:10,fontWeight:700,cursor:'pointer'}}>✉️</button>
                       <button onClick={async()=>{
                         if(!window.confirm('User '+u.name+' wirklich löschen? Das kann nicht rückgängig gemacht werden.'))return;
@@ -714,6 +759,28 @@ export default function AdminPanel({
                       }} style={{background:'none',border:'1px solid #e74c3c',borderRadius:6,padding:'4px 6px',color:'#e74c3c',fontSize:10,cursor:'pointer'}}>🗑️</button>
                     </div>
                   </div>
+                  {messagingUserId===u.id&&(
+                    <div style={{background:darkMode?'#111':'#f5f5f7',borderRadius:8,padding:'10px',marginTop:-3,marginBottom:5,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd')}}>
+                      {renderTemplateChips(text=>setMessagingText(text))}
+                      <textarea value={messagingText} onChange={e=>setMessagingText(e.target.value)} placeholder={'Nachricht an '+(u.name||'User')+'...'} rows={2}
+                        style={{width:'100%',padding:'8px 10px',borderRadius:6,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#1a1a1a':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:12,boxSizing:'border-box',resize:'none',marginBottom:6}}/>
+                      <div style={{display:'flex',gap:6}}>
+                        <button onClick={()=>saveAsTemplate(messagingText)} style={{flex:1,padding:'7px',borderRadius:6,background:'none',border:'1px solid '+(darkMode?'#333':'#ccc'),color:darkMode?'#999':'#666',fontSize:11,fontWeight:700,cursor:'pointer'}}>💾 Als Vorlage</button>
+                        <button onClick={async()=>{
+                          if(!messagingText.trim())return;
+                          try{
+                            await adminFetch(SUPA_URL+'/rest/v1/admin_messages',{
+                              method:'POST',headers:{Prefer:'return=minimal'},
+                              body:JSON.stringify({user_id:u.id,message:messagingText,from_admin:true,read:false})
+                            },session?.token);
+                            showMsg('✅ Nachricht gesendet an '+(u.name||'User'));
+                            setMessagingUserId(null);setMessagingText('');
+                          }catch(e){showMsg('Fehler: '+e.message);}
+                        }} style={{flex:1,padding:'7px',borderRadius:6,background:'#2980b9',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>Senden</button>
+                      </div>
+                    </div>
+                  )}
+                  </React.Fragment>
                 ))}
               </div>
             )}
@@ -1057,7 +1124,9 @@ export default function AdminPanel({
                 </div>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>📢 NACHRICHT AN ALLE</div>
                 <div style={{color:'#aaa',fontSize:11,marginBottom:12,lineHeight:1.6}}>Sende eine Systemnachricht die alle User beim nächsten Öffnen der App sehen.</div>
+                {renderTemplateChips(text=>setAdminBroadcast(text))}
                 <textarea value={adminBroadcast} onChange={e=>setAdminBroadcast(e.target.value)} placeholder="z.B. Neues Feature: Jetzt Gym-Seiten besuchen! 🏋️" rows={4} style={{width:'100%',padding:'12px',borderRadius:8,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#111':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',resize:'none',marginBottom:10}}/>
+                <button onClick={()=>saveAsTemplate(adminBroadcast)} style={{width:'100%',padding:'9px',borderRadius:8,background:'none',border:'1px solid '+(darkMode?'#333':'#ccc'),color:darkMode?'#999':'#666',fontSize:12,fontWeight:700,cursor:'pointer',marginBottom:10}}>💾 ALS VORLAGE SPEICHERN</button>
                 <button onClick={async()=>{
                   if(!adminBroadcast.trim()){showMsg('Nachricht eingeben');return;}
                   setAdminSaving(true);
