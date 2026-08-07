@@ -32,18 +32,30 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest,itemType=
     // ueber das 'item_type' Feld - so kann derselbe Bildschirm fuer beide
     // Bereiche wiederverwendet werden.
     //
-    // WICHTIG: cache:'no-store' + Zeitstempel im Query verhindern, dass
-    // iOS/Safari eine VERALTETE Antwort dieser exakten URL zwischenspeichert
-    // und beim naechsten Oeffnen wiederverwendet. Ohne das konnte es passieren,
-    // dass frisch hinzugefuegte Produkte fuer Nutzer "verschwunden" wirkten,
-    // obwohl sie in der Datenbank die ganze Zeit vorhanden waren.
-    fetch(SUPA_URL+'/rest/v1/equipment?order=featured.desc,sort_order.asc&item_type=eq.'+itemType+'&_ts='+Date.now(),{
+    // WICHTIG: cache:'no-store' verhindert, dass iOS/Safari eine VERALTETE
+    // Antwort dieser URL zwischenspeichert und beim naechsten Oeffnen
+    // wiederverwendet. Ohne das konnte es passieren, dass frisch
+    // hinzugefuegte Produkte fuer Nutzer "verschwunden" wirkten, obwohl
+    // sie in der Datenbank die ganze Zeit vorhanden waren.
+    //
+    // NIEMALS einen Zeitstempel (&_ts=...) an diese URL haengen! Supabase
+    // deutet JEDEN unbekannten Parameter als Spalten-Filter und bricht die
+    // ganze Abfrage ab ("failed to parse filter"). Genau das hatte dazu
+    // gefuehrt, dass hier gar keine Produkte mehr angezeigt wurden.
+    // cache:'no-store' allein erledigt die Aufgabe zuverlaessig.
+    fetch(SUPA_URL+'/rest/v1/equipment?order=featured.desc,sort_order.asc&item_type=eq.'+itemType,{
       headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
       cache:'no-store'
     }).then(r=>r.json()).then(data=>{
+      if(!Array.isArray(data)){
+        // Fehlerantwort von Supabase - sichtbar machen, statt still eine
+        // leere Liste anzuzeigen. Genau diese Stille hat den Fehler oben
+        // lange unentdeckt gelassen.
+        console.error('Equipment laden fehlgeschlagen:',data);
+      }
       setItems(Array.isArray(data)?data:[]);
       setLoading(false);
-    }).catch(()=>setLoading(false));
+    }).catch(e=>{console.error('Equipment laden fehlgeschlagen:',e);setLoading(false);});
   },[]);
 
   const categories=['Alle',...new Set(items.map(i=>i.category).filter(Boolean))];
