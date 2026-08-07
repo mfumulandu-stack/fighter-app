@@ -2047,24 +2047,29 @@ function MainApp(){
   const savedGymScrollRef=React.useRef(0);
   const ranked=React.useMemo(()=>{
   const myGender=profile.gender||myProfile?.gender||'male';
+  const myCountry=profile.country||myProfile?.country||'DE';
   return rankMode==='trainer'
     ?[]
     :[...userOnly]
-      // Rangliste zeigt automatisch nur das eigene Geschlecht
       .filter(f=>{
         const fGender=f.isMe?myGender:(f.gender||'male');
         if(!fGender||fGender==='other')return true;
         return fGender===myGender;
       })
       .filter(f=>{
-        if(rankMode==='pro') return f.isMe?(profile.isPro===true):(f.is_pro===true);
-        if(rankMode==='user') return f.isMe?(profile.isPro!==true):(f.is_pro!==true); // Amateure = Nicht-Profis
-        return true; // 'all' -> jeder (Amateure + Profis)
+        if(countryFilter==='world')return true;
+        const fCountry=f.isMe?myCountry:(f.country||'DE');
+        return fCountry===myCountry;
       })
-      .filter(f=>(f.wins||0)+(f.losses||0)+(f.draws||0)>0) // nur User mit mind. 1 Kampf
+      .filter(f=>{
+        if(rankMode==='pro') return f.isMe?(profile.isPro===true):(f.is_pro===true);
+        if(rankMode==='user') return f.isMe?(profile.isPro!==true):(f.is_pro!==true);
+        return true;
+      })
+      .filter(f=>(f.wins||0)+(f.losses||0)+(f.draws||0)>0)
       .filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF))))
       .sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
-  },[userOnly,profile,myProfile,rankMode,rankF]);
+  },[userOnly,profile,myProfile,rankMode,rankF,countryFilter]);
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
   const filteredT=TRAINERS.filter(tr=>trainerF==='All'||tr.style.includes(trainerF)).sort((a,b)=>b.rating-a.rating);
 
