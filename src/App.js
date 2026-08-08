@@ -1135,11 +1135,27 @@ function MainApp(){
     }
     try{
       const token=await getFreshToken();
-      await fetch(SUPA_URL+'/rest/v1/event_participants',{
+      // return=representation statt =minimal: nur so sieht man, ob wirklich
+      // eine Zeile entstanden ist. Frueher stand hier unabhaengig vom
+      // Ergebnis "Du nimmst teil!" - die Zugriffsregeln (RLS) wiesen den
+      // Eintrag aber ab, und die Teilnehmerzahl blieb bei 0.
+      const r=await fetch(SUPA_URL+'/rest/v1/event_participants',{
         method:'POST',
-        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=minimal'},
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=representation'},
         body:JSON.stringify({event_id:eventId,user_id:myProfile.id})
       });
+      if(!r.ok){
+        const d=await r.text();
+        console.error('Anmelden fehlgeschlagen',r.status,d);
+        showMsg('❌ Anmelden fehlgeschlagen ('+r.status+')');
+        return;
+      }
+      const angelegt=await r.json().catch(()=>[]);
+      if(!Array.isArray(angelegt)||angelegt.length===0){
+        console.error('Anmelden: 0 Zeilen angelegt',{eventId,profileId:myProfile.id});
+        showMsg('❌ Anmelden nicht moeglich - keine Berechtigung');
+        return;
+      }
       await loadEvents(session);
       showMsg('Du nimmst teil! 🥊');
     }catch(e){showMsg('Fehler: '+e.message);}
