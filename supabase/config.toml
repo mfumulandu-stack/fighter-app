@@ -1,0 +1,31 @@
+project_id = "uykdrmymjvqgebsmndme"
+
+# ── Oeffentlich erreichbare Funktionen ──
+#
+# Supabase verlangt bei Edge Functions standardmaessig einen Anmelde-Header
+# (verify_jwt = true). Zwei Funktionen werden aber von aussen aufgerufen,
+# ohne dass ein Anmelde-Header mitgeschickt werden kann:
+#
+#   stripe-webhook  -> ruft Stripe nach einer Zahlung auf. Stripe schickt
+#                      NIE einen Authorization-Header. Ohne diese Freigabe
+#                      antwortet Supabase mit 401, die Funktion startet gar
+#                      nicht - die Zahlung waere dann zwar erfolgt, der
+#                      Teilnehmer aber nie eingetragen.
+#                      SICHERHEIT: Die Funktion prueft selbst die Stripe-
+#                      Signatur (STRIPE_WEBHOOK_SECRET) und weist alles
+#                      Gefaelschte mit 400 ab. Das ist der eigentliche Schutz.
+#
+#   smart-redirect  -> wird per Link im Browser geoeffnet (Weiterleitung zur
+#                      App bzw. zum App Store). Auch dort gibt es keinen
+#                      Anmelde-Header.
+#
+# WICHTIG: Diese Datei nicht loeschen. Ohne sie muesste man beim Hochladen
+# jedes Mal --no-verify-jwt angeben und wuerde es frueher oder spaeter
+# vergessen - der Fehler faellt dann erst auf, wenn eine echte Zahlung
+# verloren geht.
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.smart-redirect]
+verify_jwt = false
