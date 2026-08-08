@@ -1148,10 +1148,30 @@ function MainApp(){
   async function leaveEvent(eventId){
     if(!session||!myProfile)return;
     try{
-      await fetch(SUPA_URL+'/rest/v1/event_participants?event_id=eq.'+eventId+'&user_id=eq.'+myProfile.id,{
+      // Frisches Token, nicht session.token: das laeuft nach 1 Stunde ab.
+      // Genau daran scheiterte schon der Ticketkauf ("Ungueltiger Token").
+      const token=await getFreshToken();
+      const r=await fetch(SUPA_URL+'/rest/v1/event_participants?event_id=eq.'+eventId+'&user_id=eq.'+myProfile.id,{
         method:'DELETE',
-        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=representation'}
       });
+      if(!r.ok){
+        const d=await r.text();
+        console.error('Abmelden fehlgeschlagen',r.status,d);
+        showMsg('❌ Abmelden fehlgeschlagen ('+r.status+')');
+        return;
+      }
+      // WICHTIG: return=representation liefert die tatsaechlich geloeschten
+      // Zeilen. Ohne das meldet der Datenbank-Dienst auch dann Erfolg, wenn
+      // die Zugriffsregeln (RLS) die Zeile ausblenden und in Wahrheit NICHTS
+      // geloescht wurde. Frueher stand hier unabhaengig davon "Abgemeldet" -
+      // der Knopf blieb auf "Abmelden" stehen und niemand wusste, warum.
+      const geloescht=await r.json().catch(()=>[]);
+      if(!Array.isArray(geloescht)||geloescht.length===0){
+        console.error('Abmelden: 0 Zeilen geloescht - vermutlich RLS-Regel',{eventId,profileId:myProfile.id});
+        showMsg('❌ Abmelden nicht moeglich - keine Berechtigung');
+        return;
+      }
       await loadEvents(session);
       showMsg('Abgemeldet');
     }catch(e){showMsg('Fehler: '+e.message);}
@@ -4260,7 +4280,13 @@ nicht öffentlich gemacht</div>
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {events.map(ev=>{
                   const parts=eventParticipants[ev.id]||[];
-                  const isJoined=parts.some(p=>p.user_id===myProfile?.id);
+                  const meineTeilnahme=parts.find(p=>p.user_id===myProfile?.id);
+                  const isJoined=!!meineTeilnahme;
+                  // Bezahlte Tickets kann man nicht selbst zurueckgeben: das
+                  // Loeschen der Zeile wuerde den Zahlungsnachweis vernichten,
+                  // ohne dass Geld zurueckfliesst. Erstattung laeuft ueber den
+                  // Veranstalter.
+                  const istBezahlt=!!meineTeilnahme?.paid;
                   const isFull=parts.length>=(ev.max_participants||10);
                   const isOwner=ev.creator_id===myProfile?.id;
                   const typeColors={'Sparring':RED,'Community Training':'#27ae60','Wettkampf':'#d4a017','Open Mat':'#2980b9','Seminar':'#8e44ad'};
@@ -4333,6 +4359,15 @@ nicht öffentlich gemacht</div>
                               }} style={{flex:1,padding:'10px',borderRadius:10,background:'transparent',border:'1px solid #e74c3c44',color:'#e74c3c',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
                                 🗑️ Löschen
                               </button>
+                            ):isJoined&&istBezahlt?(
+                              <div style={{flex:1,padding:'10px',borderRadius:10,background:darkMode?'#12210f':'#f0faf0',border:'1px solid #27ae6044',textAlign:'center'}}>
+                                <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13}}>
+                                  🎟️ Ticket bezahlt
+                                </div>
+                                <div style={{color:darkMode?'#888':'#999',fontSize:11,marginTop:2}}>
+                                  Erstattung nur über den Veranstalter
+                                </div>
+                              </div>
                             ):isJoined?(
                               <button onClick={()=>leaveEvent(ev.id)}
                                 style={{flex:1,padding:'10px',borderRadius:10,background:'transparent',border:'1px solid '+(darkMode?'#333':'#ddd'),color:darkMode?'#aaa':'#888',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
