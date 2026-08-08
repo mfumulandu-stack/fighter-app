@@ -1101,16 +1101,22 @@ function MainApp(){
 
   async function joinEvent(eventId,price){
     if(!session||!myProfile)return;
-    // Bezahltes Event: zur sicheren Revolut-Zahlungsseite weiterleiten,
+    // Bezahltes Event: zur sicheren Stripe-Zahlungsseite weiterleiten,
     // statt direkt anzumelden - die Anmeldung passiert erst automatisch
-    // NACH erfolgreicher Zahlung (ueber den revolut-webhook im Hintergrund)
+    // NACH erfolgreicher Zahlung (ueber den stripe-webhook im Hintergrund).
+    //
+    // HINWEIS: Hier stand zwischenzeitlich 'create-revolut-order'. Diese
+    // Funktion wurde jedoch nie angelegt (weder im Projekt noch auf dem
+    // Server) - jeder Kaufversuch lief daher ins Leere. Eingerichtet und
+    // getestet ist Stripe, deshalb wieder create-checkout.
     if(price&&price>0){
       try{
         showMsg('Zahlungsseite wird geöffnet...');
-        const r=await fetch(SUPA_URL+'/functions/v1/create-revolut-order',{
+        const token=await getFreshToken();
+        const r=await fetch(SUPA_URL+'/functions/v1/create-checkout',{
           method:'POST',
           headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
-          body:JSON.stringify({eventId,userToken:session.token})
+          body:JSON.stringify({eventId,userToken:token})
         });
         const d=await r.json();
         if(d.url){window.location.href=d.url;}
@@ -1119,9 +1125,10 @@ function MainApp(){
       return;
     }
     try{
+      const token=await getFreshToken();
       await fetch(SUPA_URL+'/rest/v1/event_participants',{
         method:'POST',
-        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=minimal'},
         body:JSON.stringify({event_id:eventId,user_id:myProfile.id})
       });
       await loadEvents(session);
@@ -1371,6 +1378,34 @@ function MainApp(){
     setSession(sessionData);
     try{localStorage.setItem('fighter_v5',JSON.stringify(sessionData));}catch{}
     initProfile(sessionData);
+  }
+
+  // Liefert einen garantiert frischen Anmelde-Token und aktualisiert die
+  // gespeicherte Sitzung gleich mit.
+  //
+  // WARUM: Supabase-Token laufen nach EINER STUNDE ab. Die App erneuert sie
+  // sonst nur beim Start. Wer die App laenger offen hatte und dann etwas
+  // kaufen wollte, bekam deshalb "Ungueltiger oder abgelaufener Token".
+  //
+  // refreshSession() reicht dafuer nicht: Es setzt nur den Zustand, und der
+  // steht im selben Durchlauf noch nicht zur Verfuegung. Hier wird der neue
+  // Token direkt zurueckgegeben.
+  async function getFreshToken(){
+    if(!session)return null;
+    try{
+      const r=await fetch(SUPA_URL+'/auth/v1/token?grant_type=refresh_token',{
+        method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
+        body:JSON.stringify({refresh_token:session.refresh_token})
+      });
+      const d=await r.json();
+      if(d.access_token){
+        const neu={...session,token:d.access_token,refresh_token:d.refresh_token||session.refresh_token};
+        setSession(neu);
+        try{localStorage.setItem('fighter_v5',JSON.stringify(neu));}catch{}
+        return d.access_token;
+      }
+    }catch(e){console.error('Token erneuern fehlgeschlagen',e);}
+    return session.token; // Notfalls den bisherigen versuchen
   }
 
   async function refreshSession(s){
