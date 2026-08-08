@@ -351,7 +351,13 @@ function MainApp(){
     if(tab==='events'&&session){
       loadEvents(session);
     }
-  },[tab]);
+    // session MUSS in der Liste stehen. Beim Rueckkehren von der Stripe-
+    // Zahlungsseite laedt die Seite komplett neu: der Tab steht sofort auf
+    // 'events' (aus localStorage), die Anmeldung wird aber erst Sekunden
+    // spaeter wiederhergestellt. Stand hier nur [tab], lief die Pruefung
+    // genau einmal - mit session===null - und nie wieder. Ergebnis: dauerhaft
+    // "NOCH KEINE EVENTS", obwohl Events da sind.
+  },[tab,session]);
 
   // Admin Änderungen sofort übernehmen — dbGyms reload nach Admin-Aktionen
   useEffect(()=>{
@@ -381,7 +387,10 @@ function MainApp(){
         }
       }).catch(()=>setRankingLoading(false));
     }
-  },[tab]);
+    // session gehoert auch hier in die Liste - gleicher Fehler wie beim
+    // Events-Tab oben: sonst bleibt die Rangliste leer, wenn die Seite
+    // direkt auf diesem Tab startet (Neuladen, Stripe-Rueckkehr).
+  },[tab,session]);
   useEffect(()=>{
     if(localStorage.getItem('fighter_dark')==='true')document.body.classList.add('dark');
   },[]);
