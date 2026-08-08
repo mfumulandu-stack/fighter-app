@@ -25,6 +25,7 @@ export default function AdminPanel({
   dbGyms, gymLogos, events, eventParticipants, GYMS,
   setShowAdmin, setViewProfile, setAllProfiles, setGymLogos,
   showMsg, loadDbGyms, loadEvents, loadGymLogos, compressImage, startAdminChat,
+  openEventEditor,
 }) {
   const [scanResult,setScanResult]=useState(null);
   const [editGymId,setEditGymId]=useState(null);
@@ -787,19 +788,8 @@ export default function AdminPanel({
                                   showMsg('Event gelöscht ✅');
                                 }catch(e){showMsg('Fehler: '+e.message);}
                               }} style={{padding:'5px 10px',borderRadius:6,background:'#e74c3c22',border:'1px solid #e74c3c44',color:'#e74c3c',fontSize:11,fontWeight:700,cursor:'pointer'}}>{t.deleteBtn}</button>
-                              <button onClick={async()=>{
-                                const newTitle=window.prompt('Neuer Titel:',ev.title);
-                                if(!newTitle||!newTitle.trim())return;
-                                try{
-                                  await adminFetch(SUPA_URL+'/rest/v1/events?id=eq.'+ev.id,{
-                                    method:'PATCH',
-                                    headers:{Prefer:'return=minimal'},
-                                    body:JSON.stringify({title:newTitle.trim()})
-                                  },session?.token);
-                                  await loadEvents(session);
-                                  showMsg('Titel geändert ✅');
-                                }catch(e){showMsg('Fehler: '+e.message);}
-                              }} style={{padding:'5px 10px',borderRadius:6,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontSize:11,cursor:'pointer'}}>✏️ Bearbeiten</button>
+                              <button onClick={()=>openEventEditor(ev)}
+                                style={{padding:'5px 10px',borderRadius:6,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontSize:11,cursor:'pointer'}}>✏️ Bearbeiten</button>
                             </div>
                           </div>
                           {parts.length>0&&(
