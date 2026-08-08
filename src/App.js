@@ -4185,6 +4185,45 @@ nicht öffentlich gemacht</div>
               )}
             </div>
 
+            {/* MEINE BUCHUNGEN — Uebersicht der Events, fuer die ich angemeldet bin.
+                Zeigt bei bezahlten Tickets auch den gezahlten Betrag an. */}
+            {(()=>{
+              if(!myProfile)return null;
+              const meine=events.filter(ev=>(eventParticipants[ev.id]||[]).some(p=>p.user_id===myProfile.id));
+              if(meine.length===0)return null;
+              return(
+                <div style={{background:darkMode?'#12210f':'#f0faf0',border:'1px solid #27ae6044',borderRadius:12,padding:'12px',marginBottom:14}}>
+                  <div style={{color:'#27ae60',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>
+                    🎟️ MEINE BUCHUNGEN ({meine.length})
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',gap:7}}>
+                    {meine.map(ev=>{
+                      const mein=(eventParticipants[ev.id]||[]).find(p=>p.user_id===myProfile.id);
+                      const bezahlt=mein&&mein.paid;
+                      const datum=ev.event_date?new Date(ev.event_date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}):'';
+                      const vorbei=ev.event_date&&new Date(ev.event_date)<new Date(new Date().toDateString());
+                      return(
+                        <div key={ev.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:9,padding:'9px 11px',display:'flex',alignItems:'center',gap:9,opacity:vorbei?0.55:1}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ev.title}</div>
+                            <div style={{color:darkMode?'#888':'#999',fontSize:11,marginTop:1}}>
+                              📅 {datum}{ev.event_time?' · '+ev.event_time:''}{ev.city?' · 📍 '+ev.city:''}
+                            </div>
+                          </div>
+                          <div style={{textAlign:'right',flexShrink:0}}>
+                            {bezahlt
+                              ?<div style={{color:'#27ae60',fontSize:11,fontWeight:700}}>✅ Bezahlt{mein.amount_paid?' · '+Number(mein.amount_paid).toFixed(2)+'€':''}</div>
+                              :<div style={{color:darkMode?'#888':'#999',fontSize:11,fontWeight:700}}>Angemeldet</div>}
+                            {vorbei&&<div style={{color:'#aaa',fontSize:10,marginTop:1}}>vorbei</div>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
             {eventsLoading?(
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {[1,2,3].map(i=>(
