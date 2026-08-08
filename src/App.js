@@ -342,6 +342,11 @@ function MainApp(){
   useEffect(()=>{
     if(tab==='gyms'&&session){
       loadDbGyms(session);
+      // Bewertungen mit aktualisieren - sonst waeren sie so alt wie der
+      // letzte App-Start, waehrend Gyms und Logos (in loadDbGyms) frisch
+      // geladen werden. Ein neues Logo kam dadurch sofort an, eine neue
+      // Bewertung eines anderen Nutzers aber erst nach App-Neustart.
+      loadGymRatings(session);
     }
     if(tab==='events'&&session){
       loadEvents(session);
