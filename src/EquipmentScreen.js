@@ -23,6 +23,8 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest,itemType=
   const [loading,setLoading]=React.useState(true);
   const [activeCategory,setActiveCategory]=React.useState('Alle');
   const [categoryOpen,setCategoryOpen]=React.useState(false);
+  const [activeBrand,setActiveBrand]=React.useState('Alle');
+  const [brandOpen,setBrandOpen]=React.useState(false);
   const [searchQuery,setSearchQuery]=React.useState('');
   const [sortMode,setSortMode]=React.useState('popular'); // 'popular' | 'newest'
   const RED='#c0392b';
@@ -59,13 +61,47 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest,itemType=
   },[]);
 
   const categories=['Alle',...new Set(items.map(i=>i.category).filter(Boolean))];
+  // Marken zusammenfassen. In den Daten stehen dieselben Marken in
+  // verschiedenen Schreibweisen ("14All" und "14ALL", "Illstinct " mit
+  // Leerzeichen am Ende). Ohne Zusammenfassung erschiene eine Marke mehrfach
+  // im Menue, und jeder Eintrag zeigte nur einen Teil ihrer Produkte - das
+  // saehe nach einem kaputten Filter aus.
+  //
+  // Zusammengefasst wird nur ueber Gross-/Kleinschreibung und Leerzeichen am
+  // Rand. Echte Varianten wie "GOLDENNATION" gegen "Golden Nation" bleiben
+  // getrennt - die zu verschmelzen waere geraten, und aus zwei aehnlichen
+  // Namen koennen sehr wohl zwei verschiedene Marken werden.
+  const brandKey=s=>(s||'').trim().toLowerCase();
+  const brandVariants={};
+  items.forEach(i=>{
+    const k=brandKey(i.brand);
+    if(!k)return;
+    const v=(i.brand||'').trim();
+    brandVariants[k]=brandVariants[k]||{};
+    brandVariants[k][v]=(brandVariants[k][v]||0)+1;
+  });
+  // Angezeigt wird die haeufigste Schreibweise, bei Gleichstand die
+  // alphabetisch erste - damit die Anzeige stabil bleibt.
+  const brandLabel={};
+  Object.keys(brandVariants).forEach(k=>{
+    brandLabel[k]=Object.entries(brandVariants[k])
+      .sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'de'))[0][0];
+  });
+  // In brands stehen die Schluessel, angezeigt wird brandLabel[schluessel].
+  const brands=['Alle',...Object.keys(brandLabel).sort((a,b)=>brandLabel[a].localeCompare(brandLabel[b],'de'))];
   const normSearch=(searchQuery||'').toLowerCase().trim();
   const bySearch=!normSearch?items:items.filter(i=>
     (i.brand||'').toLowerCase().includes(normSearch)||
     (i.product||'').toLowerCase().includes(normSearch)||
     (i.description||'').toLowerCase().includes(normSearch)
   );
-  const filtered=activeCategory==='Alle'?bySearch:bySearch.filter(i=>i.category===activeCategory);
+  const byCategory=activeCategory==='Alle'?bySearch:bySearch.filter(i=>i.category===activeCategory);
+  const filtered=activeBrand==='Alle'?byCategory:byCategory.filter(i=>brandKey(i.brand)===activeBrand);
+  // Anzahl je Marke, damit man im Menue sieht, wo etwas zu holen ist.
+  // Zaehlt auf Basis der Kategorie-Auswahl - sonst stuenden dort Zahlen,
+  // die nach dem Antippen nicht aufgehen.
+  const brandCounts={};
+  byCategory.forEach(i=>{const k=brandKey(i.brand);if(k)brandCounts[k]=(brandCounts[k]||0)+1;});
   const featured=filtered.filter(i=>i.featured);
   const restUnsorted=filtered.filter(i=>!i.featured);
   const rest=restUnsorted.slice().sort((a,b)=>{
@@ -103,23 +139,58 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest,itemType=
           placeholder={appLang==='FR'?'Rechercher un produit...':appLang==='EN'?'Search products...':'Produkt oder Marke suchen...'}
           style={{width:'100%',padding:'6px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#1a1a1a':'#fff',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box',marginBottom:6}}
         />
-        {categories.length>1&&(
-          <div style={{position:'relative'}}>
-            <div onClick={()=>setCategoryOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 12px',borderRadius:10,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),cursor:'pointer'}}>
-              <span style={{fontSize:12}}>🗂️</span>
-              <span style={{flex:1,color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:600}}>{activeCategory}</span>
-              <span style={{color:'#aaa',fontSize:10,transform:categoryOpen?'rotate(180deg)':'none',transition:'transform 0.2s'}}>▼</span>
-            </div>
-            {categoryOpen&&(
-              <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,zIndex:20,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,0.15)',maxHeight:280,overflowY:'auto',padding:6}}>
-                {categories.map(cat=>(
-                  <div key={cat} onClick={()=>{setActiveCategory(cat);setCategoryOpen(false);}}
-                    style={{padding:'9px 12px',borderRadius:8,cursor:'pointer',background:activeCategory===cat?(darkMode?'#2a1414':'#fdecea'):'transparent',color:activeCategory===cat?RED:(darkMode?'#e0e0e0':'#333'),fontSize:13,fontWeight:activeCategory===cat?700:500}}>
-                    {cat}
-                  </div>
-                ))}
+        <div style={{display:'flex',gap:6}}>
+          {categories.length>1&&(
+            <div style={{position:'relative',flex:1,minWidth:0}}>
+              {/* Beim Oeffnen das jeweils andere Menue schliessen - sonst
+                  ueberlappen sich die beiden Listen. */}
+              <div onClick={()=>{setCategoryOpen(o=>!o);setBrandOpen(false);}} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 12px',borderRadius:10,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(activeCategory!=='Alle'?RED:(darkMode?'#2a2a2a':'#e0e0e0')),cursor:'pointer'}}>
+                <span style={{fontSize:12}}>🗂️</span>
+                <span style={{flex:1,minWidth:0,color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{activeCategory}</span>
+                <span style={{color:'#aaa',fontSize:10,transform:categoryOpen?'rotate(180deg)':'none',transition:'transform 0.2s'}}>▼</span>
               </div>
-            )}
+              {categoryOpen&&(
+                <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,zIndex:20,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,0.15)',maxHeight:280,overflowY:'auto',padding:6}}>
+                  {categories.map(cat=>(
+                    <div key={cat} onClick={()=>{setActiveCategory(cat);setCategoryOpen(false);}}
+                      style={{padding:'9px 12px',borderRadius:8,cursor:'pointer',background:activeCategory===cat?(darkMode?'#2a1414':'#fdecea'):'transparent',color:activeCategory===cat?RED:(darkMode?'#e0e0e0':'#333'),fontSize:13,fontWeight:activeCategory===cat?700:500}}>
+                      {cat}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {brands.length>1&&(
+            <div style={{position:'relative',flex:1,minWidth:0}}>
+              <div onClick={()=>{setBrandOpen(o=>!o);setCategoryOpen(false);}} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 12px',borderRadius:10,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(activeBrand!=='Alle'?RED:(darkMode?'#2a2a2a':'#e0e0e0')),cursor:'pointer'}}>
+                <span style={{fontSize:12}}>🏷️</span>
+                <span style={{flex:1,minWidth:0,color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                  {activeBrand==='Alle'?(appLang==='FR'?'Marque':appLang==='EN'?'Brand':'Marke'):brandLabel[activeBrand]}
+                </span>
+                <span style={{color:'#aaa',fontSize:10,transform:brandOpen?'rotate(180deg)':'none',transition:'transform 0.2s'}}>▼</span>
+              </div>
+              {brandOpen&&(
+                <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,zIndex:20,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,0.15)',maxHeight:280,overflowY:'auto',padding:6}}>
+                  {brands.map(b=>{
+                    const anzahl=b==='Alle'?byCategory.length:(brandCounts[b]||0);
+                    return(
+                      <div key={b} onClick={()=>{setActiveBrand(b);setBrandOpen(false);}}
+                        style={{display:'flex',alignItems:'center',gap:8,padding:'9px 12px',borderRadius:8,cursor:'pointer',background:activeBrand===b?(darkMode?'#2a1414':'#fdecea'):'transparent',color:activeBrand===b?RED:(darkMode?'#e0e0e0':'#333'),fontSize:13,fontWeight:activeBrand===b?700:500,opacity:anzahl===0?0.4:1}}>
+                        <span style={{flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{b==='Alle'?(appLang==='FR'?'Toutes':appLang==='EN'?'All':'Alle'):brandLabel[b]}</span>
+                        <span style={{color:'#aaa',fontSize:11,fontWeight:600,flexShrink:0}}>{anzahl}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        {(activeCategory!=='Alle'||activeBrand!=='Alle')&&(
+          <div onClick={()=>{setActiveCategory('Alle');setActiveBrand('Alle');}}
+            style={{marginTop:6,textAlign:'center',color:RED,fontSize:11,fontWeight:700,cursor:'pointer'}}>
+            ✕ {appLang==='FR'?'Réinitialiser les filtres':appLang==='EN'?'Reset filters':'Filter zurücksetzen'}
           </div>
         )}
       </div>
@@ -150,7 +221,7 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest,itemType=
       {filtered.length===0&&(
         <div style={{textAlign:'center',padding:'40px 20px',color:'#aaa'}}>
           <div style={{fontSize:32,marginBottom:8}}>🔍</div>
-          <div style={{fontSize:13}}>Keine Produkte gefunden{activeCategory!=='Alle'?' in "'+activeCategory+'"':''}{searchQuery?' für "'+searchQuery+'"':''}.</div>
+          <div style={{fontSize:13}}>Keine Produkte gefunden{activeCategory!=='Alle'?' in "'+activeCategory+'"':''}{activeBrand!=='Alle'?' von "'+(brandLabel[activeBrand]||activeBrand)+'"':''}{searchQuery?' für "'+searchQuery+'"':''}.</div>
         </div>
       )}
 
