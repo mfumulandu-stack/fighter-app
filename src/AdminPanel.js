@@ -104,6 +104,7 @@ export default function AdminPanel({
   const [gymCodesList,setGymCodesList]=useState(null);
   const [gymCodesLoading,setGymCodesLoading]=useState(false);
   const [gymCodeSearch,setGymCodeSearch]=useState('');
+  const [dupeCleanRunning,setDupeCleanRunning]=useState(false);
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false);
   const [editingEquip,setEditingEquip]=useState(null);
   const [editEquipForm,setEditEquipForm]=useState(null);
@@ -371,6 +372,37 @@ export default function AdminPanel({
                   return(
                     <div style={{background:'#2a1010',borderRadius:10,padding:'12px',marginBottom:12,border:'1px solid #c0392b44'}}>
                       <div style={{color:'#e74c3c',fontWeight:700,fontSize:13,marginBottom:8}}>⚠️ {dupes.length} Duplikate · {invalid.length} ungültige Namen</div>
+                      {dupes.length>0&&(()=>{
+                        // Aus jeder Gruppe wird der ERSTE behalten - genau der,
+                        // den die Liste darunter mit "✓ Behalten" markiert.
+                        // Alle weiteren werden geloescht.
+                        const zuLoeschen=dupes.flatMap(arr=>arr.slice(1));
+                        return(
+                          <button disabled={dupeCleanRunning} onClick={async()=>{
+                            const anzahl=zuLoeschen.length;
+                            if(!window.confirm(
+                              anzahl+' doppelte Gym-Eintraege loeschen?\n\n'+
+                              'Aus jeder Gruppe bleibt der erste Eintrag erhalten ("✓ Behalten"), '+
+                              'alle weiteren werden entfernt.\n\nDas laesst sich nicht rueckgaengig machen.'
+                            ))return;
+                            setDupeCleanRunning(true);
+                            let ok=0; const fehler=[];
+                            for(const gym of zuLoeschen){
+                              try{
+                                const r=await adminFetch(SUPA_URL+'/rest/v1/gyms?id=eq.'+gym.id,{method:'DELETE'},session?.token);
+                                if(r.ok)ok++; else fehler.push(gym.name+' ('+r.status+')');
+                              }catch(e){fehler.push(gym.name+' ('+e.message+')');}
+                            }
+                            await loadDbGyms(session);
+                            setDupeCleanRunning(false);
+                            showMsg(fehler.length===0
+                              ? '✅ '+ok+' Duplikate geloescht'
+                              : '⚠️ '+ok+' geloescht, '+fehler.length+' fehlgeschlagen: '+fehler.slice(0,3).join(', '));
+                          }} style={{width:'100%',marginBottom:10,padding:'9px',borderRadius:8,background:dupeCleanRunning?'#555':'#e74c3c',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,letterSpacing:1,cursor:dupeCleanRunning?'default':'pointer'}}>
+                            {dupeCleanRunning?'⏳ LÖSCHE…':'🧹 ALLE '+zuLoeschen.length+' DUPLIKATE LÖSCHEN'}
+                          </button>
+                        );
+                      })()}
                       {invalid.map(gym=>(
                         <div key={gym.id} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 8px',background:'#1a1a1a',borderRadius:8,marginBottom:5,border:'1px solid #e74c3c44'}}>
                           <div style={{flex:1}}>
