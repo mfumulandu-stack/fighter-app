@@ -1256,37 +1256,38 @@ function MainApp(){
 
   async function loadGymRatings(s){
     try{
-      const data=await dbSelect('gym_ratings','user_id=eq.'+s.userId,s.token);
-      if(Array.isArray(data)&&data.length>0){
-        const merged={...gymRatings};
-        data.forEach(r=>{
-          const k=r.gym_key;
-          if(!merged[k])merged[k]={total:0,count:0,userRating:0};
-          merged[k].userRating=r.stars;
-          // Recalculate total/count from all ratings
-        });
-        // Load all ratings for avg calculation
-        const allRatings=await dbSelect('gym_ratings','',s.token);
-        const gymTotals={};
-        if(Array.isArray(allRatings)){
-          allRatings.forEach(r=>{
-            if(!gymTotals[r.gym_key])gymTotals[r.gym_key]={total:0,count:0};
-            gymTotals[r.gym_key].total+=r.stars;
-            gymTotals[r.gym_key].count+=1;
-          });
-        }
-        const final={};
-        Object.keys(gymTotals).forEach(k=>{
-          const myR=data.find(r=>r.gym_key===k);
-          final[k]={
-            total:gymTotals[k].total,
-            count:gymTotals[k].count,
-            userRating:myR?myR.stars:0
-          };
-        });
-        setGymRatings(final);
-        localStorage.setItem('gymRatings',JSON.stringify(final));
+      // WICHTIG: Die Durchschnitts-Berechnung stand frueher komplett INNERHALB
+      // von "if(eigene Bewertungen vorhanden)". Wer selbst noch nie ein Gym
+      // bewertet hatte, bekam dadurch GAR KEINE Bewertungen zu sehen - und da
+      // die Gym-Liste danach sortiert, sah jeder eine andere Reihenfolge.
+      // Betroffen waren 523 von 547 Nutzern (96%).
+      // Jetzt werden die Bewertungen IMMER geladen und berechnet; die eigene
+      // Bewertung ist nur noch eine Zusatzangabe.
+      const allRatings=await dbSelect('gym_ratings','',s.token);
+      if(!Array.isArray(allRatings)){
+        console.error('loadGymRatings: unerwartete Antwort',allRatings);
+        return;
       }
+      const data=await dbSelect('gym_ratings','user_id=eq.'+s.userId,s.token);
+      const meine=Array.isArray(data)?data:[];
+
+      const gymTotals={};
+      allRatings.forEach(r=>{
+        if(!gymTotals[r.gym_key])gymTotals[r.gym_key]={total:0,count:0};
+        gymTotals[r.gym_key].total+=r.stars;
+        gymTotals[r.gym_key].count+=1;
+      });
+      const final={};
+      Object.keys(gymTotals).forEach(k=>{
+        const myR=meine.find(r=>r.gym_key===k);
+        final[k]={
+          total:gymTotals[k].total,
+          count:gymTotals[k].count,
+          userRating:myR?myR.stars:0
+        };
+      });
+      setGymRatings(final);
+      try{localStorage.setItem('gymRatings',JSON.stringify(final));}catch{}
     }catch(e){console.error('loadGymRatings',e);}
   }
 
