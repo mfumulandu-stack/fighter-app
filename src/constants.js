@@ -22,7 +22,7 @@ export const APP_STORE_ID = '6779692192';
 // WICHTIG: Diese Zahl bei JEDEM neuen nativen Build (Xcode-Version)
 // manuell mit hochsetzen, exakt passend zur "Version" in Xcode
 // (General-Tab). Sonst erkennt die App neue Updates nicht richtig.
-export const CURRENT_APP_VERSION = '1.12';
+export const CURRENT_APP_VERSION = '1.13';
 
 // ── Darstellung ──
 // SW = Schwellwert in Pixeln, ab dem ein Wisch als Swipe zaehlt

@@ -255,8 +255,8 @@ function EquipCard({eq,darkMode,RED}){
 
   return(
     <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',marginBottom:10,border:'1px solid '+(eq.featured?'#d4a01733':(darkMode?'#2a2a2a':'#eee')),boxShadow:eq.featured?'0 2px 12px rgba(212,160,23,0.08)':'none',position:'relative'}}>
-      <button onClick={shareEquip} aria-label='Teilen' style={{position:'absolute',top:10,right:10,background:darkMode?'#2a2a2a':'#f5f5f7',border:'none',borderRadius:8,width:30,height:30,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14,zIndex:1}}>
-        📤
+      <button onClick={shareEquip} aria-label='Weiterleiten' style={{position:'absolute',top:10,right:10,background:darkMode?'#2a2a2a':'#f5f5f7',border:'none',borderRadius:8,width:30,height:30,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:14,zIndex:1}}>
+        🔗
       </button>
       {shareMsg&&<div style={{position:'absolute',top:44,right:10,background:'#27ae60',color:'#fff',fontSize:10,fontWeight:700,padding:'4px 8px',borderRadius:6,zIndex:2}}>{shareMsg}</div>}
       <div style={{display:'flex',gap:12,alignItems:'flex-start',paddingRight:36}}>
