@@ -1261,6 +1261,24 @@ function MainApp(){
     setNewEvent({title:'',description:'',event_type:'Sparring',city:'',address:'',event_date:'',event_time:'',max_participants:10,styles:[],price:''});
   }
 
+  function duplicateEvent(ev){
+    setNewEvent({
+      title:ev.title||'',
+      description:ev.description||'',
+      event_type:ev.event_type||'Sparring',
+      city:ev.city||'',
+      address:ev.address||'',
+      event_date:'',
+      event_time:'',
+      max_participants:ev.max_participants||10,
+      styles:Array.isArray(ev.styles)?ev.styles:[],
+      price:(ev.price!==null&&ev.price!==undefined&&Number(ev.price)>0)?String(ev.price):''
+    });
+    setEditEventId(null);
+    setShowCreateEvent(true);
+    showMsg('📋 Als Vorlage übernommen — Datum/Uhrzeit bitte neu setzen');
+  }
+
   async function saveEventEdit(){
     if(!session||!editEventId)return;
     if(!newEvent.title||!newEvent.city||!newEvent.event_date){showMsg('Titel, Stadt und Datum sind Pflicht');return;}
@@ -4330,8 +4348,14 @@ nicht öffentlich gemacht</div>
                         </div>
                         {/* TITLE */}
                         <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:1,marginBottom:4}}>{ev.title}</div>
-                        {/* LOCATION */}
-                        <div style={{color:'#aaa',fontSize:12,marginBottom:6}}>📍 {ev.address||ev.city}</div>
+                        {/* LOCATION - antippbar, oeffnet Apple Maps (faellt im Browser
+                            automatisch auf eine normale Kartenansicht zurueck) */}
+                        <div onClick={(e)=>{
+                          e.stopPropagation();
+                          const query=encodeURIComponent(ev.address||ev.city||'');
+                          if(!query)return;
+                          window.open('https://maps.apple.com/?q='+query,'_blank');
+                        }} style={{color:'#aaa',fontSize:12,marginBottom:6,textDecoration:'underline',cursor:'pointer'}}>📍 {ev.address||ev.city}</div>
                         {/* STYLES */}
                         {ev.styles&&ev.styles.length>0&&(
                           <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:8}}>
@@ -4791,6 +4815,7 @@ nicht öffentlich gemacht</div>
           showMsg={showMsg} loadDbGyms={loadDbGyms} loadEvents={loadEvents} loadGymLogos={loadGymLogos}
           compressImage={compressImage} startAdminChat={startAdminChat}
           openEventEditor={openEventEditor}
+          duplicateEvent={duplicateEvent}
         />
       )}
       {/* EVENT ERSTELLEN / BEARBEITEN — bewusst auf oberster Ebene und nicht

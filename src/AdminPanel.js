@@ -26,6 +26,7 @@ export default function AdminPanel({
   setShowAdmin, setViewProfile, setAllProfiles, setGymLogos,
   showMsg, loadDbGyms, loadEvents, loadGymLogos, compressImage, startAdminChat,
   openEventEditor,
+  duplicateEvent,
 }) {
   const [scanResult,setScanResult]=useState(null);
   const [editGymId,setEditGymId]=useState(null);
@@ -790,6 +791,8 @@ export default function AdminPanel({
                               }} style={{padding:'5px 10px',borderRadius:6,background:'#e74c3c22',border:'1px solid #e74c3c44',color:'#e74c3c',fontSize:11,fontWeight:700,cursor:'pointer'}}>{t.deleteBtn}</button>
                               <button onClick={()=>openEventEditor(ev)}
                                 style={{padding:'5px 10px',borderRadius:6,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontSize:11,cursor:'pointer'}}>✏️ Bearbeiten</button>
+                              <button onClick={()=>duplicateEvent(ev)}
+                                style={{padding:'5px 10px',borderRadius:6,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontSize:11,cursor:'pointer'}}>📋 Als Vorlage</button>
                             </div>
                           </div>
                           {parts.length>0&&(
