@@ -12,7 +12,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { SUPA_URL, SUPA_KEY, RED, LIGHT_RED } from './constants';
-import { dbSelect, dbInsert } from './supabaseApi';
+import { dbSelect, dbInsert, uploadPhoto } from './supabaseApi';
 import { safeLocalNotification } from './notifications';
 
 function ChatOverlay({match,myProfileId,myName,token,onClose,onViewProfile,darkMode,t,appLang,isAdmin}){
@@ -20,6 +20,8 @@ function ChatOverlay({match,myProfileId,myName,token,onClose,onViewProfile,darkM
   if(!t)t={fightRequest:'FIGHT REQUEST',fightType:'FIGHT TYP',date:'DATUM',placeGym:'ORT / GYM',placePlaceholder:'z.B. Tiger Gym Berlin',waitingResponse:'Warte...',sendFightRequest:'⚔️ SENDEN',fightSent:'GESENDET!',waitingFor:'Wartet auf',accept:'✅ ANNEHMEN',decline:'❌ ABLEHNEN',counterDate:'🔄 GEGEN-TERMIN',backToChat:'💬 ZURÜCK',fightAccepted:'ANGENOMMEN',fightDeclined:'ABGELEHNT',counterTerm:'GEGENVORSCHLAG',message:'Nachricht…',send:'➤',block:'🚫 Blockieren',unblock:'🚫 Entsperren',report:'⚠️ Melden',reported:'✓ Gemeldet'};
   const [messages,setMessages]=useState([]);
   const [input,setInput]=useState('');
+  const [sendingPhoto,setSendingPhoto]=useState(false);
+  const [lightboxImg,setLightboxImg]=useState(null);
   const [loading,setLoading]=useState(true);
   const [showProfilePanel,setShowProfilePanel]=useState(false);
   const [showFightRequest,setShowFightRequest]=useState(false);
@@ -149,6 +151,51 @@ function ChatOverlay({match,myProfileId,myName,token,onClose,onViewProfile,darkM
         setTimeout(()=>el.remove(),6000);
       }
     }
+  }
+
+  // Komprimiert ein Bild vor dem Hochladen (kleinere Chat-Dateien, schnellerer
+  // Versand). Bewusst lokal in dieser Datei, da compressImage in App.js nicht
+  // exportiert ist und ChatOverlay als eigenstaendige Datei nichts aus App.js
+  // importieren soll (siehe Hinweis oben in der Datei).
+  function compressChatImage(file,maxSize=1000,quality=0.8){
+    return new Promise((resolve)=>{
+      const img=new Image();
+      const url=URL.createObjectURL(file);
+      img.onload=()=>{
+        let w=img.width,h=img.height;
+        if(w>h&&w>maxSize){h=h*(maxSize/w);w=maxSize;}
+        else if(h>maxSize){w=w*(maxSize/h);h=maxSize;}
+        const canvas=document.createElement('canvas');
+        canvas.width=w;canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        canvas.toBlob(blob=>{URL.revokeObjectURL(url);resolve(blob||file);},'image/jpeg',quality);
+      };
+      img.onerror=()=>{URL.revokeObjectURL(url);resolve(file);};
+      img.src=url;
+    });
+  }
+
+  async function sendPhoto(file){
+    if(!file||sendingPhoto)return;
+    setSendingPhoto(true);
+    const tmpId='tmp_'+Date.now();
+    const previewUrl=URL.createObjectURL(file);
+    setMessages(m=>[...m,{id:tmpId,match_id:match.id,sender_id:myProfileId,content:'',image_url:previewUrl,created_at:new Date().toISOString()}]);
+    try{
+      const compressed=await compressChatImage(file);
+      const path='chat_'+match.id+'_'+Date.now()+'.jpg';
+      const url=await uploadPhoto(compressed,path,token);
+      if(!url){setMessages(m=>m.filter(msg=>msg.id!==tmpId));setSendingPhoto(false);return;}
+      const saved=await dbInsert('messages',{match_id:match.id,sender_id:myProfileId,content:'',image_url:url},token);
+      if(Array.isArray(saved)&&saved[0]){
+        setMessages(m=>m.map(msg=>msg.id===tmpId?saved[0]:msg));
+        lastMsgTime.current=saved[0].created_at;
+      }
+      sendPushTo(other&&other.user_id,myName||'Jemand','📷 Foto');
+    }catch{
+      setMessages(m=>m.filter(msg=>msg.id!==tmpId));
+    }
+    setSendingPhoto(false);
   }
 
   async function send(){
@@ -487,15 +534,23 @@ Leider kann ich diesen Termin nicht wahrnehmen.`;
                     :<div style={{width:26,height:26,borderRadius:'50%',background:accent+'22',border:'1px solid '+accent+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12}}>🥊</div>}
                 </div>
               )}
-              <div style={{maxWidth:'72%',padding:'9px 13px',borderRadius:isMe?'14px 14px 3px 14px':'14px 14px 14px 3px',background:isMe?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#fff',color:isMe?'#fff':'#1a1a1a',fontSize:14,boxShadow:'0 1px 4px rgba(0,0,0,0.08)'}}>
+              <div style={{maxWidth:'72%',padding:m.image_url?'6px':'9px 13px',borderRadius:isMe?'14px 14px 3px 14px':'14px 14px 14px 3px',background:isMe?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#fff',color:isMe?'#fff':'#1a1a1a',fontSize:14,boxShadow:'0 1px 4px rgba(0,0,0,0.08)',overflow:'hidden'}}>
+                {m.image_url&&(
+                  <img loading="lazy" src={m.image_url} onClick={()=>setLightboxImg(m.image_url)} style={{width:'100%',maxWidth:220,borderRadius:10,display:'block',cursor:'zoom-in',marginBottom:m.content?6:0}} alt=''/>
+                )}
                 {m.content}
-                <div style={{color:isMe?'rgba(255,255,255,0.55)':'#ccc',fontSize:9,marginTop:3,textAlign:'right'}}>
+                <div style={{color:isMe?'rgba(255,255,255,0.55)':'#ccc',fontSize:9,marginTop:3,textAlign:'right',padding:m.image_url?'0 6px':0}}>
                   {new Date(m.created_at).toLocaleTimeString('de',{hour:'2-digit',minute:'2-digit'})} {isMe&&<span style={{marginLeft:3,color:m.read_at?'#4fc3f7':'rgba(255,255,255,0.7)'}}>{m.id.startsWith('tmp_')?'✓':'✓✓'}</span>}
                 </div>
               </div>
             </div>
           );
         })}
+        {lightboxImg&&(
+          <div onClick={()=>setLightboxImg(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.9)',zIndex:400,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+            <img loading="lazy" src={lightboxImg} style={{maxWidth:'100%',maxHeight:'100%',borderRadius:10}} alt=''/>
+          </div>
+        )}
         {otherTyping&&(
           <div style={{display:'flex',alignItems:'flex-end',gap:6,marginLeft:4}}>
             <div onClick={()=>setShowProfilePanel(true)} style={{cursor:'pointer',flexShrink:0}}>
@@ -518,6 +573,10 @@ Leider kann ich diesen Termin nicht wahrnehmen.`;
         </button>
       </div>
       <div style={{padding:'6px 12px 10px',background:'#fff',display:'flex',gap:8,alignItems:'flex-end'}}>
+        <label style={{width:42,height:42,borderRadius:'50%',background:'#f5f5f7',border:'1px solid #e0e0e0',color:'#666',fontSize:18,cursor:sendingPhoto?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,opacity:sendingPhoto?0.5:1}}>
+          {sendingPhoto?'…':'📷'}
+          <input type='file' accept='image/*' disabled={sendingPhoto} onChange={e=>{const f=e.target.files[0];if(f)sendPhoto(f);e.target.value='';}} style={{display:'none'}}/>
+        </label>
         <textarea value={input} onChange={e=>{
                 setInput(e.target.value);
                 if(e.target.value.length>0){
