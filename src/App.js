@@ -873,7 +873,7 @@ function MainApp(){
   async function loadAllProfiles(s){
     try{
       const token=s?.token||session?.token;
-      const profileFields='id,user_id,name,age,city,gym,style,avatar_url,weight,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,record_verified,banned';
+      const profileFields='id,user_id,name,age,city,gym,style,avatar_url,weight,weight_class,is_pro,country,gender,belt,wins,losses,draws,ko,last_seen,lat,lon,record_verified,banned';
       const resp=await fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=2000&select='+profileFields,{
         headers:{apikey:SUPA_KEY,Authorization:'Bearer '+token}
       });
@@ -2222,7 +2222,7 @@ function MainApp(){
   // Rendern der Rangliste -> schwarzer Bildschirm beim App-Start, wenn die
   // Rangliste der zuletzt geöffnete Tab war.
   const userOnly=React.useMemo(()=>{
-    const me=profile.name?[{id:0,name:profile.name,city:profile.city,gym:profile.gym,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'',accent:RED,isMe:true,avatar_url:avatarUrl,is_pro:profile.isPro===true,country:profile.country||'DE'}]:[];
+    const me=profile.name?[{id:0,name:profile.name,city:profile.city,gym:profile.gym,style:profile.style,wins:stats.wins,losses:stats.losses,draws:stats.draws,ko:stats.ko,emoji:'',accent:RED,isMe:true,avatar_url:avatarUrl,is_pro:profile.isPro===true,country:profile.country||'DE',belt:profile.belt||myProfile?.belt||null}]:[];
     if(allProfiles.length>0){
       const others=allProfiles.filter(p=>p.id!==myProfile?.id&&!p.banned).map(p=>({
         ...p,
@@ -2260,7 +2260,12 @@ function MainApp(){
       })
       .filter(f=>(f.wins||0)+(f.losses||0)+(f.draws||0)>0)
       .filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF))))
-      .sort((a,b)=>(b.wins*3-b.losses*2+b.draws)-(a.wins*3-a.losses*2+a.draws));
+      .sort((a,b)=>{
+        const beltScore=f=>{const i=BELT_RANKS.indexOf(f.belt);return i>=0?i:0;};
+        const scoreA=(a.wins*3-a.losses*2+a.draws)+beltScore(a);
+        const scoreB=(b.wins*3-b.losses*2+b.draws)+beltScore(b);
+        return scoreB-scoreA;
+      });
   },[userOnly,profile,myProfile,rankMode,rankF,countryFilter]);
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
   const filteredT=TRAINERS.filter(tr=>trainerF==='All'||tr.style.includes(trainerF)).sort((a,b)=>b.rating-a.rating);

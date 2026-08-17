@@ -754,6 +754,31 @@ export default function AdminPanel({
             {adminTab==='events'&&(
               <div>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:12}}>📅 EVENTS VERWALTEN</div>
+                {events.length>0&&(()=>{
+                  const alleTeilnahmen=events.flatMap(ev=>(eventParticipants[ev.id]||[]).map(p=>({...p,eventPrice:Number(ev.price)||0})));
+                  const gesamtAngemeldet=alleTeilnahmen.length;
+                  const gesamtUmsatz=alleTeilnahmen.reduce((s,p)=>s+(p.paid?(Number(p.amount_paid)||p.eventPrice||0):0),0);
+                  const offeneZahlungen=alleTeilnahmen.filter(p=>!p.paid&&p.eventPrice>0).length;
+                  if(gesamtAngemeldet===0)return null;
+                  return(
+                    <div style={{display:'flex',gap:8,marginBottom:12}}>
+                      <div style={{flex:1,background:darkMode?'#1a1a1a':'#f9f9f9',borderRadius:10,padding:'10px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),textAlign:'center'}}>
+                        <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,fontWeight:700,fontFamily:'Rajdhani,sans-serif'}}>{gesamtAngemeldet}</div>
+                        <div style={{color:'#888',fontSize:9}}>ANMELDUNGEN GESAMT</div>
+                      </div>
+                      <div style={{flex:1,background:darkMode?'#1a1a1a':'#f9f9f9',borderRadius:10,padding:'10px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),textAlign:'center'}}>
+                        <div style={{color:'#27ae60',fontSize:18,fontWeight:700,fontFamily:'Rajdhani,sans-serif'}}>{gesamtUmsatz.toFixed(2)}€</div>
+                        <div style={{color:'#888',fontSize:9}}>EINGENOMMEN</div>
+                      </div>
+                      {offeneZahlungen>0&&(
+                        <div style={{flex:1,background:darkMode?'#2a1515':'#fdf0ef',borderRadius:10,padding:'10px',border:'1px solid #e74c3c33',textAlign:'center'}}>
+                          <div style={{color:'#e74c3c',fontSize:18,fontWeight:700,fontFamily:'Rajdhani,sans-serif'}}>{offeneZahlungen}</div>
+                          <div style={{color:'#888',fontSize:9}}>OFFEN</div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 <button onClick={()=>loadEvents(session)} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:12}}>🔄 EVENTS LADEN</button>
                 {events.length===0?(
                   <div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>{t.noEvents}</div>
@@ -797,10 +822,26 @@ export default function AdminPanel({
                           </div>
                           {parts.length>0&&(
                             <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
-                              <div style={{color:'#aaa',fontSize:9,letterSpacing:1,marginBottom:5}}>ANGEMELDETE TEILNEHMER</div>
-                              <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                                <div style={{color:'#aaa',fontSize:9,letterSpacing:1}}>ANGEMELDETE TEILNEHMER ({parts.length})</div>
+                                {ev.price>0&&(()=>{
+                                  const bezahltCount=parts.filter(p=>p.paid).length;
+                                  const summe=parts.reduce((s,p)=>s+(p.paid?(Number(p.amount_paid)||Number(ev.price)||0):0),0);
+                                  return <div style={{color:'#27ae60',fontSize:9,fontWeight:700}}>{bezahltCount}/{parts.length} bezahlt · {summe.toFixed(2)} €</div>;
+                                })()}
+                              </div>
+                              <div style={{display:'flex',flexDirection:'column',gap:4}}>
                                 {parts.map((p,i)=>(
-                                  <div key={i} style={{background:darkMode?'#2a2a2a':'#f5f5f5',borderRadius:6,padding:'3px 8px',fontSize:10,color:darkMode?'#aaa':'#555'}}>{p.profiles?.name||p.user_id?.slice(0,8)+'...'}</div>
+                                  <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:darkMode?'#2a2a2a':'#f5f5f5',borderRadius:6,padding:'5px 9px'}}>
+                                    <span style={{fontSize:11,color:darkMode?'#ddd':'#333'}}>{p.profiles?.name||p.user_id?.slice(0,8)+'...'}</span>
+                                    {ev.price>0?(
+                                      p.paid
+                                        ?<span style={{fontSize:10,fontWeight:700,color:'#27ae60'}}>✅ {(Number(p.amount_paid)||Number(ev.price)||0).toFixed(2)} €</span>
+                                        :<span style={{fontSize:10,fontWeight:700,color:'#e74c3c'}}>❌ Nicht bezahlt</span>
+                                    ):(
+                                      <span style={{fontSize:10,color:'#888'}}>Kostenlos</span>
+                                    )}
+                                  </div>
                                 ))}
                               </div>
                             </div>
