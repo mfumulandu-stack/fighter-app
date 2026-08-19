@@ -375,14 +375,14 @@ function MainApp(){
     if(tab==='ranking'&&session){
       setRankingLoading(true);
       // Erst mit Session Token versuchen
-      fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=2000',{
+      fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&is_brand=neq.true&order=created_at.desc&limit=2000',{
         headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
       }).then(r=>r.json()).then(data=>{
         if(Array.isArray(data)){
           setAllProfiles(data);
           setRankingLoading(false);
         } else {
-          return fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=2000',{
+          return fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&is_brand=neq.true&order=created_at.desc&limit=2000',{
             headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
           }).then(r=>r.json()).then(d=>{
             if(Array.isArray(d))setAllProfiles(d);
@@ -874,7 +874,7 @@ function MainApp(){
     try{
       const token=s?.token||session?.token;
       const profileFields='id,user_id,name,age,city,gym,style,avatar_url,weight,weight_class,is_pro,country,gender,belt,wins,losses,draws,ko,last_seen,lat,lon,record_verified,banned';
-      const resp=await fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=2000&select='+profileFields,{
+      const resp=await fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&is_brand=neq.true&order=created_at.desc&limit=2000&select='+profileFields,{
         headers:{apikey:SUPA_KEY,Authorization:'Bearer '+token}
       });
       const data=await resp.json();
@@ -883,7 +883,7 @@ function MainApp(){
       }else{
         // Fallback mit anon key
         try{
-          const r2=await fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&order=created_at.desc&limit=500&select='+profileFields,{
+          const r2=await fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&is_brand=neq.true&order=created_at.desc&limit=500&select='+profileFields,{
             headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
           });
           const d2=await r2.json();
@@ -903,7 +903,7 @@ function MainApp(){
       const iAlreadyLiked=new Set(Array.isArray(mySwipes)?mySwipes.filter(x=>x.direction==='like').map(x=>x.target_id):[]);
       // Profile dazu laden
       const ids=likes.map(l=>l.swiper_id);
-      const profiles=await dbSelect('profiles','id=in.('+ids.join(',')+')'+'&banned=neq.true&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery,bio,record_verified,history_public,banned,social_url',s.token);
+      const profiles=await dbSelect('profiles','id=in.('+ids.join(',')+')'+'&banned=neq.true&is_brand=neq.true&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery,bio,record_verified,history_public,banned,social_url',s.token);
       if(!Array.isArray(profiles))return;
       // Bereits gematchte UND bereits von mir gelikte rausfiltern
       const matchedIds=new Set(dbMatches.map(m=>m.profile_a_id===myP.id?m.profile_b_id:m.profile_a_id));
@@ -933,10 +933,10 @@ function MainApp(){
 
   async function loadRealFighters(s,myP,isInitial=false){
     try{
-      let all = await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true&order=created_at.desc&limit=2000&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery',s.token);
+      let all = await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true&is_brand=neq.true&order=created_at.desc&limit=2000&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery',s.token);
       if(!Array.isArray(all)||all.length===0){
         try{
-          const r=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=neq.'+s.userId+'&banned=neq.true&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
+          const r=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=neq.'+s.userId+'&banned=neq.true&is_brand=neq.true&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
           all=await r.json();
         }catch{}
       }
@@ -1635,6 +1635,26 @@ function MainApp(){
   async function saveProfile(){
     if(!session)return;
     setSaving(true);
+
+    // Marken-Konto: komplett eigener, kurzer Pfad - kein Foto, kein
+    // Gewicht/Alter/Stil noetig, landet direkt in der eingeschraenkten
+    // Brand-Ansicht statt im normalen Fighter-Setup.
+    if(profile.isBrand){
+      try{
+        const d={user_id:session.userId,name:profile.companyName,is_brand:true,country:profile.country||'DE'};
+        let res;
+        if(myProfile){
+          res=await dbUpdate('profiles',d,'user_id=eq.'+session.userId,session.token);
+        }else{
+          res=await dbInsert('profiles',d,session.token);
+        }
+        if(Array.isArray(res)&&res[0])setMyProfile(res[0]);
+        setScreen('main');
+      }catch(e){showMsg('Fehler: '+e.message);}
+      setSaving(false);
+      return;
+    }
+
     // Falls Foto nur als Preview vorhanden aber noch nicht hochgeladen → jetzt hochladen
     let finalAvatarUrl = avatarUrl;
     if(avatarPreview&&!avatarUrl){
@@ -1664,6 +1684,7 @@ function MainApp(){
       style:profile.style,
       belt:profile.belt||null,
       is_coach:!!profile.isCoach,
+      is_brand:false,
       coach_gym:profile.coachGym||null,
       coach_styles:profile.coachStyles||null,
       coach_experience:parseInt(profile.coachExperience)||null,
@@ -2121,7 +2142,10 @@ function MainApp(){
       setRecentSwiped(prev=>[{profile:top,dir:'like'},...prev].slice(0,4));
       sessionSwipedRef.current.add(top.id);
       setSwipeVersion(v=>v+1);
-      if(session&&myProfile&&!String(top.id).startsWith('demo_')){
+      // Marken-Konten swipen normal (Animation, naechste Karte bleiben
+      // gleich), aber nichts wird gespeichert und es entstehen nie echte
+      // Matches.
+      if(session&&myProfile&&!myProfile.is_brand&&!String(top.id).startsWith('demo_')){
         try{
           await dbInsert('swipes',{swiper_id:myProfile.id,target_id:top.id,direction:'like'},session.token);
           const mutual=await dbSelect('swipes','swiper_id=eq.'+top.id+'&target_id=eq.'+myProfile.id+'&direction=eq.like',session.token);
@@ -2182,7 +2206,7 @@ function MainApp(){
       setRecentSwiped(prev=>[{profile:top,dir:'pass'},...prev].slice(0,4));
       sessionSwipedRef.current.add(top.id);
       setSwipeVersion(v=>v+1);
-      if(session&&myProfile&&!String(top.id).startsWith('demo_')){try{await dbInsert('swipes',{swiper_id:myProfile.id,target_id:top.id,direction:'pass'},session.token);}catch{}}
+      if(session&&myProfile&&!myProfile.is_brand&&!String(top.id).startsWith('demo_')){try{await dbInsert('swipes',{swiper_id:myProfile.id,target_id:top.id,direction:'pass'},session.token);}catch{}}
     }
     setTimeout(()=>{
       const swipedId=top?.id;
@@ -2261,6 +2285,11 @@ function MainApp(){
       .filter(f=>(f.wins||0)+(f.losses||0)+(f.draws||0)>0)
       .filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF))))
       .sort((a,b)=>{
+        // Guertelfarbe (nur bei BJJ/Karate/Taekwondo/Judo relevant) zaehlt
+        // als Bonus mit rein - Weiss=0 bis Schwarz=7 Punkte. Bewusst kein
+        // Ersatz fuer die Kampf-Bilanz, sondern ein zusaetzlicher Faktor:
+        // ein Schwarzgurt mit aehnlicher Bilanz steht leicht vor jemandem
+        // ohne Gurt oder mit niedrigerem Rang.
         const beltScore=f=>{const i=BELT_RANKS.indexOf(f.belt);return i>=0?i:0;};
         const scoreA=(a.wins*3-a.losses*2+a.draws)+beltScore(a);
         const scoreB=(b.wins*3-b.losses*2+b.draws)+beltScore(b);
@@ -2574,6 +2603,23 @@ nicht öffentlich gemacht</div>
   );
 
   if(!session)return <AuthScreen onSession={handleSession} appLang={appLang}/>;
+  // Marken-Konten sehen die App komplett normal (Swipe, Rangliste, Gyms,
+  // Chat) - nur echte Matches/Swipes werden fuer sie nie gespeichert (siehe
+  // doSwipe). Keine eigene eingeschraenkte Ansicht mehr noetig.
+  if(profile.isBrand&&!myProfile)return(
+    <div style={{height:'100dvh',overflowY:'auto',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'40px 20px'}}>
+      <div className='rj' style={{fontSize:48,color:'#1a1a1a',letterSpacing:5}}>FIGHTER</div>
+      <div style={{color:'#2980b9',fontSize:11,letterSpacing:3,marginTop:5,fontWeight:700,marginBottom:30}}>MARKEN-PARTNER</div>
+      <div style={{width:'100%',maxWidth:340}}>
+        <Lbl>Firmenname *</Lbl>
+        <Inp placeholder='z.B. Winnas Nutrition' value={profile.companyName||''} onChange={v=>setProfile(p=>({...p,companyName:v}))}/>
+        <button onClick={saveProfile} disabled={!profile.companyName||saving}
+          style={{width:'100%',marginTop:14,padding:'13px',borderRadius:8,background:profile.companyName?'linear-gradient(135deg,#2980b9,#5dade2)':'#ddd',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:profile.companyName?'pointer':'default'}}>
+          {saving?'...':'ALS MARKE FORTFAHREN'}
+        </button>
+      </div>
+    </div>
+  );
   if(activeChat&&myProfile&&!viewProfile)return(<><style>{css}</style><ChatOverlay match={activeChat} myProfileId={myProfile.id} myName={myProfile.name} token={session.token} onClose={()=>setActiveChat(null)} onViewProfile={(p)=>{setViewProfile(p);}} darkMode={darkMode} t={t} appLang={appLang} isAdmin={isAdmin}/></>);
 
   if(screen==='setup')return(
@@ -2593,13 +2639,28 @@ nicht öffentlich gemacht</div>
             <div style={{background:'#f8f4ff',border:'1px solid #e0d4f7',borderRadius:12,padding:'12px 14px'}}>
               <div style={{color:'#1a1a1a',fontSize:12,fontWeight:700,marginBottom:8}}>Was trifft auf dich zu?</div>
               <div style={{display:'flex',gap:8}}>
-                <button type='button' onClick={()=>setProfile(p=>({...p,isFighter:!p.isFighter}))}
-                  style={{flex:1,padding:'9px',borderRadius:8,border:'2px solid '+(profile.isFighter!==false?RED:'#ddd'),background:profile.isFighter!==false?'#fdf0ef':'#fff',color:profile.isFighter!==false?RED:'#888',fontWeight:700,fontSize:12,cursor:'pointer'}}>🥊 Kämpfer</button>
-                <button type='button' onClick={()=>setProfile(p=>({...p,isCoach:!p.isCoach}))}
-                  style={{flex:1,padding:'9px',borderRadius:8,border:'2px solid '+(profile.isCoach?'#8e44ad':'#ddd'),background:profile.isCoach?'#f5edfc':'#fff',color:profile.isCoach?'#8e44ad':'#888',fontWeight:700,fontSize:12,cursor:'pointer'}}>🎓 Trainer</button>
+                <button type='button' onClick={()=>setProfile(p=>({...p,isFighter:!p.isFighter,isBrand:false}))}
+                  style={{flex:1,padding:'9px',borderRadius:8,border:'2px solid '+(profile.isFighter!==false&&!profile.isBrand?RED:'#ddd'),background:profile.isFighter!==false&&!profile.isBrand?'#fdf0ef':'#fff',color:profile.isFighter!==false&&!profile.isBrand?RED:'#888',fontWeight:700,fontSize:12,cursor:'pointer'}}>🥊 Kämpfer</button>
+                <button type='button' onClick={()=>setProfile(p=>({...p,isCoach:!p.isCoach,isBrand:false}))}
+                  style={{flex:1,padding:'9px',borderRadius:8,border:'2px solid '+(profile.isCoach&&!profile.isBrand?'#8e44ad':'#ddd'),background:profile.isCoach&&!profile.isBrand?'#f5edfc':'#fff',color:profile.isCoach&&!profile.isBrand?'#8e44ad':'#888',fontWeight:700,fontSize:12,cursor:'pointer'}}>🎓 Trainer</button>
+                <button type='button' onClick={()=>setProfile(p=>({...p,isBrand:!p.isBrand}))}
+                  style={{flex:1,padding:'9px',borderRadius:8,border:'2px solid '+(profile.isBrand?'#2980b9':'#ddd'),background:profile.isBrand?'#eaf2fa':'#fff',color:profile.isBrand?'#2980b9':'#888',fontWeight:700,fontSize:12,cursor:'pointer'}}>🏢 Marke</button>
               </div>
-              <div style={{color:'#999',fontSize:10,marginTop:6}}>Beides ist möglich — als Trainer kommen am Ende noch ein paar zusätzliche Fragen.</div>
+              <div style={{color:'#999',fontSize:10,marginTop:6}}>{profile.isBrand?'Als Marken-Partner siehst du die App, kannst aber nicht als Kämpfer teilnehmen.':'Beides ist möglich — als Trainer kommen am Ende noch ein paar zusätzliche Fragen.'}</div>
             </div>
+            {profile.isBrand?(
+              <div style={{display:'flex',flexDirection:'column',gap:13}}>
+                <div>
+                  <Lbl>Firmenname *</Lbl>
+                  <Inp placeholder='z.B. Winnas Nutrition' value={profile.companyName||''} onChange={v=>setProfile(p=>({...p,companyName:v}))}/>
+                </div>
+                <button onClick={saveProfile} disabled={!profile.companyName||saving}
+                  style={{width:'100%',padding:'13px',borderRadius:8,background:profile.companyName?`linear-gradient(135deg,#2980b9,#5dade2)`:'#ddd',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:profile.companyName?'pointer':'default'}}>
+                  {saving?'...':'ALS MARKE FORTFAHREN'}
+                </button>
+              </div>
+            ):(
+            <>
             <div style={{display:'flex',justifyContent:'center',marginBottom:8}}> 
               <label style={{cursor:'pointer',textAlign:'center'}}>
                 <input type='file' accept='image/*' onChange={handlePhoto} style={{display:'none'}}/>
@@ -2650,6 +2711,8 @@ nicht öffentlich gemacht</div>
                 </button>
               ))}
             </div>
+            </>
+            )}
           </div>
         )}
         {step===2&&(
