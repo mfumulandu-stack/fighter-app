@@ -870,6 +870,23 @@ function MainApp(){
     }catch{}
   }
 
+  // Markiert alle ungelesenen Team-Nachrichten in EINER Anfrage.
+  // Vorher lief dafuer eine Schleife mit einem Aufruf pro Nachricht.
+  async function markAdminMessagesRead(){
+    const ids=adminMessages.filter(m=>!m.read).map(m=>m.id);
+    if(ids.length===0)return;
+    // Sofort in der Anzeige umschalten, damit das Abzeichen nicht stehen
+    // bleibt, falls die Anfrage haengt.
+    setAdminMessages(prev=>prev.map(m=>({...m,read:true})));
+    try{
+      await fetch(SUPA_URL+'/rest/v1/admin_messages?id=in.('+ids.join(',')+')',{
+        method:'PATCH',
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+        body:JSON.stringify({read:true})
+      });
+    }catch(e){console.error('Team-Nachrichten als gelesen markieren fehlgeschlagen',e);}
+  }
+
   async function loadAllProfiles(s){
     try{
       const token=s?.token||session?.token;
@@ -3547,6 +3564,34 @@ nicht öffentlich gemacht</div>
               <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3}}>{t.messages}</div>
               {dbMatches.length>0&&<div style={{color:'#aaa',fontSize:11}}>{dbMatches.length} Match{dbMatches.length!==1?'es':''}</div>}
             </div>
+            {/* Nachrichten vom Fighter Team — stehen wie ein normaler Chat
+                ganz oben, aber optisch abgesetzt. Der Tipp oeffnet die
+                News-Ansicht, wo die vollstaendigen Nachrichten schon
+                dargestellt werden - bewusst keine zweite Anzeige dafuer. */}
+            {adminMessages.length>0&&(()=>{
+              const ungelesen=adminMessages.filter(m=>!m.read).length;
+              const neueste=adminMessages[0];
+              return(
+                <div onClick={async()=>{setShowNews(true);await markAdminMessagesRead();}}
+                  style={{display:'flex',alignItems:'center',gap:12,background:darkMode?'#2a1414':'#fdecea',borderRadius:13,padding:'13px',marginBottom:8,border:'1px solid '+RED+'44',cursor:'pointer'}}>
+                  <div style={{width:54,height:54,borderRadius:'50%',background:RED,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24}}>📢</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <span style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15}}>Fighter App Team</span>
+                      <span style={{background:RED,borderRadius:20,padding:'1px 6px',color:'#fff',fontSize:9,fontWeight:700}}>SYSTEM</span>
+                    </div>
+                    <div style={{color:darkMode?'#aaa':'#666',fontSize:12,marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                      {neueste?.message||''}
+                    </div>
+                  </div>
+                  {ungelesen>0&&(
+                    <div style={{flexShrink:0,minWidth:22,height:22,borderRadius:11,background:'#27ae60',color:'#fff',fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>
+                      {ungelesen}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
             {dbMatches.length>3&&(
               <div style={{position:'relative',marginBottom:10}}>
                 <input
@@ -4738,12 +4783,7 @@ nicht öffentlich gemacht</div>
             ))}
             <button onClick={async()=>{
               setShowAdminMsg(false);
-              try{
-                const ids=adminMessages.filter(m=>!m.read).map(m=>m.id);
-                for(const id of ids){
-                  await fetch(SUPA_URL+'/rest/v1/admin_messages?id=eq.'+id,{method:'PATCH',headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},body:JSON.stringify({read:true})});
-                }
-              }catch{}
+              await markAdminMessagesRead();
             }} style={{width:'100%',padding:'12px',borderRadius:10,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginTop:4}}>
               VERSTANDEN ✓
             </button>

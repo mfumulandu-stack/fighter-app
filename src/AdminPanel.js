@@ -946,11 +946,25 @@ export default function AdminPanel({
                         <button onClick={()=>saveAsTemplate(messagingText)} style={{flex:1,padding:'7px',borderRadius:6,background:'none',border:'1px solid '+(darkMode?'#333':'#ccc'),color:darkMode?'#999':'#666',fontSize:11,fontWeight:700,cursor:'pointer'}}>💾 Als Vorlage</button>
                         <button onClick={async()=>{
                           if(!messagingText.trim())return;
+                          // u.user_id (Anmelde-ID), nicht u.id (Profil-ID) -
+                          // siehe Erklaerung beim Broadcast weiter unten.
+                          if(!u.user_id){showMsg('❌ Diesem Profil fehlt die Anmelde-ID');return;}
                           try{
-                            await adminFetch(SUPA_URL+'/rest/v1/admin_messages',{
-                              method:'POST',headers:{Prefer:'return=minimal'},
-                              body:JSON.stringify({user_id:u.id,message:messagingText,from_admin:true,read:false})
+                            const r=await adminFetch(SUPA_URL+'/rest/v1/admin_messages',{
+                              method:'POST',headers:{Prefer:'return=representation'},
+                              body:JSON.stringify({user_id:u.user_id,message:messagingText,from_admin:true,read:false})
                             },session?.token);
+                            if(!r.ok){
+                              const d=await r.text();
+                              console.error('Nachricht senden fehlgeschlagen',r.status,d);
+                              showMsg('❌ Senden fehlgeschlagen ('+r.status+')');
+                              return;
+                            }
+                            const angelegt=await r.json().catch(()=>[]);
+                            if(!Array.isArray(angelegt)||angelegt.length===0){
+                              showMsg('❌ Nachricht wurde nicht angelegt');
+                              return;
+                            }
                             showMsg('✅ Nachricht gesendet an '+(u.name||'User'));
                             setMessagingUserId(null);setMessagingText('');
                           }catch(e){showMsg('Fehler: '+e.message);}
@@ -1374,24 +1388,42 @@ export default function AdminPanel({
                   if(!adminBroadcast.trim()){showMsg('Nachricht eingeben');return;}
                   setAdminSaving(true);
                   try{
-                    // Alle User laden
-                    const resp=await adminFetch(SUPA_URL+'/rest/v1/profiles?select=id&banned=neq.true&limit=500',{},session?.token);
+                    // Alle User laden. WICHTIG: user_id, nicht id!
+                    // admin_messages.user_id muss die ANMELDE-ID enthalten,
+                    // denn die App liest die Nachrichten mit session.userId
+                    // (= auth.uid()). Hier stand frueher profiles.id, also die
+                    // PROFIL-ID - und die beiden sind bei KEINEM der Profile
+                    // gleich. Dadurch wurde zwar fuer jeden Nutzer eine Zeile
+                    // geschrieben, aber niemand konnte sie je sehen.
+                    const resp=await adminFetch(SUPA_URL+'/rest/v1/profiles?select=user_id&banned=neq.true&limit=5000',{},session?.token);
                     const users=await resp.json();
                     if(!Array.isArray(users)||users.length===0){showMsg('Keine User gefunden');setAdminSaving(false);return;}
-                    // Für jeden User eine admin_message anlegen - in Gruppen von 50
-                    // GLEICHZEITIG statt einzeln nacheinander (viel schneller)
-                    let sent=0;
-                    const broadcastBatchSize=50;
-                    for(let i=0;i<users.length;i+=broadcastBatchSize){
-                      const batch=users.slice(i,i+broadcastBatchSize);
-                      const results=await Promise.all(batch.map(u=>
-                        adminFetch(SUPA_URL+'/rest/v1/admin_messages',{
-                          method:'POST',
-                          headers:{Prefer:'return=minimal'},
-                          body:JSON.stringify({user_id:u.id,message:adminBroadcast,from_admin:true,read:false})
-                        },session?.token).then(()=>true).catch(()=>false)
-                      ));
-                      sent+=results.filter(Boolean).length;
+                    const empfaenger=users.map(u=>u.user_id).filter(Boolean);
+                    if(empfaenger.length===0){showMsg('Keine gueltigen Empfaenger');setAdminSaving(false);return;}
+                    // EIN einziger Aufruf mit allen Zeilen statt einer pro
+                    // Nutzer. Bei 500 Nutzern waren das vorher 500 Anfragen.
+                    const insertResp=await adminFetch(SUPA_URL+'/rest/v1/admin_messages',{
+                      method:'POST',
+                      headers:{Prefer:'return=representation'},
+                      body:JSON.stringify(empfaenger.map(uid=>({
+                        user_id:uid,message:adminBroadcast,from_admin:true,read:false
+                      })))
+                    },session?.token);
+                    if(!insertResp.ok){
+                      const detail=await insertResp.text();
+                      console.error('Broadcast fehlgeschlagen',insertResp.status,detail);
+                      showMsg('❌ Broadcast fehlgeschlagen ('+insertResp.status+')');
+                      setAdminSaving(false);
+                      return;
+                    }
+                    // Ergebnis pruefen statt Erfolg zu behaupten.
+                    const angelegt=await insertResp.json().catch(()=>[]);
+                    const sent=Array.isArray(angelegt)?angelegt.length:0;
+                    if(sent===0){
+                      console.error('Broadcast: 0 Zeilen angelegt',{empfaenger:empfaenger.length});
+                      showMsg('❌ Broadcast: keine Nachricht angelegt');
+                      setAdminSaving(false);
+                      return;
                     }
                     // Echte Push-Benachrichtigung an alle senden (zusätzlich zur In-App-Nachricht)
                     let pushInfo='';
