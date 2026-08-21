@@ -1187,6 +1187,71 @@ export default function AdminPanel({
                   {equipLoading?'Laden...':'🔄 ALLE PRODUKTE NEU LADEN'}
                 </button>
 
+                {/* PARTNER-LINKS — je Marke einer, nicht je Produkt */}
+                {(()=>{
+                  const sichtbar=equipmentList.filter(eq=>(eq.item_type||'equipment')===equipmentTypeFilter);
+                  // Schreibweisen zusammenfassen. In den Daten steht dieselbe
+                  // Marke mehrfach ("14All" / "14ALL", "Illstinct " mit
+                  // Leerzeichen am Ende). Ohne Zusammenfassung gaebe es
+                  // mehrere Knoepfe fuer denselben Partner.
+                  const gruppen={};
+                  sichtbar.forEach(eq=>{
+                    const roh=(eq.brand||'').trim();
+                    if(!roh)return;
+                    const k=roh.toLowerCase();
+                    gruppen[k]=gruppen[k]||{schreibweisen:{},produkte:0};
+                    gruppen[k].schreibweisen[roh]=(gruppen[k].schreibweisen[roh]||0)+1;
+                    gruppen[k].produkte++;
+                  });
+                  // Angezeigt und verlinkt wird die haeufigste Schreibweise.
+                  const marken=Object.keys(gruppen).map(k=>({
+                    name:Object.entries(gruppen[k].schreibweisen)
+                      .sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'de'))[0][0],
+                    produkte:gruppen[k].produkte
+                  })).sort((a,b)=>a.name.localeCompare(b.name,'de'));
+                  if(marken.length===0)return null;
+
+                  async function kopiere(marke){
+                    // WICHTIG: getrimmt verlinken. Das Partner-Dashboard sucht
+                    // mit brand=ilike.*name* - ein Leerzeichen am Ende wuerde
+                    // zu "%Golden Nation %" und faende nichts.
+                    const link='https://fighterapp.de/?partner='+encodeURIComponent(marke);
+                    try{
+                      await navigator.clipboard.writeText(link);
+                      showMsg('🔗 Link kopiert!');
+                    }catch(e){
+                      // Zwischenablage kann fehlschlagen (aelterer Browser,
+                      // kein sicherer Kontext). Dann den Link zeigen statt
+                      // faelschlich Erfolg zu melden.
+                      console.error('Partner-Link kopieren fehlgeschlagen',e);
+                      window.prompt('Kopieren nicht möglich — Link von Hand kopieren:',link);
+                    }
+                  }
+
+                  return(
+                    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'12px',marginBottom:12,border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,fontWeight:700,marginBottom:3}}>🔗 PARTNER-LINKS ({marken.length})</div>
+                      <div style={{color:'#888',fontSize:11,marginBottom:9,lineHeight:1.5}}>
+                        Login-freie Klick-Statistik für die Marke. Link kopieren und dem Partner schicken.
+                      </div>
+                      <div style={{display:'flex',flexDirection:'column',gap:5}}>
+                        {marken.map(m=>(
+                          <div key={m.name} style={{display:'flex',alignItems:'center',gap:8,background:darkMode?'#111':'#f7f7f9',borderRadius:7,padding:'7px 9px'}}>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{m.name}</div>
+                              <div style={{color:'#888',fontSize:10}}>{m.produkte} {m.produkte===1?'Produkt':'Produkte'}</div>
+                            </div>
+                            <button onClick={()=>kopiere(m.name)}
+                              style={{flexShrink:0,padding:'6px 10px',borderRadius:6,background:darkMode?'#2a2a2a':'#eee',border:'none',color:darkMode?'#fff':'#333',fontSize:11,fontWeight:700,cursor:'pointer'}}>
+                              🔗 Kopieren
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* PRODUKT LISTE */}
                 {equipmentList.filter(eq=>(eq.item_type||'equipment')===equipmentTypeFilter).map(eq=>(
                   <div key={eq.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'12px',marginBottom:8,border:'1px solid '+(eq.featured?'#d4a01744':(darkMode?'#2a2a2a':'#eee'))}}>
