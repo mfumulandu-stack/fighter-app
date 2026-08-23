@@ -2690,8 +2690,8 @@ nicht öffentlich gemacht</div>
 
                   {avatarPreview&&<div style={{position:'absolute',bottom:4,right:4,background:'#27ae60',borderRadius:'50%',width:24,height:24,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,border:'2px solid #fff'}}>✓</div>}
                 </div>
-                <div style={{color:avatarPreview?'#27ae60':'#888',fontSize:12,marginTop:8,fontWeight:700}}>{avatarPreview?'Foto hochgeladen ✓':'Profilbild hinzufügen (optional)'}</div>
-                {!avatarPreview&&<div style={{color:'#bbb',fontSize:10,marginTop:2}}>{appLang==='FR'?'Sans photo, ton profil apparaît moins souvent aux autres':appLang==='EN'?'Without a photo, your profile appears less to others':'Ohne Foto taucht dein Profil bei anderen nicht im Swipe-Stapel auf'}</div>}
+                <div style={{color:avatarPreview?'#27ae60':RED,fontSize:12,marginTop:8,fontWeight:700}}>{avatarPreview?'Foto hochgeladen ✓':'Profilbild hinzufügen (erforderlich)'}</div>
+                {!avatarPreview&&<div style={{color:'#bbb',fontSize:10,marginTop:2}}>{appLang==='FR'?'Une photo est obligatoire pour continuer':appLang==='EN'?'A photo is required to continue':'Ein Profilbild ist zum Fortfahren nötig'}</div>}
               </label>
             </div>
             <Lbl>{appLang==='FR'?'Votre nom':appLang==='EN'?'Your name':'Dein Name'}</Lbl><Inp placeholder='z.B. Max Mueller' value={profile.name} onChange={v=>setProfile(p=>({...p,name:v}))}/>
