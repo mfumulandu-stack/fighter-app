@@ -1980,6 +1980,12 @@ function MainApp(){
   const candidatesBase=cards
     .filter(f=>!blockedUsers.includes(f.id))
     .filter(f=>!f.banned)
+    .filter(f=>{
+      const myGenderFilter=profile.gender||myProfile?.gender||'male';
+      const fGenderFilter=f.gender||'male';
+      if(myGenderFilter==='other'||fGenderFilter==='other')return true;
+      return fGenderFilter===myGenderFilter;
+    })
     // Land-Filter bleibt manuell (Mein Land/Weltweit-Umschalter)
     .filter(f=>{
       if(countryFilter==='world')return true;
