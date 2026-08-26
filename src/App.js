@@ -1161,7 +1161,7 @@ function MainApp(){
         body:JSON.stringify({event_id:eventId,user_id:myProfile.id,paid:false,brought_friend_id:friendProfileId})
       });
       if(r.ok){
-        showMsg('🤝 Angemeldet! Sobald dein Freund auch zahlt, bekommst du 10€ Rabatt.');
+        showMsg('Angemeldet! Sobald dein Freund auch zahlt, bekommst du 10€ Rabatt.');
         loadEvents(session);
       }else{
         const t=await r.text().catch(()=>'');
@@ -4602,7 +4602,7 @@ nicht öffentlich gemacht</div>
                               {ev.price>0&&!isFull&&(
                                 <button onClick={()=>{setFriendPickerEventId(ev.id);setFriendSearchQuery('');}}
                                   style={{padding:'10px 14px',borderRadius:10,background:'transparent',border:'1px solid #d4a017',color:'#d4a017',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer',whiteSpace:'nowrap'}}>
-                                  🤝 BAF
+                                  BAF
                                 </button>
                               )}
                               </>
@@ -5097,7 +5097,7 @@ nicht öffentlich gemacht</div>
       {friendPickerEventId&&(
         <div onClick={()=>setFriendPickerEventId(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:900,display:'flex',alignItems:'flex-end'}}>
           <div onClick={e=>e.stopPropagation()} style={{width:'100%',background:darkMode?'#0d0d0d':'#fff',borderRadius:'20px 20px 0 0',padding:'20px',maxHeight:'70vh',display:'flex',flexDirection:'column'}}>
-            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:1,marginBottom:4}}>🤝 Freund mitbringen</div>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:1,marginBottom:4}}>Freund mitbringen</div>
             <div style={{color:'#888',fontSize:12,marginBottom:14,lineHeight:1.5}}>Wähle deinen Trainingspartner aus. Sobald er/sie sich auch anmeldet und bezahlt, bekommst du 10€ Rabatt.</div>
             <input placeholder='Namen suchen...' value={friendSearchQuery} onChange={e=>setFriendSearchQuery(e.target.value)}
               style={{width:'100%',padding:'11px 14px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#1a1a1a':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',marginBottom:10}}/>
