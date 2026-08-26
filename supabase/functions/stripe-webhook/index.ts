@@ -50,48 +50,107 @@ Deno.serve(async (req) => {
       const session = event.data.object;
       const eventId = session.metadata?.event_id;
       const profileId = session.metadata?.profile_id;
+      const bafParticipantId = session.metadata?.baf_participant_id;
       const amountPaid = (session.amount_total || 0) / 100;
 
       if (eventId && profileId) {
-        const insert = await fetch(`${SUPA_URL}/rest/v1/event_participants`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: SUPA_SERVICE_KEY,
-            Authorization: `Bearer ${SUPA_SERVICE_KEY}`,
-            Prefer: "return=minimal",
-          },
-          body: JSON.stringify({
-            event_id: eventId,
-            user_id: profileId,
-            paid: true,
-            stripe_session_id: session.id,
-            amount_paid: amountPaid,
-          }),
-        });
+        // Falls diese Zahlung ein Freund-mitbringen-Rabatt war, existiert
+        // schon eine wartende Zeile (angelegt beim Freund-Auswaehlen) - die
+        // wird jetzt aktualisiert statt eine zweite, doppelte Zeile
+        // anzulegen.
+        let participantRowId = null;
+        if (bafParticipantId) {
+          const patch = await fetch(
+            `${SUPA_URL}/rest/v1/event_participants?id=eq.${bafParticipantId}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                apikey: SUPA_SERVICE_KEY,
+                Authorization: `Bearer ${SUPA_SERVICE_KEY}`,
+                Prefer: "return=representation",
+              },
+              body: JSON.stringify({
+                paid: true,
+                stripe_session_id: session.id,
+                amount_paid: amountPaid,
+              }),
+            },
+          );
+          if (patch.ok) {
+            const rows = await patch.json();
+            participantRowId = Array.isArray(rows) && rows[0] ? rows[0].id : bafParticipantId;
+          } else {
+            const detail = await patch.text();
+            console.error("KRITISCH: BAF-Zahlung erfolgt, aber Eintrag NICHT aktualisiert!", detail);
+            return new Response(JSON.stringify({ error: "BAF-Teilnehmer konnte nicht aktualisiert werden", detail }), { status: 500 });
+          }
+        } else {
+          const insert = await fetch(`${SUPA_URL}/rest/v1/event_participants`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: SUPA_SERVICE_KEY,
+              Authorization: `Bearer ${SUPA_SERVICE_KEY}`,
+              Prefer: "return=representation",
+            },
+            body: JSON.stringify({
+              event_id: eventId,
+              user_id: profileId,
+              paid: true,
+              stripe_session_id: session.id,
+              amount_paid: amountPaid,
+            }),
+          });
 
-        // WICHTIG: Ergebnis pruefen! Frueher wurde die Antwort ignoriert.
-        // Dadurch blieb monatelang unbemerkt, dass die Spalten paid,
-        // amount_paid und stripe_session_id in der Datenbank fehlten -
-        // der Eintrag schlug jedes Mal still fehl. Jemand haette bezahlen
-        // koennen, ohne angemeldet zu werden.
-        if (!insert.ok) {
-          const detail = await insert.text();
-          console.error(
-            "KRITISCH: Zahlung erfolgt, aber Teilnehmer NICHT eingetragen!",
-            "status:", insert.status,
-            "event_id:", eventId,
-            "profile_id:", profileId,
-            "stripe_session:", session.id,
-            "betrag:", amountPaid,
-            "antwort:", detail,
-          );
-          // 500 zurueckgeben, damit Stripe den Webhook erneut zustellt -
-          // sonst waere die Zahlung endgueltig verloren.
-          return new Response(
-            JSON.stringify({ error: "Teilnehmer konnte nicht eingetragen werden", detail }),
-            { status: 500 },
-          );
+          // WICHTIG: Ergebnis pruefen! Frueher wurde die Antwort ignoriert.
+          // Dadurch blieb monatelang unbemerkt, dass die Spalten paid,
+          // amount_paid und stripe_session_id in der Datenbank fehlten -
+          // der Eintrag schlug jedes Mal still fehl. Jemand haette bezahlen
+          // koennen, ohne angemeldet zu werden.
+          if (!insert.ok) {
+            const detail = await insert.text();
+            console.error(
+              "KRITISCH: Zahlung erfolgt, aber Teilnehmer NICHT eingetragen!",
+              "status:", insert.status,
+              "event_id:", eventId,
+              "profile_id:", profileId,
+              "stripe_session:", session.id,
+              "betrag:", amountPaid,
+              "antwort:", detail,
+            );
+            // 500 zurueckgeben, damit Stripe den Webhook erneut zustellt -
+            // sonst waere die Zahlung endgueltig verloren.
+            return new Response(
+              JSON.stringify({ error: "Teilnehmer konnte nicht eingetragen werden", detail }),
+              { status: 500 },
+            );
+          }
+          const rows = await insert.json();
+          participantRowId = Array.isArray(rows) && rows[0] ? rows[0].id : null;
+        }
+
+        // "Freund mitbringen": Falls jemand ANDERES genau diese Person
+        // (profileId) als mitgebrachten Freund fuer dasselbe Event
+        // eingetragen hat, wird deren wartender Eintrag jetzt freigeschaltet
+        // - sie koennen ab sofort zum reduzierten Preis bezahlen.
+        const unlockRes = await fetch(
+          `${SUPA_URL}/rest/v1/event_participants?event_id=eq.${eventId}&brought_friend_id=eq.${profileId}&paid=eq.false`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: SUPA_SERVICE_KEY,
+              Authorization: `Bearer ${SUPA_SERVICE_KEY}`,
+              Prefer: "return=minimal",
+            },
+            body: JSON.stringify({ baf_unlocked: true }),
+          },
+        );
+        if (!unlockRes.ok) {
+          // Nicht kritisch genug fuer einen 500er (die eigentliche Zahlung
+          // ist ja bereits sauber eingetragen) - aber fuers Debugging loggen.
+          console.error("Freund-Rabatt konnte nicht freigeschaltet werden:", await unlockRes.text());
         }
       }
     }

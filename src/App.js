@@ -292,6 +292,8 @@ function MainApp(){
   const [events,setEvents]=useState([]);
   const [eventsLoading,setEventsLoading]=useState(false);
   const [showCreateEvent,setShowCreateEvent]=useState(false);
+  const [friendPickerEventId,setFriendPickerEventId]=useState(null);
+  const [friendSearchQuery,setFriendSearchQuery]=useState('');
   const [eventParticipants,setEventParticipants]=useState({});
   const [newEvent,setNewEvent]=useState({title:'',description:'',event_type:'Sparring',city:'',address:'',event_date:'',event_time:'',max_participants:10,styles:[],price:''});
   // null = Anlegen, sonst die ID des Events, das gerade bearbeitet wird.
@@ -420,7 +422,8 @@ function MainApp(){
   // eine Session besteht - ganz unabhaengig davon, was der Nutzer gerade tut.
   useEffect(()=>{
     if(!session?.refresh_token)return;
-    const interval=setInterval(async()=>{
+    let retryTimeout=null;
+    async function doRefresh(){
       try{
         const r=await fetch(SUPA_URL+'/auth/v1/token?grant_type=refresh_token',{
           method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
@@ -431,10 +434,25 @@ function MainApp(){
           const newS={...session,token:data.access_token,refresh_token:data.refresh_token||session.refresh_token};
           setSession(newS);
           try{localStorage.setItem('fighter_v5',JSON.stringify(newS));}catch{}
+        }else{
+          // Erneuerung fehlgeschlagen - in 2 Minuten nochmal versuchen,
+          // statt bis zum naechsten 20-Minuten-Zyklus stumm zu warten.
+          retryTimeout=setTimeout(doRefresh,2*60*1000);
         }
-      }catch{}
-    },45*60*1000);
-    return ()=>clearInterval(interval);
+      }catch{
+        retryTimeout=setTimeout(doRefresh,2*60*1000);
+      }
+    }
+    // Alle 20 statt 45 Minuten - groesserer Sicherheitsabstand, falls der
+    // Timer durch einen inaktiven Tab/Standby mal verzoegert ausloest.
+    const interval=setInterval(doRefresh,20*60*1000);
+    // Zusaetzliche Absicherung: sobald der Tab nach einer Weile im
+    // Hintergrund wieder aktiv wird, sofort erneuern statt auf den naechsten
+    // Timer zu warten - Browser drosseln setInterval in Hintergrund-Tabs,
+    // das war vermutlich der Hauptgrund fuer die Ausloggen-Beschwerden.
+    function onVisible(){if(document.visibilityState==='visible')doRefresh();}
+    document.addEventListener('visibilitychange',onVisible);
+    return ()=>{clearInterval(interval);if(retryTimeout)clearTimeout(retryTimeout);document.removeEventListener('visibilitychange',onVisible);};
   },[session?.refresh_token]);
 
   useEffect(()=>{
@@ -1125,6 +1143,29 @@ function MainApp(){
         setActiveChat(m);
       }else{
         showMsg('❌ Chat konnte nicht geöffnet werden');
+      }
+    }catch(e){showMsg('❌ Fehler: '+e.message);}
+  }
+
+  // Legt eine "wartende" Anmeldung an: erst wenn der ausgewaehlte Freund
+  // sich ebenfalls fuer dasselbe Event anmeldet UND bezahlt, wird diese
+  // Zeile ueber den stripe-webhook freigeschaltet (baf_unlocked=true) - erst
+  // dann kann zum reduzierten Preis bezahlt werden.
+  async function bringFriend(eventId,friendProfileId){
+    if(!session||!myProfile||!friendProfileId)return;
+    try{
+      const token=await getFreshToken();
+      const r=await fetch(SUPA_URL+'/rest/v1/event_participants',{
+        method:'POST',
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+token,Prefer:'return=representation'},
+        body:JSON.stringify({event_id:eventId,user_id:myProfile.id,paid:false,brought_friend_id:friendProfileId})
+      });
+      if(r.ok){
+        showMsg('🤝 Angemeldet! Sobald dein Freund auch zahlt, bekommst du 10€ Rabatt.');
+        loadEvents(session);
+      }else{
+        const t=await r.text().catch(()=>'');
+        showMsg('❌ Fehler ('+r.status+'): '+t.slice(0,150));
       }
     }catch(e){showMsg('❌ Fehler: '+e.message);}
   }
@@ -2300,6 +2341,13 @@ function MainApp(){
         return true;
       })
       .filter(f=>(f.wins||0)+(f.losses||0)+(f.draws||0)>0)
+      // Nur mit verifiziertem Kampfrekord in der Rangliste - verhindert
+      // erfundene Bilanzen. Eigenes Profil zaehlt hier genauso wie alle
+      // anderen, kein Sonderfall.
+      .filter(f=>{
+        const rv=f.isMe?(profile.record_verified||myProfile?.record_verified):f.record_verified;
+        return rv==='verified';
+      })
       .filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF))))
       .sort((a,b)=>{
         // Guertelfarbe (nur bei BJJ/Karate/Taekwondo/Judo relevant) zaehlt
@@ -4431,6 +4479,9 @@ nicht öffentlich gemacht</div>
                   const parts=eventParticipants[ev.id]||[];
                   const meineTeilnahme=parts.find(p=>p.user_id===myProfile?.id);
                   const isJoined=!!meineTeilnahme;
+                  const wartetAufFreund=isJoined&&!meineTeilnahme.paid&&meineTeilnahme.brought_friend_id&&!meineTeilnahme.baf_unlocked;
+                  const freundHatBezahlt=isJoined&&!meineTeilnahme.paid&&meineTeilnahme.baf_unlocked;
+                  const mitgebrachterFreundName=wartetAufFreund?(allProfiles.find(p=>p.id===meineTeilnahme.brought_friend_id)?.name||'deinem Freund'):null;
                   // Bezahlte Tickets kann man nicht selbst zurueckgeben: das
                   // Loeschen der Zeile wuerde den Zahlungsnachweis vernichten,
                   // ohne dass Geld zurueckfliesst. Erstattung laeuft ueber den
@@ -4514,6 +4565,20 @@ nicht öffentlich gemacht</div>
                               }} style={{flex:1,padding:'10px',borderRadius:10,background:'transparent',border:'1px solid #e74c3c44',color:'#e74c3c',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
                                 🗑️ Löschen
                               </button>
+                            ):wartetAufFreund?(
+                              <div style={{flex:1,padding:'10px',borderRadius:10,background:darkMode?'#2a1f10':'#fff8e8',border:'1px solid #d4a01755',textAlign:'center'}}>
+                                <div style={{color:'#d4a017',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13}}>
+                                  ⏳ Warte auf {mitgebrachterFreundName}
+                                </div>
+                                <div style={{color:darkMode?'#888':'#999',fontSize:11,marginTop:2}}>
+                                  Sobald dein Freund zahlt, bekommst du 10€ Rabatt
+                                </div>
+                              </div>
+                            ):freundHatBezahlt?(
+                              <button onClick={()=>joinEvent(ev.id,ev.price)}
+                                style={{flex:1,padding:'10px',borderRadius:10,background:'linear-gradient(135deg,#27ae60,#2ecc71)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,letterSpacing:1,cursor:'pointer'}}>
+                                ✅ Freund hat gezahlt — jetzt für {Math.max(0,ev.price-10)}€ zahlen
+                              </button>
                             ):isJoined&&istBezahlt?(
                               <div style={{flex:1,padding:'10px',borderRadius:10,background:darkMode?'#12210f':'#f0faf0',border:'1px solid #27ae6044',textAlign:'center'}}>
                                 <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13}}>
@@ -4529,10 +4594,18 @@ nicht öffentlich gemacht</div>
                                 Abmelden
                               </button>
                             ):(
+                              <>
                               <button onClick={()=>joinEvent(ev.id,ev.price)} disabled={isFull}
                                 style={{flex:1,padding:'10px',borderRadius:10,background:isFull?'#eee':`linear-gradient(135deg,${color},${color}cc)`,border:'none',color:isFull?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:isFull?'not-allowed':'pointer'}}>
                                 {isFull?'Ausgebucht':(ev.price>0?'🎟️ TICKET KAUFEN ('+ev.price+'€)':'🥊 ANMELDEN')}
                               </button>
+                              {ev.price>0&&!isFull&&(
+                                <button onClick={()=>{setFriendPickerEventId(ev.id);setFriendSearchQuery('');}}
+                                  style={{padding:'10px 14px',borderRadius:10,background:'transparent',border:'1px solid #d4a017',color:'#d4a017',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer',whiteSpace:'nowrap'}}>
+                                  🤝 BAF
+                                </button>
+                              )}
+                              </>
                             )}
                           </div>
                         )}
@@ -4666,6 +4739,22 @@ nicht öffentlich gemacht</div>
                 <button onClick={()=>{setEditProfile({});setEditMode(true);}} style={{padding:'9px 20px',borderRadius:8,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
                   JETZT VERVOLLSTÄNDIGEN
                 </button>
+              </div>
+            )}
+            {rankMode!=='trainer'&&(profile.country||myProfile?.country)&&(profile.record_verified||myProfile?.record_verified)!=='verified'&&(
+              <div style={{background:darkMode?'#1a2510':'#f0f8e8',borderRadius:12,padding:'16px',border:'1px solid #27ae6055',marginBottom:12,textAlign:'center'}}>
+                <div style={{fontSize:24,marginBottom:6}}>🏅</div>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,marginBottom:4}}>Kampfrekord verifizieren</div>
+                <div style={{color:'#888',fontSize:12,lineHeight:1.5,marginBottom:12}}>
+                  {(profile.record_verified||myProfile?.record_verified)==='pending'
+                    ?'Dein Nachweis wird geprüft — sobald bestätigt, tauchst du in der Rangliste auf.'
+                    :'Um in der Rangliste aufzutauchen, muss dein Kampfrekord verifiziert werden. Lade einen Nachweis hoch (Urkunde, offizielles Ergebnis).'}
+                </div>
+                {(profile.record_verified||myProfile?.record_verified)!=='pending'&&(
+                  <button onClick={()=>{setEditProfile({});setEditMode(true);}} style={{padding:'9px 20px',borderRadius:8,background:'linear-gradient(135deg,#27ae60,#2ecc71)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+                    NACHWEIS HOCHLADEN
+                  </button>
+                )}
               </div>
             )}
             <div style={{display:'flex',flexDirection:'column',gap:5}}>
@@ -5002,6 +5091,26 @@ nicht öffentlich gemacht</div>
                 {creatingEvent?(editEventId?'SPEICHERT...':'ERSTELLT...'):(editEventId?'ÄNDERUNGEN SPEICHERN 💾':'EVENT ERSTELLEN 🥊')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {friendPickerEventId&&(
+        <div onClick={()=>setFriendPickerEventId(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:900,display:'flex',alignItems:'flex-end'}}>
+          <div onClick={e=>e.stopPropagation()} style={{width:'100%',background:darkMode?'#0d0d0d':'#fff',borderRadius:'20px 20px 0 0',padding:'20px',maxHeight:'70vh',display:'flex',flexDirection:'column'}}>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:1,marginBottom:4}}>🤝 Freund mitbringen</div>
+            <div style={{color:'#888',fontSize:12,marginBottom:14,lineHeight:1.5}}>Wähle deinen Trainingspartner aus. Sobald er/sie sich auch anmeldet und bezahlt, bekommst du 10€ Rabatt.</div>
+            <input placeholder='Namen suchen...' value={friendSearchQuery} onChange={e=>setFriendSearchQuery(e.target.value)}
+              style={{width:'100%',padding:'11px 14px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#1a1a1a':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',marginBottom:10}}/>
+            <div style={{overflowY:'auto',flex:1}}>
+              {allProfiles.filter(p=>p.id!==myProfile?.id&&!p.is_brand&&(!friendSearchQuery||(p.name||'').toLowerCase().includes(friendSearchQuery.toLowerCase()))).slice(0,30).map(p=>(
+                <div key={p.id} onClick={()=>{bringFriend(friendPickerEventId,p.id);setFriendPickerEventId(null);}}
+                  style={{display:'flex',alignItems:'center',gap:10,padding:'9px 6px',cursor:'pointer',borderBottom:'1px solid '+(darkMode?'#1a1a1a':'#f5f5f5')}}>
+                  {p.avatar_url?<img loading="lazy" src={p.avatar_url} style={{width:36,height:36,borderRadius:'50%',objectFit:'cover'}} alt=''/>:<div style={{width:36,height:36,borderRadius:'50%',background:darkMode?'#2a2a2a':'#eee',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>👤</div>}
+                  <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:600}}>{p.name}</div>
+                </div>
+              ))}
+            </div>
+            <button onClick={()=>setFriendPickerEventId(null)} style={{width:'100%',padding:'12px',borderRadius:10,background:'transparent',border:'1px solid '+(darkMode?'#333':'#ddd'),color:darkMode?'#999':'#666',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginTop:10}}>Abbrechen</button>
           </div>
         </div>
       )}

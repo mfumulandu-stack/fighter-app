@@ -67,18 +67,65 @@ Deno.serve(async (req) => {
       });
     }
 
+    // "Freund mitbringen"-Rabatt: NIEMALS vom Client vertrauen, sondern hier
+    // serverseitig selbst pruefen, ob wirklich ein freigeschalteter (der
+    // mitgebrachte Freund hat bereits bezahlt) Eintrag existiert. Nur dann
+    // wird der Preis reduziert - sonst koennte jeder sich den Rabatt einfach
+    // erschwindeln.
+    let finalPrice = event.price;
+    const bafRes = await fetch(
+      `${SUPA_URL}/rest/v1/event_participants?event_id=eq.${eventId}&user_id=eq.${profile.id}&baf_unlocked=eq.true&paid=eq.false&select=id`,
+      { headers: { apikey: SUPA_SERVICE_KEY, Authorization: `Bearer ${SUPA_SERVICE_KEY}` } },
+    );
+    const bafRows = await bafRes.json();
+    const bafDiscountRow = Array.isArray(bafRows) ? bafRows[0] : null;
+    if (bafDiscountRow) {
+      finalPrice = Math.max(0, event.price - 10);
+    }
+
+    // Falls der Rabatt das Training komplett kostenlos macht, braucht es
+    // gar keine Stripe-Zahlungsseite (Stripe erlaubt ohnehin keine 0-Euro-
+    // Zahlungen) - direkt als bezahlt eintragen und fertig.
+    if (finalPrice <= 0) {
+      const patchRes = await fetch(
+        `${SUPA_URL}/rest/v1/event_participants?id=eq.${bafDiscountRow.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: SUPA_SERVICE_KEY,
+            Authorization: `Bearer ${SUPA_SERVICE_KEY}`,
+            Prefer: "return=minimal",
+          },
+          body: JSON.stringify({ paid: true, amount_paid: 0 }),
+        },
+      );
+      if (!patchRes.ok) {
+        const detail = await patchRes.text();
+        return new Response(JSON.stringify({ error: "Kostenlose Anmeldung fehlgeschlagen", detail }), {
+          status: 500,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        });
+      }
+      return new Response(JSON.stringify({ free: true, url: `${APP_URL}?ticket=success&event=${eventId}` }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
+    }
+
     // Stripe Checkout Session erstellen (direkter REST-Aufruf, kein SDK noetig)
     const params = new URLSearchParams();
     params.append("mode", "payment");
     params.append("success_url", `${APP_URL}?ticket=success&event=${eventId}`);
     params.append("cancel_url", `${APP_URL}?ticket=cancelled`);
     params.append("line_items[0][price_data][currency]", "eur");
-    params.append("line_items[0][price_data][product_data][name]", `Ticket: ${event.title}`);
-    params.append("line_items[0][price_data][unit_amount]", String(Math.round(event.price * 100)));
+    params.append("line_items[0][price_data][product_data][name]", bafDiscountRow ? `Ticket: ${event.title} (Freund-mitbringen-Rabatt)` : `Ticket: ${event.title}`);
+    params.append("line_items[0][price_data][unit_amount]", String(Math.round(finalPrice * 100)));
     params.append("line_items[0][quantity]", "1");
     params.append("metadata[event_id]", String(eventId));
     params.append("metadata[profile_id]", String(profile.id));
     params.append("metadata[user_name]", profile.name || "");
+    if (bafDiscountRow) params.append("metadata[baf_participant_id]", String(bafDiscountRow.id));
 
     const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
