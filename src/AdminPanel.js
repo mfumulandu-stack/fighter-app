@@ -911,6 +911,18 @@ export default function AdminPanel({
                         setMessagingText('');
                       }} style={{background:'#2980b9',border:'none',borderRadius:6,padding:'4px 8px',color:'#fff',fontSize:10,fontWeight:700,cursor:'pointer'}}>✉️</button>
                       <button onClick={async()=>{
+                        if(!window.confirm('Kampfrekord von '+(u.name||'diesem User')+' auf 0 zurücksetzen? (Sieg/Niederlage/Unentschieden werden geleert, Verifizierung wird zurückgezogen.)'))return;
+                        try{
+                          const r=await adminFetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+u.id,{
+                            method:'PATCH',headers:{Prefer:'return=minimal'},
+                            body:JSON.stringify({wins:0,losses:0,draws:0,ko:0,record_verified:null,record_proof_url:null})
+                          },session?.token);
+                          if(!r.ok){const t=await r.text().catch(()=>'');showMsg('❌ Fehler ('+r.status+'): '+t.slice(0,150));return;}
+                          setAdminUsers(prev=>prev.map(x=>x.id===u.id?{...x,wins:0,losses:0,draws:0,ko:0,record_verified:null}:x));
+                          showMsg('✅ Kampfrekord zurückgesetzt');
+                        }catch(e){showMsg('Fehler: '+e.message);}
+                      }} style={{background:'none',border:'1px solid #d4a017',borderRadius:6,padding:'4px 6px',color:'#d4a017',fontSize:10,cursor:'pointer'}}>🔄 Rekord</button>
+                      <button onClick={async()=>{
                         if(!window.confirm('User '+u.name+' wirklich löschen? Das kann nicht rückgängig gemacht werden.'))return;
                         try{
                           // 1. Alle Daten löschen
