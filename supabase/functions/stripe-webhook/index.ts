@@ -53,6 +53,34 @@ Deno.serve(async (req) => {
       const bafParticipantId = session.metadata?.baf_participant_id;
       const amountPaid = (session.amount_total || 0) / 100;
 
+      // ── MONATSBEITRAG: komplett eigener Zweig, legt eine Mitgliedschaft
+      // statt einer Event-Teilnahme an. 30 Tage ab Zahlungseingang gueltig.
+      if (session.metadata?.type === "membership" && eventId && profileId) {
+        const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        const insertM = await fetch(`${SUPA_URL}/rest/v1/event_memberships`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: SUPA_SERVICE_KEY,
+            Authorization: `Bearer ${SUPA_SERVICE_KEY}`,
+            Prefer: "return=minimal",
+          },
+          body: JSON.stringify({
+            user_id: profileId,
+            event_creator_id: session.metadata?.creator_id || null,
+            valid_until: validUntil,
+            amount_paid: amountPaid,
+            stripe_session_id: session.id,
+          }),
+        });
+        if (!insertM.ok) {
+          const detail = await insertM.text();
+          console.error("KRITISCH: Monatsbeitrag bezahlt, aber Mitgliedschaft NICHT eingetragen!", detail);
+          return new Response(JSON.stringify({ error: "Mitgliedschaft konnte nicht eingetragen werden", detail }), { status: 500 });
+        }
+        return new Response(JSON.stringify({ received: true }), { status: 200 });
+      }
+
       if (eventId && profileId) {
         // Falls diese Zahlung ein Freund-mitbringen-Rabatt war, existiert
         // schon eine wartende Zeile (angelegt beim Freund-Auswaehlen) - die

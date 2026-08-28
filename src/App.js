@@ -294,8 +294,9 @@ function MainApp(){
   const [showCreateEvent,setShowCreateEvent]=useState(false);
   const [friendPickerEventId,setFriendPickerEventId]=useState(null);
   const [friendSearchQuery,setFriendSearchQuery]=useState('');
+  const [myMemberships,setMyMemberships]=useState([]);
   const [eventParticipants,setEventParticipants]=useState({});
-  const [newEvent,setNewEvent]=useState({title:'',description:'',event_type:'Sparring',city:'',address:'',event_date:'',event_time:'',max_participants:10,styles:[],price:''});
+  const [newEvent,setNewEvent]=useState({title:'',description:'',event_type:'Sparring',city:'',address:'',event_date:'',event_time:'',max_participants:10,styles:[],price:'',priceMonthly:''});
   // null = Anlegen, sonst die ID des Events, das gerade bearbeitet wird.
   // Dasselbe Formular dient beiden Zwecken, damit Anlegen und Bearbeiten
   // nicht auseinanderlaufen koennen.
@@ -1105,6 +1106,14 @@ function MainApp(){
         setEventParticipants(parts);
         setEvents(data);
       }
+      // Eigene aktiven Mitgliedschaften laden (Monatsbeitrag) - unabhaengig
+      // von einzelnen Terminen, gilt fuer alle Events desselben Erstellers.
+      if(myProfile?.id){
+        try{
+          const m=await dbSelect('event_memberships','user_id=eq.'+myProfile.id+'&valid_until=gte.'+new Date().toISOString()+'&order=valid_until.desc',s?.token||session?.token);
+          setMyMemberships(Array.isArray(m)?m:[]);
+        }catch{setMyMemberships([]);}
+      }
     }catch(e){console.error('loadEvents',e);}
     setEventsLoading(false);
   }
@@ -1167,6 +1176,26 @@ function MainApp(){
         const t=await r.text().catch(()=>'');
         showMsg('❌ Fehler ('+r.status+'): '+t.slice(0,150));
       }
+    }catch(e){showMsg('❌ Fehler: '+e.message);}
+  }
+
+  // Analog zu joinEvent, aber fuer den Monatsbeitrag: eigener Stripe-
+  // Checkout-Aufruf mit type:'membership' - der Server (create-checkout)
+  // erstellt daraus KEINE Event-Teilnahme, sondern eine zeitlich begrenzte
+  // Mitgliedschaft, die fuer alle Trainings desselben Erstellers gilt.
+  async function joinEventMonthly(eventId){
+    if(!session||!myProfile)return;
+    try{
+      showMsg('Zahlungsseite wird geöffnet...');
+      const token=await getFreshToken();
+      const r=await fetch(SUPA_URL+'/functions/v1/create-checkout',{
+        method:'POST',
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
+        body:JSON.stringify({eventId,userToken:token,type:'membership'})
+      });
+      const d=await r.json();
+      if(d.url){window.location.href=d.url;}
+      else{showMsg('❌ Fehler: '+(d.error||'Zahlungsseite konnte nicht erstellt werden'));}
     }catch(e){showMsg('❌ Fehler: '+e.message);}
   }
 
@@ -1274,12 +1303,13 @@ function MainApp(){
           event_time:newEvent.event_time,
           max_participants:parseInt(newEvent.max_participants)||10,
           styles:newEvent.styles,
-          price:parseFloat(newEvent.price)||0
+          price:parseFloat(newEvent.price)||0,
+          price_monthly:newEvent.priceMonthly?parseFloat(newEvent.priceMonthly):null
         })
       });
       setShowCreateEvent(false);
       const evTitle=newEvent.title,evCity=newEvent.city,evType=newEvent.event_type;
-      setNewEvent({title:'',description:'',event_type:'Sparring',city:'',address:'',event_date:'',event_time:'',max_participants:10,styles:[],price:''});
+      setNewEvent({title:'',description:'',event_type:'Sparring',city:'',address:'',event_date:'',event_time:'',max_participants:10,styles:[],price:'',priceMonthly:''});
       await loadEvents(session);
       showMsg('Event erstellt! 🎉');
       // Alle Nutzer per Push ueber das neue Event benachrichtigen
@@ -1307,7 +1337,8 @@ function MainApp(){
       styles:Array.isArray(ev.styles)?ev.styles:[],
       // 0 EUR ist "kostenlos" und gehoert als leeres Feld angezeigt,
       // sonst stuende dort eine 0, die man erst loeschen muesste.
-      price:(ev.price!==null&&ev.price!==undefined&&Number(ev.price)>0)?String(ev.price):''
+      price:(ev.price!==null&&ev.price!==undefined&&Number(ev.price)>0)?String(ev.price):'',
+      priceMonthly:(ev.price_monthly!==null&&ev.price_monthly!==undefined&&Number(ev.price_monthly)>0)?String(ev.price_monthly):''
     });
     setEditEventId(ev.id);
     setShowCreateEvent(true);
@@ -1316,7 +1347,7 @@ function MainApp(){
   function closeEventForm(){
     setShowCreateEvent(false);
     setEditEventId(null);
-    setNewEvent({title:'',description:'',event_type:'Sparring',city:'',address:'',event_date:'',event_time:'',max_participants:10,styles:[],price:''});
+    setNewEvent({title:'',description:'',event_type:'Sparring',city:'',address:'',event_date:'',event_time:'',max_participants:10,styles:[],price:'',priceMonthly:''});
   }
 
   function duplicateEvent(ev){
@@ -1330,7 +1361,8 @@ function MainApp(){
       event_time:'',
       max_participants:ev.max_participants||10,
       styles:Array.isArray(ev.styles)?ev.styles:[],
-      price:(ev.price!==null&&ev.price!==undefined&&Number(ev.price)>0)?String(ev.price):''
+      price:(ev.price!==null&&ev.price!==undefined&&Number(ev.price)>0)?String(ev.price):'',
+      priceMonthly:(ev.price_monthly!==null&&ev.price_monthly!==undefined&&Number(ev.price_monthly)>0)?String(ev.price_monthly):''
     });
     setEditEventId(null);
     setShowCreateEvent(true);
@@ -1358,7 +1390,8 @@ function MainApp(){
           event_time:newEvent.event_time,
           max_participants:parseInt(newEvent.max_participants)||10,
           styles:newEvent.styles,
-          price:parseFloat(newEvent.price)||0
+          price:parseFloat(newEvent.price)||0,
+          price_monthly:newEvent.priceMonthly?parseFloat(newEvent.priceMonthly):null
         })
       },session?.token);
       // Ergebnis pruefen statt Erfolg zu behaupten - genau der Fehler, der
@@ -4535,6 +4568,11 @@ nicht öffentlich gemacht</div>
                   // ohne dass Geld zurueckfliesst. Erstattung laeuft ueber den
                   // Veranstalter.
                   const istBezahlt=!!meineTeilnahme?.paid;
+                  // Aktive Mitgliedschaft desselben Erstellers deckt dieses
+                  // Training automatisch ab - unabhaengig davon, ob es eine
+                  // Einzel-Teilnahme-Zeile dafuer gibt.
+                  const aktiveMitgliedschaft=myMemberships.find(m=>m.event_creator_id===ev.creator_id);
+                  const hatMonatsbeitrag=ev.price_monthly&&Number(ev.price_monthly)>0;
                   const isFull=parts.length>=(ev.max_participants||10);
                   const isOwner=ev.creator_id===myProfile?.id;
                   const typeColors={'Sparring':RED,'Community Training':'#27ae60','Wettkampf':'#d4a017','Open Mat':'#2980b9','Seminar':'#8e44ad'};
@@ -4595,6 +4633,7 @@ nicht öffentlich gemacht</div>
                         </div>
                         {/* ACTION BUTTONS */}
                         {!isPast&&(
+                          <>
                           <div style={{display:'flex',gap:8}}>
                             {isOwner?(
                               <button onClick={async()=>{
@@ -4613,6 +4652,15 @@ nicht öffentlich gemacht</div>
                               }} style={{flex:1,padding:'10px',borderRadius:10,background:'transparent',border:'1px solid #e74c3c44',color:'#e74c3c',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
                                 🗑️ Löschen
                               </button>
+                            ):aktiveMitgliedschaft?(
+                              <div style={{flex:1,padding:'10px',borderRadius:10,background:darkMode?'#12210f':'#f0faf0',border:'1px solid #27ae6044',textAlign:'center'}}>
+                                <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13}}>
+                                  📅 Mitgliedschaft aktiv
+                                </div>
+                                <div style={{color:darkMode?'#888':'#999',fontSize:11,marginTop:2}}>
+                                  Gültig bis {new Date(aktiveMitgliedschaft.valid_until).toLocaleDateString('de')}
+                                </div>
+                              </div>
                             ):wartetAufFreund?(
                               <div style={{flex:1,padding:'10px',borderRadius:10,background:darkMode?'#2a1f10':'#fff8e8',border:'1px solid #d4a01755',textAlign:'center'}}>
                                 <div style={{color:'#d4a017',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13}}>
@@ -4656,6 +4704,13 @@ nicht öffentlich gemacht</div>
                               </>
                             )}
                           </div>
+                          {!isJoined&&!aktiveMitgliedschaft&&hatMonatsbeitrag&&!isFull&&(
+                            <button onClick={()=>joinEventMonthly(ev.id)}
+                              style={{width:'100%',marginTop:8,padding:'9px',borderRadius:10,background:'transparent',border:'1px solid #2980b955',color:'#2980b9',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>
+                              📅 Stattdessen Monatsbeitrag ({ev.price_monthly}€ — alle Sessions diesen Monat)
+                            </button>
+                          )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -5114,8 +5169,14 @@ nicht öffentlich gemacht</div>
                   style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
               </div>
               <div>
-                <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>PREIS (€) — leer lassen für kostenlos</div>
+                <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>PREIS PRO SESSION (€) — leer lassen für kostenlos</div>
                 <input type='number' min='0' step='0.5' placeholder='z.B. 10' value={newEvent.price} onChange={e=>setNewEvent(ev=>({...ev,price:e.target.value}))}
+                  style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
+              </div>
+              <div>
+                <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>MONATSBEITRAG (€) — leer lassen, falls es keinen gibt</div>
+                <div style={{color:'#888',fontSize:10,marginBottom:5,lineHeight:1.4}}>Wer den Monatsbeitrag zahlt, kann alle Sessions diesen Monat besuchen — unabhängig davon, wie viele einzelne Termine du anlegst.</div>
+                <input type='number' min='0' step='0.5' placeholder='z.B. 35' value={newEvent.priceMonthly} onChange={e=>setNewEvent(ev=>({...ev,priceMonthly:e.target.value}))}
                   style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
               </div>
               <div>
