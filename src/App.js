@@ -1757,6 +1757,8 @@ function MainApp(){
       is_pro:profile.isPro===true,
       country:profile.country||'DE',
       gender:profile.gender||'male',
+      img_pos_x:profile.imgPosX??50,
+      img_pos_y:profile.imgPosY??30,
     };
     // Add optional columns only if they exist
     try{if(myLat)d.lat=myLat;}catch{}
@@ -1980,6 +1982,11 @@ function MainApp(){
   const candidatesBase=cards
     .filter(f=>!blockedUsers.includes(f.id))
     .filter(f=>!f.banned)
+    // Geschlecht: harter Ausschluss, kein "spaeter vielleicht" mehr. Frauen
+    // sehen ausschliesslich Frauen, Maenner ausschliesslich Maenner. Wer
+    // "other"/kein Geschlecht angegeben hat, wird nicht ausgeschlossen (weder
+    // als Betrachter noch als Kandidat), da hier keine sinnvolle Regel
+    // existiert.
     .filter(f=>{
       const myGenderFilter=profile.gender||myProfile?.gender||'male';
       const fGenderFilter=f.gender||'male';
@@ -2733,20 +2740,55 @@ nicht öffentlich gemacht</div>
             ):(
             <>
             <div style={{display:'flex',justifyContent:'center',marginBottom:8}}> 
-              <label style={{cursor:'pointer',textAlign:'center'}}>
-                <input type='file' accept='image/*' onChange={handlePhoto} style={{display:'none'}}/>
-                <div style={{position:'relative',display:'inline-block'}}>
-                  <div style={{width:110,height:110,borderRadius:'50%',background:avatarPreview?'#000':'#fdf0ef',border:'3px solid '+(avatarPreview?RED:'#e74c3c'),display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',margin:'0 auto',animation:avatarPreview?'none':'pulse 1.8s infinite',boxShadow:avatarPreview?'0 4px 16px rgba(192,57,43,0.3)':'0 0 0 6px rgba(231,76,60,0.15)'}}>
-                    {uploading?<div style={{fontSize:28}} className='spin'>⏳</div>
-                      :avatarPreview?<img loading="lazy" src={avatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='avatar'/>
-                      :<div style={{textAlign:'center'}}><div style={{fontSize:36}}>📸</div><div style={{color:RED,fontSize:10,marginTop:4,fontWeight:700}}>FOTO</div></div>}
+              <div style={{textAlign:'center'}}>
+                {!avatarPreview&&(
+                  <label style={{cursor:'pointer'}}>
+                    <input type='file' accept='image/*' onChange={handlePhoto} style={{display:'none'}}/>
+                    <div style={{position:'relative',display:'inline-block'}}>
+                      <div style={{width:110,height:110,borderRadius:'50%',background:'#fdf0ef',border:'3px solid #e74c3c',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',margin:'0 auto',animation:'pulse 1.8s infinite',boxShadow:'0 0 0 6px rgba(231,76,60,0.15)'}}>
+                        {uploading?<div style={{fontSize:28}} className='spin'>⏳</div>
+                          :<div style={{textAlign:'center'}}><div style={{fontSize:36}}>📸</div><div style={{color:RED,fontSize:10,marginTop:4,fontWeight:700}}>FOTO</div></div>}
+                      </div>
+                    </div>
+                  </label>
+                )}
+                {avatarPreview&&(
+                  <div style={{position:'relative',display:'inline-block'}}>
+                    <div
+                      onPointerDown={e=>{
+                        e.currentTarget.setPointerCapture(e.pointerId);
+                        e.currentTarget.dataset.dragging='1';
+                        e.currentTarget.dataset.startX=e.clientX;
+                        e.currentTarget.dataset.startY=e.clientY;
+                        e.currentTarget.dataset.startPosX=profile.imgPosX??50;
+                        e.currentTarget.dataset.startPosY=profile.imgPosY??30;
+                      }}
+                      onPointerMove={e=>{
+                        if(e.currentTarget.dataset.dragging!=='1')return;
+                        const dx=e.clientX-parseFloat(e.currentTarget.dataset.startX);
+                        const dy=e.clientY-parseFloat(e.currentTarget.dataset.startY);
+                        const newX=Math.max(0,Math.min(100,parseFloat(e.currentTarget.dataset.startPosX)-(dx/110)*100));
+                        const newY=Math.max(0,Math.min(100,parseFloat(e.currentTarget.dataset.startPosY)-(dy/110)*100));
+                        setProfile(p=>({...p,imgPosX:newX,imgPosY:newY}));
+                      }}
+                      onPointerUp={e=>{e.currentTarget.dataset.dragging='0';}}
+                      onPointerCancel={e=>{e.currentTarget.dataset.dragging='0';}}
+                      style={{width:110,height:110,borderRadius:'50%',background:'#000',border:'3px solid '+RED,overflow:'hidden',margin:'0 auto',boxShadow:'0 4px 16px rgba(192,57,43,0.3)',cursor:'grab',touchAction:'none'}}>
+                      <img loading="lazy" src={avatarPreview} draggable={false} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:(profile.imgPosX??50)+'% '+(profile.imgPosY??30)+'%',pointerEvents:'none'}} alt='avatar'/>
+                    </div>
+                    <div style={{position:'absolute',bottom:4,right:4,background:'#27ae60',borderRadius:'50%',width:24,height:24,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,border:'2px solid #fff',pointerEvents:'none'}}>✓</div>
                   </div>
-
-                  {avatarPreview&&<div style={{position:'absolute',bottom:4,right:4,background:'#27ae60',borderRadius:'50%',width:24,height:24,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,border:'2px solid #fff'}}>✓</div>}
-                </div>
+                )}
                 <div style={{color:avatarPreview?'#27ae60':RED,fontSize:12,marginTop:8,fontWeight:700}}>{avatarPreview?'Foto hochgeladen ✓':'Profilbild hinzufügen (erforderlich)'}</div>
+                {avatarPreview&&<div style={{color:'#bbb',fontSize:10,marginTop:2}}>Zum Verschieben im Kreis ziehen</div>}
                 {!avatarPreview&&<div style={{color:'#bbb',fontSize:10,marginTop:2}}>{appLang==='FR'?'Une photo est obligatoire pour continuer':appLang==='EN'?'A photo is required to continue':'Ein Profilbild ist zum Fortfahren nötig'}</div>}
-              </label>
+                {avatarPreview&&(
+                  <label style={{display:'inline-block',marginTop:8,cursor:'pointer',color:RED,fontSize:11,fontWeight:700,textDecoration:'underline'}}>
+                    <input type='file' accept='image/*' onChange={handlePhoto} style={{display:'none'}}/>
+                    Anderes Foto wählen
+                  </label>
+                )}
+              </div>
             </div>
             <Lbl>{appLang==='FR'?'Votre nom':appLang==='EN'?'Your name':'Dein Name'}</Lbl><Inp placeholder='z.B. Max Mueller' value={profile.name} onChange={v=>setProfile(p=>({...p,name:v}))}/>
             <Lbl>Alter</Lbl><Inp placeholder='z.B. 25' type='number' value={profile.age} onChange={v=>setProfile(p=>({...p,age:v}))}/>
