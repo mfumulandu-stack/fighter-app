@@ -1821,6 +1821,16 @@ function MainApp(){
           body:JSON.stringify(d)
         });
         const res=await upsertRes.json();
+        // Sofort und deutlich melden, falls die Anfrage fehlgeschlagen ist -
+        // vorher fiel das erst nach einem zweiten, oft ebenfalls
+        // erfolglosen Versuch auf, und wirkte fuer Nutzer wie "der Button
+        // tut einfach nichts".
+        if(!upsertRes.ok){
+          console.error('saveProfile upsert failed',upsertRes.status,res);
+          showMsg('❌ Profil konnte nicht gespeichert werden: '+(res?.message||res?.error||JSON.stringify(res)).toString().slice(0,150));
+          setSaving(false);
+          return;
+        }
         const profile_data=Array.isArray(res)?res[0]:null;
         if(profile_data&&profile_data.id){
           setMyProfile(profile_data);
