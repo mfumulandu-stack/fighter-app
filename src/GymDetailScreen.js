@@ -9,9 +9,9 @@
 // das war schon vorher so und wurde bewusst nicht angetastet, damit sich
 // beim Verschieben garantiert nichts am Verhalten aendert.
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUpdate,rateGym,onClose,darkMode}){
+function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,myProfile,onGymUpdate,rateGym,onClose,darkMode}){
   if(!gym)return(<div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:250,display:'flex',alignItems:'center',justifyContent:'center'}}><button onClick={onClose} style={{padding:'12px 24px',background:'#c0392b',color:'#fff',border:'none',borderRadius:10,fontSize:16,cursor:'pointer'}}>Zurück</button></div>);
   // Normalize gym data to avoid crashes with DB gyms missing fields
   gym={styles:[],members:0,rating:0,founded:'',street:'',zip:'',phone:'',website:'',hours:'',desc:'',code:'',...gym,styles:gym.styles&&gym.styles.length>0?gym.styles:[gym.style||'Kampfsport'],desc:gym.desc||gym.description||''};
@@ -32,6 +32,57 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUp
   const [saving,setSaving]=useState(false);
   const SUPA_URL='https://uykdrmymjvqgebsmndme.supabase.co';
   const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5a2RybXltanZxZ2Vic21uZG1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NzgzNDMsImV4cCI6MjA5MjI1NDM0M30.evhJ-C3jNPkcofVMOR50HHKR9KZ3w1k2TmY-N3jQFzk';
+  // Kommentare/Rezensionen unter den Öffnungszeiten (siehe weiter unten im
+  // Markup). Eigene kleine Tabelle gym_comments - bewusst getrennt von
+  // gym_ratings (Sterne), weil Freitext etwas anderes ist als eine Zahl
+  // und sich unabhängig voneinander ändern können soll.
+  const [comments,setComments]=useState([]);
+  const [loadingComments,setLoadingComments]=useState(true);
+  const [commentText,setCommentText]=useState('');
+  const [postingComment,setPostingComment]=useState(false);
+  useEffect(()=>{
+    let cancelled=false;
+    setLoadingComments(true);
+    fetch(SUPA_URL+'/rest/v1/gym_comments?gym_key=eq.'+encodeURIComponent(gymKey)+'&order=created_at.desc',{
+      headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+    }).then(r=>r.json()).then(data=>{
+      if(!cancelled)setComments(Array.isArray(data)?data:[]);
+    }).catch(e=>console.error('gym_comments laden',e)).finally(()=>{if(!cancelled)setLoadingComments(false);});
+    return()=>{cancelled=true;};
+  },[gymKey]);
+  async function postComment(){
+    if(!session||!commentText.trim())return;
+    setPostingComment(true);
+    try{
+      const body={gym_key:gymKey,user_id:session.userId,author_name:myProfile?.name||'Fighter',author_avatar_url:myProfile?.avatar_url||null,comment:commentText.trim()};
+      const res=await fetch(SUPA_URL+'/rest/v1/gym_comments',{
+        method:'POST',
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=representation'},
+        body:JSON.stringify(body)
+      });
+      if(res.ok){
+        const data=await res.json();
+        const created=Array.isArray(data)?data[0]:null;
+        if(created)setComments(prev=>[created,...prev]);
+        setCommentText('');
+      }else{
+        alert('Kommentar konnte nicht gespeichert werden ('+res.status+').');
+      }
+    }catch(e){alert('Fehler: '+e.message);}
+    setPostingComment(false);
+  }
+  async function deleteComment(id){
+    if(!session)return;
+    if(!window.confirm('Kommentar wirklich löschen?'))return;
+    try{
+      const res=await fetch(SUPA_URL+'/rest/v1/gym_comments?id=eq.'+id,{
+        method:'DELETE',
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
+      });
+      if(res.ok){setComments(prev=>prev.filter(c=>c.id!==id));}
+      else{alert('Löschen fehlgeschlagen ('+res.status+').');}
+    }catch(e){alert('Fehler: '+e.message);}
+  }
   const r=gymRatings[gymKey];
   const userRating=r?.userRating||0;
   const avgRating=r&&r.count>0?(r.total/r.count):gym.rating;
@@ -194,7 +245,7 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUp
         </div>
 
         {/* ÖFFNUNGSZEITEN */}
-        <div style={{background:card,borderRadius:14,padding:'16px',border:'1px solid '+border}}>
+        <div style={{background:card,borderRadius:14,padding:'16px',border:'1px solid '+border,marginBottom:12}}>
           <div style={{fontFamily:'Rajdhani,sans-serif',color:text,fontSize:13,letterSpacing:2,marginBottom:12}}>ÖFFNUNGSZEITEN</div>
           {(gym.hours||'').split(', ').filter(Boolean).map((h,i)=>{
             const [days,time]=h.split(' ').reduce((acc,w,idx)=>{
@@ -209,6 +260,48 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,onGymUp
               </div>
             );
           })}
+        </div>
+
+        {/* KOMMENTARE */}
+        <div style={{background:card,borderRadius:14,padding:'16px',border:'1px solid '+border}}>
+          <div style={{fontFamily:'Rajdhani,sans-serif',color:text,fontSize:13,letterSpacing:2,marginBottom:12}}>KOMMENTARE{comments.length>0?' ('+comments.length+')':''}</div>
+          {session?(
+            <div style={{marginBottom:14}}>
+              <textarea value={commentText} onChange={e=>setCommentText(e.target.value)} placeholder='Wie war dein Training hier? Schreib einen Kommentar...' rows={3}
+                style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+border,background:isDark?'#111':'#f5f5f7',color:text,fontSize:13,fontFamily:'DM Sans,sans-serif',resize:'none',boxSizing:'border-box'}}/>
+              <button disabled={postingComment||!commentText.trim()} onClick={postComment}
+                style={{marginTop:8,padding:'9px 18px',borderRadius:8,background:postingComment||!commentText.trim()?'#999':'#c0392b',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,letterSpacing:1,cursor:postingComment||!commentText.trim()?'not-allowed':'pointer'}}>
+                {postingComment?'WIRD GEPOSTET...':'KOMMENTAR POSTEN'}
+              </button>
+            </div>
+          ):(
+            <div style={{color:sub,fontSize:12,marginBottom:14}}>Melde dich an, um einen Kommentar zu schreiben.</div>
+          )}
+          {loadingComments?(
+            <div style={{color:sub,fontSize:12,textAlign:'center',padding:'10px 0'}}>Lädt...</div>
+          ):comments.length===0?(
+            <div style={{color:sub,fontSize:12,textAlign:'center',padding:'10px 0'}}>Noch keine Kommentare. Sei der Erste!</div>
+          ):(
+            <div style={{display:'flex',flexDirection:'column',gap:12}}>
+              {comments.map(c=>(
+                <div key={c.id} style={{display:'flex',gap:10}}>
+                  <div style={{width:34,height:34,borderRadius:'50%',overflow:'hidden',background:'#ddd',flexShrink:0}}>
+                    {c.author_avatar_url?<img loading="lazy" src={c.author_avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>👤</div>}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                      <div style={{color:text,fontSize:12,fontWeight:700}}>{c.author_name||'Fighter'}</div>
+                      <div style={{color:sub,fontSize:10}}>{new Date(c.created_at).toLocaleDateString('de-DE')}</div>
+                    </div>
+                    <div style={{color:sub,fontSize:12,marginTop:3,lineHeight:1.5,wordBreak:'break-word'}}>{c.comment}</div>
+                    {session&&(c.user_id===session.userId||isAdmin)&&(
+                      <button onClick={()=>deleteComment(c.id)} style={{marginTop:4,background:'none',border:'none',color:'#c0392b',fontSize:10,cursor:'pointer',padding:0}}>Löschen</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
