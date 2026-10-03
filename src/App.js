@@ -1142,6 +1142,25 @@ function MainApp(){
         data=await r.json();
       }
       if(Array.isArray(data)){
+        // Anzeige-Reihenfolge: kommende Events zuerst (das naechste ganz
+        // oben), erst danach vergangene Events (am weitesten zurueckliegende
+        // ganz unten). So rutscht ein Event automatisch nach unten, sobald
+        // sein Termin verstrichen ist - ganz ohne dass irgendwer die Liste
+        // von Hand neu sortiert. "isPast" hier bewusst genauso berechnet wie
+        // weiter unten beim Rendern (nur das Datum, ohne Uhrzeit), damit
+        // Sortierung und die "Vergangen"-Markierung immer zusammenpassen.
+        const heute=new Date(new Date().toDateString());
+        data=[...data].sort((a,b)=>{
+          const aPast=!!(a.event_date&&new Date(a.event_date)<heute);
+          const bPast=!!(b.event_date&&new Date(b.event_date)<heute);
+          if(aPast!==bPast)return aPast?1:-1;
+          const aKey=(a.event_date||'')+' '+(a.event_time||'00:00');
+          const bKey=(b.event_date||'')+' '+(b.event_time||'00:00');
+          if(aKey===bKey)return 0;
+          // Kommende Events: das naechste zuerst (aufsteigend).
+          // Vergangene Events: das zuletzt verstrichene zuerst (absteigend).
+          return aPast?(aKey<bKey?1:-1):(aKey<bKey?-1:1);
+        });
         // Load participants count for each event
         const parts={};
         await Promise.all(data.map(async ev=>{
