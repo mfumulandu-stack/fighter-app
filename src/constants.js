@@ -29,3 +29,19 @@ export const CURRENT_APP_VERSION = '1.13';
 export const SW = 60;
 export const RED = '#c0392b';
 export const LIGHT_RED = '#e74c3c';
+
+// ── Freunde-einladen-Rabatt ──
+// Je mehr Freunde ein Nutzer einlaedt, die sich registrieren UND ein
+// Profil erstellen (gezaehlt wird serverseitig in der referrals-Tabelle,
+// siehe credit-referral Edge Function), desto mehr Rabattcodes werden
+// hier freigeschaltet. "code" ist nur die Anzeige - der tatsaechliche
+// Rabatt beim Ticketkauf wird in create-checkout NICHT anhand dieses
+// Codes, sondern anhand des echten referral_count des Nutzers berechnet.
+// WICHTIG: Diese Liste muss 1:1 mit der Kopie in
+// supabase/functions/create-checkout/index.ts uebereinstimmen.
+export const REFERRAL_TIERS = [
+  { count: 1, code: 'FIGHTER-1', percent: 10 },
+  { count: 3, code: 'FIGHTER-3', percent: 15 },
+  { count: 5, code: 'FIGHTER-5', percent: 20 },
+  { count: 10, code: 'FIGHTER-10', percent: 30 },
+];

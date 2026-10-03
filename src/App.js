@@ -4,7 +4,7 @@ import { buildTimeSeries, activeUserCounts, countSince, equipmentRanking, totalE
 import { setupPushRegistration } from './pushRegistration';
 import { cityToCountry, filterCitiesByCountry } from './cityCountry';
 import { autoFilterCandidates } from './autoFilters';
-import { SUPA_URL, SUPA_KEY, ADMIN_ID, APP_STORE_ID, CURRENT_APP_VERSION, SW, RED, LIGHT_RED } from './constants';
+import { SUPA_URL, SUPA_KEY, ADMIN_ID, APP_STORE_ID, CURRENT_APP_VERSION, SW, RED, LIGHT_RED, REFERRAL_TIERS } from './constants';
 import { authSignUp, authSignIn, authSignOut, dbInsert, dbUpdate, dbSelect, adminFetch, uploadPhoto } from './supabaseApi';
 import { safeLocalNotification } from './notifications';
 import ChatOverlay from './ChatOverlay';
@@ -60,6 +60,16 @@ export default function App(){
     const partnerSlug=params.get('partner');
     if(partnerSlug){
       return <BrandDashboard brandSlug={partnerSlug} SUPA_URL={SUPA_URL} SUPA_KEY={SUPA_KEY}/>;
+    }
+    // Einladungslink (?ref=<profil-id des Einladenden>): merken, bis sich
+    // diese Person registriert UND ihr Profil fertig anlegt - erst dann
+    // (in saveProfile) wird der Freund serverseitig gutgeschrieben.
+    const refCode=params.get('ref');
+    if(refCode){
+      try{localStorage.setItem('fighter_ref_code',refCode);}catch{}
+      params.delete('ref');
+      const rest=params.toString();
+      window.history.replaceState(null,'',window.location.pathname+(rest?'?'+rest:''));
     }
   }
   return <MainApp/>;
@@ -1835,6 +1845,23 @@ function MainApp(){
         if(profile_data&&profile_data.id){
           setMyProfile(profile_data);
           showMsg(appLang==='FR'?'Profil créé! 🥊':appLang==='EN'?'Profile created! 🥊':'Profil erstellt! 🥊');
+          // Freunde-einladen-Rabatt: falls diese Person ueber einen
+          // Einladungslink kam (?ref=...), jetzt - und erst jetzt, nach
+          // erfolgreich ANGELEGTEM Profil, nicht schon bei der blossen
+          // Registrierung - den Freund serverseitig gutschreiben. Die
+          // Edge Function prueft alles nochmal selbst nach, daher reicht
+          // hier ein einfacher Aufruf ohne Warten auf das Ergebnis.
+          try{
+            const refCode=localStorage.getItem('fighter_ref_code');
+            if(refCode&&refCode!==profile_data.id){
+              fetch(SUPA_URL+'/functions/v1/credit-referral',{
+                method:'POST',
+                headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
+                body:JSON.stringify({referrerId:refCode,newProfileId:profile_data.id,userToken:session.token})
+              }).catch(err=>console.error('credit-referral',err));
+            }
+            localStorage.removeItem('fighter_ref_code');
+          }catch(err){console.error('referral credit',err);}
           fetch(SUPA_URL+'/functions/v1/send-welcome-email',{
             method:'POST',
             headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
@@ -4074,6 +4101,43 @@ nicht öffentlich gemacht</div>
                 </div>
               )}
               {profile.bio&&<div style={{color:'#aaa',fontSize:12,marginTop:6,fontStyle:'italic'}}>'{profile.bio}'</div>}
+            </div>
+
+            {/* FREUNDE EINLADEN / REWARD-SYSTEM */}
+            <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:11,boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,letterSpacing:1}}>🎁 FREUNDE EINLADEN</div>
+                <div style={{color:RED,fontSize:13,fontWeight:700}}>{myProfile?.referral_count||0} {(myProfile?.referral_count||0)===1?'Freund':'Freunde'}</div>
+              </div>
+              <div style={{color:darkMode?'#999':'#666',fontSize:12,marginBottom:12,lineHeight:1.4}}>
+                Lade Freunde mit deinem Link ein. Jeder, der sich registriert <b>und</b> sein Profil fertig anlegt, schaltet dir einen besseren Rabattcode für Event-Tickets frei.
+              </div>
+              <button onClick={()=>{
+                const inviteLink='https://fighterapp.de/?ref='+(myProfile?.id||'');
+                const shareText='🥊 Komm zu Fighter! Melde dich mit meinem Link an: '+inviteLink;
+                if(navigator.share){navigator.share({title:'Fighter App',text:shareText,url:inviteLink}).catch(()=>{});}
+                else{navigator.clipboard?.writeText(inviteLink);showMsg('Einladungslink kopiert! 📋');}
+              }} style={{width:'100%',padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:'pointer',marginBottom:12}}>
+                🔗 EINLADUNGSLINK TEILEN
+              </button>
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                {REFERRAL_TIERS.map(tier=>{
+                  const refCount=myProfile?.referral_count||0;
+                  const unlocked=refCount>=tier.count;
+                  return (
+                    <div key={tier.count} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'9px 12px',borderRadius:10,background:unlocked?'#27ae6012':(darkMode?'#111':'#f5f5f7'),border:'1px solid '+(unlocked?'#27ae6044':(darkMode?'#2a2a2a':'#eee'))}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <span style={{fontSize:16}}>{unlocked?'✅':'🔒'}</span>
+                        <div>
+                          <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:700}}>{tier.count} {tier.count===1?'Freund':'Freunde'}</div>
+                          <div style={{color:darkMode?'#777':'#999',fontSize:11}}>{tier.percent}% Rabatt auf Event-Tickets</div>
+                        </div>
+                      </div>
+                      <div style={{color:unlocked?'#27ae60':(darkMode?'#555':'#bbb'),fontSize:12,fontWeight:700,fontFamily:'monospace'}}>{unlocked?tier.code:'???????'}</div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* GALERIE */}
