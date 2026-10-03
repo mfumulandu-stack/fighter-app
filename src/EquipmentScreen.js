@@ -17,8 +17,9 @@ import React from 'react';
 // (In EquipmentScreen selbst ueberdecken die gleichnamigen Props diesen
 // Import - genau wie vorher in App.js.)
 import { SUPA_URL, SUPA_KEY } from './constants';
+import { computeBrandUnlockOrder, brandRank } from './rewardBrands';
 
-function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest,itemType='equipment'}){
+function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest,itemType='equipment',referralCount=0,onInvite}){
   const [items,setItems]=React.useState([]);
   const [loading,setLoading]=React.useState(true);
   const [activeCategory,setActiveCategory]=React.useState('Alle');
@@ -102,6 +103,11 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest,itemType=
   // die nach dem Antippen nicht aufgehen.
   const brandCounts={};
   byCategory.forEach(i=>{const k=brandKey(i.brand);if(k)brandCounts[k]=(brandCounts[k]||0)+1;});
+  // Freunde-einladen-Rabatt: Reihenfolge, in der Marken-Rabattcodes dieser
+  // Kategorie (Equipment ODER Supplements, je nach itemType) freigeschaltet
+  // werden. Siehe rewardBrands.js - dieselbe Berechnung laeuft auch in
+  // App.js fuer die Fortschrittsanzeige in "Mein Profil".
+  const unlockOrder=React.useMemo(()=>computeBrandUnlockOrder(items),[items]).order;
   const featured=filtered.filter(i=>i.featured);
   const restUnsorted=filtered.filter(i=>!i.featured);
   const rest=restUnsorted.slice().sort((a,b)=>{
@@ -199,7 +205,7 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest,itemType=
       {featured.length>0&&(
         <div style={{marginBottom:20}}>
           <div style={{color:'#d4a017',fontSize:11,fontWeight:700,letterSpacing:2,marginBottom:10}}>⭐ EMPFOHLEN</div>
-          {featured.map(eq=><EquipCard key={eq.id} eq={eq} darkMode={darkMode} RED={RED}/>)}
+          {featured.map(eq=><EquipCard key={eq.id} eq={eq} darkMode={darkMode} RED={RED} rank={brandRank(unlockOrder,eq.brand)} referralCount={referralCount} onInvite={onInvite}/>)}
         </div>
       )}
 
@@ -213,7 +219,7 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest,itemType=
               <button onClick={()=>setSortMode('newest')} style={{padding:'4px 10px',borderRadius:14,border:'1px solid '+(sortMode==='newest'?RED:(darkMode?'#333':'#ddd')),background:sortMode==='newest'?RED:'transparent',color:sortMode==='newest'?'#fff':(darkMode?'#aaa':'#666'),fontSize:10,fontWeight:700,cursor:'pointer'}}>Neueste</button>
             </div>
           </div>
-          {rest.map(eq=><EquipCard key={eq.id} eq={eq} darkMode={darkMode} RED={RED}/>)}
+          {rest.map(eq=><EquipCard key={eq.id} eq={eq} darkMode={darkMode} RED={RED} rank={brandRank(unlockOrder,eq.brand)} referralCount={referralCount} onInvite={onInvite}/>)}
         </div>
       )}
 
@@ -233,7 +239,12 @@ function EquipmentScreen({darkMode,appLang,SUPA_URL,SUPA_KEY,onSuggest,itemType=
   );
 }
 
-function EquipCard({eq,darkMode,RED}){
+function EquipCard({eq,darkMode,RED,rank,referralCount=0,onInvite}){
+  // rank: 1-basierter Platz dieser Marke in der Freunde-einladen-
+  // Freischalt-Reihenfolge (null, falls die Marke gar keinen Rabattcode
+  // hat - dann spielt das Folgende keine Rolle). Erst ab referralCount
+  // >= rank wird der Code wirklich angezeigt.
+  const locked=rank!=null&&referralCount<rank;
   const [pressed,setPressed]=React.useState(false);
   const [shareMsg,setShareMsg]=React.useState('');
 
@@ -270,9 +281,14 @@ function EquipCard({eq,darkMode,RED}){
           <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15}}>{eq.brand}</div>
           <div style={{color:darkMode?'#ddd':'#444',fontSize:13,marginTop:1}}>{eq.product}</div>
           {eq.description&&<div style={{color:'#aaa',fontSize:11,marginTop:4,lineHeight:1.5}}>{eq.description}</div>}
-          {eq.discount_code&&(
+          {eq.discount_code&&!locked&&(
             <div style={{display:'inline-flex',alignItems:'center',gap:5,background:'#27ae6018',border:'1px solid #27ae6033',borderRadius:8,padding:'3px 8px',marginTop:6}}>
               <span style={{color:'#27ae60',fontSize:11,fontWeight:700}}>🏷️ Code: {eq.discount_code}</span>
+            </div>
+          )}
+          {eq.discount_code&&locked&&(
+            <div onClick={onInvite} role={onInvite?'button':undefined} style={{display:'inline-flex',alignItems:'center',gap:5,background:darkMode?'#2a2a2a':'#f0f0f0',border:'1px solid '+(darkMode?'#333':'#ddd'),borderRadius:8,padding:'3px 8px',marginTop:6,cursor:onInvite?'pointer':'default'}}>
+              <span style={{color:darkMode?'#999':'#888',fontSize:11,fontWeight:700}}>🔒 Rabattcode ab {rank} {rank===1?'eingeladenem Freund':'eingeladenen Freunden'}</span>
             </div>
           )}
         </div>

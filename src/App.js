@@ -4,7 +4,8 @@ import { buildTimeSeries, activeUserCounts, countSince, equipmentRanking, totalE
 import { setupPushRegistration } from './pushRegistration';
 import { cityToCountry, filterCitiesByCountry } from './cityCountry';
 import { autoFilterCandidates } from './autoFilters';
-import { SUPA_URL, SUPA_KEY, ADMIN_ID, APP_STORE_ID, CURRENT_APP_VERSION, SW, RED, LIGHT_RED, REFERRAL_TIERS } from './constants';
+import { SUPA_URL, SUPA_KEY, ADMIN_ID, APP_STORE_ID, CURRENT_APP_VERSION, SW, RED, LIGHT_RED } from './constants';
+import { computeBrandUnlockOrder } from './rewardBrands';
 import { authSignUp, authSignIn, authSignOut, dbInsert, dbUpdate, dbSelect, adminFetch, uploadPhoto } from './supabaseApi';
 import { safeLocalNotification } from './notifications';
 import ChatOverlay from './ChatOverlay';
@@ -162,6 +163,11 @@ function MainApp(){
   const [saving,setSaving]=useState(false);
   const [msg,setMsg]=useState('');
   const [myProfile,setMyProfile]=useState(null);
+  // Freunde-einladen-Rabatt: Freischalt-Reihenfolge der Marken-Rabattcodes
+  // bei Equipment und Supplements, fuer die Fortschrittsanzeige in "Mein
+  // Profil" (siehe loadRewardBrands weiter unten und rewardBrands.js).
+  const [rewardBrands,setRewardBrands]=useState({equipment:{order:[],labelByKey:{}},supplement:{order:[],labelByKey:{}}});
+  const [rewardBrandsLoaded,setRewardBrandsLoaded]=useState(false);
   const [profile,setProfile]=useState({name:'',age:'',city:'',gym:'',height:'',weight:'',weightClass:'',style:'',bio:'',isPro:false,country:'DE',gender:'male'});
   const [stats,setStats]=useState({wins:0,losses:0,draws:0,ko:0});
   const [avatarUrl,setAvatarUrl]=useState(null);
@@ -382,6 +388,17 @@ function MainApp(){
       loadDbGyms(session);
     }
   },[showAdmin]);
+
+  // Freunde-einladen-Rabatt: Marken-Freischalt-Reihenfolge einmal laden,
+  // sobald sie irgendwo gebraucht wird (Mein Profil, Equipment, Supplements)
+  // - nicht schon beim App-Start, um keine unnoetige Abfrage zu machen,
+  // falls der Nutzer diese Bereiche nie besucht.
+  useEffect(()=>{
+    if(!rewardBrandsLoaded&&session&&(tab==='stats'||showEquipment||showSupplements)){
+      setRewardBrandsLoaded(true);
+      loadRewardBrands();
+    }
+  },[tab,showEquipment,showSupplements,session,rewardBrandsLoaded]);
 
   // Rangliste neu laden wenn Tab geöffnet wird
   useEffect(()=>{
@@ -1091,6 +1108,26 @@ function MainApp(){
         }
       }
     }catch(e){console.log('loadDbGyms error',e);}
+  }
+
+  // Freunde-einladen-Rabatt: laedt NUR die Produkte mit einem Rabattcode
+  // (schlankes select, keine Bilder/Beschreibungen noetig) und berechnet
+  // daraus getrennt fuer Equipment und Supplements, in welcher Reihenfolge
+  // die Marken-Codes freigeschaltet werden. Dieselbe Berechnung
+  // (rewardBrands.js) laeuft auch in EquipmentScreen - nur so zeigen
+  // "Mein Profil" und die Equipment-/Supplement-Liste denselben Stand.
+  async function loadRewardBrands(){
+    try{
+      const resp=await fetch(SUPA_URL+'/rest/v1/equipment?select=brand,item_type,discount_code,created_at&discount_code=not.is.null',{
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+      });
+      const data=await resp.json();
+      if(!Array.isArray(data))return;
+      setRewardBrands({
+        equipment:computeBrandUnlockOrder(data.filter(i=>i.item_type==='equipment')),
+        supplement:computeBrandUnlockOrder(data.filter(i=>i.item_type==='supplement')),
+      });
+    }catch(e){console.log('loadRewardBrands error',e);}
   }
 
   async function loadEvents(s){
@@ -3417,6 +3454,7 @@ nicht öffentlich gemacht</div>
           </div>
           <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%'}}>
             <EquipmentScreen darkMode={darkMode} appLang={appLang} SUPA_URL={SUPA_URL} SUPA_KEY={SUPA_KEY} itemType='equipment'
+              referralCount={myProfile?.referral_count||0} onInvite={()=>{setShowEquipment(false);setTab('stats');}}
               onSuggest={()=>{setFeedbackType('wunsch');setFeedbackText('Equipment Empfehlung: ');setShowEquipment(false);setShowFeedbackModal(true);setFeedbackSent(false);}}/>
           </div>
         </div>
@@ -3433,6 +3471,7 @@ nicht öffentlich gemacht</div>
           </div>
           <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%'}}>
             <EquipmentScreen darkMode={darkMode} appLang={appLang} SUPA_URL={SUPA_URL} SUPA_KEY={SUPA_KEY} itemType='supplement'
+              referralCount={myProfile?.referral_count||0} onInvite={()=>{setShowSupplements(false);setTab('stats');}}
               onSuggest={()=>{setFeedbackType('wunsch');setFeedbackText('Supplement Empfehlung: ');setShowSupplements(false);setShowFeedbackModal(true);setFeedbackSent(false);}}/>
           </div>
         </div>
@@ -4110,7 +4149,7 @@ nicht öffentlich gemacht</div>
                 <div style={{color:RED,fontSize:13,fontWeight:700}}>{myProfile?.referral_count||0} {(myProfile?.referral_count||0)===1?'Freund':'Freunde'}</div>
               </div>
               <div style={{color:darkMode?'#999':'#666',fontSize:12,marginBottom:12,lineHeight:1.4}}>
-                Lade Freunde mit deinem Link ein. Jeder, der sich registriert <b>und</b> sein Profil fertig anlegt, schaltet dir einen besseren Rabattcode für Event-Tickets frei.
+                Lade Freunde mit deinem Link ein. Jeder, der sich registriert <b>und</b> sein Profil fertig anlegt, schaltet dir den nächsten Marken-Rabattcode bei Equipment und Supplements frei.
               </div>
               <button onClick={()=>{
                 const inviteLink='https://fighterapp.de/?ref='+(myProfile?.id||'');
@@ -4121,19 +4160,22 @@ nicht öffentlich gemacht</div>
                 🔗 EINLADUNGSLINK TEILEN
               </button>
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {REFERRAL_TIERS.map(tier=>{
+                {[['🛒 Equipment','equipment',()=>{setShowEquipment(true);}],['💊 Supplements','supplement',()=>{setShowSupplements(true);}]].map(([label,key,openScreen])=>{
                   const refCount=myProfile?.referral_count||0;
-                  const unlocked=refCount>=tier.count;
+                  const cat=rewardBrands[key]||{order:[],labelByKey:{}};
+                  const total=cat.order.length;
+                  const unlockedN=Math.min(refCount,total);
+                  const nextBrandKey=unlockedN<total?cat.order[unlockedN]:null;
+                  const nextBrandLabel=nextBrandKey?cat.labelByKey[nextBrandKey]:null;
                   return (
-                    <div key={tier.count} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'9px 12px',borderRadius:10,background:unlocked?'#27ae6012':(darkMode?'#111':'#f5f5f7'),border:'1px solid '+(unlocked?'#27ae6044':(darkMode?'#2a2a2a':'#eee'))}}>
-                      <div style={{display:'flex',alignItems:'center',gap:8}}>
-                        <span style={{fontSize:16}}>{unlocked?'✅':'🔒'}</span>
-                        <div>
-                          <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:700}}>{tier.count} {tier.count===1?'Freund':'Freunde'}</div>
-                          <div style={{color:darkMode?'#777':'#999',fontSize:11}}>{tier.percent}% Rabatt auf Event-Tickets</div>
-                        </div>
+                    <div key={key} onClick={openScreen} role='button' style={{padding:'10px 12px',borderRadius:10,background:darkMode?'#111':'#f5f5f7',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),cursor:'pointer'}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                        <span style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:700}}>{label}</span>
+                        <span style={{color:total>0&&unlockedN===total?'#27ae60':RED,fontSize:12,fontWeight:700}}>{unlockedN}/{total} Marken</span>
                       </div>
-                      <div style={{color:unlocked?'#27ae60':(darkMode?'#555':'#bbb'),fontSize:12,fontWeight:700,fontFamily:'monospace'}}>{unlocked?tier.code:'???????'}</div>
+                      {total===0&&<div style={{color:darkMode?'#777':'#999',fontSize:11,marginTop:3}}>Noch keine Marken-Rabatte hier</div>}
+                      {total>0&&nextBrandLabel&&<div style={{color:darkMode?'#777':'#999',fontSize:11,marginTop:3}}>🔒 Nächster Code: {nextBrandLabel} (ab {unlockedN+1} {unlockedN+1===1?'Freund':'Freunden'})</div>}
+                      {total>0&&!nextBrandLabel&&<div style={{color:'#27ae60',fontSize:11,marginTop:3}}>✅ Alle Marken-Codes freigeschaltet!</div>}
                     </div>
                   );
                 })}

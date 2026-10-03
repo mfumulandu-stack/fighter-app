@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { eventId, userToken } = await req.json();
+    const { eventId, userToken, type } = await req.json();
     if (!eventId || !userToken) {
       return new Response(JSON.stringify({ error: "eventId und userToken erforderlich" }), {
         status: 400,
@@ -55,12 +55,63 @@ Deno.serve(async (req) => {
     }
 
     const evRes = await fetch(
-      `${SUPA_URL}/rest/v1/events?id=eq.${eventId}&select=id,title,price`,
+      `${SUPA_URL}/rest/v1/events?id=eq.${eventId}&select=id,title,price,price_monthly,creator_id`,
       { headers: { apikey: SUPA_SERVICE_KEY, Authorization: `Bearer ${SUPA_SERVICE_KEY}` } },
     );
     const evRows = await evRes.json();
     const event = Array.isArray(evRows) ? evRows[0] : null;
-    if (!event || !event.price || event.price <= 0) {
+    if (!event) {
+      return new Response(JSON.stringify({ error: "Event nicht gefunden" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
+    }
+
+    // ── MONATSBEITRAG: komplett eigener, einfacherer Zweig - keine BAF-
+    // Rabatt-Logik dafuer, kein event_participants-Eintrag. Erstellt eine
+    // Mitgliedschaft, die unabhaengig von einzelnen Terminen 30 Tage gilt.
+    if (type === "membership") {
+      if (!event.price_monthly || event.price_monthly <= 0) {
+        return new Response(JSON.stringify({ error: "Kein Monatsbeitrag fuer dieses Event hinterlegt" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        });
+      }
+      const mParams = new URLSearchParams();
+      mParams.append("mode", "payment");
+      mParams.append("success_url", `${APP_URL}?ticket=success&event=${eventId}&membership=1`);
+      mParams.append("cancel_url", `${APP_URL}?ticket=cancelled`);
+      mParams.append("line_items[0][price_data][currency]", "eur");
+      mParams.append("line_items[0][price_data][product_data][name]", `Monatsbeitrag: ${event.title}`);
+      mParams.append("line_items[0][price_data][unit_amount]", String(Math.round(event.price_monthly * 100)));
+      mParams.append("line_items[0][quantity]", "1");
+      mParams.append("metadata[type]", "membership");
+      mParams.append("metadata[event_id]", String(eventId));
+      mParams.append("metadata[profile_id]", String(profile.id));
+      mParams.append("metadata[creator_id]", String(event.creator_id || ""));
+
+      const mStripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${STRIPE_SECRET_KEY}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: mParams.toString(),
+      });
+      const mSession = await mStripeRes.json();
+      if (!mStripeRes.ok) {
+        return new Response(JSON.stringify({ error: mSession.error?.message || "Stripe-Fehler" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        });
+      }
+      return new Response(JSON.stringify({ url: mSession.url }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
+    }
+
+    if (!event.price || event.price <= 0) {
       return new Response(JSON.stringify({ error: "Event nicht gefunden oder kostenlos" }), {
         status: 400,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
