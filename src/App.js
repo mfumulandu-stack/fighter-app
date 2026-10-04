@@ -1659,6 +1659,7 @@ function MainApp(){
       if(activeChat){setActiveChat(null);return;}
       if(viewProfile){setViewProfile(null);return;}
       if(viewGym){setViewGym(null);return;}
+      if(whoLikedTab){setWhoLikedTab(false);return;}
       if(showAdmin){setShowAdmin(false);return;}
       if(showImpressum){setShowImpressum(false);return;}
       if(showDatenschutz){setShowDatenschutz(false);return;}
@@ -1670,7 +1671,7 @@ function MainApp(){
     window.history.pushState(null,'',window.location.href);
     window.addEventListener('popstate',onPop);
     return()=>window.removeEventListener('popstate',onPop);
-  },[activeChat,viewProfile,viewGym,showAdmin,showImpressum,showDatenschutz,showAGB,showGymVerify]);
+  },[activeChat,viewProfile,viewGym,whoLikedTab,showAdmin,showImpressum,showDatenschutz,showAGB,showGymVerify]);
 
   function handleSession(s){
     const sessionData={token:s.token,userId:s.userId,refresh_token:s.refresh_token,expires_at:Date.now()+(3600*1000)};
@@ -2520,7 +2521,11 @@ function MainApp(){
 
   if(viewGym)return(<><style>{css}</style><GymDetailScreen gym={viewGym.gym} gymKey={viewGym.key} gymRatings={gymRatings} gymLogos={gymLogos} isAdmin={isAdmin} session={session} myProfile={myProfile} onGymUpdate={async()=>{await loadDbGyms(session);await loadGymLogos();}} rateGym={(k,s)=>{rateGym(k,s);}} onClose={()=>setViewGym(null)} darkMode={darkMode===true}/></>);
 
-  if(whoLikedTab)return(
+  // "&&!viewProfile": wenn man von dieser Liste aus ein Profil oeffnet,
+  // bleibt whoLikedTab bewusst weiter true (siehe die beiden Klicks unten,
+  // die es NICHT mehr auf false setzen) - sonst landet man nach dem
+  // Schliessen des Profils auf dem normalen Haupt-Tab statt wieder hier.
+  if(whoLikedTab&&!viewProfile)return(
     <div style={{height:'100dvh',overflowY:'auto',WebkitOverflowScrolling:'touch',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column'}}> 
       <style>{css}</style>
       <div style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
@@ -2540,10 +2545,10 @@ function MainApp(){
         ):whoLikedMe.map((p,i)=>(
           <div key={i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),overflow:'hidden',boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
             <div style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px'}}>
-              <div onClick={()=>{setWhoLikedTab(false);setViewProfile(p);}} style={{width:54,height:54,borderRadius:12,overflow:'hidden',flexShrink:0,cursor:'pointer',border:'2px solid '+RED+'44'}}>
+              <div onClick={()=>{setViewProfile(p);}} style={{width:54,height:54,borderRadius:12,overflow:'hidden',flexShrink:0,cursor:'pointer',border:'2px solid '+RED+'44'}}>
                 {p.avatar_url?<img loading="lazy" src={p.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{width:'100%',height:'100%',background:'#2a2a2a',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>🥊</div>}
               </div>
-              <div style={{flex:1}} onClick={()=>{setWhoLikedTab(false);setViewProfile(p);}}>
+              <div style={{flex:1}} onClick={()=>{setViewProfile(p);}}>
                 <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15,cursor:'pointer'}}>{p.name}</div>
                 <div style={{color:RED,fontSize:12,marginTop:1}}>{p.style} · {p.city}</div>
                 <div style={{color:darkMode?'#666':'#aaa',fontSize:11,marginTop:2}}>{p.wins||0}S {p.losses||0}N {p.draws||0}U</div>
@@ -3211,6 +3216,7 @@ nicht öffentlich gemacht</div>
                 {icon:'',label:'Events',action:()=>{setTab('events');setShowMenu(false);loadEvents(session);}},
                 {icon:'',label:'News',action:()=>{setShowNews(true);setShowMenu(false);loadNews();}},
                 {icon:'',label:'Mein Profil',action:()=>{setTab('stats');setShowMenu(false);}},
+                {icon:'',label:'Wer hat dich gemocht',action:()=>{setWhoLikedTab(true);setShowMenu(false);loadWhoLikedMe(session,myProfile);}},
                 {icon:'',label:'Equipment',action:()=>{setShowEquipment(true);setShowMenu(false);}},
                 {icon:'',label:'Supplements',action:()=>{setShowSupplements(true);setShowMenu(false);}},
               ].map(item=>(
