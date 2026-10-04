@@ -2480,7 +2480,9 @@ function MainApp(){
         if(rankMode==='user') return f.isMe?(profile.isPro!==true):(f.is_pro!==true);
         return true;
       })
-      .filter(f=>(f.wins||0)+(f.losses||0)+(f.draws||0)>0)
+      // Bewusst KEIN Filter auf "mindestens 1 Kampf" mehr - auch wer noch
+      // keine Kaempfe hat (0-0-0), soll in der kompletten Rangliste zu
+      // sehen sein, nicht nur Fighter mit bestehender Bilanz.
       // Nur mit verifiziertem Kampfrekord in der Rangliste - verhindert
       // erfundene Bilanzen. Eigenes Profil zaehlt hier genauso wie alle
       // anderen, kein Sonderfall.

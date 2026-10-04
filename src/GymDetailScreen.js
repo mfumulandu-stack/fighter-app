@@ -66,14 +66,14 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,myProfi
         if(created)setComments(prev=>[created,...prev]);
         setCommentText('');
       }else{
-        alert('Kommentar konnte nicht gespeichert werden ('+res.status+').');
+        alert('Rezension konnte nicht gespeichert werden ('+res.status+').');
       }
     }catch(e){alert('Fehler: '+e.message);}
     setPostingComment(false);
   }
   async function deleteComment(id){
     if(!session)return;
-    if(!window.confirm('Kommentar wirklich löschen?'))return;
+    if(!window.confirm('Rezension wirklich löschen?'))return;
     try{
       const res=await fetch(SUPA_URL+'/rest/v1/gym_comments?id=eq.'+id,{
         method:'DELETE',
@@ -262,25 +262,25 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,myProfi
           })}
         </div>
 
-        {/* KOMMENTARE */}
+        {/* REZENSIONEN */}
         <div style={{background:card,borderRadius:14,padding:'16px',border:'1px solid '+border}}>
-          <div style={{fontFamily:'Rajdhani,sans-serif',color:text,fontSize:13,letterSpacing:2,marginBottom:12}}>KOMMENTARE{comments.length>0?' ('+comments.length+')':''}</div>
+          <div style={{fontFamily:'Rajdhani,sans-serif',color:text,fontSize:13,letterSpacing:2,marginBottom:12}}>REZENSIONEN{comments.length>0?' ('+comments.length+')':''}</div>
           {session?(
             <div style={{marginBottom:14}}>
-              <textarea value={commentText} onChange={e=>setCommentText(e.target.value)} placeholder='Wie war dein Training hier? Schreib einen Kommentar...' rows={3}
+              <textarea value={commentText} onChange={e=>setCommentText(e.target.value)} placeholder='Wie war dein Training hier? Schreib eine Rezension...' rows={3}
                 style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+border,background:isDark?'#111':'#f5f5f7',color:text,fontSize:13,fontFamily:'DM Sans,sans-serif',resize:'none',boxSizing:'border-box'}}/>
               <button disabled={postingComment||!commentText.trim()} onClick={postComment}
                 style={{marginTop:8,padding:'9px 18px',borderRadius:8,background:postingComment||!commentText.trim()?'#999':'#c0392b',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,letterSpacing:1,cursor:postingComment||!commentText.trim()?'not-allowed':'pointer'}}>
-                {postingComment?'WIRD GEPOSTET...':'KOMMENTAR POSTEN'}
+                {postingComment?'WIRD GEPOSTET...':'REZENSION POSTEN'}
               </button>
             </div>
           ):(
-            <div style={{color:sub,fontSize:12,marginBottom:14}}>Melde dich an, um einen Kommentar zu schreiben.</div>
+            <div style={{color:sub,fontSize:12,marginBottom:14}}>Melde dich an, um eine Rezension zu schreiben.</div>
           )}
           {loadingComments?(
             <div style={{color:sub,fontSize:12,textAlign:'center',padding:'10px 0'}}>Lädt...</div>
           ):comments.length===0?(
-            <div style={{color:sub,fontSize:12,textAlign:'center',padding:'10px 0'}}>Noch keine Kommentare. Sei der Erste!</div>
+            <div style={{color:sub,fontSize:12,textAlign:'center',padding:'10px 0'}}>Noch keine Rezensionen. Sei der Erste!</div>
           ):(
             <div style={{display:'flex',flexDirection:'column',gap:12}}>
               {comments.map(c=>(
