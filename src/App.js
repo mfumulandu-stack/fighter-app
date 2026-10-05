@@ -2570,6 +2570,15 @@ function MainApp(){
               }} style={{background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',borderRadius:10,padding:'10px 14px',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',flexShrink:0}}>
                 ⚔️ MATCH
               </button>
+              <button onClick={async()=>{
+                // Entfernen - kein Match, zaehlt wie ein normales Wegwischen
+                try{
+                  await dbInsert('swipes',{swiper_id:myProfile.id,target_id:p.id,direction:'pass'},session.token);
+                  setWhoLikedMe(prev=>prev.filter(x=>x.id!==p.id));
+                }catch(e){showMsg('Fehler: '+e.message);}
+              }} style={{background:'none',border:'1px solid '+(darkMode?'#333':'#ddd'),borderRadius:10,padding:'10px 12px',color:darkMode?'#777':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',flexShrink:0}}>
+                ✕
+              </button>
             </div>
           </div>
         ))}
@@ -3218,7 +3227,6 @@ nicht öffentlich gemacht</div>
                 {icon:'',label:'Events',action:()=>{setTab('events');setShowMenu(false);loadEvents(session);}},
                 {icon:'',label:'News',action:()=>{setShowNews(true);setShowMenu(false);loadNews();}},
                 {icon:'',label:'Mein Profil',action:()=>{setTab('stats');setShowMenu(false);}},
-                {icon:'',label:'Wer hat dich gemocht',action:()=>{setWhoLikedTab(true);setShowMenu(false);loadWhoLikedMe(session,myProfile);}},
                 {icon:'',label:'Equipment',action:()=>{setShowEquipment(true);setShowMenu(false);}},
                 {icon:'',label:'Supplements',action:()=>{setShowSupplements(true);setShowMenu(false);}},
               ].map(item=>(
@@ -3634,7 +3642,9 @@ nicht öffentlich gemacht</div>
               </button>
             </div>
             {/* WER HAT MICH GELIKET Banner */}
-            {whoLikedMe.length>0&&(newLikesCount>0||!likesBannerSeen)&&(
+            {/* Banner bleibt sichtbar, bis die Liste wirklich leer ist -
+                nicht nur bis er einmal angetippt wurde */}
+            {whoLikedMe.length>0&&(
               <div onClick={()=>{
                 setWhoLikedTab(true);
                 setNewLikesCount(0);
@@ -4982,7 +4992,7 @@ nicht öffentlich gemacht</div>
                 <div style={{fontSize:24,marginBottom:6}}>🌍</div>
                 <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,marginBottom:4}}>Vervollständige dein Profil</div>
                 <div style={{color:'#888',fontSize:12,lineHeight:1.5,marginBottom:12}}>Um in der Rangliste aufzutauchen, musst du dein Land angeben.</div>
-                <button onClick={()=>{setEditProfile({});setEditMode(true);}} style={{padding:'9px 20px',borderRadius:8,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+                <button onClick={()=>{setTab('stats');setEditProfile({});setEditMode(true);}} style={{padding:'9px 20px',borderRadius:8,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
                   JETZT VERVOLLSTÄNDIGEN
                 </button>
               </div>
@@ -4997,7 +5007,7 @@ nicht öffentlich gemacht</div>
                     :'Um in der Rangliste aufzutauchen, muss dein Kampfrekord verifiziert werden. Lade einen Nachweis hoch (Urkunde, offizielles Ergebnis).'}
                 </div>
                 {(profile.record_verified||myProfile?.record_verified)!=='pending'&&(
-                  <button onClick={()=>{setEditProfile({});setEditMode(true);}} style={{padding:'9px 20px',borderRadius:8,background:'linear-gradient(135deg,#27ae60,#2ecc71)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+                  <button onClick={()=>{setTab('stats');setEditProfile({});setEditMode(true);}} style={{padding:'9px 20px',borderRadius:8,background:'linear-gradient(135deg,#27ae60,#2ecc71)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
                     NACHWEIS HOCHLADEN
                   </button>
                 )}

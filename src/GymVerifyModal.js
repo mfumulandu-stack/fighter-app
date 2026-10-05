@@ -86,7 +86,7 @@ function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,set
               <div style={{background:darkMode?'#1f1f1f':'#f8f8f8',borderRadius:10,padding:'12px',marginBottom:16,border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
                 <div style={{color:'#d4a017',fontSize:12,fontWeight:700,marginBottom:6}}>💡 WIE BEKOMME ICH DEN CODE?</div>
                 <div style={{color:sub,fontSize:12,lineHeight:1.6}}>
-                  Frage an der Rezeption deines Gyms nach dem <strong>Fighter-App Code</strong>. Der 8-stellige Code wird dir direkt mitgeteilt.
+                  Frage an der Rezeption deines Gyms nach dem <strong>Fighter-App Code</strong>. Der Code (6 bis 8 Zeichen) wird dir direkt mitgeteilt.
                 </div>
               </div>
 
@@ -94,10 +94,10 @@ function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,set
                 <div style={{color:sub,fontSize:10,letterSpacing:1,marginBottom:6}}>GYM-CODE EINGEBEN</div>
                 <input
                   value={gymCodeInput}
-                  onChange={e=>{setGymCodeInput(e.target.value.toUpperCase());setGymVerifyError('');}}
+                  onChange={e=>{setGymCodeInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8));setGymVerifyError('');}}
                   onKeyDown={e=>e.key==='Enter'&&verify()}
-                  placeholder='z.B. RHKM8B'
-                  maxLength={6}
+                  placeholder='z.B. 3F9A1C2E'
+                  maxLength={8}
                   style={{width:'100%',padding:'12px 10px',borderRadius:10,border:'2px solid '+(gymVerifyError?'#e74c3c':darkMode?'#333':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:text,fontSize:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700,letterSpacing:1.5,textAlign:'center',boxSizing:'border-box'}}
                 />
                 {gymVerifyError&&<div style={{color:'#e74c3c',fontSize:11,marginTop:6,textAlign:'center'}}>{gymVerifyError}</div>}
