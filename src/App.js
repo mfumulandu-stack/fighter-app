@@ -4279,7 +4279,7 @@ nicht öffentlich gemacht</div>
               {saving?t.saving:t.saveProfil}
             </button>
             {/* VERIFIZIERTER KAMPFREKORD */}
-            <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginTop:8,marginBottom:8}}>
+            <div id='record-verify-box' style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginTop:8,marginBottom:8}}>
               <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,letterSpacing:2,marginBottom:10}}>🏅 KAMPFREKORD VERIFIZIEREN</div>
               <div style={{color:'#aaa',fontSize:11,marginBottom:10,lineHeight:1.6}}>Lade ein Foto deiner Urkunde, Medaille oder eines offiziellen Kampfergebnisses hoch. Dein Rekord bekommt dann ein ✅ Verifiziert-Badge.</div>
               <label style={{cursor:'pointer',display:'block'}}>
@@ -5007,9 +5007,30 @@ nicht öffentlich gemacht</div>
                     :'Um in der Rangliste aufzutauchen, muss dein Kampfrekord verifiziert werden. Lade einen Nachweis hoch (Urkunde, offizielles Ergebnis).'}
                 </div>
                 {(profile.record_verified||myProfile?.record_verified)!=='pending'&&(
-                  <button onClick={()=>{setTab('stats');setEditProfile({});setEditMode(true);}} style={{padding:'9px 20px',borderRadius:8,background:'linear-gradient(135deg,#27ae60,#2ecc71)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
-                    NACHWEIS HOCHLADEN
-                  </button>
+                  <>
+                    <button onClick={()=>{setTab('stats');setTimeout(()=>{const el=document.getElementById('record-verify-box');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},200);}} style={{padding:'9px 20px',borderRadius:8,background:'linear-gradient(135deg,#27ae60,#2ecc71)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+                      NACHWEIS HOCHLADEN
+                    </button>
+                    {(myProfile?.wins||0)+(myProfile?.losses||0)+(myProfile?.draws||0)===0&&(
+                      <button onClick={async()=>{
+                        // 0-0-0 laesst sich nicht faelschen (bringt 0 Punkte) - deshalb
+                        // hier direkt verifizieren, ohne Warten auf Pruefung durch uns.
+                        if(!window.confirm('Du hast noch keine Kämpfe? Dein Rekord wird als 0-0-0 verifiziert und du erscheinst damit in der Rangliste.'))return;
+                        try{
+                          await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{
+                            method:'PATCH',
+                            headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+                            body:JSON.stringify({wins:0,losses:0,draws:0,ko:0,record_verified:'verified',record_proof_url:null})
+                          });
+                          setMyProfile(p=>({...p,wins:0,losses:0,draws:0,ko:0,record_verified:'verified'}));
+                          setStats({wins:0,losses:0,draws:0,ko:0});
+                          showMsg('✅ Als "keine Kämpfe" markiert - du erscheinst jetzt in der Rangliste.');
+                        }catch(e){showMsg('Fehler: '+e.message);}
+                      }} style={{marginTop:8,padding:'8px 16px',borderRadius:8,background:'none',border:'1px solid #27ae6066',color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>
+                        ICH HABE NOCH KEINE KÄMPFE
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             )}
