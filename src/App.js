@@ -23,7 +23,7 @@ import OnboardingTour from './OnboardingTour';
 import SwipeableChatRow from './SwipeableChatRow';
 import ErrorBoundary from './ErrorBoundary';
 import ImgPositionEditor from './ImgPositionEditor';
-import { WEIGHT_CLASSES, STYLES, BELT_STYLES, BELT_RANKS, PRO_FIGHTERS, FIGHTERS, CITY_COORDS, CITY_BUNDESLAND, GYMS, TRAINERS, SPORTS, getDistanceKm, getDistanceKmCoords, getBundesland, getLocationByIP } from './appData';
+import { WEIGHT_CLASSES, normalizeWeightClass, STYLES, BELT_STYLES, BELT_RANKS, PRO_FIGHTERS, FIGHTERS, CITY_COORDS, CITY_BUNDESLAND, GYMS, TRAINERS, SPORTS, getDistanceKm, getDistanceKmCoords, getBundesland, getLocationByIP } from './appData';
 // Weiterreichen nach aussen: auth.test.js und andere importieren diese
 // Funktionen aus './App' - das bleibt dadurch unveraendert gueltig.
 export { authSignUp, authSignIn, authSignOut, dbInsert, dbUpdate, dbSelect, adminFetch } from './supabaseApi';
@@ -1929,7 +1929,7 @@ function MainApp(){
       gym:profile.gym||null,
       height:parseInt(profile.height)||null,
       weight:parseInt(profile.weight)||null,
-      weight_class:profile.weightClass||null,
+      weight_class:normalizeWeightClass(profile.weightClass)||null,
       style:profile.style,
       belt:profile.belt||null,
       is_coach:!!profile.isCoach,
@@ -2150,7 +2150,7 @@ function MainApp(){
     }catch(err){console.error('gallery remove',err);}
   }
 
-  const myWeightClass=myProfile?.weight_class||profile?.weightClass||'';
+  const myWeightClass=normalizeWeightClass(myProfile?.weight_class||profile?.weightClass||'');
   const myCity=myProfile?.city||profile?.city||'';
   const myBundesland=getBundesland(myCity);
 
@@ -2193,7 +2193,7 @@ function MainApp(){
   const matchTierRef=useRef('minimal');
   const filteredCards=React.useMemo(()=>{
   const myIsPro=myProfile?.is_pro===true||profile.isPro===true;
-  const myWC=(myProfile?.weight_class||profile.weightClass||'').split(' (')[0].trim();
+  const myWC=normalizeWeightClass(myProfile?.weight_class||profile.weightClass||'').split(' (')[0].trim();
 
   // ── AUTOMATISCHE PROFIL-FILTER (kein manuelles Einstellen noetig) ──
   // Die App leitet aus dem eigenen Profil ab, was ein sinnvoller Alters-,
@@ -2272,7 +2272,7 @@ function MainApp(){
       const sameCountryBool=hasGPS?dist<=600:(!f.country||!profile.country||f.country===(profile.country||myProfile?.country||'DE')||f.country==='OTHER');
       const sameStyleBool=sameStyle(f);
       const sameGenderBool=sameGender(f);
-      const fWC=(f.weight_class||'').split(' (')[0].trim();
+      const fWC=normalizeWeightClass(f.weight_class||'').split(' (')[0].trim();
       const sameWCBool=!!myWC&&!!fWC&&myWC===fWC;
       const sameProBool=!!(f.is_pro===true)===myIsPro; // beide Pro oder beide Amateur
 
@@ -3268,7 +3268,7 @@ nicht öffentlich gemacht</div>
               <div style={{flex:1}}><Lbl>{t.fightWeight}</Lbl><Inp placeholder='77' type='number' value={profile.weight} onChange={v=>setProfile(p=>({...p,weight:v}))}/></div>
             </div>
             <Lbl>Gewichtsklasse</Lbl>
-            <select value={profile.weightClass} onChange={e=>setProfile(p=>({...p,weightClass:e.target.value}))} style={{background:'#fff',border:'1px solid #ddd',borderRadius:8,padding:'12px 13px',color:profile.weightClass?'#1a1a1a':'#aaa',fontSize:14,width:'100%'}}>
+            <select value={normalizeWeightClass(profile.weightClass)} onChange={e=>setProfile(p=>({...p,weightClass:e.target.value}))} style={{background:'#fff',border:'1px solid #ddd',borderRadius:8,padding:'12px 13px',color:profile.weightClass?'#1a1a1a':'#aaa',fontSize:14,width:'100%'}}>
               <option value=''>Gewichtsklasse waehlen</option>
               {WEIGHT_CLASSES.map(w=><option key={w} value={w}>{w}</option>)}
             </select>
@@ -3897,7 +3897,7 @@ nicht öffentlich gemacht</div>
                           </div>
                           <div style={{display:'flex',gap:5,marginTop:6,flexWrap:'wrap'}}>
                             {f.style&&<div style={{background:fA,borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{f.style}</div>}
-                            {(f.weight_class||f.weightClass)&&<div style={{background:(f.weight_class||f.weightClass)===myWeightClass?'rgba(211,84,0,0.7)':'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:(f.weight_class||f.weightClass)===myWeightClass?700:400}}>⚖️ {(f.weight_class||f.weightClass||'').split(' (')[0]}{(f.weight_class||f.weightClass)===myWeightClass?' ✓':''}</div>}
+                            {(f.weight_class||f.weightClass)&&<div style={{background:normalizeWeightClass(f.weight_class||f.weightClass)===myWeightClass?'rgba(211,84,0,0.7)':'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:normalizeWeightClass(f.weight_class||f.weightClass)===myWeightClass?700:400}}>⚖️ {(f.weight_class||f.weightClass||'').split(' (')[0]}{normalizeWeightClass(f.weight_class||f.weightClass)===myWeightClass?' ✓':''}</div>}
                             {f.is_pro&&<div style={{background:'#d4a01733',borderRadius:20,padding:'2px 10px',color:'#d4a017',fontSize:11,fontWeight:700}}>⭐ PROFI</div>}
                           {f.country&&f.country!=='DE'&&f.country!=='OTHER'&&<div style={{background:'rgba(255,255,255,0.15)',borderRadius:20,padding:'2px 8px',color:'#fff',fontSize:13}}>{{'AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[f.country]||'🌍'}</div>}
                           {f.city&&<div style={{background:f._sameCity?'rgba(39,174,96,0.3)':'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>📍 {f.city}{f._dist&&f._dist<500&&!f._sameCity?' · '+f._dist+'km':''}{f._sameCity?' · Deine Stadt':''}</div>}
@@ -4145,7 +4145,7 @@ nicht öffentlich gemacht</div>
                     </div>
                     <div>
                       <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>GEWICHTSKLASSE</div>
-                      <select defaultValue={profile.weightClass||''} onChange={e=>setEditProfile(p=>({...p,weightClass:e.target.value}))}
+                      <select defaultValue={normalizeWeightClass(profile.weightClass)||''} onChange={e=>setEditProfile(p=>({...p,weightClass:e.target.value}))}
                         style={{width:'100%',padding:'11px 13px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontFamily:'DM Sans,sans-serif'}}>
                         <option value=''>{appLang==='FR'?'Choisir':appLang==='EN'?'Please select':'Bitte wählen'}</option>
                         {WEIGHT_CLASSES.map(w=><option key={w} value={w}>{w}</option>)}

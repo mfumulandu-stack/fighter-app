@@ -9,14 +9,32 @@
 //
 // HINWEIS: Der Inhalt ist unveraendert aus App.js hierher verschoben.
 
+// Offizielle Gewichtsklassen im Boxen (Profi-Limits, kg gerundet)
 const WEIGHT_CLASSES = [
-  'Strohgewicht (bis 48 kg)','Leichtfliegengewicht (bis 49 kg)','Fliegengewicht (bis 51 kg)',
-  'Superfliegengewicht (bis 52 kg)','Bantamgewicht (bis 53,5 kg)','Superbantamgewicht (bis 55 kg)',
-  'Federgewicht (bis 57 kg)','Superfedergewicht (bis 59 kg)','Leichtgewicht (bis 61 kg)',
-  'Halbweltergewicht (bis 63,5 kg)','Weltergewicht (bis 66,7 kg)','Halbmittelgewicht (bis 69,9 kg)',
+  'Minimumgewicht / Strohgewicht (bis 47,6 kg)','Halbfliegengewicht (bis 49,0 kg)','Fliegengewicht (bis 50,8 kg)',
+  'Superfliegengewicht (bis 52,2 kg)','Bantamgewicht (bis 53,5 kg)','Superbantamgewicht (bis 55,3 kg)',
+  'Federgewicht (bis 57,2 kg)','Superfedergewicht (bis 59,0 kg)','Leichtgewicht (bis 61,2 kg)',
+  'Superleichtgewicht (bis 63,5 kg)','Weltergewicht (bis 66,7 kg)','Superweltergewicht / Halbmittelgewicht (bis 69,9 kg)',
   'Mittelgewicht (bis 72,6 kg)','Supermittelgewicht (bis 76,2 kg)','Halbschwergewicht (bis 79,4 kg)',
-  'Cruisergewicht (bis 90,7 kg)','Schwergewicht (ueber 90,7 kg)'
+  'Cruisergewicht (bis 90,7 kg)','Schwergewicht (über 90,7 kg)'
 ];
+// Alte Namen aus frueheren App-Versionen -> neue Klasse (nach Gewichtslimit)
+const LEGACY_WEIGHT_CLASS = {
+  'Strohgewicht':'Minimumgewicht / Strohgewicht','Minimumgewicht':'Minimumgewicht / Strohgewicht',
+  'Leichtfliegengewicht':'Halbfliegengewicht',
+  'Halbweltergewicht':'Superleichtgewicht',
+  'Halbmittelgewicht':'Superweltergewicht / Halbmittelgewicht','Superweltergewicht':'Superweltergewicht / Halbmittelgewicht'
+};
+// Beliebigen gespeicherten Wert (alt oder neu) auf das neue Listen-Label abbilden
+function normalizeWeightClass(v){
+  if(!v)return v||'';
+  const name=String(v).split(' (')[0].trim();
+  const nameOf=l=>l.split(' (')[0];
+  let hit=WEIGHT_CLASSES.find(l=>nameOf(l)===name);
+  if(!hit){const mapped=LEGACY_WEIGHT_CLASS[name];if(mapped)hit=WEIGHT_CLASSES.find(l=>nameOf(l)===mapped);}
+  if(!hit)hit=WEIGHT_CLASSES.find(l=>nameOf(l).split(' / ').includes(name));
+  return hit||v;
+}
 const STYLES = ['Boxing','Kickboxing','MMA','Muay Thai','Grappling','BJJ','Wrestling','Kung Fu','Karate','Taekwondo','Judo','Sambo'];
 // Sportarten, bei denen ein Guertelrang ueblich ist
 const BELT_STYLES = ['BJJ','Karate','Taekwondo','Judo'];
@@ -209,4 +227,4 @@ const SPORTS = {
   'Fussball':{color:'#2980b9',emoji:'⚽',games:[{id:1,title:'5vs5 Hallenfussball',location:'Soccerhalle Berlin',time:'Do 20:00',cur:7,max:10,level:'Mittel',host:'Mehmet A.'},{id:2,title:'Sonntagskick',location:'Stadtpark Koeln',time:'So 11:00',cur:12,max:22,level:'Alle',host:'Thomas B.'}]},
   'Kampfsport':{color:'#c0392b',emoji:'🥋',games:[{id:1,title:'Open Mat BJJ',location:'Tiger Gym Berlin',time:'So 11:00',cur:8,max:20,level:'Alle',host:'Kai M.'},{id:2,title:'Boxing Sparring',location:'Berserker BC',time:'Do 19:00',cur:3,max:10,level:'Mittel',host:'Felix W.'}]},
 };
-export { WEIGHT_CLASSES, STYLES, BELT_STYLES, BELT_RANKS, PRO_FIGHTERS, FIGHTERS, CITY_COORDS, CITY_BUNDESLAND, GYMS, TRAINERS, SPORTS, getDistanceKm, getDistanceKmCoords, getBundesland, getLocationByIP };
+export { WEIGHT_CLASSES, normalizeWeightClass, STYLES, BELT_STYLES, BELT_RANKS, PRO_FIGHTERS, FIGHTERS, CITY_COORDS, CITY_BUNDESLAND, GYMS, TRAINERS, SPORTS, getDistanceKm, getDistanceKmCoords, getBundesland, getLocationByIP };
