@@ -1868,6 +1868,10 @@ function MainApp(){
     try{
       if(myProfile){
         const statsChanged=(myProfile.wins||0)!==d.wins||(myProfile.losses||0)!==d.losses||(myProfile.draws||0)!==d.draws;
+        // Wer verifiziert war (z.B. ueber 'keine Kaempfe') und danach Kampfzahlen
+        // auf mehr als 0 aendert, muss neu verifizieren - sonst wuerden
+        // ungepruefte Bilanzen als verifiziert gelten.
+        if(statsChanged&&(d.wins+d.losses+d.draws)>0&&myProfile.record_verified==='verified'){d.record_verified=null;}
         const res=await dbUpdate('profiles',d,'user_id=eq.'+session.userId,session.token);
         if(Array.isArray(res)&&res[0])setMyProfile(res[0]);
         showMsg('Gespeichert! ✓');
@@ -2483,13 +2487,9 @@ function MainApp(){
       // Bewusst KEIN Filter auf "mindestens 1 Kampf" mehr - auch wer noch
       // keine Kaempfe hat (0-0-0), soll in der kompletten Rangliste zu
       // sehen sein, nicht nur Fighter mit bestehender Bilanz.
-      // Nur mit verifiziertem Kampfrekord in der Rangliste - verhindert
-      // erfundene Bilanzen. Eigenes Profil zaehlt hier genauso wie alle
-      // anderen, kein Sonderfall.
-      .filter(f=>{
-        const rv=f.isMe?(profile.record_verified||myProfile?.record_verified):f.record_verified;
-        return rv==='verified';
-      })
+      // Alle Fighter stehen in der Rangliste. Verifizierte stehen aber immer
+      // vor nicht verifizierten (siehe Sortierung unten) - das verhindert,
+      // dass erfundene Bilanzen vor geprueften stehen.
       .filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF))))
       .sort((a,b)=>{
         // Guertelfarbe (nur bei BJJ/Karate/Taekwondo/Judo relevant) zaehlt
@@ -2500,6 +2500,9 @@ function MainApp(){
         const beltScore=f=>{const i=BELT_RANKS.indexOf(f.belt);return i>=0?i:0;};
         const scoreA=(a.wins*3-a.losses*2+a.draws)+beltScore(a);
         const scoreB=(b.wins*3-b.losses*2+b.draws)+beltScore(b);
+        const verA=(a.isMe?(profile.record_verified||myProfile?.record_verified):a.record_verified)==='verified'?1:0;
+        const verB=(b.isMe?(profile.record_verified||myProfile?.record_verified):b.record_verified)==='verified'?1:0;
+        if(verA!==verB)return verB-verA;
         return scoreB-scoreA;
       });
   },[userOnly,profile,myProfile,rankMode,rankF,countryFilter]);
@@ -5003,8 +5006,8 @@ nicht öffentlich gemacht</div>
                 <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,marginBottom:4}}>Kampfrekord verifizieren</div>
                 <div style={{color:'#888',fontSize:12,lineHeight:1.5,marginBottom:12}}>
                   {(profile.record_verified||myProfile?.record_verified)==='pending'
-                    ?'Dein Nachweis wird geprüft — sobald bestätigt, tauchst du in der Rangliste auf.'
-                    :'Um in der Rangliste aufzutauchen, muss dein Kampfrekord verifiziert werden. Lade einen Nachweis hoch (Urkunde, offizielles Ergebnis).'}
+                    ?'Dein Nachweis wird geprüft — sobald bestätigt, bekommst du den Haken und stehst vor allen nicht verifizierten Fightern.'
+                    :'Du stehst in der Rangliste, aber noch ohne Haken. Verifiziere deinen Kampfrekord, damit er zählt und du vor nicht verifizierten Fightern stehst. Lade einen Nachweis hoch (Urkunde, offizielles Ergebnis).'}
                 </div>
                 {(profile.record_verified||myProfile?.record_verified)!=='pending'&&(
                   <>
@@ -5015,7 +5018,7 @@ nicht öffentlich gemacht</div>
                       <button onClick={async()=>{
                         // 0-0-0 laesst sich nicht faelschen (bringt 0 Punkte) - deshalb
                         // hier direkt verifizieren, ohne Warten auf Pruefung durch uns.
-                        if(!window.confirm('Du hast noch keine Kämpfe? Dein Rekord wird als 0-0-0 verifiziert und du erscheinst damit in der Rangliste.'))return;
+                        if(!window.confirm('Du hast noch keine Kämpfe? Dein Rekord wird als 0-0-0 verifiziert und du bekommst damit den Haken in der Rangliste.'))return;
                         try{
                           await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{
                             method:'PATCH',
@@ -5024,7 +5027,7 @@ nicht öffentlich gemacht</div>
                           });
                           setMyProfile(p=>({...p,wins:0,losses:0,draws:0,ko:0,record_verified:'verified'}));
                           setStats({wins:0,losses:0,draws:0,ko:0});
-                          showMsg('✅ Als "keine Kämpfe" markiert - du erscheinst jetzt in der Rangliste.');
+                          showMsg('✅ Als "keine Kämpfe" markiert - du hast jetzt den Haken in der Rangliste.');
                         }catch(e){showMsg('Fehler: '+e.message);}
                       }} style={{marginTop:8,padding:'8px 16px',borderRadius:8,background:'none',border:'1px solid #27ae6066',color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>
                         ICH HABE NOCH KEINE KÄMPFE
@@ -5044,6 +5047,9 @@ nicht öffentlich gemacht</div>
                     <div style={{display:'flex',alignItems:'center',gap:4}}>
                       <div style={{color:f.isMe?RED:(darkMode?'#fff':'#1a1a1a'),fontWeight:700,fontSize:13}}>{f.name}</div>
                       {f.isMe&&<div style={{background:'#fdf0ef',border:'1px solid '+RED+'44',borderRadius:3,padding:'1px 4px',color:RED,fontSize:8,fontWeight:700}}>ICH</div>}
+                      {(f.isMe?(profile.record_verified||myProfile?.record_verified):f.record_verified)==='verified'
+                        ?<div style={{background:'#27ae6018',border:'1px solid #27ae6055',borderRadius:3,padding:'1px 4px',color:'#27ae60',fontSize:8,fontWeight:700}}>✓ VERIFIZIERT</div>
+                        :<div style={{background:darkMode?'#222':'#f2f2f2',border:'1px solid '+(darkMode?'#333':'#ddd'),borderRadius:3,padding:'1px 4px',color:darkMode?'#777':'#999',fontSize:8,fontWeight:700}}>NICHT VERIFIZIERT</div>}
                     </div>
                     <div style={{color:darkMode?'#666':'#aaa',fontSize:10,marginTop:1}}>{f.style} - {f.city}</div>
                   </div>
