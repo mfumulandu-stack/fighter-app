@@ -410,7 +410,7 @@ Bist du dabei?`;
           <div className='rj' style={{color:'#1a1a1a',fontSize:18,letterSpacing:1,lineHeight:1}}>{other?.name}</div>
           <div style={{color:accent,fontSize:10,fontWeight:700,marginTop:2}}>
             {other?.last_seen&&(Date.now()-new Date(other.last_seen).getTime())<300000
-              ?'🟢 Online'
+              ?'Online'
               :(other?.style+' · '+other?.city)}
           </div>
         </div>
