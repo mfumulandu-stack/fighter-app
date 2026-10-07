@@ -4055,7 +4055,6 @@ nicht öffentlich gemacht</div>
                   const statusColor=ageMs<300000?'#27ae60':ageMs<86400000?'#2980b9':'#e67e22';
                   const isOnline=ageMs<300000;
                   const ac=statusColor;
-                  const styleColor=(other?.style||'')==='Boxing'?'#c0392b':(other?.style||'')==='MMA'?'#2980b9':'#27ae60';
                   if(!m.id)return null;
                   return(
                     <SwipeableChatRow key={m.id} darkMode={darkMode} onDelete={()=>deleteChat(m.id)}>
@@ -4072,7 +4071,7 @@ nicht öffentlich gemacht</div>
                           <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
                             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{other.name}</div>
                           </div>
-                          <div style={{color:styleColor,fontSize:11,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{other.style} · {other.city}</div>
+                          <div style={{color:ac,fontSize:11,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{other.style} · {other.city}</div>
                           {m.last_message_text?(
                             <div style={{color:darkMode?'#555':'#aaa',fontSize:11,marginTop:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
                               {m.last_message_text.startsWith('⚔️')?'⚔️ Fight Request':m.last_message_text.startsWith('✅')?'✅ Angenommen':m.last_message_text.startsWith('❌')?'❌ Abgelehnt':m.last_message_text}
@@ -4083,7 +4082,7 @@ nicht öffentlich gemacht</div>
                         </div>
                         <div style={{textAlign:'right',flexShrink:0,width:64,minWidth:0}}>
                           <div style={{color:'#ccc',fontSize:10}}>{m.last_message_at?new Date(m.last_message_at).toLocaleDateString('de',{day:'2-digit',month:'2-digit'}):''}</div>
-                          {other.last_seen&&<div style={{color:'#aaa',fontSize:9,marginTop:3,lineHeight:1.25,whiteSpace:'normal',wordBreak:'break-word',overflowWrap:'anywhere'}}>{getLastSeen(other.last_seen)}</div>}
+                          {other.last_seen&&<div style={{color:ac,fontSize:9,marginTop:3,lineHeight:1.25,whiteSpace:'normal',wordBreak:'break-word',overflowWrap:'anywhere'}}>{getLastSeen(other.last_seen)}</div>}
                         </div>
                         <div onClick={()=>setActiveChat(m)} style={{padding:'9px 12px',borderRadius:8,background:'linear-gradient(135deg,#c0392b,#e74c3c)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',flexShrink:0,whiteSpace:'nowrap'}}>CHAT →</div>
                       </div>
