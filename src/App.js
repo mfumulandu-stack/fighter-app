@@ -400,6 +400,37 @@ function MainApp(){
     }
   },[tab,showEquipment,showSupplements,session,rewardBrandsLoaded]);
 
+  // Gym-Verifizierung abgleichen: Steht sie schon in der Datenbank, wird sie
+  // uebernommen (z.B. auf einem neuen Handy). Wer sich frueher schon per
+  // Code verifiziert hat (nur lokal gespeichert), wird einmalig auch in der
+  // Datenbank eingetragen. Fehlt die Spalte/Funktion noch, passiert nichts.
+  useEffect(()=>{
+    if(!session||!myProfile?.id||myProfile.gym_verified===true)return;
+    let cancelled=false;
+    (async()=>{
+      try{
+        const r=await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id+'&select=gym_verified',{
+          headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
+        });
+        const d=r.ok?await r.json():null;
+        if(!Array.isArray(d))return;
+        if(d[0]&&d[0].gym_verified===true){
+          if(!cancelled)setMyProfile(p=>p?{...p,gym_verified:true}:p);
+          return;
+        }
+        if(!gymVerified||!gymVerified.code)return;
+        const rc=await fetch(SUPA_URL+'/rest/v1/rpc/claim_gym_membership',{
+          method:'POST',
+          headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token},
+          body:JSON.stringify({input_code:gymVerified.code})
+        });
+        const dc=rc.ok?await rc.json():null;
+        if(!cancelled&&Array.isArray(dc)&&dc.length>0)setMyProfile(p=>p?{...p,gym_verified:true}:p);
+      }catch(e){}
+    })();
+    return()=>{cancelled=true;};
+  },[session,myProfile?.id,myProfile?.gym_verified,gymVerified]);
+
   // Rangliste neu laden wenn Tab geöffnet wird
   useEffect(()=>{
     if(tab==='ranking'&&session){
@@ -2500,12 +2531,18 @@ function MainApp(){
         const beltScore=f=>{const i=BELT_RANKS.indexOf(f.belt);return i>=0?i:0;};
         const scoreA=(a.wins*3-a.losses*2+a.draws)+beltScore(a);
         const scoreB=(b.wins*3-b.losses*2+b.draws)+beltScore(b);
-        const verA=(a.isMe?(profile.record_verified||myProfile?.record_verified):a.record_verified)==='verified'?1:0;
-        const verB=(b.isMe?(profile.record_verified||myProfile?.record_verified):b.record_verified)==='verified'?1:0;
+        // Stufe 2 = Kampfrekord UND Gym-Code verifiziert, 1 = nur Kampfrekord, 0 = Rest
+        const verLevel=f=>{
+          const rec=(f.isMe?(profile.record_verified||myProfile?.record_verified):f.record_verified)==='verified';
+          const gym=f.isMe?(myProfile?.gym_verified===true||!!gymVerified):f.gym_verified===true;
+          return rec&&gym?2:rec?1:0;
+        };
+        const verA=verLevel(a);
+        const verB=verLevel(b);
         if(verA!==verB)return verB-verA;
         return scoreB-scoreA;
       });
-  },[userOnly,profile,myProfile,rankMode,rankF,countryFilter]);
+  },[userOnly,profile,myProfile,rankMode,rankF,countryFilter,gymVerified]);
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
   const filteredT=TRAINERS.filter(tr=>trainerF==='All'||tr.style.includes(trainerF)).sort((a,b)=>b.rating-a.rating);
 
@@ -5000,6 +5037,18 @@ nicht öffentlich gemacht</div>
                 </button>
               </div>
             )}
+            {rankMode!=='trainer'&&(profile.record_verified||myProfile?.record_verified)==='verified'&&!(myProfile?.gym_verified===true||gymVerified)&&(
+              <div style={{background:darkMode?'#1a1a10':'#fffbe8',borderRadius:12,padding:'16px',border:'1px solid #d4a01755',marginBottom:12,textAlign:'center'}}>
+                <div style={{fontSize:24,marginBottom:6}}>🏋️</div>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,marginBottom:4}}>Gym-Mitgliedschaft verifizieren</div>
+                <div style={{color:'#888',fontSize:12,lineHeight:1.5,marginBottom:12}}>
+                  Dein Kampfrekord ist verifiziert. Den grünen Haken bekommst du, wenn du auch mit dem Code deines Gyms bestätigst, dass du dort wirklich trainierst.
+                </div>
+                <button onClick={()=>setShowGymVerify(true)} style={{padding:'9px 20px',borderRadius:8,background:'linear-gradient(135deg,#27ae60,#2ecc71)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+                  GYM-CODE EINGEBEN
+                </button>
+              </div>
+            )}
             {rankMode!=='trainer'&&(profile.country||myProfile?.country)&&(profile.record_verified||myProfile?.record_verified)!=='verified'&&(
               <div style={{background:darkMode?'#1a2510':'#f0f8e8',borderRadius:12,padding:'16px',border:'1px solid #27ae6055',marginBottom:12,textAlign:'center'}}>
                 <div style={{fontSize:24,marginBottom:6}}>🏅</div>
@@ -5007,7 +5056,7 @@ nicht öffentlich gemacht</div>
                 <div style={{color:'#888',fontSize:12,lineHeight:1.5,marginBottom:12}}>
                   {(profile.record_verified||myProfile?.record_verified)==='pending'
                     ?'Dein Nachweis wird geprüft — sobald bestätigt, bekommst du den Haken und stehst vor allen nicht verifizierten Fightern.'
-                    :'Du stehst in der Rangliste, aber noch ohne Haken. Verifiziere deinen Kampfrekord, damit er zählt und du vor nicht verifizierten Fightern stehst. Lade einen Nachweis hoch (Urkunde, offizielles Ergebnis).'}
+                    :'Du stehst in der Rangliste, aber noch ohne Haken. Den grünen Haken bekommst du mit verifiziertem Kampfrekord UND verifizierter Gym-Mitgliedschaft (Gym-Code). Lade einen Nachweis hoch (Urkunde, offizielles Ergebnis).'}
                 </div>
                 {(profile.record_verified||myProfile?.record_verified)!=='pending'&&(
                   <>
@@ -5047,9 +5096,12 @@ nicht öffentlich gemacht</div>
                     <div style={{display:'flex',alignItems:'center',gap:4}}>
                       <div style={{color:f.isMe?RED:(darkMode?'#fff':'#1a1a1a'),fontWeight:700,fontSize:13}}>{f.name}</div>
                       {f.isMe&&<div style={{background:'#fdf0ef',border:'1px solid '+RED+'44',borderRadius:3,padding:'1px 4px',color:RED,fontSize:8,fontWeight:700}}>ICH</div>}
-                      {(f.isMe?(profile.record_verified||myProfile?.record_verified):f.record_verified)==='verified'
-                        ?<div style={{background:'#27ae6018',border:'1px solid #27ae6055',borderRadius:3,padding:'1px 4px',color:'#27ae60',fontSize:8,fontWeight:700}}>✓ VERIFIZIERT</div>
-                        :<div style={{background:darkMode?'#222':'#f2f2f2',border:'1px solid '+(darkMode?'#333':'#ddd'),borderRadius:3,padding:'1px 4px',color:darkMode?'#777':'#999',fontSize:8,fontWeight:700}}>NICHT VERIFIZIERT</div>}
+                      {(()=>{
+                        const rec=(f.isMe?(profile.record_verified||myProfile?.record_verified):f.record_verified)==='verified';
+                        const gym=f.isMe?(myProfile?.gym_verified===true||!!gymVerified):f.gym_verified===true;
+                        if(rec&&gym)return <div style={{background:'#27ae6018',border:'1px solid #27ae6055',borderRadius:3,padding:'1px 4px',color:'#27ae60',fontSize:8,fontWeight:700}}>✓ VERIFIZIERT</div>;
+                        return null;
+                      })()}
                     </div>
                     <div style={{color:darkMode?'#666':'#aaa',fontSize:10,marginTop:1}}>{f.style} - {f.city}</div>
                   </div>
@@ -5229,7 +5281,7 @@ nicht öffentlich gemacht</div>
           </div>
         </div>
       )}
-      {showGymVerify&&<div style={{position:'fixed',inset:0,zIndex:500}}><style>{css}</style><GymVerifyModal onClose={()=>{setShowGymVerify(false);setGymCodeInput('');setGymVerifyError('');}} gymCodeInput={gymCodeInput} setGymCodeInput={setGymCodeInput} gymVerifyError={gymVerifyError} setGymVerifyError={setGymVerifyError} gymVerified={gymVerified} setGymVerified={setGymVerified} darkMode={darkMode} showMsg={showMsg}/></div>}
+      {showGymVerify&&<div style={{position:'fixed',inset:0,zIndex:500}}><style>{css}</style><GymVerifyModal onClose={()=>{setShowGymVerify(false);setGymCodeInput('');setGymVerifyError('');}} gymCodeInput={gymCodeInput} setGymCodeInput={setGymCodeInput} gymVerifyError={gymVerifyError} setGymVerifyError={setGymVerifyError} gymVerified={gymVerified} setGymVerified={setGymVerified} darkMode={darkMode} showMsg={showMsg} authToken={session?.token} onMembershipChange={ok=>setMyProfile(p=>p?{...p,gym_verified:ok}:p)}/></div>}
       {/* IMPRESSUM MODAL */}
       {showImpressum&&(
         <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:400,overflowY:'auto',padding:'20px 16px 40px'}}>

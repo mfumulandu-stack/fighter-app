@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import { SUPA_URL, SUPA_KEY } from './constants';
 
-function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,setGymVerifyError,gymVerified,setGymVerified,darkMode,showMsg}){
+function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,setGymVerifyError,gymVerified,setGymVerified,darkMode,showMsg,authToken,onMembershipChange}){
   const [verifying,setVerifying]=useState(false);
   const bg=darkMode?'rgba(0,0,0,0.85)':'rgba(0,0,0,0.6)';
   const card='#fff';
@@ -21,17 +21,38 @@ function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,set
     setVerifying(true);
     setGymVerifyError('');
     try{
-      const r=await fetch(SUPA_URL+'/rest/v1/rpc/verify_gym_code',{
-        method:'POST',
-        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
-        body:JSON.stringify({input_code:code})
-      });
-      const data=await r.json();
+      // 1) Bevorzugt die neue Funktion: prueft den Code serverseitig UND
+      //    speichert die Mitgliedschaft im Profil (fuer die Rangliste).
+      let data=null;
+      let claimed=false;
+      if(authToken){
+        try{
+          const rc=await fetch(SUPA_URL+'/rest/v1/rpc/claim_gym_membership',{
+            method:'POST',
+            headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+authToken},
+            body:JSON.stringify({input_code:code})
+          });
+          const dc=rc.ok?await rc.json():null;
+          if(Array.isArray(dc)&&dc.length>0){data=dc;claimed=true;}
+        }catch(e){}
+      }
+      // 2) Fallback auf die bisherige Pruefung (z.B. wenn die neue Funktion
+      //    in Supabase noch nicht angelegt ist): Gym wird erkannt, aber nur
+      //    lokal gespeichert - noch ohne Haken in der Rangliste.
+      if(!claimed){
+        const r=await fetch(SUPA_URL+'/rest/v1/rpc/verify_gym_code',{
+          method:'POST',
+          headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
+          body:JSON.stringify({input_code:code})
+        });
+        data=await r.json();
+      }
       const found=Array.isArray(data)&&data.length>0?data[0]:null;
       if(found&&found.gym_name){
         const verified={gymName:found.gym_name,gymCity:found.gym_city,gymEmoji:'🏅',code,verifiedAt:new Date().toISOString()};
         setGymVerified(verified);
         localStorage.setItem('fighter_gym_verified',JSON.stringify(verified));
+        if(claimed&&onMembershipChange)onMembershipChange(true);
         showMsg('✅ Gym verifiziert! Du bist jetzt '+found.gym_name+' Mitglied');
         onClose();
       }else{
@@ -46,6 +67,16 @@ function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,set
   function removeVerification(){
     setGymVerified(null);
     localStorage.removeItem('fighter_gym_verified');
+    // Auch in der Datenbank zuruecknehmen (best effort - ohne die neue
+    // Funktion passiert hier einfach nichts).
+    if(authToken){
+      fetch(SUPA_URL+'/rest/v1/rpc/release_gym_membership',{
+        method:'POST',
+        headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+authToken},
+        body:'{}'
+      }).catch(()=>{});
+    }
+    if(onMembershipChange)onMembershipChange(false);
     showMsg('Gym-Verifizierung entfernt');
     onClose();
   }
