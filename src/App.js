@@ -444,6 +444,17 @@ function MainApp(){
     return()=>{cancelled=true;};
   },[session,myProfile?.id,myProfile?.gym_verified,gymVerified]);
 
+  // fighter_chat_poll: Chat-Liste aktuell halten (neueste Nachricht oben)
+  useEffect(()=>{
+    if(tab!=='chat'||activeChat||!session||!myProfile)return;
+    loadMatches(session,myProfile);
+    const iv=setInterval(()=>{
+      if(typeof document!=='undefined'&&document.hidden)return;
+      loadMatches(session,myProfile);
+    },30000);
+    return()=>clearInterval(iv);
+  },[tab,activeChat,session?.token,myProfile?.id]);
+
   // Erinnerung: Profil unvollstaendig -> nicht in der Rangliste (max. 1x pro Tag)
   useEffect(()=>{
     if(!session||!myProfile||screen!=='main')return;
@@ -3984,7 +3995,7 @@ nicht öffentlich gemacht</div>
               </div>
             ):(
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {dbMatches.filter(m=>{
+                {[...dbMatches].sort((a,b)=>new Date(b.last_message_at||b.created_at||0)-new Date(a.last_message_at||a.created_at||0)).filter(m=>{
                   if(!chatSearch)return true;
                   const other=m.profile_a_id===myProfile?.id?m.profile_b:m.profile_a;
                   if(!other)return false;
