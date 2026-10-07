@@ -1120,7 +1120,6 @@ function MainApp(){
 
   async function deleteHistoryEntry(f){
     if(!f||!f.id||!session)return;
-    if(!window.confirm('Diesen Eintrag aus deiner Trainingshistorie löschen?'))return;
     try{
       const r=await fetch(SUPA_URL+'/rest/v1/fight_history?id=eq.'+encodeURIComponent(f.id)+'&user_id=eq.'+session.userId,{
         method:'DELETE',
@@ -4547,8 +4546,9 @@ nicht öffentlich gemacht</div>
                 </div>
               ):(
                 <div style={{display:'flex',flexDirection:'column',gap:7}}>
-                  {fightHistory.slice(0,15).map((f,i)=>(
-                    <div key={f.id||i} style={{background:darkMode?'#111':'#f9f9f9',borderRadius:10,padding:'10px 12px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:10}}>
+                  {fightHistory.slice(0,15).map((f,i)=>{
+                    const histRow=(
+                    <div style={{background:darkMode?'#111':'#f9f9f9',borderRadius:10,padding:'10px 12px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:10}}>
                       <div style={{width:34,height:34,borderRadius:8,background:'#2980b918',border:'1px solid #2980b933',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,flexShrink:0}}>🥊</div>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{f.opponent_name}</div>
@@ -4558,11 +4558,12 @@ nicht öffentlich gemacht</div>
                         <div style={{color:'#aaa',fontSize:10}}>{f.fight_date||''}</div>
                         {f.location&&<div style={{color:'#ccc',fontSize:9,marginTop:1}}>📍 {f.location}</div>}
                       </div>
-                      {f.id&&(
-                        <button onClick={e=>{e.stopPropagation();deleteHistoryEntry(f);}} aria-label='Eintrag löschen' style={{background:'none',border:'none',cursor:'pointer',fontSize:16,padding:'4px 2px',flexShrink:0,opacity:0.7}}>🗑️</button>
-                      )}
                     </div>
-                  ))}
+                    );
+                    return f.id
+                      ?<SwipeableChatRow key={f.id} darkMode={darkMode} radius={10} bg={darkMode?'#111':'#f9f9f9'} confirmText='Diesen Eintrag aus deiner Trainingshistorie löschen?' onDelete={()=>deleteHistoryEntry(f)}>{histRow}</SwipeableChatRow>
+                      :<div key={i}>{histRow}</div>;
+                  })}
                 </div>
               )}
             </div>

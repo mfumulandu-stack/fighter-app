@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 
 const DELETE_WIDTH = 76;
 
-function SwipeableChatRow({ children, onDelete, darkMode }) {
+function SwipeableChatRow({ children, onDelete, darkMode, confirmText, radius, bg }) {
   const [dragX, setDragX] = useState(0); // 0 = geschlossen, -DELETE_WIDTH = offen
   const [open, setOpen] = useState(false);
   const startX = useRef(null);
@@ -47,10 +47,10 @@ function SwipeableChatRow({ children, onDelete, darkMode }) {
   }
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 13 }}>
+    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: radius || 13 }}>
       <div
         onClick={() => {
-          if (window.confirm('Chat löschen? Das kann nicht rückgängig gemacht werden.')) {
+          if (window.confirm(confirmText || 'Chat löschen? Das kann nicht rückgängig gemacht werden.')) {
             onDelete();
           }
           setDragX(0);
@@ -75,7 +75,7 @@ function SwipeableChatRow({ children, onDelete, darkMode }) {
           transition: dragging.current ? 'none' : 'transform 0.2s ease',
           position: 'relative',
           width: '100%',
-          background: darkMode ? '#0d0d0d' : '#f5f5f7',
+          background: bg || (darkMode ? '#0d0d0d' : '#f5f5f7'),
         }}
       >
         {children}
