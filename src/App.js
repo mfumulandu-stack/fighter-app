@@ -229,6 +229,7 @@ function MainApp(){
   const [gymVerifyError,setGymVerifyError]=useState('');
   const [reportSent,setReportSent]=useState({});
   const [viewProfileHistory,setViewProfileHistory]=useState([]);
+  const [viewProfileVer,setViewProfileVer]=useState(null);
   const [city,setCity]=useState('Berlin');
   const [citySearchOpen,setCitySearchOpen]=useState(false);
   const [citySearchQuery,setCitySearchQuery]=useState('');
@@ -1688,8 +1689,8 @@ function MainApp(){
   useEffect(()=>{
     const onPop=()=>{
       if(activeChat){setActiveChat(null);return;}
-      if(viewProfile){setViewProfile(null);return;}
       if(viewGym){setViewGym(null);return;}
+      if(viewProfile){setViewProfile(null);return;}
       if(whoLikedTab){setWhoLikedTab(false);return;}
       if(showAdmin){setShowAdmin(false);return;}
       if(showImpressum){setShowImpressum(false);return;}
@@ -2561,6 +2562,29 @@ function MainApp(){
     }).catch(()=>{});
   },[viewProfile?.id]);
 
+  // Verifizierungsstatus des angesehenen Profils (eigener Abruf, bricht nichts wenn Spalte fehlt)
+  useEffect(()=>{
+    setViewProfileVer(null);
+    if(!viewProfile||!session)return;
+    const pid=viewProfile.id;
+    fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+pid+'&select=record_verified,gym_verified,gym_verified_name',{
+      headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
+    }).then(r=>r.json()).then(data=>{
+      if(Array.isArray(data)&&data[0])setViewProfileVer({id:pid,...data[0]});
+    }).catch(()=>{});
+  },[viewProfile?.id]);
+
+  // Gym eines Kaempfers per Name oeffnen (Infos + Rezensionen), Profil bleibt darunter
+  function openGymByName(name){
+    const nm=(name||'').trim().toLowerCase();
+    if(!nm)return;
+    const hard=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(gx=>({...gx,ct}))).find(gx=>(gx.name||'').trim().toLowerCase()===nm);
+    const db=dbGyms.find(dg=>(dg.name||'').trim().toLowerCase()===nm);
+    const base=hard||db;
+    if(!base){showMsg('Zu diesem Gym gibt es noch keine Seite.');return;}
+    setViewGym({gym:{styles:[],...base,city:base.city||base.ct||'',members:base.members||0,rating:base.rating||0,styles:base.styles||[base.style||'Kampfsport'],address:base.address||base.city||'',desc:base.desc||base.description||'',street:base.street||base.address||'',zip:base.zip||'',founded:base.founded||''},key:(base.city||base.ct||'')+'-'+base.name});
+  }
+
   if(viewGym)return(<><style>{css}</style><GymDetailScreen gym={viewGym.gym} gymKey={viewGym.key} gymRatings={gymRatings} gymLogos={gymLogos} isAdmin={isAdmin} session={session} myProfile={myProfile} onGymUpdate={async()=>{await loadDbGyms(session);await loadGymLogos();}} rateGym={(k,s)=>{rateGym(k,s);}} onClose={()=>setViewGym(null)} darkMode={darkMode===true}/></>);
 
   // "&&!viewProfile": wenn man von dieser Liste aus ein Profil oeffnet,
@@ -2637,6 +2661,9 @@ function MainApp(){
         <button onClick={()=>{setViewProfile(null);}} style={{position:'absolute',top:'calc(14px + env(safe-area-inset-top))',left:14,background:'rgba(0,0,0,0.45)',border:'none',color:'#fff',fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700,borderRadius:8,padding:'4px 12px'}}>{t.back}</button>
         <div style={{position:'absolute',bottom:16,left:16,right:16}}>
           <div className='rj' style={{color:'#fff',fontSize:28,letterSpacing:2,lineHeight:1}}>{viewProfile.name}</div>
+          {viewProfileVer&&viewProfileVer.id===viewProfile.id&&viewProfileVer.record_verified==='verified'&&viewProfileVer.gym_verified===true&&(
+            <div style={{display:'inline-block',marginTop:6,background:'rgba(39,174,96,0.9)',color:'#fff',fontSize:11,fontWeight:700,letterSpacing:1,borderRadius:6,padding:'3px 8px'}}>✓ VERIFIZIERT{viewProfileVer.gym_verified_name?' · '+viewProfileVer.gym_verified_name:''}</div>
+          )}
           {viewProfile.last_seen&&<div style={{color:'rgba(255,255,255,0.65)',fontSize:11,marginTop:3}}>{getLastSeen(viewProfile.last_seen)}</div>}
           <div style={{color:'#ff6b6b',fontSize:12,fontWeight:700,marginTop:4}}>{viewProfile.style} · {viewProfile.city}</div>
           {viewProfile.bio&&<div style={{color:'rgba(255,255,255,0.55)',fontSize:11,marginTop:4,fontStyle:'italic'}}>'{viewProfile.bio}'</div>}
@@ -2671,9 +2698,9 @@ function MainApp(){
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
           {[[appLang==='FR'?'CATÉGORIE':appLang==='EN'?'WEIGHT CLASS':'GEWICHTSKLASSE',viewProfile.weight_class||'-','#2980b9'],[appLang==='FR'?'SALLE':'GYM',viewProfile.gym||'-','#8e44ad'],['GRÖSSE',viewProfile.height?(viewProfile.height+'cm'):'-','#27ae60'],['GEWICHT',viewProfile.weight?(viewProfile.weight+'kg'):'-','#e67e22'],...(viewProfile.belt?[['GÜRTELRANG',viewProfile.belt,'#d4a017']]:[])].map(([label,val,color])=>(
-            <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 12px',border:'1px solid '+color+'22'}}>
+            <div key={label} onClick={color==='#8e44ad'&&val!=='-'?()=>openGymByName(val):undefined} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 12px',border:'1px solid '+color+(color==='#8e44ad'&&val!=='-'?'88':'22'),cursor:color==='#8e44ad'&&val!=='-'?'pointer':'default'}}>
               <div style={{color:'#bbb',fontSize:9,letterSpacing:1}}>{label}</div>
-              <div style={{color:color,fontWeight:700,fontSize:12,marginTop:3}}>{val}</div>
+              <div style={{color:color,fontWeight:700,fontSize:12,marginTop:3}}>{val}{color==='#8e44ad'&&val!=='-'?' ›':''}</div>
             </div>
           ))}
         </div>
