@@ -4030,7 +4030,18 @@ nicht öffentlich gemacht</div>
               </div>
             ):(
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                {[...dbMatches].sort((a,b)=>new Date(b.last_message_at||b.created_at||0)-new Date(a.last_message_at||a.created_at||0)).filter(m=>{
+                {[...dbMatches].sort((a,b)=>{
+                  // chatSortByOnline: Status-Stufe (gruen > blau > orange), dann zuletzt online, dann letzte Nachricht
+                  const oa=a.profile_a_id===myProfile?.id?a.profile_b:a.profile_a;
+                  const ob=b.profile_a_id===myProfile?.id?b.profile_b:b.profile_a;
+                  const ta=oa?.last_seen?new Date(oa.last_seen).getTime():0;
+                  const tb=ob?.last_seen?new Date(ob.last_seen).getTime():0;
+                  const now=Date.now();
+                  const tier=t=>t&&now-t<300000?0:t&&now-t<86400000?1:2;
+                  if(tier(ta)!==tier(tb))return tier(ta)-tier(tb);
+                  if(ta!==tb)return tb-ta;
+                  return new Date(b.last_message_at||b.created_at||0)-new Date(a.last_message_at||a.created_at||0);
+                }).filter(m=>{
                   if(!chatSearch)return true;
                   const other=m.profile_a_id===myProfile?.id?m.profile_b:m.profile_a;
                   if(!other)return false;
