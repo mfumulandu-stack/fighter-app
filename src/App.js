@@ -1601,10 +1601,13 @@ function MainApp(){
 
   async function deleteChat(matchId){
     try{
-      await fetch(SUPA_URL+'/rest/v1/messages?match_id=eq.'+matchId,{
+      // inkl. zusammengefasster Duplikate, sonst taucht der Chat gleich wieder auf
+      const allIds=[matchId,...(((dbMatches.find(x=>x.id===matchId)||{}).dupIds)||[])];
+      const idList=allIds.map(encodeURIComponent).join(',');
+      await fetch(SUPA_URL+'/rest/v1/messages?match_id=in.('+idList+')',{
         method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
       });
-      await fetch(SUPA_URL+'/rest/v1/matches?id=eq.'+matchId,{
+      await fetch(SUPA_URL+'/rest/v1/matches?id=in.('+idList+')',{
         method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
       });
       setDbMatches(prev=>prev.filter(m=>m.id!==matchId));
@@ -1733,9 +1736,20 @@ function MainApp(){
       }));
       // Nach neuester Nachricht sortieren
       const sorted=withMessages.filter(x=>x&&x.id).sort((a,b)=>{try{return new Date(b.last_message_at||0)-new Date(a.last_message_at||0);}catch{return 0;}});
-      setDbMatches(sorted);
+      // Doppelte Matches mit derselben Person zusammenfassen (neuester bleibt)
+      const seenPair=new Map();
+      const deduped=[];
+      sorted.forEach(m=>{
+        const oid=m.profile_a_id===myP.id?m.profile_b_id:m.profile_a_id;
+        if(!oid){deduped.push({...m,dupIds:[]});return;}
+        if(seenPair.has(oid)){seenPair.get(oid).dupIds.push(m.id);return;}
+        const mm={...m,dupIds:[]};
+        seenPair.set(oid,mm);
+        deduped.push(mm);
+      });
+      setDbMatches(deduped);
       // Ungelesene zählen
-      const unread=sorted.filter(m=>m.last_message_at&&m.last_message_at>( localStorage.getItem('fighter_last_read_'+m.id)||'2000-01-01')).length;
+      const unread=deduped.filter(m=>m.last_message_at&&m.last_message_at>( localStorage.getItem('fighter_last_read_'+m.id)||'2000-01-01')).length;
       setUnreadCount(unread);
     }catch(e){console.error('loadMatches error',e);}
     finally{setMatchesLoading(false);}
