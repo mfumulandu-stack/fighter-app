@@ -2516,9 +2516,14 @@ function MainApp(){
         if(rankMode==='user') return f.isMe?(profile.isPro!==true):(f.is_pro!==true);
         return true;
       })
-      // Bewusst KEIN Filter auf "mindestens 1 Kampf" mehr - auch wer noch
-      // keine Kaempfe hat (0-0-0), soll in der kompletten Rangliste zu
-      // sehen sein, nicht nur Fighter mit bestehender Bilanz.
+      // Ohne Gym kein Rang.
+      .filter(f=>((f.isMe?(profile.gym||myProfile?.gym):f.gym)||'').trim().length>0)
+      // 0 Kaempfe: erst in der Rangliste, wenn der Rekord verifiziert ist
+      // (ueber "Ich habe noch keine Kaempfe" oder Nachweis).
+      .filter(f=>{
+        if((f.wins||0)+(f.losses||0)+(f.draws||0)>0)return true;
+        return (f.isMe?(profile.record_verified||myProfile?.record_verified):f.record_verified)==='verified';
+      })
       // Alle Fighter stehen in der Rangliste. Verifizierte stehen aber immer
       // vor nicht verifizierten (siehe Sortierung unten) - das verhindert,
       // dass erfundene Bilanzen vor geprueften stehen.
@@ -2574,13 +2579,17 @@ function MainApp(){
     }).catch(()=>{});
   },[viewProfile?.id]);
 
-  // Gym eines Kaempfers per Name oeffnen (Infos + Rezensionen), Profil bleibt darunter
-  function openGymByName(name){
+  function findGymByName(name){
     const nm=(name||'').trim().toLowerCase();
-    if(!nm)return;
+    if(!nm)return null;
     const hard=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(gx=>({...gx,ct}))).find(gx=>(gx.name||'').trim().toLowerCase()===nm);
     const db=dbGyms.find(dg=>(dg.name||'').trim().toLowerCase()===nm);
-    const base=hard||db;
+    return hard||db||null;
+  }
+
+  // Gym eines Kaempfers per Name oeffnen (Infos + Rezensionen), Profil bleibt darunter
+  function openGymByName(name){
+    const base=findGymByName(name);
     if(!base){showMsg('Zu diesem Gym gibt es noch keine Seite.');return;}
     setViewGym({gym:{styles:[],...base,city:base.city||base.ct||'',members:base.members||0,rating:base.rating||0,styles:base.styles||[base.style||'Kampfsport'],address:base.address||base.city||'',desc:base.desc||base.description||'',street:base.street||base.address||'',zip:base.zip||'',founded:base.founded||''},key:(base.city||base.ct||'')+'-'+base.name});
   }
@@ -2700,7 +2709,16 @@ function MainApp(){
           {[[appLang==='FR'?'CATÉGORIE':appLang==='EN'?'WEIGHT CLASS':'GEWICHTSKLASSE',viewProfile.weight_class||'-','#2980b9'],[appLang==='FR'?'SALLE':'GYM',viewProfile.gym||'-','#8e44ad'],['GRÖSSE',viewProfile.height?(viewProfile.height+'cm'):'-','#27ae60'],['GEWICHT',viewProfile.weight?(viewProfile.weight+'kg'):'-','#e67e22'],...(viewProfile.belt?[['GÜRTELRANG',viewProfile.belt,'#d4a017']]:[])].map(([label,val,color])=>(
             <div key={label} onClick={color==='#8e44ad'&&val!=='-'?()=>openGymByName(val):undefined} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 12px',border:'1px solid '+color+(color==='#8e44ad'&&val!=='-'?'88':'22'),cursor:color==='#8e44ad'&&val!=='-'?'pointer':'default'}}>
               <div style={{color:'#bbb',fontSize:9,letterSpacing:1}}>{label}</div>
-              <div style={{color:color,fontWeight:700,fontSize:12,marginTop:3}}>{val}{color==='#8e44ad'&&val!=='-'?' ›':''}</div>
+              {color==='#8e44ad'&&val!=='-'?(()=>{
+                const gb=findGymByName(val);
+                const logo=gb?((gymLogos&&gymLogos[gb.code]?.logo_url)||gb.logo_url):null;
+                return(<div style={{display:'flex',alignItems:'center',gap:8,marginTop:4}}>
+                  <div style={{width:26,height:26,borderRadius:6,background:darkMode?'#2a2a2a':'#f0f0f0',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
+                    {logo?<img loading="lazy" src={logo} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#aaa',fontSize:8,fontWeight:700,textAlign:'center',lineHeight:1.1}}>{(val||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
+                  </div>
+                  <div style={{color:color,fontWeight:700,fontSize:12,minWidth:0,wordBreak:'break-word'}}>{val} ›</div>
+                </div>);
+              })():<div style={{color:color,fontWeight:700,fontSize:12,marginTop:3}}>{val}</div>}
             </div>
           ))}
         </div>
@@ -5076,6 +5094,14 @@ nicht öffentlich gemacht</div>
                 </button>
               </div>
             )}
+            {rankMode!=='trainer'&&!((profile.gym||myProfile?.gym)||'').trim()&&(
+              <div style={{background:darkMode?'#1a1a1a':'#fff5f4',borderRadius:12,padding:'16px',border:'1px solid '+RED+'44',marginBottom:12,textAlign:'center'}}>
+                <div style={{fontSize:24,marginBottom:6}}>🥋</div>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,marginBottom:4}}>Gym eintragen</div>
+                <div style={{color:'#888',fontSize:12,lineHeight:1.5,marginBottom:12}}>Ohne Gym kannst du nicht in der Rangliste erscheinen. Trage dein Gym in deinem Profil ein.</div>
+                <button onClick={()=>{setTab('stats');setEditProfile({});setEditMode(true);}} style={{padding:'9px 20px',borderRadius:8,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>GYM EINTRAGEN</button>
+              </div>
+            )}
             {rankMode!=='trainer'&&(profile.country||myProfile?.country)&&(profile.record_verified||myProfile?.record_verified)!=='verified'&&(
               <div style={{background:darkMode?'#1a2510':'#f0f8e8',borderRadius:12,padding:'16px',border:'1px solid #27ae6055',marginBottom:12,textAlign:'center'}}>
                 <div style={{fontSize:24,marginBottom:6}}>🏅</div>
@@ -5083,6 +5109,8 @@ nicht öffentlich gemacht</div>
                 <div style={{color:'#888',fontSize:12,lineHeight:1.5,marginBottom:12}}>
                   {(profile.record_verified||myProfile?.record_verified)==='pending'
                     ?'Dein Nachweis wird geprüft — sobald bestätigt, bekommst du den Haken und stehst vor allen nicht verifizierten Fightern.'
+                    :(myProfile?.wins||0)+(myProfile?.losses||0)+(myProfile?.draws||0)===0
+                    ?'Ohne Kämpfe erscheinst du erst in der Rangliste, wenn dein Rekord verifiziert ist. Hast du noch keine Kämpfe, tippe unten auf "Ich habe noch keine Kämpfe". Sonst lade einen Nachweis hoch.'
                     :'Du stehst in der Rangliste, aber noch ohne Haken. Den grünen Haken bekommst du mit verifiziertem Kampfrekord UND verifizierter Gym-Mitgliedschaft (Gym-Code). Lade einen Nachweis hoch (Urkunde, offizielles Ergebnis).'}
                 </div>
                 {(profile.record_verified||myProfile?.record_verified)!=='pending'&&(
@@ -5117,8 +5145,8 @@ nicht öffentlich gemacht</div>
               {ranked.map((f,i)=>{
                 const score=f.wins*3-f.losses*2+f.draws;const rc=['#d4a017','#95a5a6','#cd7f32'];
                 return(<div key={f.id} onClick={()=>{if(!f.isMe&&f.id&&typeof f.id==='string'){savedRankScrollRef.current=mainScrollRef.current?mainScrollRef.current.scrollTop:0;setViewProfile(f);}}} style={{background:f.isMe?(darkMode?'#2a1510':'#fdf0ef'):(darkMode?'#1a1a1a':'#fff'),borderRadius:9,padding:'10px 12px',border:'1px solid '+(f.isMe?RED+'33':i<3?rc[i]+'33':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.04)',cursor:f.isMe?'default':'pointer'}}>
-                  <div className='rj' style={{color:i<3?rc[i]:'#bbb',fontSize:18,width:24,textAlign:'center'}}>#{i+1}</div>
-                  {f.avatar_url?<img loading="lazy" src={f.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover'}} alt={f.name}/>:<div style={{fontSize:22}}>{f.emoji||''}</div>}
+                  <div className='rj' style={{color:i<3?rc[i]:'#bbb',fontSize:i>=999?11:i>=99?14:18,width:38,flexShrink:0,textAlign:'center',whiteSpace:'nowrap'}}>#{i+1}</div>
+                  {f.avatar_url?<img loading="lazy" src={f.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover',flexShrink:0}} alt={f.name}/>:<div style={{fontSize:22}}>{f.emoji||''}</div>}
                   <div style={{flex:1}}>
                     <div style={{display:'flex',alignItems:'center',gap:4}}>
                       <div style={{color:f.isMe?RED:(darkMode?'#fff':'#1a1a1a'),fontWeight:700,fontSize:13}}>{f.name}</div>
