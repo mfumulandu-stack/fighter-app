@@ -1118,6 +1118,28 @@ function MainApp(){
     return isFR?'Il y a longtemps':isEN?'A while ago':'Vor einer Weile';
   }
 
+  async function deleteHistoryEntry(f){
+    if(!f||!f.id||!session)return;
+    if(!window.confirm('Diesen Eintrag aus deiner Trainingshistorie löschen?'))return;
+    try{
+      const r=await fetch(SUPA_URL+'/rest/v1/fight_history?id=eq.'+encodeURIComponent(f.id)+'&user_id=eq.'+session.userId,{
+        method:'DELETE',
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=representation'}
+      });
+      const rows=r.ok?await r.json():null;
+      if(!r.ok||!Array.isArray(rows)||rows.length===0){
+        showMsg('❌ Löschen nicht möglich. Bitte melde dich bei uns.');
+        return;
+      }
+      setFightHistory(prev=>{
+        const n=prev.filter(x=>x.id!==f.id);
+        try{localStorage.setItem('fighter_history',JSON.stringify(n));}catch{}
+        return n;
+      });
+      showMsg('Eintrag gelöscht ✓');
+    }catch(e){showMsg('Fehler: '+e.message);}
+  }
+
   async function loadGymLogos(){
     try{
       const r=await fetch(SUPA_URL+'/rest/v1/gym_logos?select=gym_code,logo_url,verified',{
@@ -4536,6 +4558,9 @@ nicht öffentlich gemacht</div>
                         <div style={{color:'#aaa',fontSize:10}}>{f.fight_date||''}</div>
                         {f.location&&<div style={{color:'#ccc',fontSize:9,marginTop:1}}>📍 {f.location}</div>}
                       </div>
+                      {f.id&&(
+                        <button onClick={e=>{e.stopPropagation();deleteHistoryEntry(f);}} aria-label='Eintrag löschen' style={{background:'none',border:'none',cursor:'pointer',fontSize:16,padding:'4px 2px',flexShrink:0,opacity:0.7}}>🗑️</button>
+                      )}
                     </div>
                   ))}
                 </div>
