@@ -4022,9 +4022,9 @@ nicht öffentlich gemacht</div>
                             <div style={{color:'#ccc',fontSize:11,marginTop:2,fontStyle:'italic'}}>{appLang==='FR'?'Pas encore de messages':appLang==='EN'?'No messages yet':'Noch keine Nachrichten'}</div>
                           )}
                         </div>
-                        <div style={{textAlign:'right',flexShrink:0,width:58}}>
+                        <div style={{textAlign:'right',flexShrink:0,width:64,minWidth:0}}>
                           <div style={{color:'#ccc',fontSize:10}}>{m.last_message_at?new Date(m.last_message_at).toLocaleDateString('de',{day:'2-digit',month:'2-digit'}):''}</div>
-                          {other.last_seen&&<div style={{color:'#aaa',fontSize:9,marginTop:3,whiteSpace:'nowrap'}}>{getLastSeen(other.last_seen)}</div>}
+                          {other.last_seen&&<div style={{color:'#aaa',fontSize:9,marginTop:3,lineHeight:1.25,whiteSpace:'normal',wordBreak:'break-word',overflowWrap:'anywhere'}}>{getLastSeen(other.last_seen)}</div>}
                         </div>
                         <div onClick={()=>setActiveChat(m)} style={{padding:'9px 12px',borderRadius:8,background:'linear-gradient(135deg,#c0392b,#e74c3c)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',flexShrink:0,whiteSpace:'nowrap'}}>CHAT →</div>
                       </div>
