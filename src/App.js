@@ -3968,9 +3968,9 @@ nicht öffentlich gemacht</div>
                   if(!m.id)return null;
                   return(
                     <SwipeableChatRow key={m.id} darkMode={darkMode} onDelete={()=>deleteChat(m.id)}>
-                    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:13,border:'1px solid '+ac+'33',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.06)'}}>
+                    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:13,border:'1px solid '+ac+'33',overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.06)',width:'100%',boxSizing:'border-box'}}>
                       <div style={{height:3,background:'linear-gradient(90deg,'+ac+',transparent)'}}/>
-                      <div style={{padding:'13px',display:'flex',alignItems:'center',gap:12}}>
+                      <div style={{padding:'13px',display:'flex',alignItems:'center',gap:10,minHeight:84,boxSizing:'border-box'}}>
                         <div onClick={()=>setViewProfile(other)} style={{cursor:'pointer',flexShrink:0,position:'relative'}}>
                           {other.avatar_url?<img loading="lazy" src={other.avatar_url} style={{width:54,height:54,borderRadius:'50%',objectFit:'cover',border:'2px solid '+ac+'44'}} alt={other.name}/>
                           :<div style={{width:54,height:54,borderRadius:'50%',background:ac+'18',border:'2px solid '+ac+'44',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>🥊</div>}
@@ -3980,24 +3980,24 @@ nicht öffentlich gemacht</div>
                             <div style={{position:'absolute',bottom:1,right:1,width:13,height:13,borderRadius:'50%',background:'#27ae60',border:'2.5px solid '+(darkMode?'#1a1a1a':'#fff')}}/>
                           )}
                         </div>
-                        <div style={{flex:1}} onClick={()=>setViewProfile(other)} >
-                          <div style={{display:'flex',alignItems:'center',gap:6}}>
-                            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:1}}>{other.name}</div>
+                        <div style={{flex:1,minWidth:0}} onClick={()=>setViewProfile(other)} >
+                          <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
+                            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{other.name}</div>
                           </div>
-                          <div style={{color:ac,fontSize:11,fontWeight:700}}>{other.style} · {other.city}</div>
+                          <div style={{color:ac,fontSize:11,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{other.style} · {other.city}</div>
                           {m.last_message_text?(
-                            <div style={{color:darkMode?'#555':'#aaa',fontSize:11,marginTop:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:160}}>
+                            <div style={{color:darkMode?'#555':'#aaa',fontSize:11,marginTop:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
                               {m.last_message_text.startsWith('⚔️')?'⚔️ Fight Request':m.last_message_text.startsWith('✅')?'✅ Angenommen':m.last_message_text.startsWith('❌')?'❌ Abgelehnt':m.last_message_text}
                             </div>
                           ):(
                             <div style={{color:'#ccc',fontSize:11,marginTop:2,fontStyle:'italic'}}>{appLang==='FR'?'Pas encore de messages':appLang==='EN'?'No messages yet':'Noch keine Nachrichten'}</div>
                           )}
                         </div>
-                        <div style={{textAlign:'right',flexShrink:0}}>
+                        <div style={{textAlign:'right',flexShrink:0,width:58}}>
                           <div style={{color:'#ccc',fontSize:10}}>{m.last_message_at?new Date(m.last_message_at).toLocaleDateString('de',{day:'2-digit',month:'2-digit'}):''}</div>
                           {other.last_seen&&<div style={{color:'#aaa',fontSize:9,marginTop:3,whiteSpace:'nowrap'}}>{getLastSeen(other.last_seen)}</div>}
                         </div>
-                        <div onClick={()=>setActiveChat(m)} style={{padding:'9px 16px',borderRadius:8,background:'linear-gradient(135deg,#c0392b,#e74c3c)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>CHAT →</div>
+                        <div onClick={()=>setActiveChat(m)} style={{padding:'9px 12px',borderRadius:8,background:'linear-gradient(135deg,#c0392b,#e74c3c)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',flexShrink:0,whiteSpace:'nowrap'}}>CHAT →</div>
                       </div>
                     </div>
                     </SwipeableChatRow>
@@ -4589,18 +4589,22 @@ nicht öffentlich gemacht</div>
                   <div style={{display:'flex',flexDirection:'column',gap:8}}>
                     <div style={{color:'#aaa',fontSize:10,letterSpacing:2,fontWeight:700,marginBottom:4}}>PLÄTZE #6 UND WEITER</div>
                     {rest.map((gym,i)=>(
-                      <div key={gym.k} onClick={()=>openGym(gym)} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'12px 14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:12,cursor:'pointer'}}>
-                        <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,color:'#aaa',width:30,textAlign:'center'}}>#{i+6}</div>
-                        <div style={{width:42,height:42,borderRadius:8,background:darkMode?'#2a2a2a':'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0,overflow:'hidden'}}>
-                          {(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img loading="lazy" src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:8}} alt=''/>:(gym.emoji||'')}
+                      <div key={gym.k} onClick={()=>openGym(gym)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:darkMode?'#1a1a1a':'#fff',borderRadius:12,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),cursor:'pointer'}}>
+                        <div style={{fontSize:i+6>=100?13:18,width:32,textAlign:'center',flexShrink:0}}><span className='rj' style={{color:'#bbb'}}>#{i+6}</span></div>
+                        <div style={{width:38,height:38,borderRadius:8,background:darkMode?'#2a2a2a':'#f5f5f5',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>
+                          {(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img loading="lazy" src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#bbb',fontSize:9,textAlign:'center',fontWeight:700,lineHeight:1.2}}>{(gym.name||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
                         </div>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontWeight:700,fontSize:14,color:darkMode?'#fff':'#1a1a1a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{gym.name||''}</div>
-                          <div style={{color:'#888',fontSize:11}}>{gym.city||gym.ct} · {gym.members||0} Mitglieder</div>
+                          <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{gym.name||''}</div>
+                          <div style={{color:'#888',fontSize:10,marginTop:1}}>📍 {gym.city||gym.ct} · {gym.members||0} Mitglieder</div>
+                          <div style={{display:'flex',gap:1,marginTop:3}}>
+                            {[1,2,3,4,5].map(s=>(<button key={s} onClick={e=>{e.stopPropagation();rateGym(gym.k,s);}} style={{background:'none',border:'none',cursor:'pointer',padding:'0 1px',fontSize:14,color:s<=Math.round(gym.avg)?'#d4a017':'#ddd',lineHeight:1}}>{s<=Math.round(gym.avg)?'★':'☆'}</button>))}
+                            <span style={{color:'#aaa',fontSize:10,marginLeft:3,alignSelf:'center'}}>{gym.cnt>0?gym.cnt+' Bew.':'bewerten →'}</span>
+                          </div>
                         </div>
                         <div style={{textAlign:'right',flexShrink:0}}>
-                          <div style={{color:'#f1c40f',fontSize:12}}>{'⭐'.repeat(Math.min(5,Math.round(gym.avg)))}</div>
-                          <div style={{color:'#aaa',fontSize:11,fontWeight:700}}>{gym.avg>0?gym.avg.toFixed(1):'–'}</div>
+                          <div style={{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}}><span style={{color:'#d4a017',fontSize:14}}>★</span><span style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:16}}>{gym.avg>0?gym.avg.toFixed(1):'–'}</span></div>
+                          <div style={{color:'#bbb',fontSize:9,marginTop:2}}>{gym.cnt>0?'User-Rating':'Basis'}</div>
                         </div>
                       </div>
                     ))}
