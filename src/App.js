@@ -52,6 +52,17 @@ export { authSignUp, authSignIn, authSignOut, dbInsert, dbUpdate, dbSelect, admi
 
 // Test-Zugang: /?globetest=1 rendert nur den Globus, ohne Login —
 // zum schnellen Testen des Globus im Browser
+// Was fehlt einem Profil, damit es in der Rangliste erscheint?
+function rankIssuesOf(p){
+  if(!p||p.is_brand||p.is_coach)return [];
+  const out=[];
+  if(!((p.gym||'').trim()))out.push({k:'gym',text:'Dein Gym ist nicht eingetragen.'});
+  if(!p.country)out.push({k:'country',text:'Dein Land fehlt.'});
+  const fights=(p.wins||0)+(p.losses||0)+(p.draws||0);
+  if(fights===0&&p.record_verified!=='verified')out.push({k:'record',text:'Du hast 0 Kämpfe eingetragen. Trage deine Kämpfe ein und lade einen Nachweis hoch, oder bestätige unter Rangliste „Ich habe noch keine Kämpfe“.'});
+  return out;
+}
+
 export default function App(){
   if(typeof window!=='undefined'&&window.location.search.includes('globetest')){
     return <UserGlobe darkMode={true} onClose={()=>{window.location.search='';}} SUPA_URL={SUPA_URL} SUPA_KEY={SUPA_KEY}/>;
@@ -218,6 +229,7 @@ function MainApp(){
   const [gymLogos,setGymLogos]=useState({});
   const [showAdmin,setShowAdmin]=useState(false);
   const [showFeatureTour,setShowFeatureTour]=useState(false);
+  const [showRankReminder,setShowRankReminder]=useState(false);
   const isAdmin=session?.userId===ADMIN_ID||myProfile?.id===ADMIN_ID;
   const [fightHistory,setFightHistory]=useState(()=>{try{return JSON.parse(localStorage.getItem('fighter_history')||'[]')}catch{return []}});
   const [historyPublic,setHistoryPublic]=useState(()=>{try{return localStorage.getItem('fighter_history_public')==='true'}catch{return false}});
@@ -431,6 +443,20 @@ function MainApp(){
     })();
     return()=>{cancelled=true;};
   },[session,myProfile?.id,myProfile?.gym_verified,gymVerified]);
+
+  // Erinnerung: Profil unvollstaendig -> nicht in der Rangliste (max. 1x pro Tag)
+  useEffect(()=>{
+    if(!session||!myProfile||screen!=='main')return;
+    if(rankIssuesOf(myProfile).length===0){setShowRankReminder(false);return;}
+    let today='';
+    try{today=new Date().toISOString().slice(0,10);if(localStorage.getItem('fighter_rank_reminder')===today)return;}catch{}
+    const tm=setTimeout(()=>{
+      if(rankIssuesOf(myProfile).length===0)return;
+      setShowRankReminder(true);
+      try{localStorage.setItem('fighter_rank_reminder',today);}catch{}
+    },3500);
+    return()=>clearTimeout(tm);
+  },[session,myProfile?.id,myProfile?.gym,myProfile?.country,myProfile?.wins,myProfile?.losses,myProfile?.draws,myProfile?.record_verified,screen]);
 
   // Rangliste neu laden wenn Tab geöffnet wird
   useEffect(()=>{
@@ -1905,8 +1931,11 @@ function MainApp(){
         // ungepruefte Bilanzen als verifiziert gelten.
         if(statsChanged&&(d.wins+d.losses+d.draws)>0&&myProfile.record_verified==='verified'){d.record_verified=null;}
         const res=await dbUpdate('profiles',d,'user_id=eq.'+session.userId,session.token);
+        const wasRankOk=rankIssuesOf(myProfile).length===0;
         if(Array.isArray(res)&&res[0])setMyProfile(res[0]);
-        showMsg('Gespeichert! ✓');
+        const nowRankOk=Array.isArray(res)&&res[0]?rankIssuesOf(res[0]).length===0:false;
+        showMsg(nowRankOk&&!wasRankOk?'Gespeichert! ✓ Du erscheinst jetzt in der Rangliste 🏆':'Gespeichert! ✓');
+        loadAllProfiles(session);
         // Rangliste neu pruefen, falls sich Sieg/Niederlage-Werte geaendert haben -
         // benachrichtigt alle, die dadurch ueberholt wurden
         if(statsChanged){
@@ -5393,6 +5422,27 @@ nicht öffentlich gemacht</div>
               <div style={{marginBottom:14}}><div style={{fontWeight:700,color:'#1a1a1a',fontSize:13,marginBottom:5,borderLeft:'3px solid #c0392b',paddingLeft:8}}>5. Geltendes Recht</div><div style={{color:'#555',fontSize:13,lineHeight:1.8}}>Deutsches Recht. Gerichtsstand: Aachen.</div></div>
               <div style={{color:'#aaa',fontSize:10,textAlign:'center',marginTop:8}}>Stand: Mai 2026</div>
             </div>
+          </div>
+        </div>
+      )}
+      {showRankReminder&&!showFeatureTour&&rankIssuesOf(myProfile).length>0&&(
+        <div style={{position:'fixed',inset:0,zIndex:450,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={()=>setShowRankReminder(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:16,padding:'22px 20px',maxWidth:360,width:'100%',textAlign:'center',border:'1px solid '+RED+'44'}}>
+            <div style={{fontSize:34,marginBottom:6}}>🏆</div>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:8}}>DEIN RANG FEHLT NOCH</div>
+            <div style={{color:'#888',fontSize:13,lineHeight:1.5,marginBottom:12}}>Damit du in der Rangliste angezeigt wirst, fehlt noch etwas in deinem Profil:</div>
+            <div style={{textAlign:'left',marginBottom:16}}>
+              {rankIssuesOf(myProfile).map(it=>(
+                <div key={it.k} style={{display:'flex',gap:8,color:darkMode?'#ddd':'#333',fontSize:13,lineHeight:1.4,marginBottom:6}}><span style={{color:RED}}>•</span><span>{it.text}</span></div>
+              ))}
+            </div>
+            <button onClick={()=>{
+              const only=rankIssuesOf(myProfile).every(it=>it.k==='record');
+              setShowRankReminder(false);
+              if(only){setTab('ranking');}
+              else{setTab('stats');setEditProfile({});setEditMode(true);}
+            }} style={{width:'100%',padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer',marginBottom:8}}>PROFIL VERVOLLSTÄNDIGEN</button>
+            <button onClick={()=>setShowRankReminder(false)} style={{background:'none',border:'none',color:'#999',fontSize:12,cursor:'pointer'}}>Später</button>
           </div>
         </div>
       )}
