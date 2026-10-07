@@ -231,16 +231,6 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,myProfi
                 <div style={{color:'#2980b9',fontSize:13,fontWeight:600}}>{gym.website}</div>
               </div>
             </div>
-            {gym.code&&(
-              <div style={{display:'flex',alignItems:'center',gap:12,background:isDark?'#1f1f10':'#fffbf0',borderRadius:10,padding:'10px 12px',border:'1px solid #d4a01733'}}>
-                <div style={{width:34,height:34,borderRadius:8,background:'#d4a01718',border:'1px solid #d4a01733',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0}}>🔑</div>
-                <div style={{flex:1}}>
-                  <div style={{color:sub,fontSize:10,letterSpacing:1,marginBottom:2}}>FIGHTER-APP CODE</div>
-                  <div style={{color:'#d4a017',fontSize:18,fontWeight:700,fontFamily:'Rajdhani,sans-serif',letterSpacing:3}}>{gym.code}</div>
-                  <div style={{color:'#bbb',fontSize:10,marginTop:1}}>Diesen Code beim Gym erfragen → Profil verifizieren</div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
