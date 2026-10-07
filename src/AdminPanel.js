@@ -103,6 +103,10 @@ export default function AdminPanel({
   const [equipLoading,setEquipLoading]=useState(false);
   const [newEquip,setNewEquip]=useState({brand:'',product:'',description:'',category:'Boxen',url:'',image_url:'',discount_code:'',featured:false,item_type:'equipment'});
   const [equipmentTypeFilter,setEquipmentTypeFilter]=useState('equipment');
+  // Neues Produkt gehoert in den Bereich, in dem man gerade ist
+  useEffect(()=>{
+    setNewEquip(p=>({...p,item_type:equipmentTypeFilter,category:equipmentTypeFilter==='supplement'?'Supplements':(p.category==='Supplements'?'Boxen':p.category)}));
+  },[equipmentTypeFilter]);
   const [gymCodesList,setGymCodesList]=useState(null);
   const [gymCodesLoading,setGymCodesLoading]=useState(false);
   const [gymCodeSearch,setGymCodeSearch]=useState('');
@@ -1180,20 +1184,20 @@ export default function AdminPanel({
                       const res=await adminFetch(SUPA_URL+'/rest/v1/equipment',{
                         method:'POST',
                         headers:{Prefer:'return=representation'},
-                        body:JSON.stringify({...newEquip,sort_order:Date.now()})
+                        body:JSON.stringify({...newEquip,item_type:newEquip.item_type||equipmentTypeFilter,sort_order:Date.now()})
                       },session?.token);
                       const data=await res.json();
                       console.log('Equipment save response:', res.status, data);
                       if(Array.isArray(data)&&data[0]){
                         setEquipmentList(prev=>[data[0],...prev]);
-                        const savedBrand=newEquip.brand,savedProduct=newEquip.product;
-                        setNewEquip({brand:'',product:'',description:'',category:'Boxen',url:'',image_url:'',discount_code:'',featured:false});
+                        const savedBrand=newEquip.brand,savedProduct=newEquip.product,savedType=newEquip.item_type||equipmentTypeFilter;
+                        setNewEquip({brand:'',product:'',description:'',category:newEquip.item_type==='supplement'?'Supplements':'Boxen',url:'',image_url:'',discount_code:'',featured:false,item_type:newEquip.item_type||equipmentTypeFilter});
                         showMsg('✅ Produkt hinzugefügt!');
                         // Alle Nutzer per Push benachrichtigen
                         fetch(SUPA_URL+'/functions/v1/broadcast-push',{
                           method:'POST',
                           headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
-                          body:JSON.stringify({title:'🥊 Neues Equipment!',body:savedBrand+' '+savedProduct+' ist jetzt im Shop verfügbar',data:{type:'equipment'}})
+                          body:JSON.stringify({title:savedType==='supplement'?'💊 Neues Supplement!':'🥊 Neues Equipment!',body:savedBrand+' '+savedProduct+' ist jetzt im Shop verfügbar',data:{type:savedType==='supplement'?'supplement':'equipment'}})
                         }).catch(err=>console.error('broadcast push',err));
                       }else if(data&&data.code==='42P01'){
                         showMsg('❌ Tabelle fehlt — SQL im Supabase Editor ausführen!');
