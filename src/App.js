@@ -413,12 +413,14 @@ function MainApp(){
     }
   },[tab,showEquipment,showSupplements,session,rewardBrandsLoaded]);
 
-  // Gym-Verifizierung abgleichen: Steht sie schon in der Datenbank, wird sie
-  // uebernommen (z.B. auf einem neuen Handy). Wer sich frueher schon per
-  // Code verifiziert hat (nur lokal gespeichert), wird einmalig auch in der
-  // Datenbank eingetragen. Fehlt die Spalte/Funktion noch, passiert nichts.
+  // Gym-Verifizierung mit der Datenbank abgleichen: Die Datenbank ist die
+  // einzige Wahrheit. Steht dort "verifiziert", wird das uebernommen (z.B. auf
+  // einem neuen Handy). Steht dort "nicht verifiziert", wird ein alter,
+  // lokal gespeicherter Gym-Code auf diesem Geraet verworfen - er traegt die
+  // Mitgliedschaft NICHT mehr heimlich neu ein (sonst kam der Haken zurueck,
+  // wenn jemand sie auf einem anderen Geraet entfernt hatte).
   useEffect(()=>{
-    if(!session||!myProfile?.id||myProfile.gym_verified===true)return;
+    if(!session||!myProfile?.id||myProfile.gym_verified!==undefined)return;
     let cancelled=false;
     (async()=>{
       try{
@@ -426,23 +428,17 @@ function MainApp(){
           headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
         });
         const d=r.ok?await r.json():null;
-        if(!Array.isArray(d))return;
-        if(d[0]&&d[0].gym_verified===true){
-          if(!cancelled)setMyProfile(p=>p?{...p,gym_verified:true}:p);
-          return;
+        if(!Array.isArray(d)||!d[0]||typeof d[0].gym_verified!=='boolean')return;
+        if(cancelled)return;
+        if(d[0].gym_verified===false){
+          try{localStorage.removeItem('fighter_gym_verified');}catch(e){}
+          setGymVerified(null);
         }
-        if(!gymVerified||!gymVerified.code)return;
-        const rc=await fetch(SUPA_URL+'/rest/v1/rpc/claim_gym_membership',{
-          method:'POST',
-          headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token},
-          body:JSON.stringify({input_code:gymVerified.code})
-        });
-        const dc=rc.ok?await rc.json():null;
-        if(!cancelled&&Array.isArray(dc)&&dc.length>0)setMyProfile(p=>p?{...p,gym_verified:true}:p);
+        setMyProfile(p=>p?{...p,gym_verified:d[0].gym_verified}:p);
       }catch(e){}
     })();
     return()=>{cancelled=true;};
-  },[session,myProfile?.id,myProfile?.gym_verified,gymVerified]);
+  },[session,myProfile?.id,myProfile?.gym_verified]);
 
   // fighter_chat_poll: Chat-Liste aktuell halten (neueste Nachricht oben)
   useEffect(()=>{
