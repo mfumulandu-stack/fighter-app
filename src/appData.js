@@ -95,7 +95,6 @@ function getDistanceKm(city1,city2){
 const CITY_BUNDESLAND={
   'Berlin':'Berlin','Hamburg':'Hamburg','Bremen':'Bremen',
   'München':'Bayern','Muenchen':'Bayern','Augsburg':'Bayern','Nürnberg':'Bayern','Würzburg':'Bayern',
-  'Hamburg':'Hamburg',
   'Köln':'Nordrhein-Westfalen','Koeln':'Nordrhein-Westfalen',
   'Düsseldorf':'Nordrhein-Westfalen','Duesseldorf':'Nordrhein-Westfalen',
   'Dortmund':'Nordrhein-Westfalen','Essen':'Nordrhein-Westfalen',
@@ -105,7 +104,6 @@ const CITY_BUNDESLAND={
   'Wuppertal':'Nordrhein-Westfalen','Bielefeld':'Nordrhein-Westfalen',
   'Frankfurt':'Hessen','Wiesbaden':'Hessen','Kassel':'Hessen','Darmstadt':'Hessen',
   'Stuttgart':'Baden-Württemberg','Karlsruhe':'Baden-Württemberg','Freiburg':'Baden-Württemberg','Mannheim':'Baden-Württemberg','Heidelberg':'Baden-Württemberg',
-  'Hamburg':'Hamburg',
   'Hannover':'Niedersachsen','Braunschweig':'Niedersachsen','Osnabrück':'Niedersachsen',
   'Leipzig':'Sachsen','Dresden':'Sachsen','Chemnitz':'Sachsen',
   'Kiel':'Schleswig-Holstein','Lübeck':'Schleswig-Holstein',

@@ -1187,7 +1187,6 @@ export default function AdminPanel({
                         body:JSON.stringify({...newEquip,item_type:newEquip.item_type||equipmentTypeFilter,sort_order:Date.now()})
                       },session?.token);
                       const data=await res.json();
-                      console.log('Equipment save response:', res.status, data);
                       if(Array.isArray(data)&&data[0]){
                         setEquipmentList(prev=>[data[0],...prev]);
                         const savedBrand=newEquip.brand,savedProduct=newEquip.product,savedType=newEquip.item_type||equipmentTypeFilter;

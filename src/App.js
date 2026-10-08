@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { sortFightersByRank } from './matchScore';
-import { buildTimeSeries, activeUserCounts, countSince, equipmentRanking, totalEquipmentClicks, eventRevenue, eventParticipationStats, gymStats, rankingActiveCount, DAY_MS } from './adminAnalytics';
 import { setupPushRegistration } from './pushRegistration';
 import { cityToCountry, filterCitiesByCountry } from './cityCountry';
 import { autoFilterCandidates } from './autoFilters';
 import { SUPA_URL, SUPA_KEY, ADMIN_ID, APP_STORE_ID, CURRENT_APP_VERSION, SW, RED, LIGHT_RED } from './constants';
 import { computeBrandUnlockOrder } from './rewardBrands';
-import { authSignUp, authSignIn, authSignOut, dbInsert, dbUpdate, dbSelect, adminFetch, uploadPhoto } from './supabaseApi';
+import { authSignOut, dbInsert, dbUpdate, dbSelect, adminFetch, uploadPhoto } from './supabaseApi';
 import { safeLocalNotification } from './notifications';
 import ChatOverlay from './ChatOverlay';
 import GymDetailScreen from './GymDetailScreen';
@@ -24,7 +23,7 @@ import OnboardingTour from './OnboardingTour';
 import SwipeableChatRow from './SwipeableChatRow';
 import ErrorBoundary from './ErrorBoundary';
 import ImgPositionEditor from './ImgPositionEditor';
-import { WEIGHT_CLASSES, normalizeWeightClass, STYLES, BELT_STYLES, BELT_RANKS, PRO_FIGHTERS, FIGHTERS, CITY_COORDS, CITY_BUNDESLAND, GYMS, TRAINERS, SPORTS, getDistanceKm, getDistanceKmCoords, getBundesland, getLocationByIP } from './appData';
+import { WEIGHT_CLASSES, normalizeWeightClass, STYLES, BELT_STYLES, BELT_RANKS, FIGHTERS, GYMS, TRAINERS, SPORTS, getDistanceKm, getDistanceKmCoords, getBundesland, getLocationByIP } from './appData';
 // Weiterreichen nach aussen: auth.test.js und andere importieren diese
 // Funktionen aus './App' - das bleibt dadurch unveraendert gueltig.
 export { authSignUp, authSignIn, authSignOut, dbInsert, dbUpdate, dbSelect, adminFetch } from './supabaseApi';
@@ -1027,7 +1026,7 @@ function MainApp(){
           if(Array.isArray(d2))setAllProfiles(d2);
         }catch{}
       }
-    }catch(e){console.log('loadAllProfiles Fehler:',e);}
+    }catch(e){console.warn('loadAllProfiles Fehler:',e);}
   }
 
   async function loadWhoLikedMe(s,myP){
@@ -1202,7 +1201,7 @@ function MainApp(){
           });
         }
       }
-    }catch(e){console.log('loadDbGyms error',e);}
+    }catch(e){console.warn('loadDbGyms error',e);}
   }
 
   // Freunde-einladen-Rabatt: laedt NUR die Produkte mit einem Rabattcode
@@ -1222,7 +1221,7 @@ function MainApp(){
         equipment:computeBrandUnlockOrder(data.filter(i=>i.item_type==='equipment')),
         supplement:computeBrandUnlockOrder(data.filter(i=>i.item_type==='supplement')),
       });
-    }catch(e){console.log('loadRewardBrands error',e);}
+    }catch(e){console.warn('loadRewardBrands error',e);}
   }
 
   async function loadEvents(s){
@@ -1592,7 +1591,6 @@ function MainApp(){
         byCoach[r.coach_id].total+=r.stars;
         byCoach[r.coach_id].count+=1;
       });
-      const myId=myProfile?.id;
       const list=(Array.isArray(profs)?profs:[]).map(c=>{
         const r=byCoach[c.id]||{total:0,count:0};
         const mine=Array.isArray(ratings)?ratings.find(x=>x.coach_id===c.id&&x.user_id===(s?.userId||session?.userId)):null;
@@ -1892,7 +1890,6 @@ function MainApp(){
       // die lokale State-Aktualisierung, sondern wirklich frisch aus der
       // Datenbank) - reine Vorsichtsmassnahme fuer maximale Konsistenz.
       loadAllProfiles(session);
-      const finalGender=editProfile.gender||profile.gender;
       showMsg(appLang==='FR'?'Profil enregistré ✓':appLang==='EN'?'Profile saved ✓':'Profil gespeichert ✓');
       setEditMode(false);
     }catch(e){showMsg(appLang==='FR'?'Erreur lors de la sauvegarde':appLang==='EN'?'Error saving':'Fehler beim Speichern: '+e.message);}
@@ -1997,7 +1994,6 @@ function MainApp(){
         }
       }else{
         // Upsert: falls Profil bereits existiert (doppelter user_id), updaten statt Fehler
-        console.log('saveProfile: starting upsert for',session.userId);
         const upsertRes=await fetch(SUPA_URL+'/rest/v1/profiles',{
           method:'POST',
           headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=representation,resolution=merge-duplicates'},
@@ -2285,9 +2281,6 @@ function MainApp(){
       // ── ÜBEREINSTIMMUNGS-FLAGS ──
       const hasGPS=myLat&&myLon&&f.lat&&f.lon;
       const sameCityBool=hasGPS?dist<=15:((f.city||'').toLowerCase().trim()===(myCity||'').toLowerCase().trim()&&myCity!=='');
-      const nearbyBool=hasGPS?dist<=30:sameCityBool;
-      const sameRegionBool=hasGPS?dist<=80:getBundesland(f.city||'')===myBundesland&&!!myBundesland;
-      const sameCountryBool=hasGPS?dist<=600:(!f.country||!profile.country||f.country===(profile.country||myProfile?.country||'DE')||f.country==='OTHER');
       const sameStyleBool=sameStyle(f);
       const sameGenderBool=sameGender(f);
       const fWC=normalizeWeightClass(f.weight_class||'').split(' (')[0].trim();
