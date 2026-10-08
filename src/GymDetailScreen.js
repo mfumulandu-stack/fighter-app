@@ -10,6 +10,7 @@
 // beim Verschieben garantiert nichts am Verhalten aendert.
 
 import { useState, useEffect } from 'react';
+import { shareLink, inviteUrl } from './growth';
 
 function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,myProfile,onGymUpdate,rateGym,onClose,darkMode}){
   if(!gym)return(<div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:250,display:'flex',alignItems:'center',justifyContent:'center'}}><button onClick={onClose} style={{padding:'12px 24px',background:'#c0392b',color:'#fff',border:'none',borderRadius:10,fontSize:16,cursor:'pointer'}}>Zurück</button></div>);
@@ -22,6 +23,7 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,myProfi
   const sub=isDark?'#aaa':'#666';
   const border=isDark?'#2a2a2a':'#eee';
   const [editMode,setEditMode]=useState(false);
+  const [shared,setShared]=useState(false);
   const [editName,setEditName]=useState(gym.name||'');
   const [editCity,setEditCity]=useState(gym.city||'');
   const [editAddress,setEditAddress]=useState(gym.address||'');
@@ -95,6 +97,7 @@ function GymDetailScreen({gym,gymKey,gymRatings,gymLogos,isAdmin,session,myProfi
         <div style={{display:'flex',alignItems:'center',padding:'calc(14px + env(safe-area-inset-top)) 16px 0',gap:10}}>
           <button onClick={onClose} style={{background:'rgba(255,255,255,0.1)',border:'none',color:'#fff',fontSize:18,cursor:'pointer',borderRadius:8,padding:'6px 12px',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
           <div style={{flex:1}}/>
+          <button onClick={()=>shareLink({title:gym.name,text:'🥊 '+gym.name+(gym.city?' in '+gym.city:'')+' auf Fighter – schau dir das Gym an und finde Trainingspartner:',url:inviteUrl(myProfile&&myProfile.id),onCopied:()=>{setShared(true);setTimeout(()=>setShared(false),2500);}})} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',borderRadius:8,padding:'6px 12px',fontFamily:'Rajdhani,sans-serif',letterSpacing:1}}>{shared?'✓ KOPIERT':'🔗 TEILEN'}</button>
           {isAdmin&&<button onClick={()=>setEditMode(e=>!e)} style={{background:editMode?'#27ae60':'rgba(255,255,255,0.15)',border:'none',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',borderRadius:8,padding:'6px 12px',fontFamily:'Rajdhani,sans-serif',letterSpacing:1}}>{editMode?'✓ MODUS':'✏️ BEARBEITEN'}</button>}
           <div style={{background:'rgba(255,255,255,0.08)',borderRadius:8,padding:'4px 10px'}}>
             <div style={{color:'#d4a017',fontSize:12,fontWeight:700,display:'flex',alignItems:'center',gap:4}}>

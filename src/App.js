@@ -17,6 +17,7 @@ import UserGlobe from './UserGlobe';
 import { css } from './styles';
 import AuthScreen from './AuthScreen';
 import { Lbl, Inp, Tag, Btn } from './uiHelpers';
+import { profileProgressOf, shareLink, inviteUrl } from './growth';
 import GymVerifyModal from './GymVerifyModal';
 import BrandDashboard from './BrandDashboard';
 import OnboardingTour from './OnboardingTour';
@@ -706,6 +707,10 @@ function MainApp(){
   }
 
   function showMsg(text){setMsg(text);const isError=text.includes('Fehler')||text.includes('❌');setTimeout(()=>setMsg(''),isError?15000:3000);}
+  // Freunde einladen (eigener Einladungslink mit ?ref=, wie im Stats-Tab)
+  function inviteFriends(){
+    shareLink({title:'Fighter App',text:'🥊 Ich suche Trainingspartner auf Fighter. Komm dazu und melde dich mit meinem Link an:',url:inviteUrl(myProfile?.id),onCopied:()=>showMsg('Einladungslink kopiert! 📋')});
+  }
 
   async function registerPush(userId,token){
     // Nur in der nativen App (nicht im Web-Browser)
@@ -3839,7 +3844,7 @@ nicht öffentlich gemacht</div>
                   <div style={{fontSize:64,marginBottom:4}}>🏆</div>
                   <div className='rj' style={{color:'#fff',fontSize:26,letterSpacing:3,lineHeight:1}}>{t.allFightersSeen}</div>
                   <div className='rj' style={{color:RED,fontSize:26,letterSpacing:3,lineHeight:1}}>{t.allFightersSeen2}</div>
-                  <div style={{color:'rgba(255,255,255,0.5)',fontSize:13,marginTop:6,lineHeight:1.6}}>{filterWeightClass&&myWeightClass?`Keine Fighter in deiner Nähe gefunden.`:`Alle Fighter wurden gesehen! Neue kommen täglich dazu.`}</div>
+                  <div style={{color:'rgba(255,255,255,0.5)',fontSize:13,marginTop:6,lineHeight:1.6}}>{filterWeightClass&&myWeightClass?`Keine Fighter in deiner Nähe gefunden. Lade Trainingspartner ein, damit es hier voller wird.`:`Alle Fighter wurden gesehen! Neue kommen täglich dazu. Je mehr Kämpfer aus deiner Stadt dabei sind, desto mehr Matches – lade Trainingspartner ein.`}</div>
                   <div style={{display:'flex',gap:12,marginTop:8,width:'100%'}}>
                     <button onClick={async()=>{setSwStats({ch:0,de:0});if(session&&myProfile){await loadRealFighters(session,myProfile);}}} style={{flex:1,padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1,cursor:'pointer'}}>
                       🔄 NEUE FIGHTER
@@ -3848,6 +3853,9 @@ nicht öffentlich gemacht</div>
                       💬 CHATS
                     </button>
                   </div>
+                  <button onClick={inviteFriends} style={{marginTop:2,width:'100%',padding:'12px',borderRadius:10,background:'transparent',color:'#fff',border:'1px dashed rgba(255,255,255,0.35)',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:'pointer'}}>
+                    👥 TRAININGSPARTNER EINLADEN
+                  </button>
                   <div style={{color:'rgba(255,255,255,0.3)',fontSize:11,marginTop:4}}>{appLang==='FR'?'Conseil: Double-tap sur une carte = voir le profil':appLang==='EN'?'Tip: Double-tap a card = view profile':'Tipp: Doppel-Tap auf eine Karte = Profil ansehen'}</div>
                 </div>
               ):visibleCards.slice(-3).map((f,idx,arr)=>{
@@ -4025,6 +4033,9 @@ nicht öffentlich gemacht</div>
                 <div style={{color:'#aaa',fontSize:13,lineHeight:1.8,maxWidth:260,textAlign:'center'}}>{t.noMatchesSub}</div>
                 <button onClick={()=>setTab('swipe')} style={{marginTop:10,padding:'14px 32px',borderRadius:12,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:17,letterSpacing:2,cursor:'pointer',boxShadow:'0 4px 16px rgba(192,57,43,0.3)'}}>
                   ⚔️ JETZT SWIPEN
+                </button>
+                <button onClick={inviteFriends} style={{padding:'12px 28px',borderRadius:12,background:'transparent',color:darkMode?'#ddd':'#555',border:'1px dashed '+(darkMode?'#555':'#bbb'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1.5,cursor:'pointer'}}>
+                  👥 TRAININGSPARTNER EINLADEN
                 </button>
                 <div style={{color:'#ddd',fontSize:11,marginTop:2}}>{t.newFightersDaily}</div>
               </div>
@@ -4314,12 +4325,30 @@ nicht öffentlich gemacht</div>
                 </div>
               </div>
             )}
+            {(()=>{
+              const prog=profileProgressOf(myProfile,gymVerified);
+              if(!prog||prog.pct>=100||!prog.next)return null;
+              const nk=prog.next.k;
+              return(
+                <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',border:'1px solid '+RED+'33',marginBottom:11,boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
+                  <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:1.5,marginBottom:8}}>DEIN PROFIL IST {prog.pct} % VOLLSTÄNDIG</div>
+                  <div style={{height:8,borderRadius:4,background:darkMode?'#2a2a2a':'#eee',overflow:'hidden',marginBottom:10}}>
+                    <div style={{width:prog.pct+'%',height:'100%',borderRadius:4,background:`linear-gradient(90deg,${RED},${LIGHT_RED})`,transition:'width 0.4s'}}/>
+                  </div>
+                  <div style={{color:darkMode?'#bbb':'#555',fontSize:13,lineHeight:1.5,marginBottom:10}}>Nächster Schritt: {prog.next.label}</div>
+                  <button onClick={()=>{
+                    if(nk==='record')setTab('ranking');
+                    else if(nk==='gymver')setShowGymVerify(true);
+                    else{setEditProfile({});setEditMode(true);}
+                  }} style={{width:'100%',padding:'11px',borderRadius:10,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:'pointer'}}>JETZT ERLEDIGEN</button>
+                </div>
+              );
+            })()}
             <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:11,textAlign:'center',boxShadow:'0 1px 4px rgba(0,0,0,0.06)',position:'relative'}}>
               <div style={{position:'absolute',top:12,right:12,display:'flex',gap:6,alignItems:'center'}}>
                 <button onClick={()=>{
-                  const shareText=`⚔️ ${profile.name} auf Fighter\n${profile.style} · ${profile.weightClass?profile.weightClass.split(' (')[0]:''}\n📍 ${profile.city}\n\nSchau dir mein Profil an: https://fighterapp.de`;
-                  if(navigator.share){navigator.share({title:'Fighter — '+profile.name,text:shareText,url:'https://fighterapp.de'});}
-                  else{navigator.clipboard?.writeText(shareText);showMsg('Profil-Link kopiert! 📋');}
+                  const shareText=`⚔️ ${profile.name} auf Fighter\n${profile.style} · ${profile.weightClass?profile.weightClass.split(' (')[0]:''}\n📍 ${profile.city}\n\nFinde mich und andere Kämpfer in deiner Nähe auf Fighter:`;
+                  shareLink({title:'Fighter — '+profile.name,text:shareText,url:inviteUrl(myProfile?.id),onCopied:()=>showMsg('Profil-Link kopiert! 📋')});
                 }} style={{background:'none',border:'none',color:darkMode?'#666':'#aaa',fontSize:16,cursor:'pointer',padding:'4px'}}>
                   🔗
                 </button>
@@ -4885,6 +4914,12 @@ nicht öffentlich gemacht</div>
                   <button onClick={()=>{setEditEventId(null);setShowCreateEvent(true);}}
                     style={{marginTop:16,padding:'13px 28px',borderRadius:12,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
                     ➕ ERSTES EVENT ERSTELLEN
+                  </button>
+                )}
+                {!isAdmin&&(
+                  <button onClick={inviteFriends}
+                    style={{marginTop:16,padding:'13px 28px',borderRadius:12,background:'transparent',border:'1px dashed '+(darkMode?'#555':'#bbb'),color:darkMode?'#ddd':'#555',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1.5,cursor:'pointer'}}>
+                    👥 FIGHTER AUS DEINER STADT EINLADEN
                   </button>
                 )}
               </div>
