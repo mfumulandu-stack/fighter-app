@@ -11,6 +11,7 @@
 import { useState, useEffect } from 'react';
 import { SUPA_URL, SUPA_KEY, RED, LIGHT_RED } from './constants';
 import { authSignIn, authSignUp } from './supabaseApi';
+import { authErrorInfo } from './authErrors';
 import { css } from './styles';
 import { Inp } from './uiHelpers';
 
@@ -26,6 +27,7 @@ function AuthScreen({ onSession, appLang }) {
   const [loading,setLoading]=useState(false);
   const [err,setErr]=useState('');
   const [info,setInfo]=useState('');const [privacy,setPrivacy]=useState(false);
+  const [needConfirm,setNeedConfirm]=useState(false);
   const [agbAccepted,setAgbAccepted]=useState(false);
   const [showAGB,setShowAGB]=useState(false);
   const [showDatenschutz,setShowDatenschutz]=useState(false);
@@ -152,18 +154,40 @@ function AuthScreen({ onSession, appLang }) {
     setLoading(false);
   }
 
+  async function resendConfirmation(){
+    if(!email){setErr('Bitte E-Mail eingeben');return;}
+    setLoading(true);setErr('');setInfo('');
+    try{
+      const r=await fetch(SUPA_URL+'/auth/v1/resend',{
+        method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
+        body:JSON.stringify({type:'signup',email,options:{emailRedirectTo:'https://fighterapp.de'}})
+      });
+      if(r.ok){setNeedConfirm(false);setInfo('Neue Bestätigungsmail an '+email+' gesendet. Schau auch im Spam-Ordner nach.');}
+      else{const d=await r.json().catch(()=>({}));setErr(authErrorInfo(d).text||'Mail konnte nicht gesendet werden. Bitte später erneut versuchen.');}
+    }catch{setErr('Netzwerkfehler');}
+    setLoading(false);
+  }
+
   async function submit() {
     if(!email||!password){setErr('E-Mail und Passwort eingeben');return;}
+    if(mode==='register'&&password.length<6){setErr('Das Passwort muss mindestens 6 Zeichen haben.');return;}
     if(mode==='register'&&!privacy){setErr('Bitte Datenschutz akzeptieren');return;}
     if(mode==='register'&&!agbAccepted){setErr('Bitte AGB akzeptieren');return;}
-    setLoading(true);setErr('');setInfo('');
+    setLoading(true);setErr('');setInfo('');setNeedConfirm(false);
     if(mode==='register'){
       const r=await authSignUp(email,password);
-      if(r.error){
-        if(r.error.message?.includes('already registered')||r.error.message?.includes('already been registered')){
-          setErr('Diese E-Mail ist bereits registriert. Bitte einloggen.');setMode('login');
+      const fail=(!r||(!r.session&&!r.access_token&&!r.user&&!r.id))?authErrorInfo(r):{kind:'',text:''};
+      if(!r){
+        setErr('Registrierung fehlgeschlagen — bitte erneut versuchen');
+      }else if(fail.text){
+        setErr(fail.text);
+        if(fail.kind==='exists')setMode('login');
+      }else if(r.error){
+        const e=authErrorInfo(r);
+        if(e.kind==='exists'){
+          setErr(e.text);setMode('login');
         }else{
-          setErr(r.error.message||'Registrierung fehlgeschlagen');
+          setErr(e.text||r.error.message||'Registrierung fehlgeschlagen');
         }
       }else if(r.session&&r.session.access_token){
         onSession({token:r.session.access_token,userId:r.user.id,refresh_token:r.session.refresh_token||null,expires_at:Date.now()+(3600*1000)});
@@ -184,9 +208,12 @@ function AuthScreen({ onSession, appLang }) {
     }else{
       try{
         const r=await authSignIn(email,password);
-        if(r.error)setErr(r.error.message||'Login fehlgeschlagen');
-        else if(r.access_token)onSession({token:r.access_token,userId:r.user.id,refresh_token:r.refresh_token});
-        else setErr('Login fehlgeschlagen — bitte erneut versuchen');
+        if(r&&r.access_token)onSession({token:r.access_token,userId:r.user.id,refresh_token:r.refresh_token});
+        else{
+          const e=authErrorInfo(r);
+          setErr(e.text||'Login fehlgeschlagen — bitte erneut versuchen');
+          if(e.kind==='unconfirmed')setNeedConfirm(true);
+        }
       }catch(e){
         setErr('Netzwerkfehler — bitte Verbindung prüfen');
       }
@@ -242,6 +269,9 @@ function AuthScreen({ onSession, appLang }) {
             <Inp placeholder='Passwort (min. 6 Zeichen)' value={password} onChange={setPassword} type='password' autoComplete={mode==='register'?'new-password':'current-password'} onKeyDown={e=>e.key==='Enter'&&submit()}/>
           </div>
           {err&&<div style={{color:RED,fontSize:12,marginTop:10,textAlign:'center'}}>{err}</div>}
+          {needConfirm&&(
+            <button onClick={resendConfirmation} disabled={loading} style={{width:'100%',marginTop:10,padding:'10px',borderRadius:8,background:'#fff',border:'1px solid '+RED,color:RED,fontWeight:700,fontSize:13,cursor:'pointer'}}>BESTÄTIGUNGSMAIL ERNEUT SENDEN</button>
+          )}
           {mode==='register'&&(
             <div style={{display:'flex',flexDirection:'column',gap:8,marginTop:12}}>
               <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
