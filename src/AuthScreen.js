@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { SUPA_URL, SUPA_KEY, RED, LIGHT_RED } from './constants';
 import { authSignIn, authSignUp } from './supabaseApi';
 import { authErrorInfo } from './authErrors';
+import { makeL } from './lang';
 import { css } from './styles';
 import { Inp } from './uiHelpers';
 
@@ -19,8 +20,11 @@ function AuthScreen({ onSession, appLang }) {
   const T_AUTH = {
     DE: {login:'Einloggen',register:'Registrieren',loginBtn:'LOGIN',registerBtn:'REGISTRIEREN',forgotPw:'Passwort vergessen?',sendLink:'LINK SENDEN',cancel:'Abbrechen',pwReset:'PASSWORT RESET',pwResetSub:'Wir senden dir einen Reset-Link per E-Mail.'},
     EN: {login:'Log in',register:'Register',loginBtn:'LOGIN',registerBtn:'REGISTER',forgotPw:'Forgot password?',sendLink:'SEND LINK',cancel:'Cancel',pwReset:'PASSWORD RESET',pwResetSub:'We will send you a reset link by email.'},
+    FR: {login:'Connexion',register:"S'inscrire",loginBtn:'CONNEXION',registerBtn:"S'INSCRIRE",forgotPw:'Mot de passe oublié ?',sendLink:'ENVOYER LE LIEN',cancel:'Annuler',pwReset:'RÉINITIALISER LE MOT DE PASSE',pwResetSub:"Nous t'envoyons un lien de réinitialisation par e-mail."},
+    ES: {login:'Iniciar sesión',register:'Registrarse',loginBtn:'ENTRAR',registerBtn:'REGISTRARSE',forgotPw:'¿Olvidaste tu contraseña?',sendLink:'ENVIAR ENLACE',cancel:'Cancelar',pwReset:'RESTABLECER CONTRASEÑA',pwResetSub:'Te enviaremos un enlace para restablecerla por correo.'},
   };
   const t = T_AUTH[appLang]||T_AUTH.DE;
+  const L = makeL(appLang);
   const [mode,setMode]=useState('login');
   const [email,setEmail]=useState('');
   const [password,setPassword]=useState('');
@@ -101,7 +105,7 @@ function AuthScreen({ onSession, appLang }) {
       }
     }catch{
       setOauthLoading(false);
-      setErr('Weiterleitung fehlgeschlagen — bitte erneut versuchen.');
+      setErr(L('Weiterleitung fehlgeschlagen — bitte erneut versuchen.', 'Redirect failed — please try again.', 'Redirection échouée — réessaie.', 'Falló la redirección — inténtalo de nuevo.'));
     }
   }
   const [showOtp,setShowOtp]=useState(false);
@@ -109,7 +113,7 @@ function AuthScreen({ onSession, appLang }) {
   const [otpCode,setOtpCode]=useState('');
 
   async function sendOtpCode(){
-    if(!email){setErr('Bitte E-Mail eingeben');return;}
+    if(!email){setErr(L('Bitte E-Mail eingeben', 'Please enter your email', 'Saisis ton e-mail', 'Introduce tu correo'));return;}
     setLoading(true);setErr('');
     try{
       const r=await fetch(SUPA_URL+'/auth/v1/otp',{
@@ -117,13 +121,13 @@ function AuthScreen({ onSession, appLang }) {
         body:JSON.stringify({email,create_user:true})
       });
       if(r.ok){setOtpStep('code');setInfo('');}
-      else{const d=await r.json().catch(()=>({}));setErr(d.msg||d.error_description||'Code konnte nicht gesendet werden');}
-    }catch{setErr('Netzwerkfehler');}
+      else{const d=await r.json().catch(()=>({}));setErr(d.msg||d.error_description||L('Code konnte nicht gesendet werden', 'Code could not be sent', 'Le code n\'a pas pu être envoyé', 'No se pudo enviar el código'));}
+    }catch{setErr(L('Netzwerkfehler', 'Network error', 'Erreur réseau', 'Error de red'));}
     setLoading(false);
   }
 
   async function verifyOtpCode(){
-    if(!otpCode||otpCode.length<6){setErr('Bitte den 6-stelligen Code eingeben');return;}
+    if(!otpCode||otpCode.length<6){setErr(L('Bitte den 6-stelligen Code eingeben', 'Please enter the 6-digit code', 'Saisis le code à 6 chiffres', 'Introduce el código de 6 dígitos'));return;}
     setLoading(true);setErr('');
     try{
       const r=await fetch(SUPA_URL+'/auth/v1/verify',{
@@ -134,75 +138,75 @@ function AuthScreen({ onSession, appLang }) {
       if(d.access_token){
         onSession({token:d.access_token,userId:d.user.id,refresh_token:d.refresh_token});
       }else{
-        setErr(d.msg||d.error_description||'Code ungültig oder abgelaufen');
+        setErr(d.msg||d.error_description||L('Code ungültig oder abgelaufen', 'Code invalid or expired', 'Code invalide ou expiré', 'Código no válido o caducado'));
       }
-    }catch{setErr('Netzwerkfehler');}
+    }catch{setErr(L('Netzwerkfehler', 'Network error', 'Erreur réseau', 'Error de red'));}
     setLoading(false);
   }
 
   async function sendPasswordReset(){
-    if(!email){setErr('Bitte E-Mail eingeben');return;}
+    if(!email){setErr(L('Bitte E-Mail eingeben', 'Please enter your email', 'Saisis ton e-mail', 'Introduce tu correo'));return;}
     setLoading(true);setErr('');
     try{
       const r=await fetch(SUPA_URL+'/auth/v1/recover',{
         method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
         body:JSON.stringify({email})
       });
-      if(r.ok){setInfo('Reset-Link wurde an '+email+' gesendet!');setShowForgot(false);}
-      else setErr('Fehler beim Senden');
-    }catch{setErr('Netzwerkfehler');}
+      if(r.ok){setInfo(L('Reset-Link wurde an '+email+' gesendet!','Reset link sent to '+email+'!','Lien de réinitialisation envoyé à '+email+' !','¡Enlace de restablecimiento enviado a '+email+'!'));setShowForgot(false);}
+      else setErr(L('Fehler beim Senden', 'Error sending', 'Erreur d\'envoi', 'Error al enviar'));
+    }catch{setErr(L('Netzwerkfehler', 'Network error', 'Erreur réseau', 'Error de red'));}
     setLoading(false);
   }
 
   async function resendConfirmation(){
-    if(!email){setErr('Bitte E-Mail eingeben');return;}
+    if(!email){setErr(L('Bitte E-Mail eingeben', 'Please enter your email', 'Saisis ton e-mail', 'Introduce tu correo'));return;}
     setLoading(true);setErr('');setInfo('');
     try{
       const r=await fetch(SUPA_URL+'/auth/v1/resend',{
         method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
         body:JSON.stringify({type:'signup',email,options:{emailRedirectTo:'https://fighterapp.de'}})
       });
-      if(r.ok){setNeedConfirm(false);setInfo('Neue Bestätigungsmail an '+email+' gesendet. Schau auch im Spam-Ordner nach.');}
-      else{const d=await r.json().catch(()=>({}));setErr(authErrorInfo(d).text||'Mail konnte nicht gesendet werden. Bitte später erneut versuchen.');}
-    }catch{setErr('Netzwerkfehler');}
+      if(r.ok){setNeedConfirm(false);setInfo(L('Neue Bestätigungsmail an '+email+' gesendet. Schau auch im Spam-Ordner nach.','New confirmation email sent to '+email+'. Check your spam folder too.','Nouvel e-mail de confirmation envoyé à '+email+'. Vérifie aussi tes spams.','Nuevo correo de confirmación enviado a '+email+'. Mira también en spam.'));}
+      else{const d=await r.json().catch(()=>({}));setErr(authErrorInfo(d,appLang).text||L('Mail konnte nicht gesendet werden. Bitte später erneut versuchen.', 'Email could not be sent. Please try again later.', 'L\'e-mail n\'a pas pu être envoyé. Réessaie plus tard.', 'No se pudo enviar el correo. Inténtalo más tarde.'));}
+    }catch{setErr(L('Netzwerkfehler', 'Network error', 'Erreur réseau', 'Error de red'));}
     setLoading(false);
   }
 
   async function submit() {
-    if(!email||!password){setErr('E-Mail und Passwort eingeben');return;}
-    if(mode==='register'&&password.length<6){setErr('Das Passwort muss mindestens 6 Zeichen haben.');return;}
-    if(mode==='register'&&!privacy){setErr('Bitte Datenschutz akzeptieren');return;}
-    if(mode==='register'&&!agbAccepted){setErr('Bitte AGB akzeptieren');return;}
+    if(!email||!password){setErr(L('E-Mail und Passwort eingeben', 'Enter email and password', 'Saisis ton e-mail et ton mot de passe', 'Introduce correo y contraseña'));return;}
+    if(mode==='register'&&password.length<6){setErr(L('Das Passwort muss mindestens 6 Zeichen haben.', 'The password must be at least 6 characters.', 'Le mot de passe doit contenir au moins 6 caractères.', 'La contraseña debe tener al menos 6 caracteres.'));return;}
+    if(mode==='register'&&!privacy){setErr(L('Bitte Datenschutz akzeptieren', 'Please accept the privacy policy', 'Accepte la politique de confidentialité', 'Acepta la política de privacidad'));return;}
+    if(mode==='register'&&!agbAccepted){setErr(L('Bitte AGB akzeptieren', 'Please accept the terms', 'Accepte les CGU', 'Acepta los términos'));return;}
     setLoading(true);setErr('');setInfo('');setNeedConfirm(false);
     if(mode==='register'){
       const r=await authSignUp(email,password);
-      const fail=(!r||(!r.session&&!r.access_token&&!r.user&&!r.id))?authErrorInfo(r):{kind:'',text:''};
+      const fail=(!r||(!r.session&&!r.access_token&&!r.user&&!r.id))?authErrorInfo(r,appLang):{kind:'',text:''};
       if(!r){
-        setErr('Registrierung fehlgeschlagen — bitte erneut versuchen');
+        setErr(L('Registrierung fehlgeschlagen — bitte erneut versuchen', 'Sign-up failed — please try again', 'Inscription échouée — réessaie', 'Falló el registro — inténtalo de nuevo'));
       }else if(fail.text){
         setErr(fail.text);
         if(fail.kind==='exists')setMode('login');
       }else if(r.error){
-        const e=authErrorInfo(r);
+        const e=authErrorInfo(r,appLang);
         if(e.kind==='exists'){
           setErr(e.text);setMode('login');
         }else{
-          setErr(e.text||r.error.message||'Registrierung fehlgeschlagen');
+          setErr(e.text||r.error.message||L('Registrierung fehlgeschlagen', 'Sign-up failed', 'Inscription échouée', 'Falló el registro'));
         }
       }else if(r.session&&r.session.access_token){
         onSession({token:r.session.access_token,userId:r.user.id,refresh_token:r.session.refresh_token||null,expires_at:Date.now()+(3600*1000)});
       }else if(r.access_token){
         onSession({token:r.access_token,userId:r.user?.id});
       }else if(r.user&&r.user.id){
-        setInfo('✅ Fast fertig! Wir haben eine Bestätigungsmail an '+email+' gesendet. Bitte öffne sie und klicke auf den Link, dann kannst du dich hier einloggen.');
+        setInfo(L('✅ Fast fertig! Wir haben eine Bestätigungsmail an '+email+' gesendet. Bitte öffne sie und klicke auf den Link, dann kannst du dich hier einloggen.','✅ Almost done! We sent a confirmation email to '+email+'. Please open it and click the link, then you can log in here.','✅ Presque fini ! Nous avons envoyé un e-mail de confirmation à '+email+'. Ouvre-le et clique sur le lien, puis connecte-toi ici.','✅ ¡Casi listo! Hemos enviado un correo de confirmación a '+email+'. Ábrelo y haz clic en el enlace; después podrás iniciar sesión aquí.'));
         setMode('login');
       }else if(r.id&&r.aud==='authenticated'){
-        setInfo('✅ Fast fertig! Wir haben eine Bestätigungsmail an '+email+' gesendet. Bitte öffne sie und klicke auf den Link, dann kannst du dich hier einloggen.');
+        setInfo(L('✅ Fast fertig! Wir haben eine Bestätigungsmail an '+email+' gesendet. Bitte öffne sie und klicke auf den Link, dann kannst du dich hier einloggen.','✅ Almost done! We sent a confirmation email to '+email+'. Please open it and click the link, then you can log in here.','✅ Presque fini ! Nous avons envoyé un e-mail de confirmation à '+email+'. Ouvre-le et clique sur le lien, puis connecte-toi ici.','✅ ¡Casi listo! Hemos enviado un correo de confirmación a '+email+'. Ábrelo y haz clic en el enlace; después podrás iniciar sesión aquí.'));
         setMode('login');
       }else if(r.error){
-        setErr(r.error.message||'Registrierung fehlgeschlagen');
+        setErr(r.error.message||L('Registrierung fehlgeschlagen', 'Sign-up failed', 'Inscription échouée', 'Falló el registro'));
       }else{
-        setInfo('✅ Registrierung erfolgreich! Bitte bestätige deine E-Mail und logge dich dann ein.');
+        setInfo(L('✅ Registrierung erfolgreich! Bitte bestätige deine E-Mail und logge dich dann ein.','✅ Sign-up successful! Please confirm your email, then log in.','✅ Inscription réussie ! Confirme ton e-mail, puis connecte-toi.','✅ ¡Registro completado! Confirma tu correo y luego inicia sesión.'));
         setMode('login');
       }
     }else{
@@ -210,12 +214,12 @@ function AuthScreen({ onSession, appLang }) {
         const r=await authSignIn(email,password);
         if(r&&r.access_token)onSession({token:r.access_token,userId:r.user.id,refresh_token:r.refresh_token});
         else{
-          const e=authErrorInfo(r);
-          setErr(e.text||'Login fehlgeschlagen — bitte erneut versuchen');
+          const e=authErrorInfo(r,appLang);
+          setErr(e.text||L('Login fehlgeschlagen — bitte erneut versuchen', 'Login failed — please try again', 'Connexion échouée — réessaie', 'Falló el inicio de sesión — inténtalo de nuevo'));
           if(e.kind==='unconfirmed')setNeedConfirm(true);
         }
       }catch(e){
-        setErr('Netzwerkfehler — bitte Verbindung prüfen');
+        setErr(L('Netzwerkfehler — bitte Verbindung prüfen', 'Network error — please check your connection', 'Erreur réseau — vérifie ta connexion', 'Error de red — comprueba tu conexión'));
       }
     }
     setLoading(false);
@@ -227,7 +231,7 @@ function AuthScreen({ onSession, appLang }) {
       <div className='fadeUp' style={{width:'100%',maxWidth:380}}>
         <div style={{textAlign:'center',marginBottom:32}}>
           <div className='rj' style={{fontSize:64,color:'#1a1a1a',letterSpacing:6,lineHeight:1}}>FIGHTER</div>
-          <div style={{color:RED,fontSize:11,letterSpacing:7,marginTop:5,fontWeight:600}}>FINDE DEINEN GEGNER</div>
+          <div style={{color:RED,fontSize:11,letterSpacing:7,marginTop:5,fontWeight:600}}>{L('FINDE DEINEN GEGNER','FIND YOUR OPPONENT','TROUVE TON ADVERSAIRE','ENCUENTRA A TU RIVAL')}</div>
         </div>
         <div style={{background:'#fff',borderRadius:16,padding:'24px 20px',border:'1px solid #eee',boxShadow:'0 4px 20px rgba(0,0,0,0.08)'}}>
           <div style={{display:'flex',marginBottom:20,background:'#f5f5f7',borderRadius:8,padding:3,gap:3}}>
@@ -245,7 +249,7 @@ function AuthScreen({ onSession, appLang }) {
               <svg width="16" height="18" viewBox="0 0 384 512" style={{flexShrink:0}}>
                 <path fill="#fff" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>
               </svg>
-              {oauthLoading?'Weiterleiten...':'Mit Apple fortfahren'}
+              {oauthLoading?L('Weiterleiten...', 'Redirecting...', 'Redirection...', 'Redirigiendo...'):L('Mit Apple fortfahren', 'Continue with Apple', 'Continuer avec Apple', 'Continuar con Apple')}
             </button>
             <button onClick={()=>signInWithProvider('google')} disabled={oauthLoading}
               style={{width:'100%',padding:'11px',borderRadius:8,background:'#fff',border:'1px solid #ddd',color:'#1a1a1a',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:14,cursor:oauthLoading?'default':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:10}}>
@@ -255,32 +259,32 @@ function AuthScreen({ onSession, appLang }) {
                 <path fill="#4CAF50" d="M24 44c5.5 0 10.4-1.9 14.3-5.1l-6.6-5.6c-2 1.4-4.6 2.3-7.7 2.3-5.2 0-9.6-3.3-11.3-8l-6.6 5.1C9.5 39.6 16.2 44 24 44z"/>
                 <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4 5.6l6.6 5.6C41.5 36.1 44 30.6 44 24c0-1.3-.1-2.7-.4-3.5z"/>
               </svg>
-              {oauthLoading?'Weiterleiten...':'Mit Google fortfahren'}
+              {oauthLoading?L('Weiterleiten...', 'Redirecting...', 'Redirection...', 'Redirigiendo...'):L('Mit Google fortfahren', 'Continue with Google', 'Continuer avec Google', 'Continuar con Google')}
             </button>
           </div>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
             <div style={{flex:1,height:1,background:'#eee'}}/>
-            <div style={{color:'#bbb',fontSize:11}}>ODER</div>
+            <div style={{color:'#bbb',fontSize:11}}>{L('ODER','OR','OU','O')}</div>
             <div style={{flex:1,height:1,background:'#eee'}}/>
           </div>
 
           <div style={{display:'flex',flexDirection:'column',gap:11}}>
             <Inp placeholder='E-Mail' value={email} onChange={setEmail} type='email' autoComplete='email'/>
-            <Inp placeholder='Passwort (min. 6 Zeichen)' value={password} onChange={setPassword} type='password' autoComplete={mode==='register'?'new-password':'current-password'} onKeyDown={e=>e.key==='Enter'&&submit()}/>
+            <Inp placeholder={L('Passwort (min. 6 Zeichen)','Password (min. 6 characters)','Mot de passe (min. 6 caractères)','Contraseña (mín. 6 caracteres)')} value={password} onChange={setPassword} type='password' autoComplete={mode==='register'?'new-password':'current-password'} onKeyDown={e=>e.key==='Enter'&&submit()}/>
           </div>
           {err&&<div style={{color:RED,fontSize:12,marginTop:10,textAlign:'center'}}>{err}</div>}
           {needConfirm&&(
-            <button onClick={resendConfirmation} disabled={loading} style={{width:'100%',marginTop:10,padding:'10px',borderRadius:8,background:'#fff',border:'1px solid '+RED,color:RED,fontWeight:700,fontSize:13,cursor:'pointer'}}>BESTÄTIGUNGSMAIL ERNEUT SENDEN</button>
+            <button onClick={resendConfirmation} disabled={loading} style={{width:'100%',marginTop:10,padding:'10px',borderRadius:8,background:'#fff',border:'1px solid '+RED,color:RED,fontWeight:700,fontSize:13,cursor:'pointer'}}>{L('BESTÄTIGUNGSMAIL ERNEUT SENDEN','RESEND CONFIRMATION EMAIL',"RENVOYER L'E-MAIL DE CONFIRMATION",'REENVIAR CORREO DE CONFIRMACIÓN')}</button>
           )}
           {mode==='register'&&(
             <div style={{display:'flex',flexDirection:'column',gap:8,marginTop:12}}>
               <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
                 <input type='checkbox' id='privacy' checked={privacy} onChange={e=>setPrivacy(e.target.checked)} style={{marginTop:2,accentColor:RED,width:16,height:16,cursor:'pointer',flexShrink:0}}/>
-                <label htmlFor='privacy' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich stimme der <span onClick={(e)=>{e.preventDefault();e.stopPropagation();setShowDatenschutz(true);}} style={{color:RED,textDecoration:'underline',cursor:'pointer'}}>Datenschutzerklärung</span> zu</label>
+                <label htmlFor='privacy' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>{L('Ich stimme der ','I agree to the ',"J'accepte la ",'Acepto la ')}<span onClick={(e)=>{e.preventDefault();e.stopPropagation();setShowDatenschutz(true);}} style={{color:RED,textDecoration:'underline',cursor:'pointer'}}>{L('Datenschutzerklärung','privacy policy','politique de confidentialité','política de privacidad')}</span>{appLang==='DE'?' zu':''}</label>
               </div>
               <div style={{display:'flex',alignItems:'flex-start',gap:8}}>
                 <input type='checkbox' id='agb' checked={agbAccepted} onChange={e=>setAgbAccepted(e.target.checked)} style={{marginTop:2,accentColor:RED,width:16,height:16,cursor:'pointer',flexShrink:0}}/>
-                <label htmlFor='agb' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>Ich akzeptiere die <span onClick={(e)=>{e.preventDefault();e.stopPropagation();setShowAGB(true);}} style={{color:RED,textDecoration:'underline',cursor:'pointer'}}>AGB</span></label>
+                <label htmlFor='agb' style={{color:'#888',fontSize:11,lineHeight:1.5,cursor:'pointer'}}>{L('Ich akzeptiere die ','I accept the ',"J'accepte les ",'Acepto los ')}<span onClick={(e)=>{e.preventDefault();e.stopPropagation();setShowAGB(true);}} style={{color:RED,textDecoration:'underline',cursor:'pointer'}}>{L('AGB','terms','CGU','términos')}</span></label>
               </div>
             </div>
           )}
@@ -290,24 +294,24 @@ function AuthScreen({ onSession, appLang }) {
             {loading?'...':(mode==='login'?t.loginBtn:t.registerBtn)}
           </button>
           {mode==='login'&&<div onClick={()=>{setShowForgot(true);setErr('');setInfo('');}} style={{textAlign:'center',marginTop:12,color:'#aaa',fontSize:12,cursor:'pointer',textDecoration:'underline'}}>{t.forgotPw}</div>}
-          {mode==='login'&&<div onClick={()=>{setShowOtp(true);setOtpStep('email');setOtpCode('');setErr('');setInfo('');}} style={{textAlign:'center',marginTop:8,color:RED,fontSize:12,cursor:'pointer',fontWeight:700}}>Stattdessen mit Code einloggen</div>}
+          {mode==='login'&&<div onClick={()=>{setShowOtp(true);setOtpStep('email');setOtpCode('');setErr('');setInfo('');}} style={{textAlign:'center',marginTop:8,color:RED,fontSize:12,cursor:'pointer',fontWeight:700}}>{L('Stattdessen mit Code einloggen','Log in with a code instead','Se connecter avec un code','Iniciar sesión con un código')}</div>}
         </div>
       </div>
       {showForgot&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:500,padding:'20px'}}>
           <div style={{background:'#fff',borderRadius:16,padding:'24px 20px',width:'100%',maxWidth:340,boxShadow:'0 8px 40px rgba(0,0,0,0.2)'}}>
-            <div className='rj' style={{color:'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:6}}>PASSWORT RESET</div>
-            <div style={{color:'#888',fontSize:12,marginBottom:16}}>Wir senden dir einen Reset-Link per E-Mail.</div>
-            <Inp placeholder='Deine E-Mail' value={email} onChange={setEmail} type='email' autoComplete='email'/>
+            <div className='rj' style={{color:'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:6}}>{t.pwReset}</div>
+            <div style={{color:'#888',fontSize:12,marginBottom:16}}>{t.pwResetSub}</div>
+            <Inp placeholder={L('Deine E-Mail','Your email','Ton e-mail','Tu correo')} value={email} onChange={setEmail} type='email' autoComplete='email'/>
             {err&&<div style={{color:RED,fontSize:12,marginTop:8,textAlign:'center'}}>{err}</div>}
             {info&&<div style={{color:'#27ae60',fontSize:12,marginTop:8,textAlign:'center'}}>{info}</div>}
             <button onClick={sendPasswordReset} disabled={loading}
               style={{width:'100%',marginTop:14,padding:'12px',borderRadius:8,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
-              {loading?'Senden...':'LINK SENDEN'}
+              {loading?L('Senden...', 'Sending...', 'Envoi...', 'Enviando...'):t.sendLink}
             </button>
             <button onClick={()=>{setShowForgot(false);setErr('');}}
               style={{width:'100%',marginTop:8,padding:'10px',borderRadius:8,background:'transparent',border:'1px solid #eee',color:'#aaa',fontFamily:'DM Sans,sans-serif',fontSize:13,cursor:'pointer'}}>
-              Abbrechen
+              {t.cancel}
             </button>
           </div>
         </div>
@@ -315,20 +319,20 @@ function AuthScreen({ onSession, appLang }) {
       {showOtp&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:500,padding:'20px'}}>
           <div style={{background:'#fff',borderRadius:16,padding:'24px 20px',width:'100%',maxWidth:340,boxShadow:'0 8px 40px rgba(0,0,0,0.2)'}}>
-            <div className='rj' style={{color:'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:6}}>MIT CODE EINLOGGEN</div>
+            <div className='rj' style={{color:'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:6}}>{L('MIT CODE EINLOGGEN','LOG IN WITH CODE','SE CONNECTER AVEC UN CODE','INICIAR SESIÓN CON CÓDIGO')}</div>
             {otpStep==='email'?(
               <>
-                <div style={{color:'#888',fontSize:12,marginBottom:16}}>Wir senden dir einen 6-stelligen Code per E-Mail — kein Passwort nötig.</div>
-                <Inp placeholder='Deine E-Mail' value={email} onChange={setEmail} type='email' autoComplete='email' onKeyDown={e=>e.key==='Enter'&&sendOtpCode()}/>
+                <div style={{color:'#888',fontSize:12,marginBottom:16}}>{L('Wir senden dir einen 6-stelligen Code per E-Mail — kein Passwort nötig.','We will email you a 6-digit code — no password needed.',"Nous t'envoyons un code à 6 chiffres par e-mail — pas de mot de passe nécessaire.",'Te enviamos un código de 6 dígitos por correo — sin contraseña.')}</div>
+                <Inp placeholder={L('Deine E-Mail','Your email','Ton e-mail','Tu correo')} value={email} onChange={setEmail} type='email' autoComplete='email' onKeyDown={e=>e.key==='Enter'&&sendOtpCode()}/>
                 {err&&<div style={{color:RED,fontSize:12,marginTop:8,textAlign:'center'}}>{err}</div>}
                 <button onClick={sendOtpCode} disabled={loading}
                   style={{width:'100%',marginTop:14,padding:'12px',borderRadius:8,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
-                  {loading?'Senden...':'CODE SENDEN'}
+                  {loading?L('Senden...', 'Sending...', 'Envoi...', 'Enviando...'):L('CODE SENDEN', 'SEND CODE', 'ENVOYER LE CODE', 'ENVIAR CÓDIGO')}
                 </button>
               </>
             ):(
               <>
-                <div style={{color:'#888',fontSize:12,marginBottom:16}}>Code wurde an {email} gesendet. Trag ihn hier ein:</div>
+                <div style={{color:'#888',fontSize:12,marginBottom:16}}>{L('Code wurde an '+email+' gesendet. Trag ihn hier ein:','Code sent to '+email+'. Enter it here:','Code envoyé à '+email+'. Saisis-le ici :','Código enviado a '+email+'. Introdúcelo aquí:')}</div>
                 <input
                   value={otpCode}
                   onChange={e=>{setOtpCode(e.target.value.replace(/\D/g,'').slice(0,6));setErr('');}}
@@ -341,14 +345,14 @@ function AuthScreen({ onSession, appLang }) {
                 {err&&<div style={{color:RED,fontSize:12,marginTop:8,textAlign:'center'}}>{err}</div>}
                 <button onClick={verifyOtpCode} disabled={loading||otpCode.length<6}
                   style={{width:'100%',marginTop:14,padding:'12px',borderRadius:8,background:(otpCode.length>=6&&!loading)?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#eee',border:'none',color:(otpCode.length>=6&&!loading)?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:(otpCode.length>=6&&!loading)?'pointer':'not-allowed'}}>
-                  {loading?'Prüfe...':'BESTÄTIGEN'}
+                  {loading?L('Prüfe...', 'Checking...', 'Vérification...', 'Comprobando...'):L('BESTÄTIGEN', 'CONFIRM', 'CONFIRMER', 'CONFIRMAR')}
                 </button>
-                <div onClick={()=>{setOtpStep('email');setOtpCode('');setErr('');}} style={{textAlign:'center',marginTop:10,color:'#aaa',fontSize:12,cursor:'pointer',textDecoration:'underline'}}>Andere E-Mail / neuer Code</div>
+                <div onClick={()=>{setOtpStep('email');setOtpCode('');setErr('');}} style={{textAlign:'center',marginTop:10,color:'#aaa',fontSize:12,cursor:'pointer',textDecoration:'underline'}}>{L('Andere E-Mail / neuer Code','Different email / new code','Autre e-mail / nouveau code','Otro correo / nuevo código')}</div>
               </>
             )}
             <button onClick={()=>{setShowOtp(false);setErr('');setOtpCode('');setOtpStep('email');}}
               style={{width:'100%',marginTop:8,padding:'10px',borderRadius:8,background:'transparent',border:'1px solid #eee',color:'#aaa',fontFamily:'DM Sans,sans-serif',fontSize:13,cursor:'pointer'}}>
-              Abbrechen
+              {t.cancel}
             </button>
           </div>
         </div>
@@ -356,7 +360,7 @@ function AuthScreen({ onSession, appLang }) {
       {showDatenschutz&&(
         <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:500,overflowY:'auto',padding:'20px 16px 40px'}}>
           <div style={{maxWidth:480,margin:'0 auto'}}>
-            <button onClick={()=>setShowDatenschutz(false)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>← Zurück</button>
+            <button onClick={()=>setShowDatenschutz(false)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>{L('← Zurück','← Back','← Retour','← Volver')}</button>
             <div style={{background:'#fff',borderRadius:14,padding:'20px',border:'1px solid #eee'}}>
               <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,color:'#1a1a1a',letterSpacing:2,marginBottom:4}}>DATENSCHUTZ</div>
               <div style={{color:RED,fontSize:10,letterSpacing:2,marginBottom:20}}>Datenschutzerklärung gemäß DSGVO</div>
@@ -374,7 +378,7 @@ function AuthScreen({ onSession, appLang }) {
       {showAGB&&(
         <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:500,overflowY:'auto',padding:'20px 16px 40px'}}>
           <div style={{maxWidth:480,margin:'0 auto'}}>
-            <button onClick={()=>setShowAGB(false)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>← Zurück</button>
+            <button onClick={()=>setShowAGB(false)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>{L('← Zurück','← Back','← Retour','← Volver')}</button>
             <div style={{background:'#fff',borderRadius:14,padding:'20px',border:'1px solid #eee'}}>
               <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:22,color:'#1a1a1a',letterSpacing:2,marginBottom:4}}>AGB</div>
               <div style={{color:RED,fontSize:10,letterSpacing:2,marginBottom:20}}>Allgemeine Geschäftsbedingungen</div>

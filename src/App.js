@@ -19,6 +19,8 @@ import { Lbl, Inp, Tag, Btn } from './uiHelpers';
 import { profileProgressOf, shareLink, inviteUrl } from './growth';
 import GymVerifyModal from './GymVerifyModal';
 import { LIST_FIELDS, CARD_FIELDS, mergeProfileDetail, isFresh } from './profileLoad';
+import { detectLangFromDevice, makeL, LANG_KEY, countryName } from './lang';
+import { progressLabel } from './progressLabels';
 import BrandDashboard from './BrandDashboard';
 import OnboardingTour from './OnboardingTour';
 import SwipeableChatRow from './SwipeableChatRow';
@@ -54,13 +56,13 @@ export { authSignUp, authSignIn, authSignOut, dbInsert, dbUpdate, dbSelect, admi
 // Test-Zugang: /?globetest=1 rendert nur den Globus, ohne Login —
 // zum schnellen Testen des Globus im Browser
 // Was fehlt einem Profil, damit es in der Rangliste erscheint?
-function rankIssuesOf(p){
+function rankIssuesOf(p,L=(de)=>de){
   if(!p||p.is_brand||p.is_coach)return [];
   const out=[];
-  if(!((p.gym||'').trim()))out.push({k:'gym',text:'Dein Gym ist nicht eingetragen.'});
-  if(!p.country)out.push({k:'country',text:'Dein Land fehlt.'});
+  if(!((p.gym||'').trim()))out.push({k:'gym',text:L('Dein Gym ist nicht eingetragen.','Your gym is not set.',"Ta salle n'est pas renseignée.",'Tu gimnasio no está indicado.')});
+  if(!p.country)out.push({k:'country',text:L('Dein Land fehlt.','Your country is missing.','Ton pays manque.','Falta tu país.')});
   const fights=(p.wins||0)+(p.losses||0)+(p.draws||0);
-  if(fights===0&&p.record_verified!=='verified')out.push({k:'record',text:'Du hast 0 Kämpfe eingetragen. Trage deine Kämpfe ein und lade einen Nachweis hoch, oder bestätige unter Rangliste „Ich habe noch keine Kämpfe“.'});
+  if(fights===0&&p.record_verified!=='verified')out.push({k:'record',text:L('Du hast 0 Kämpfe eingetragen. Trage deine Kämpfe ein und lade einen Nachweis hoch, oder bestätige unter Rangliste „Ich habe noch keine Kämpfe“.','You have entered 0 fights. Enter your fights and upload proof, or confirm "I have no fights yet" under Ranking.',"Tu as saisi 0 combat. Saisis tes combats et charge un justificatif, ou confirme « Je n'ai encore aucun combat » dans Classement.",'Has introducido 0 combates. Introduce tus combates y sube un comprobante, o confirma «Aún no tengo combates» en Ranking.')});
   return out;
 }
 
@@ -145,7 +147,7 @@ function MainApp(){
       // Rueckkehr von der Stripe-Zahlungsseite erkennen (erfolgreich oder abgebrochen)
       const search=new URLSearchParams(window.location.search);
       if(search.get('ticket')==='success'){
-        setTimeout(()=>showMsg('✅ Zahlung erfolgreich! Du bist jetzt fürs Event angemeldet 🎟️'),800);
+        setTimeout(()=>showMsg(L('✅ Zahlung erfolgreich! Du bist jetzt fürs Event angemeldet 🎟️', '✅ Payment successful! You are now registered for the event 🎟️', '✅ Paiement réussi ! Tu es maintenant inscrit à l\'événement 🎟️', '✅ ¡Pago realizado! Ya estás inscrito en el evento 🎟️')),800);
         window.history.replaceState(null,'',window.location.pathname);
       }else if(search.get('ticket')==='cancelled'){
         setTimeout(()=>showMsg('Zahlung abgebrochen - kein Ticket gekauft'),800);
@@ -154,8 +156,8 @@ function MainApp(){
     }catch(e){console.error('recovery detect',e);}
   },[]);
   async function submitNewPassword(){
-    if(!recoveryNewPw||recoveryNewPw.length<6){setRecoveryErr('Passwort muss mind. 6 Zeichen haben');return;}
-    if(recoveryNewPw!==recoveryNewPw2){setRecoveryErr('Passwörter stimmen nicht überein');return;}
+    if(!recoveryNewPw||recoveryNewPw.length<6){setRecoveryErr(L('Passwort muss mind. 6 Zeichen haben', 'Password must be at least 6 characters', 'Le mot de passe doit contenir au moins 6 caractères', 'La contraseña debe tener al menos 6 caracteres'));return;}
+    if(recoveryNewPw!==recoveryNewPw2){setRecoveryErr(L('Passwörter stimmen nicht überein', 'Passwords do not match', 'Les mots de passe ne correspondent pas', 'Las contraseñas no coinciden'));return;}
     setRecoverySaving(true);setRecoveryErr('');
     try{
       const r=await fetch(SUPA_URL+'/auth/v1/user',{
@@ -164,7 +166,7 @@ function MainApp(){
         body:JSON.stringify({password:recoveryNewPw})
       });
       if(r.ok){setRecoveryDone(true);}
-      else{const d=await r.json().catch(()=>({}));setRecoveryErr(d.msg||d.error_description||'Fehler beim Speichern');}
+      else{const d=await r.json().catch(()=>({}));setRecoveryErr(d.msg||d.error_description||L('Fehler beim Speichern', 'Error saving', 'Erreur lors de l\'enregistrement', 'Error al guardar'));}
     }catch(e){setRecoveryErr('Netzwerkfehler: '+e.message);}
     setRecoverySaving(false);
   }
@@ -301,21 +303,26 @@ function MainApp(){
     });
   },[showNews]);
   const [showSettings,setShowSettings]=useState(false);
-  const [appLang,setAppLang]=useState(()=>{
-    try{
-      const saved=localStorage.getItem('fighter_lang');
-      if(saved)return saved;
-      // Auto-detect from browser language
-      const bl=(navigator.language||navigator.userLanguage||'de').toLowerCase();
-      if(bl.startsWith('fr'))return 'FR';
-      if(bl.startsWith('en'))return 'EN';
-      if(bl.startsWith('es'))return 'ES';
-      if(bl.startsWith('de'))return 'DE';
-      return 'DE'; // Fighter App zielt primaer auf die DACH-Region, Deutsch ist der sinnvollste Standard fuer alle nicht ausdruecklich unterstuetzten Sprachen
-    }catch{return 'DE';}
-  });
+  // Sprache: ausdrueckliche Wahl des Nutzers, sonst automatisch die Sprache
+  // des Handys (Liste der Geraetesprachen), siehe lang.js
+  const [appLang,setAppLang]=useState(detectLangFromDevice);
 
   const t = T[appLang]||T.DE;
+  // L('Deutsch','English','Francais','Espanol') waehlt den Text zur Sprache
+  const L=makeL(appLang);
+  useEffect(()=>{
+    try{document.documentElement.lang=appLang.toLowerCase();}catch(e){}
+  },[appLang]);
+  // Aendert der Nutzer die Handysprache, waehrend die App laeuft, folgt die App -
+  // aber nur, solange er keine Sprache selbst gewaehlt hat.
+  useEffect(()=>{
+    const onChange=()=>{
+      try{if(localStorage.getItem(LANG_KEY))return;}catch(e){}
+      setAppLang(detectLangFromDevice());
+    };
+    window.addEventListener('languagechange',onChange);
+    return()=>window.removeEventListener('languagechange',onChange);
+  },[]);
 
   const [showFeedback,setShowFeedback]=useState(false);
   const [feedbackText,setFeedbackText]=useState('');
@@ -610,7 +617,7 @@ function MainApp(){
   },[]);
 
   async function getGPSLocation(){
-    if(!navigator.geolocation){showMsg('GPS nicht verfügbar');return;}
+    if(!navigator.geolocation){showMsg(L('GPS nicht verfügbar', 'GPS not available', 'GPS indisponible', 'GPS no disponible'));return;}
     setLocationLoading(true);
     navigator.geolocation.getCurrentPosition(
       async(pos)=>{
@@ -631,9 +638,9 @@ function MainApp(){
               body:JSON.stringify({lat,lon,location_source:'gps',city:city||myProfile.city||profile.city})
             });
           }
-          showMsg((appLang==='FR'?'📍 Localisation sauvegardée':appLang==='EN'?'📍 Location saved':'📍 Standort gespeichert')+(city?' — '+city:'')+'!');
+          showMsg((L('📍 Standort gespeichert', '📍 Location saved', '📍 Localisation sauvegardée', '📍 Ubicación guardada'))+(city?' — '+city:'')+'!');
         }catch{
-          showMsg(appLang==='FR'?'📍 Position GPS sauvegardée!':appLang==='EN'?'📍 GPS location saved!':'📍 GPS Standort gespeichert!');
+          showMsg(L('📍 GPS Standort gespeichert!', '📍 GPS location saved!', '📍 Position GPS sauvegardée!', '📍 ¡Ubicación GPS guardada!'));
           if(session&&myProfile){
             await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{
               method:'PATCH',
@@ -649,7 +656,7 @@ function MainApp(){
           showMsg('Standort-Zugriff verweigert');
           try{localStorage.setItem('fighter_gps_denied','1');}catch{}
         }
-        else showMsg((appLang==='FR'?'Erreur GPS: ':appLang==='EN'?'GPS error: ':'GPS-Fehler: ')+err.message);
+        else showMsg((L('GPS-Fehler: ', 'GPS error: ', 'Erreur GPS : ', 'Error de GPS: '))+err.message);
         setLocationLoading(false);
       },
       {enableHighAccuracy:true,timeout:10000}
@@ -691,10 +698,10 @@ function MainApp(){
     }
   }
 
-  function showMsg(text){setMsg(text);const isError=text.includes('Fehler')||text.includes('❌');setTimeout(()=>setMsg(''),isError?15000:3000);}
+  function showMsg(text){setMsg(text);const isError=/Fehler|Error|Erreur|❌/.test(text);setTimeout(()=>setMsg(''),isError?15000:3000);}
   // Freunde einladen (eigener Einladungslink mit ?ref=, wie im Stats-Tab)
   function inviteFriends(){
-    shareLink({title:'Fighter App',text:'🥊 Ich suche Trainingspartner auf Fighter. Komm dazu und melde dich mit meinem Link an:',url:inviteUrl(myProfile?.id),onCopied:()=>showMsg('Einladungslink kopiert! 📋')});
+    shareLink({title:'Fighter App',text:L('🥊 Ich suche Trainingspartner auf Fighter. Komm dazu und melde dich mit meinem Link an:', '🥊 I\'m looking for training partners on Fighter. Join me and sign up with my link:', '🥊 Je cherche des partenaires d\'entraînement sur Fighter. Rejoins-moi et inscris-toi avec mon lien :', '🥊 Busco compañeros de entrenamiento en Fighter. Únete y regístrate con mi enlace:'),url:inviteUrl(myProfile?.id),onCopied:()=>showMsg(L('Einladungslink kopiert! 📋', 'Invite link copied! 📋', 'Lien d\'invitation copié ! 📋', '¡Enlace de invitación copiado! 📋'))});
   }
 
   async function registerPush(userId,token){
@@ -756,7 +763,7 @@ function MainApp(){
           try{localStorage.removeItem('fighter_v5');}catch{}
           setSession(null);
           setAuthReady(true);
-          alert('Dein Account wurde gesperrt. Kontakt: support@fighterapp.de');
+          alert(L('Dein Account wurde gesperrt. Kontakt: support@fighterapp.de', 'Your account has been suspended. Contact: support@fighterapp.de', 'Ton compte a été suspendu. Contact : support@fighterapp.de', 'Tu cuenta ha sido suspendida. Contacto: support@fighterapp.de'));
           return;
         }
         setMyProfile(p);
@@ -843,7 +850,7 @@ function MainApp(){
     if(!('Notification' in window))return;
     if(Notification.permission==='default'){
       const perm=await Notification.requestPermission();
-      if(perm==='granted')showMsg(appLang==='FR'?'🔔 Notifications activées!':appLang==='EN'?'🔔 Notifications enabled!':'🔔 Benachrichtigungen aktiviert!');
+      if(perm==='granted')showMsg(L('🔔 Benachrichtigungen aktiviert!', '🔔 Notifications enabled!', '🔔 Notifications activées!', '🔔 ¡Notificaciones activadas!'));
     }
   }
 
@@ -970,7 +977,7 @@ function MainApp(){
         const unread=data.filter(m=>!m.read);
         if(unread.length>0){
           setShowAdminMsg(true);
-          sendLocalNotification('📢 Nachricht vom Fighter Team','Du hast '+unread.length+' neue Nachricht(en)');
+          sendLocalNotification(L('📢 Nachricht vom Fighter Team', '📢 Message from the Fighter team', '📢 Message de l\'équipe Fighter', '📢 Mensaje del equipo de Fighter'),L('Du hast '+unread.length+' neue Nachricht(en)','You have '+unread.length+' new message(s)','Tu as '+unread.length+' nouveau(x) message(s)','Tienes '+unread.length+' mensaje(s) nuevo(s)'));
         }
       }
     }catch{}
@@ -1102,12 +1109,11 @@ function MainApp(){
     const min=Math.floor(diff/60000);
     const h=Math.floor(min/60);
     const d=Math.floor(h/24);
-    const isFR=appLang==='FR', isEN=appLang==='EN';
-    if(min<2)return isFR?'En ligne':isEN?'Online now':'Gerade online';
-    if(min<60)return isFR?'Il y a '+min+' min':isEN?''+min+' min ago':'Vor '+min+' Min';
-    if(h<24)return isFR?'Il y a '+h+'h':isEN?''+h+'h ago':'Vor '+h+' Std';
-    if(d<7)return isFR?'Il y a '+d+'j':isEN?''+d+'d ago':'Vor '+d+' Tag'+(d>1?'en':'');
-    return isFR?'Il y a longtemps':isEN?'A while ago':'Vor einer Weile';
+    if(min<2)return L('Gerade online','Online now','En ligne','En línea ahora');
+    if(min<60)return L('Vor '+min+' Min',min+' min ago','Il y a '+min+' min','Hace '+min+' min');
+    if(h<24)return L('Vor '+h+' Std',h+'h ago','Il y a '+h+'h','Hace '+h+' h');
+    if(d<7)return L('Vor '+d+' Tag'+(d>1?'en':''),d+'d ago','Il y a '+d+'j','Hace '+d+(d>1?' días':' día'));
+    return L('Vor einer Weile','A while ago','Il y a longtemps','Hace tiempo');
   }
 
   async function deleteHistoryEntry(f){
@@ -1119,7 +1125,7 @@ function MainApp(){
       });
       const rows=r.ok?await r.json():null;
       if(!r.ok||!Array.isArray(rows)||rows.length===0){
-        showMsg('❌ Löschen nicht möglich. Bitte melde dich bei uns.');
+        showMsg(L('❌ Löschen nicht möglich. Bitte melde dich bei uns.', '❌ Deleting not possible. Please contact us.', '❌ Suppression impossible. Contacte-nous.', '❌ No se puede eliminar. Contáctanos.'));
         return;
       }
       setFightHistory(prev=>{
@@ -1127,8 +1133,8 @@ function MainApp(){
         try{localStorage.setItem('fighter_history',JSON.stringify(n));}catch{}
         return n;
       });
-      showMsg('Eintrag gelöscht ✓');
-    }catch(e){showMsg('Fehler: '+e.message);}
+      showMsg(L('Eintrag gelöscht ✓', 'Entry deleted ✓', 'Entrée supprimée ✓', 'Entrada eliminada ✓'));
+    }catch(e){showMsg(L('Fehler: ','Error: ','Erreur : ','Error: ')+e.message);}
   }
 
   async function loadGymLogos(){
@@ -1299,7 +1305,7 @@ function MainApp(){
         setShowAdmin(false);
         setActiveChat(m);
       }else{
-        showMsg('❌ Chat konnte nicht geöffnet werden');
+        showMsg(L('❌ Chat konnte nicht geöffnet werden', '❌ Chat could not be opened', '❌ Impossible d\'ouvrir le chat', '❌ No se pudo abrir el chat'));
       }
     }catch(e){showMsg('❌ Fehler: '+e.message);}
   }
@@ -1322,7 +1328,7 @@ function MainApp(){
         loadEvents(session);
       }else{
         const t=await r.text().catch(()=>'');
-        showMsg('❌ Fehler ('+r.status+'): '+t.slice(0,150));
+        showMsg(L('❌ Fehler (','❌ Error (','❌ Erreur (','❌ Error (')+r.status+'): '+t.slice(0,150));
       }
     }catch(e){showMsg('❌ Fehler: '+e.message);}
   }
@@ -1334,7 +1340,7 @@ function MainApp(){
   async function joinEventMonthly(eventId){
     if(!session||!myProfile)return;
     try{
-      showMsg('Zahlungsseite wird geöffnet...');
+      showMsg(L('Zahlungsseite wird geöffnet...', 'Opening payment page...', 'Ouverture de la page de paiement...', 'Abriendo la página de pago...'));
       const token=await getFreshToken();
       const r=await fetch(SUPA_URL+'/functions/v1/create-checkout',{
         method:'POST',
@@ -1343,7 +1349,7 @@ function MainApp(){
       });
       const d=await r.json();
       if(d.url){window.location.href=d.url;}
-      else{showMsg('❌ Fehler: '+(d.error||'Zahlungsseite konnte nicht erstellt werden'));}
+      else{showMsg('❌ Fehler: '+(d.error||L('Zahlungsseite konnte nicht erstellt werden', 'Payment page could not be created', 'La page de paiement n\'a pas pu être créée', 'No se pudo crear la página de pago')));}
     }catch(e){showMsg('❌ Fehler: '+e.message);}
   }
 
@@ -1359,7 +1365,7 @@ function MainApp(){
     // getestet ist Stripe, deshalb wieder create-checkout.
     if(price&&price>0){
       try{
-        showMsg('Zahlungsseite wird geöffnet...');
+        showMsg(L('Zahlungsseite wird geöffnet...', 'Opening payment page...', 'Ouverture de la page de paiement...', 'Abriendo la página de pago...'));
         const token=await getFreshToken();
         const r=await fetch(SUPA_URL+'/functions/v1/create-checkout',{
           method:'POST',
@@ -1368,7 +1374,7 @@ function MainApp(){
         });
         const d=await r.json();
         if(d.url){window.location.href=d.url;}
-        else{showMsg('❌ Fehler: '+(d.error||'Zahlungsseite konnte nicht erstellt werden'));}
+        else{showMsg('❌ Fehler: '+(d.error||L('Zahlungsseite konnte nicht erstellt werden', 'Payment page could not be created', 'La page de paiement n\'a pas pu être créée', 'No se pudo crear la página de pago')));}
       }catch(e){showMsg('❌ Fehler: '+e.message);}
       return;
     }
@@ -1386,18 +1392,18 @@ function MainApp(){
       if(!r.ok){
         const d=await r.text();
         console.error('Anmelden fehlgeschlagen',r.status,d);
-        showMsg('❌ Anmelden fehlgeschlagen ('+r.status+')');
+        showMsg(L('❌ Anmelden fehlgeschlagen (','❌ Registration failed (','❌ Inscription échouée (','❌ Falló la inscripción (')+r.status+')');
         return;
       }
       const angelegt=await r.json().catch(()=>[]);
       if(!Array.isArray(angelegt)||angelegt.length===0){
         console.error('Anmelden: 0 Zeilen angelegt',{eventId,profileId:myProfile.id});
-        showMsg('❌ Anmelden nicht moeglich - keine Berechtigung');
+        showMsg(L('❌ Anmelden nicht moeglich - keine Berechtigung', '❌ Registration not possible — no permission', '❌ Inscription impossible — pas d\'autorisation', '❌ No se puede inscribir — sin permiso'));
         return;
       }
       await loadEvents(session);
-      showMsg('Du nimmst teil! 🥊');
-    }catch(e){showMsg('Fehler: '+e.message);}
+      showMsg(L('Du nimmst teil! 🥊', 'You\'re in! 🥊', 'Tu participes ! 🥊', '¡Participas! 🥊'));
+    }catch(e){showMsg(L('Fehler: ','Error: ','Erreur : ','Error: ')+e.message);}
   }
 
   async function leaveEvent(eventId){
@@ -1424,17 +1430,17 @@ function MainApp(){
       const geloescht=await r.json().catch(()=>[]);
       if(!Array.isArray(geloescht)||geloescht.length===0){
         console.error('Abmelden: 0 Zeilen geloescht - vermutlich RLS-Regel',{eventId,profileId:myProfile.id});
-        showMsg('❌ Abmelden nicht moeglich - keine Berechtigung');
+        showMsg(L('❌ Abmelden nicht moeglich - keine Berechtigung', '❌ Cancelling not possible — no permission', '❌ Désinscription impossible — pas d\'autorisation', '❌ No se puede cancelar — sin permiso'));
         return;
       }
       await loadEvents(session);
       showMsg('Abgemeldet');
-    }catch(e){showMsg('Fehler: '+e.message);}
+    }catch(e){showMsg(L('Fehler: ','Error: ','Erreur : ','Error: ')+e.message);}
   }
 
   async function createEvent(){
     if(!session||!myProfile)return;
-    if(!newEvent.title||!newEvent.city||!newEvent.event_date){showMsg('Titel, Stadt und Datum sind Pflicht');return;}
+    if(!newEvent.title||!newEvent.city||!newEvent.event_date){showMsg(L('Titel, Stadt und Datum sind Pflicht', 'Title, city and date are required', 'Titre, ville et date sont obligatoires', 'Título, ciudad y fecha son obligatorios'));return;}
     setCreatingEvent(true);
     try{
       await fetch(SUPA_URL+'/rest/v1/events',{
@@ -1459,14 +1465,14 @@ function MainApp(){
       const evTitle=newEvent.title,evCity=newEvent.city,evType=newEvent.event_type;
       setNewEvent({title:'',description:'',event_type:'Sparring',city:'',address:'',event_date:'',event_time:'',max_participants:10,styles:[],price:'',priceMonthly:''});
       await loadEvents(session);
-      showMsg('Event erstellt! 🎉');
+      showMsg(L('Event erstellt! 🎉', 'Event created! 🎉', 'Événement créé ! 🎉', '¡Evento creado! 🎉'));
       // Alle Nutzer per Push ueber das neue Event benachrichtigen
       fetch(SUPA_URL+'/functions/v1/broadcast-push',{
         method:'POST',
         headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
         body:JSON.stringify({title:'📅 Neues Event: '+evType,body:evTitle+(evCity?' in '+evCity:'')+' - jetzt anmelden!',data:{type:'event'}})
       }).catch(err=>console.error('event push',err));
-    }catch(e){showMsg('Fehler: '+e.message);}
+    }catch(e){showMsg(L('Fehler: ','Error: ','Erreur : ','Error: ')+e.message);}
     setCreatingEvent(false);
   }
 
@@ -1514,12 +1520,12 @@ function MainApp(){
     });
     setEditEventId(null);
     setShowCreateEvent(true);
-    showMsg('📋 Als Vorlage übernommen — Datum/Uhrzeit bitte neu setzen');
+    showMsg(L('📋 Als Vorlage übernommen — Datum/Uhrzeit bitte neu setzen', '📋 Copied as template — please set date/time again', '📋 Repris comme modèle — redéfinis la date et l\'heure', '📋 Copiado como plantilla — vuelve a poner fecha y hora'));
   }
 
   async function saveEventEdit(){
     if(!session||!editEventId)return;
-    if(!newEvent.title||!newEvent.city||!newEvent.event_date){showMsg('Titel, Stadt und Datum sind Pflicht');return;}
+    if(!newEvent.title||!newEvent.city||!newEvent.event_date){showMsg(L('Titel, Stadt und Datum sind Pflicht', 'Title, city and date are required', 'Titre, ville et date sont obligatoires', 'Título, ciudad y fecha son obligatorios'));return;}
     setCreatingEvent(true);
     try{
       // Ueber adminFetch, nicht mit dem eigenen Token: die UPDATE-Regel auf
@@ -1555,14 +1561,14 @@ function MainApp(){
       const geaendert=await r.json().catch(()=>[]);
       if(!Array.isArray(geaendert)||geaendert.length===0){
         console.error('Event speichern: 0 Zeilen geaendert',{editEventId});
-        showMsg('❌ Speichern fehlgeschlagen - Event nicht gefunden');
+        showMsg(L('❌ Speichern fehlgeschlagen - Event nicht gefunden', '❌ Saving failed — event not found', '❌ Échec de l\'enregistrement — événement introuvable', '❌ Error al guardar — evento no encontrado'));
         setCreatingEvent(false);
         return;
       }
       closeEventForm();
       await loadEvents(session);
-      showMsg('Event gespeichert ✅');
-    }catch(e){showMsg('Fehler: '+e.message);}
+      showMsg(L('Event gespeichert ✅', 'Event saved ✅', 'Événement enregistré ✅', 'Evento guardado ✅'));
+    }catch(e){showMsg(L('Fehler: ','Error: ','Erreur : ','Error: ')+e.message);}
     setCreatingEvent(false);
   }
 
@@ -1602,8 +1608,8 @@ function MainApp(){
         method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
       });
       setDbMatches(prev=>prev.filter(m=>m.id!==matchId));
-      showMsg('Chat gelöscht');
-    }catch(e){showMsg('Fehler beim Löschen: '+e.message);}
+      showMsg(L('Chat gelöscht', 'Chat deleted', 'Chat supprimé', 'Chat eliminado'));
+    }catch(e){showMsg(L('Fehler beim Löschen: ','Error deleting: ','Erreur lors de la suppression : ','Error al eliminar: ')+e.message);}
   }
 
   async function rateCoach(coachId,stars){
@@ -1646,7 +1652,7 @@ function MainApp(){
           }).catch(err=>console.error('coach rank push',err));
         }
       }
-    }catch(e){showMsg('Fehler: '+e.message);}
+    }catch(e){showMsg(L('Fehler: ','Error: ','Erreur : ','Error: ')+e.message);}
   }
 
   async function loadGymRatings(s){
@@ -1854,7 +1860,7 @@ function MainApp(){
       });
       if(!patchRes.ok){
         const errText=await patchRes.text().catch(()=>'');
-        showMsg('❌ Fehler beim Speichern (Status '+patchRes.status+'): '+errText.slice(0,150));
+        showMsg(L('❌ Fehler beim Speichern (Status ','❌ Error saving (status ','❌ Erreur d\'enregistrement (statut ','❌ Error al guardar (estado ')+patchRes.status+'): '+errText.slice(0,150));
         setSavingEdit(false);
         return;
       }
@@ -1878,9 +1884,9 @@ function MainApp(){
       // die lokale State-Aktualisierung, sondern wirklich frisch aus der
       // Datenbank) - reine Vorsichtsmassnahme fuer maximale Konsistenz.
       loadAllProfiles(session);
-      showMsg(appLang==='FR'?'Profil enregistré ✓':appLang==='EN'?'Profile saved ✓':'Profil gespeichert ✓');
+      showMsg(L('Profil gespeichert ✓', 'Profile saved ✓', 'Profil enregistré ✓', 'Perfil guardado ✓'));
       setEditMode(false);
-    }catch(e){showMsg(appLang==='FR'?'Erreur lors de la sauvegarde':appLang==='EN'?'Error saving':'Fehler beim Speichern: '+e.message);}
+    }catch(e){showMsg(L('Fehler beim Speichern: ','Error saving: ','Erreur lors de la sauvegarde : ','Error al guardar: ')+e.message);}
     setSavingEdit(false);
   }
 
@@ -1902,7 +1908,7 @@ function MainApp(){
         }
         if(Array.isArray(res)&&res[0])setMyProfile(res[0]);
         setScreen('main');
-      }catch(e){showMsg('Fehler: '+e.message);}
+      }catch(e){showMsg(L('Fehler: ','Error: ','Erreur : ','Error: ')+e.message);}
       setSaving(false);
       return;
     }
@@ -1970,7 +1976,7 @@ function MainApp(){
         const wasRankOk=rankIssuesOf(myProfile).length===0;
         if(Array.isArray(res)&&res[0])setMyProfile(res[0]);
         const nowRankOk=Array.isArray(res)&&res[0]?rankIssuesOf(res[0]).length===0:false;
-        showMsg(nowRankOk&&!wasRankOk?'Gespeichert! ✓ Du erscheinst jetzt in der Rangliste 🏆':'Gespeichert! ✓');
+        showMsg(nowRankOk&&!wasRankOk?L('Gespeichert! ✓ Du erscheinst jetzt in der Rangliste 🏆', 'Saved! ✓ You now appear in the ranking 🏆', 'Enregistré ! ✓ Tu apparais maintenant dans le classement 🏆', '¡Guardado! ✓ Ahora apareces en el ranking 🏆'):'Gespeichert! ✓');
         loadAllProfiles(session);
         // Rangliste neu pruefen, falls sich Sieg/Niederlage-Werte geaendert haben -
         // benachrichtigt alle, die dadurch ueberholt wurden
@@ -1994,14 +2000,14 @@ function MainApp(){
         // tut einfach nichts".
         if(!upsertRes.ok){
           console.error('saveProfile upsert failed',upsertRes.status,res);
-          showMsg('❌ Profil konnte nicht gespeichert werden: '+(res?.message||res?.error||JSON.stringify(res)).toString().slice(0,150));
+          showMsg(L('❌ Profil konnte nicht gespeichert werden: ','❌ Profile could not be saved: ','❌ Le profil n\'a pas pu être enregistré : ','❌ No se pudo guardar el perfil: ')+(res?.message||res?.error||JSON.stringify(res)).toString().slice(0,150));
           setSaving(false);
           return;
         }
         const profile_data=Array.isArray(res)?res[0]:null;
         if(profile_data&&profile_data.id){
           setMyProfile(profile_data);
-          showMsg(appLang==='FR'?'Profil créé! 🥊':appLang==='EN'?'Profile created! 🥊':'Profil erstellt! 🥊');
+          showMsg(L('Profil erstellt! 🥊', 'Profile created! 🥊', 'Profil créé! 🥊', '¡Perfil creado! 🥊'));
           // Freunde-einladen-Rabatt: falls diese Person ueber einen
           // Einladungslink kam (?ref=...), jetzt - und erst jetzt, nach
           // erfolgreich ANGELEGTEM Profil, nicht schon bei der blossen
@@ -2052,7 +2058,7 @@ function MainApp(){
           }catch{showMsg('Netzwerkfehler');}
         }
       }
-    }catch(e){showMsg('Fehler: '+e.message);}
+    }catch(e){showMsg(L('Fehler: ','Error: ','Erreur : ','Error: ')+e.message);}
     setSaving(false);
   }
 
@@ -2084,13 +2090,13 @@ function MainApp(){
     const file=e.target.files[0];if(!file||!session)return;
     setUploading(true);
     setAvatarPreview(URL.createObjectURL(file));
-    showMsg('Foto wird komprimiert...');
+    showMsg(L('Foto wird komprimiert...', 'Compressing photo...', 'Compression de la photo...', 'Comprimiendo foto...'));
     try{
       const compressed=await compressImage(file,800,0.82);
       const sizeMB=(compressed.size/1024/1024).toFixed(1);
       const path='fighter_'+session.userId+'_'+Date.now()+'.jpg';
       const url=await uploadPhoto(compressed,path,session.token);
-      if(url){setAvatarUrl(url);showMsg('Foto hochgeladen! ('+sizeMB+'MB)');}
+      if(url){setAvatarUrl(url);showMsg(L('Foto hochgeladen! (','Photo uploaded! (','Photo chargée ! (','¡Foto subida! (')+sizeMB+'MB)');}
       else showMsg('Upload fehlgeschlagen');
     }catch{showMsg('Upload fehlgeschlagen');}
     setUploading(false);
@@ -2100,7 +2106,7 @@ function MainApp(){
     const file=e.target.files[0];if(!file||!session)return;
     setUploadingCoachAvatar(true);
     setCoachAvatarPreview(URL.createObjectURL(file));
-    showMsg('Trainer-Foto wird komprimiert...');
+    showMsg(L('Trainer-Foto wird komprimiert...', 'Compressing coach photo...', 'Compression de la photo du coach...', 'Comprimiendo foto de entrenador...'));
     try{
       const compressed=await compressImage(file,800,0.82);
       const path='coach_'+session.userId+'_'+Date.now()+'.jpg';
@@ -2109,7 +2115,7 @@ function MainApp(){
         setCoachAvatarPreview(url);
         setProfile(p=>({...p,coachAvatarUrl:url}));
         setEditProfile(p=>({...p,coachAvatarUrl:url}));
-        showMsg('Trainer-Foto hochgeladen!');
+        showMsg(L('Trainer-Foto hochgeladen!', 'Coach photo uploaded!', 'Photo du coach chargée !', '¡Foto de entrenador subida!'));
       }else showMsg('Upload fehlgeschlagen');
     }catch{showMsg('Upload fehlgeschlagen');}
     setUploadingCoachAvatar(false);
@@ -2117,9 +2123,9 @@ function MainApp(){
 
   async function handleGalleryUpload(e){
     const file=e.target.files[0];if(!file||!session)return;
-    if(myGallery.length>=3){showMsg('Maximal 3 Fotos erlaubt. Bitte zuerst eins entfernen.');return;}
+    if(myGallery.length>=3){showMsg(L('Maximal 3 Fotos erlaubt. Bitte zuerst eins entfernen.', 'Maximum 3 photos allowed. Please remove one first.', '3 photos maximum. Supprime-en d\'abord une.', 'Máximo 3 fotos. Elimina una primero.'));return;}
     setUploadingGallery(true);
-    showMsg('Foto wird komprimiert...');
+    showMsg(L('Foto wird komprimiert...', 'Compressing photo...', 'Compression de la photo...', 'Comprimiendo foto...'));
     try{
       const compressed=await compressImage(file,1000,0.82);
       const p='gallery_'+session.userId+'_'+Date.now()+'.jpg';
@@ -2131,8 +2137,8 @@ function MainApp(){
           headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
           body:JSON.stringify({gallery:updated})
         });
-        if(patchRes.ok){setMyGallery(updated);showMsg('Foto hinzugefuegt');}
-        else{showMsg('Foto gespeichert, aber Profil-Update fehlgeschlagen ('+patchRes.status+')');}
+        if(patchRes.ok){setMyGallery(updated);showMsg(L('Foto hinzugefuegt', 'Photo added', 'Photo ajoutée', 'Foto añadida'));}
+        else{showMsg(L('Foto gespeichert, aber Profil-Update fehlgeschlagen (','Photo saved, but profile update failed (','Photo enregistrée, mais la mise à jour du profil a échoué (','Foto guardada, pero falló la actualización del perfil (')+patchRes.status+')');}
       }else{showMsg('Upload fehlgeschlagen');}
     }catch(err){console.error('gallery upload',err);showMsg('Upload fehlgeschlagen');}
     setUploadingGallery(false);
@@ -2148,7 +2154,7 @@ function MainApp(){
         headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
         body:JSON.stringify({gallery:updated})
       });
-      showMsg('Foto entfernt');
+      showMsg(L('Foto entfernt', 'Photo removed', 'Photo supprimée', 'Foto eliminada'));
     }catch(err){console.error('gallery remove',err);}
   }
 
@@ -2425,7 +2431,7 @@ function MainApp(){
     // Karte wieder hinzufügen
     setCards(prev=>[...prev, profile]);
     setLastSwiped(null);
-    showMsg('↩️ Rückgängig!');
+    showMsg(L('↩️ Rückgängig!', '↩️ Undone!', '↩️ Annulé !', '↩️ ¡Deshecho!'));
   }
 
   async function doSwipe(dir){
@@ -2667,8 +2673,8 @@ function MainApp(){
   // Gym eines Kaempfers per Name oeffnen (Infos + Rezensionen), Profil bleibt darunter
   function openGymByName(name){
     const base=findGymByName(name);
-    if(!base){showMsg('Zu diesem Gym gibt es noch keine Seite.');return;}
-    setViewGym({gym:{styles:[],...base,city:base.city||base.ct||'',members:base.members||0,rating:base.rating||0,styles:base.styles||[base.style||'Kampfsport'],address:base.address||base.city||'',desc:base.desc||base.description||'',street:base.street||base.address||'',zip:base.zip||'',founded:base.founded||''},key:(base.city||base.ct||'')+'-'+base.name});
+    if(!base){showMsg(L('Zu diesem Gym gibt es noch keine Seite.', 'There is no page for this gym yet.', 'Il n\'y a pas encore de page pour cette salle.', 'Aún no hay página para este gimnasio.'));return;}
+    setViewGym({gym:{styles:[],...base,city:base.city||base.ct||'',members:base.members||0,rating:base.rating||0,styles:base.styles||[base.style||L('Kampfsport', 'Combat sports', 'Sports de combat', 'Deportes de combate')],address:base.address||base.city||'',desc:base.desc||base.description||'',street:base.street||base.address||'',zip:base.zip||'',founded:base.founded||''},key:(base.city||base.ct||'')+'-'+base.name});
   }
 
   if(viewGym)return(<><style>{css}</style><GymDetailScreen gym={viewGym.gym} gymKey={viewGym.key} gymRatings={gymRatings} gymLogos={gymLogos} isAdmin={isAdmin} session={session} myProfile={myProfile} onGymUpdate={async()=>{await loadDbGyms(session);await loadGymLogos();}} rateGym={(k,s)=>{rateGym(k,s);}} onClose={()=>setViewGym(null)} darkMode={darkMode===true}/></>);
@@ -2715,8 +2721,8 @@ function MainApp(){
                   setWhoLikedTab(false);
                   loadMatches(session,myProfile);
                   loadWhoLikedMe(session,myProfile);
-                  sendLocalNotification('🥊 MATCH!',p.name+' — ihr könnt jetzt chatten!');
-                }catch(e){showMsg('Fehler: '+e.message);}
+                  sendLocalNotification('🥊 MATCH!',p.name+L(' — ihr könnt jetzt chatten!',' — you can chat now!',' — vous pouvez discuter maintenant !',' — ¡ya podéis chatear!'));
+                }catch(e){showMsg(L('Fehler: ','Error: ','Erreur : ','Error: ')+e.message);}
               }} style={{background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',borderRadius:10,padding:'10px 14px',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',flexShrink:0}}>
                 ⚔️ MATCH
               </button>
@@ -2725,7 +2731,7 @@ function MainApp(){
                 try{
                   await dbInsert('swipes',{swiper_id:myProfile.id,target_id:p.id,direction:'pass'},session.token);
                   setWhoLikedMe(prev=>prev.filter(x=>x.id!==p.id));
-                }catch(e){showMsg('Fehler: '+e.message);}
+                }catch(e){showMsg(L('Fehler: ','Error: ','Erreur : ','Error: ')+e.message);}
               }} style={{background:'none',border:'1px solid '+(darkMode?'#333':'#ddd'),borderRadius:10,padding:'10px 12px',color:darkMode?'#777':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',flexShrink:0}}>
                 ✕
               </button>
@@ -2764,7 +2770,7 @@ function MainApp(){
       <div style={{padding:'12px',maxWidth:420,margin:'0 auto',width:'100%'}}>
         {viewProfile.gallery&&(Array.isArray(viewProfile.gallery)?viewProfile.gallery:[]).length>0&&(
           <div style={{marginBottom:10}}>
-            <div style={{color:darkMode?'#888':'#999',fontSize:10,letterSpacing:1,marginBottom:6,fontWeight:600}}>📸 FOTOS</div>
+            <div style={{color:darkMode?'#888':'#999',fontSize:10,letterSpacing:1,marginBottom:6,fontWeight:600}}>{L('📸 FOTOS', '📸 PHOTOS', '📸 PHOTOS', '📸 FOTOS')}</div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7}}>
               {(Array.isArray(viewProfile.gallery)?viewProfile.gallery:[]).slice(0,3).map((g,i)=>(
                 <div key={i} style={{aspectRatio:'1/1',borderRadius:11,overflow:'hidden',background:darkMode?'#1a1a1a':'#f0f0f0',border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
@@ -2775,7 +2781,7 @@ function MainApp(){
           </div>
         )}
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginBottom:10}}>
-          {[['SIEGE',viewProfile.wins||0,'#27ae60'],['NIEDER',viewProfile.losses||0,RED],['UNENTSCH',viewProfile.draws||0,'#d4a017'],['KOs',viewProfile.ko||0,RED]].map(([label,val,color])=>(
+          {[[L('SIEGE', 'WINS', 'VICTOIRES', 'VICTORIAS'),viewProfile.wins||0,'#27ae60'],[L('NIEDER', 'LOSSES', 'DÉFAITES', 'DERROTAS'),viewProfile.losses||0,RED],[L('UNENTSCH', 'DRAWS', 'NULS', 'EMPATES'),viewProfile.draws||0,'#d4a017'],['KOs',viewProfile.ko||0,RED]].map(([label,val,color])=>(
             <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 4px',textAlign:'center',border:'1px solid '+color+'33'}}>
               <div className='rj' style={{color:color,fontSize:22}}>{val}</div>
               <div style={{color:'#bbb',fontSize:8,letterSpacing:1,marginTop:2}}>{label}</div>
@@ -2783,7 +2789,7 @@ function MainApp(){
           ))}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
-          {[[appLang==='FR'?'CATÉGORIE':appLang==='EN'?'WEIGHT CLASS':'GEWICHTSKLASSE',viewProfile.weight_class||'-','#2980b9'],[appLang==='FR'?'SALLE':'GYM',viewProfile.gym||'-','#8e44ad'],['GRÖSSE',viewProfile.height?(viewProfile.height+'cm'):'-','#27ae60'],['GEWICHT',viewProfile.weight?(viewProfile.weight+'kg'):'-','#e67e22'],...(viewProfile.belt?[['GÜRTELRANG',viewProfile.belt,'#d4a017']]:[])].map(([label,val,color])=>(
+          {[[L('GEWICHTSKLASSE', 'WEIGHT CLASS', 'CATÉGORIE DE POIDS', 'CATEGORÍA DE PESO'),viewProfile.weight_class||'-','#2980b9'],[L('GYM', 'GYM', 'SALLE', 'GIMNASIO'),viewProfile.gym||'-','#8e44ad'],[L('GRÖSSE', 'HEIGHT', 'TAILLE', 'ALTURA'),viewProfile.height?(viewProfile.height+'cm'):'-','#27ae60'],[L('GEWICHT', 'WEIGHT', 'POIDS', 'PESO'),viewProfile.weight?(viewProfile.weight+'kg'):'-','#e67e22'],...(viewProfile.belt?[[L('GÜRTELRANG', 'BELT RANK', 'GRADE DE CEINTURE', 'GRADO DE CINTURÓN'),viewProfile.belt,'#d4a017']]:[])].map(([label,val,color])=>(
             <div key={label} onClick={color==='#8e44ad'&&val!=='-'?()=>openGymByName(val):undefined} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 12px',border:'1px solid '+color+(color==='#8e44ad'&&val!=='-'?'88':'22'),cursor:color==='#8e44ad'&&val!=='-'?'pointer':'default'}}>
               <div style={{color:'#bbb',fontSize:9,letterSpacing:1}}>{label}</div>
               {color==='#8e44ad'&&val!=='-'?(()=>{
@@ -2801,11 +2807,11 @@ function MainApp(){
         </div>
         {viewProfile.is_coach&&(
           <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'14px',border:'1px solid #8e44ad33',marginTop:10}}>
-            <div style={{color:'#8e44ad',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>🎓 TRAINER-PROFIL</div>
+            <div style={{color:'#8e44ad',fontSize:11,fontWeight:700,letterSpacing:1,marginBottom:8}}>{L('🎓 TRAINER-PROFIL', '🎓 COACH PROFILE', '🎓 PROFIL DU COACH', '🎓 PERFIL DE ENTRENADOR')}</div>
             {viewProfile.coach_bio&&<div style={{color:darkMode?'#ccc':'#555',fontSize:12,lineHeight:1.5,marginBottom:10}}>{viewProfile.coach_bio}</div>}
             {!myProfile||viewProfile.id!==myProfile.id?(
               <>
-                <div style={{color:'#999',fontSize:10,marginBottom:6}}>Bewerte diesen Trainer:</div>
+                <div style={{color:'#999',fontSize:10,marginBottom:6}}>{L('Bewerte diesen Trainer:', 'Rate this coach:', 'Note ce coach :', 'Valora a este entrenador:')}</div>
                 <div style={{display:'flex',gap:6}}>
                   {[1,2,3,4,5].map(n=>(
                     <button key={n} onClick={()=>rateCoach(viewProfile.id,n)} style={{background:'none',border:'none',fontSize:26,cursor:'pointer',padding:0,color:(coaches.find(c=>c.id===viewProfile.id)?.myRating||0)>=n?'#d4a017':'#ddd'}}>★</button>
@@ -2813,7 +2819,7 @@ function MainApp(){
                 </div>
               </>
             ):(
-              <div style={{color:'#999',fontSize:11}}>Das ist dein eigenes Trainer-Profil.</div>
+              <div style={{color:'#999',fontSize:11}}>{L('Das ist dein eigenes Trainer-Profil.', 'This is your own coach profile.', 'C\'est ton propre profil de coach.', 'Este es tu propio perfil de entrenador.')}</div>
             )}
           </div>
         )}
@@ -2821,9 +2827,9 @@ function MainApp(){
         {/* TRAININGS-HISTORIE auf fremdem Profil — immer anzeigen */}
         <div style={{padding:'0 12px',marginTop:12}}>
           <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
-            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,letterSpacing:2}}>🤝 TRAININGS-HISTORIE</div>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,letterSpacing:2}}>{L('🤝 TRAININGS-HISTORIE', '🤝 TRAINING HISTORY', '🤝 HISTORIQUE D\'ENTRAÎNEMENT', '🤝 HISTORIAL DE ENTRENAMIENTO')}</div>
             <div style={{background:viewProfile.history_public?'#27ae6018':'#88888818',border:'1px solid '+(viewProfile.history_public?'#27ae6044':'#88888844'),borderRadius:10,padding:'1px 7px',color:viewProfile.history_public?'#27ae60':'#888888',fontSize:9,fontWeight:700}}>
-              {viewProfile.history_public?'ÖFFENTLICH':'PRIVAT'}
+              {viewProfile.history_public?L('ÖFFENTLICH', 'PUBLIC', 'PUBLIC', 'PÚBLICO'):L('PRIVAT', 'PRIVATE', 'PRIVÉ', 'PRIVADO')}
             </div>
           </div>
           {viewProfile.history_public&&viewProfileHistory.length>0?(
@@ -2862,9 +2868,8 @@ function MainApp(){
               {/* Lock Overlay */}
               <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,background:'rgba(0,0,0,0.05)'}}>
                 <div style={{fontSize:24}}>🔒</div>
-                <div style={{color:darkMode?'#aaa':'#888',fontSize:12,fontWeight:700,textAlign:'center'}}>Trainings-Historie ist privat</div>
-                <div style={{color:darkMode?'#666':'#bbb',fontSize:10,textAlign:'center'}}>Dieser User hat seine Historie
-nicht öffentlich gemacht</div>
+                <div style={{color:darkMode?'#aaa':'#888',fontSize:12,fontWeight:700,textAlign:'center'}}>{L('Trainings-Historie ist privat', 'Training history is private', 'L\'historique d\'entraînement est privé', 'El historial de entrenamiento es privado')}</div>
+                <div style={{color:darkMode?'#666':'#bbb',fontSize:10,textAlign:'center'}}>{L('Dieser User hat seine Historie nicht öffentlich gemacht', 'This user has not made their history public', 'Cet utilisateur n\'a pas rendu son historique public', 'Este usuario no ha hecho público su historial')}</div>
               </div>
             </div>
           )}
@@ -2883,7 +2888,7 @@ nicht öffentlich gemacht</div>
           <button onClick={()=>{
             if(reportSent[viewProfile.id]){showMsg('Bereits gemeldet');return;}
             setReportSent(r=>({...r,[viewProfile.id]:true}));
-            showMsg(appLang==='FR'?'Profil signalé ✓':appLang==='EN'?'Profile reported ✓':'Profil wurde gemeldet ✓');
+            showMsg(L('Profil wurde gemeldet ✓', 'Profile reported ✓', 'Profil signalé ✓', 'Perfil reportado ✓'));
           }} style={{flex:1,padding:'11px',borderRadius:10,background:darkMode?'#1a1a2a':'#f5f5ff',border:'1px solid #2980b944',color:'#2980b9',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
             {reportSent[viewProfile.id]?'✓ Gemeldet':'⚠️ Melden'}
           </button>
@@ -2905,25 +2910,25 @@ nicht öffentlich gemacht</div>
       <div style={{background:'#fff',borderRadius:16,padding:'28px 22px',width:'100%',maxWidth:360,boxShadow:'0 8px 40px rgba(0,0,0,0.3)'}}>
         {recoveryDone?(
           <>
-            <div className='rj' style={{color:'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:10}}>✅ PASSWORT GEÄNDERT</div>
-            <div style={{color:'#666',fontSize:14,marginBottom:18,lineHeight:1.5}}>Dein neues Passwort wurde gespeichert. Du kannst dich jetzt damit einloggen.</div>
+            <div className='rj' style={{color:'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:10}}>{L('✅ PASSWORT GEÄNDERT', '✅ PASSWORD CHANGED', '✅ MOT DE PASSE MODIFIÉ', '✅ CONTRASEÑA CAMBIADA')}</div>
+            <div style={{color:'#666',fontSize:14,marginBottom:18,lineHeight:1.5}}>{L('Dein neues Passwort wurde gespeichert. Du kannst dich jetzt damit einloggen.', 'Your new password has been saved. You can now log in with it.', 'Ton nouveau mot de passe a été enregistré. Tu peux maintenant te connecter avec.', 'Tu nueva contraseña se ha guardado. Ya puedes iniciar sesión con ella.')}</div>
             <button onClick={()=>{setRecoveryToken(null);window.location.reload();}}
               style={{width:'100%',padding:'12px',borderRadius:8,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
-              ZUM LOGIN
+              {L('ZUM LOGIN', 'TO LOGIN', 'VERS LA CONNEXION', 'IR AL INICIO DE SESIÓN')}
             </button>
           </>
         ):(
           <>
-            <div className='rj' style={{color:'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:6}}>NEUES PASSWORT</div>
-            <div style={{color:'#888',fontSize:12,marginBottom:16}}>Bitte gib dein neues Passwort ein.</div>
-            <input type='password' placeholder='Neues Passwort' value={recoveryNewPw} onChange={e=>setRecoveryNewPw(e.target.value)}
+            <div className='rj' style={{color:'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:6}}>{L('NEUES PASSWORT', 'NEW PASSWORD', 'NOUVEAU MOT DE PASSE', 'NUEVA CONTRASEÑA')}</div>
+            <div style={{color:'#888',fontSize:12,marginBottom:16}}>{L('Bitte gib dein neues Passwort ein.', 'Please enter your new password.', 'Saisis ton nouveau mot de passe.', 'Introduce tu nueva contraseña.')}</div>
+            <input type='password' placeholder={L('Neues Passwort', 'New password', 'Nouveau mot de passe', 'Nueva contraseña')} value={recoveryNewPw} onChange={e=>setRecoveryNewPw(e.target.value)}
               style={{width:'100%',padding:'12px',borderRadius:8,border:'1px solid #e0e0e0',fontSize:15,boxSizing:'border-box',marginBottom:10}}/>
-            <input type='password' placeholder='Passwort wiederholen' value={recoveryNewPw2} onChange={e=>setRecoveryNewPw2(e.target.value)}
+            <input type='password' placeholder={L('Passwort wiederholen', 'Repeat password', 'Répète le mot de passe', 'Repite la contraseña')} value={recoveryNewPw2} onChange={e=>setRecoveryNewPw2(e.target.value)}
               style={{width:'100%',padding:'12px',borderRadius:8,border:'1px solid #e0e0e0',fontSize:15,boxSizing:'border-box'}}/>
             {recoveryErr&&<div style={{color:RED,fontSize:12,marginTop:8,textAlign:'center'}}>{recoveryErr}</div>}
             <button onClick={submitNewPassword} disabled={recoverySaving}
               style={{width:'100%',marginTop:14,padding:'12px',borderRadius:8,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
-              {recoverySaving?'Speichern...':'PASSWORT SPEICHERN'}
+              {recoverySaving?'Speichern...':L('PASSWORT SPEICHERN', 'SAVE PASSWORD', 'ENREGISTRER LE MOT DE PASSE', 'GUARDAR CONTRASEÑA')}
             </button>
           </>
         )}
@@ -2943,7 +2948,7 @@ nicht öffentlich gemacht</div>
       <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse at center,#1a0a0a 0%,#0d0d0d 70%)'}}/>
       <div style={{position:'relative',textAlign:'center'}}>
         <div className='rj splash-logo' style={{fontSize:56,color:'#fff',letterSpacing:8,textShadow:'0 0 40px rgba(192,57,43,0.6)'}}>FIGHTER</div>
-        <div className='splash-sub' style={{color:'#c0392b',fontSize:11,letterSpacing:5,fontFamily:'DM Sans,sans-serif',fontWeight:700,marginTop:4}}>FINDE DEINEN GEGNER</div>
+        <div className='splash-sub' style={{color:'#c0392b',fontSize:11,letterSpacing:5,fontFamily:'DM Sans,sans-serif',fontWeight:700,marginTop:4}}>{L('FINDE DEINEN GEGNER', 'FIND YOUR OPPONENT', 'TROUVE TON ADVERSAIRE', 'ENCUENTRA A TU RIVAL')}</div>
         <div style={{marginTop:24,display:'flex',gap:8,justifyContent:'center'}}>
           <div className='splash-dot1' style={{width:7,height:7,borderRadius:'50%',background:'#c0392b'}}/>
           <div className='splash-dot2' style={{width:7,height:7,borderRadius:'50%',background:'#c0392b'}}/>
@@ -2991,13 +2996,13 @@ nicht öffentlich gemacht</div>
   if(profile.isBrand&&!myProfile)return(
     <div style={{height:'100dvh',overflowY:'auto',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'40px 20px'}}>
       <div className='rj' style={{fontSize:48,color:'#1a1a1a',letterSpacing:5}}>FIGHTER</div>
-      <div style={{color:'#2980b9',fontSize:11,letterSpacing:3,marginTop:5,fontWeight:700,marginBottom:30}}>MARKEN-PARTNER</div>
+      <div style={{color:'#2980b9',fontSize:11,letterSpacing:3,marginTop:5,fontWeight:700,marginBottom:30}}>{L('MARKEN-PARTNER', 'BRAND PARTNER', 'PARTENAIRE DE MARQUE', 'SOCIO DE MARCA')}</div>
       <div style={{width:'100%',maxWidth:340}}>
-        <Lbl>Firmenname *</Lbl>
+        <Lbl>{L('Firmenname *', 'Company name *', 'Nom de l\'entreprise *', 'Nombre de la empresa *')}</Lbl>
         <Inp placeholder='z.B. Winnas Nutrition' value={profile.companyName||''} onChange={v=>setProfile(p=>({...p,companyName:v}))}/>
         <button onClick={saveProfile} disabled={!profile.companyName||saving}
           style={{width:'100%',marginTop:14,padding:'13px',borderRadius:8,background:profile.companyName?'linear-gradient(135deg,#2980b9,#5dade2)':'#ddd',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:profile.companyName?'pointer':'default'}}>
-          {saving?'...':'ALS MARKE FORTFAHREN'}
+          {saving?'...':L('ALS MARKE FORTFAHREN', 'CONTINUE AS BRAND', 'CONTINUER EN TANT QUE MARQUE', 'CONTINUAR COMO MARCA')}
         </button>
       </div>
     </div>
@@ -3010,7 +3015,7 @@ nicht öffentlich gemacht</div>
       {showImgEditor&&imgEditorSrc&&<ImgPositionEditor src={imgEditorSrc} onSave={imgEditorCallback} onCancel={()=>setShowImgEditor(false)}/>}
       <div style={{width:'100%',maxWidth:420,padding:'32px 24px 0',textAlign:'center'}}>
         <div className='rj fadeUp' style={{fontSize:64,color:'#1a1a1a',letterSpacing:6,lineHeight:1}}>FIGHTER</div>
-        <div style={{color:RED,fontSize:11,letterSpacing:7,marginTop:5,fontWeight:600}}>FINDE DEINEN GEGNER</div>
+        <div style={{color:RED,fontSize:11,letterSpacing:7,marginTop:5,fontWeight:600}}>{L('FINDE DEINEN GEGNER', 'FIND YOUR OPPONENT', 'TROUVE TON ADVERSAIRE', 'ENCUENTRA A TU RIVAL')}</div>
       </div>
       <div style={{display:'flex',gap:8,marginTop:22}}>
         {[1,2,3].map(s=><div key={s} style={{width:s===step?32:10,height:8,borderRadius:4,background:s<=step?RED:'#ddd',transition:'all 0.3s'}}/>)}
@@ -3019,26 +3024,26 @@ nicht öffentlich gemacht</div>
         {step===1&&(
           <div style={{display:'flex',flexDirection:'column',gap:13}}>
             <div style={{background:'#f8f4ff',border:'1px solid #e0d4f7',borderRadius:12,padding:'12px 14px'}}>
-              <div style={{color:'#1a1a1a',fontSize:12,fontWeight:700,marginBottom:8}}>Was trifft auf dich zu?</div>
+              <div style={{color:'#1a1a1a',fontSize:12,fontWeight:700,marginBottom:8}}>{L('Was trifft auf dich zu?', 'What applies to you?', 'Qu\'est-ce qui te correspond ?', '¿Qué te describe?')}</div>
               <div style={{display:'flex',gap:8}}>
                 <button type='button' onClick={()=>setProfile(p=>({...p,isFighter:!p.isFighter,isBrand:false}))}
-                  style={{flex:1,padding:'9px',borderRadius:8,border:'2px solid '+(profile.isFighter!==false&&!profile.isBrand?RED:'#ddd'),background:profile.isFighter!==false&&!profile.isBrand?'#fdf0ef':'#fff',color:profile.isFighter!==false&&!profile.isBrand?RED:'#888',fontWeight:700,fontSize:12,cursor:'pointer'}}>🥊 Kämpfer</button>
+                  style={{flex:1,padding:'9px',borderRadius:8,border:'2px solid '+(profile.isFighter!==false&&!profile.isBrand?RED:'#ddd'),background:profile.isFighter!==false&&!profile.isBrand?'#fdf0ef':'#fff',color:profile.isFighter!==false&&!profile.isBrand?RED:'#888',fontWeight:700,fontSize:12,cursor:'pointer'}}>{L('🥊 Kämpfer', '🥊 Fighter', '🥊 Combattant', '🥊 Luchador')}</button>
                 <button type='button' onClick={()=>setProfile(p=>({...p,isCoach:!p.isCoach,isBrand:false}))}
-                  style={{flex:1,padding:'9px',borderRadius:8,border:'2px solid '+(profile.isCoach&&!profile.isBrand?'#8e44ad':'#ddd'),background:profile.isCoach&&!profile.isBrand?'#f5edfc':'#fff',color:profile.isCoach&&!profile.isBrand?'#8e44ad':'#888',fontWeight:700,fontSize:12,cursor:'pointer'}}>🎓 Trainer</button>
+                  style={{flex:1,padding:'9px',borderRadius:8,border:'2px solid '+(profile.isCoach&&!profile.isBrand?'#8e44ad':'#ddd'),background:profile.isCoach&&!profile.isBrand?'#f5edfc':'#fff',color:profile.isCoach&&!profile.isBrand?'#8e44ad':'#888',fontWeight:700,fontSize:12,cursor:'pointer'}}>{L('🎓 Trainer', '🎓 Coach', '🎓 Coach', '🎓 Entrenador')}</button>
                 <button type='button' onClick={()=>setProfile(p=>({...p,isBrand:!p.isBrand}))}
-                  style={{flex:1,padding:'9px',borderRadius:8,border:'2px solid '+(profile.isBrand?'#2980b9':'#ddd'),background:profile.isBrand?'#eaf2fa':'#fff',color:profile.isBrand?'#2980b9':'#888',fontWeight:700,fontSize:12,cursor:'pointer'}}>🏢 Marke</button>
+                  style={{flex:1,padding:'9px',borderRadius:8,border:'2px solid '+(profile.isBrand?'#2980b9':'#ddd'),background:profile.isBrand?'#eaf2fa':'#fff',color:profile.isBrand?'#2980b9':'#888',fontWeight:700,fontSize:12,cursor:'pointer'}}>{L('🏢 Marke', '🏢 Brand', '🏢 Marque', '🏢 Marca')}</button>
               </div>
-              <div style={{color:'#999',fontSize:10,marginTop:6}}>{profile.isBrand?'Als Marken-Partner siehst du die App, kannst aber nicht als Kämpfer teilnehmen.':'Beides ist möglich — als Trainer kommen am Ende noch ein paar zusätzliche Fragen.'}</div>
+              <div style={{color:'#999',fontSize:10,marginTop:6}}>{profile.isBrand?L('Als Marken-Partner siehst du die App, kannst aber nicht als Kämpfer teilnehmen.', 'As a brand partner you can see the app but cannot take part as a fighter.', 'En tant que partenaire de marque, tu vois l\'app mais tu ne peux pas participer comme combattant.', 'Como socio de marca ves la app, pero no puedes participar como luchador.'):L('Beides ist möglich — als Trainer kommen am Ende noch ein paar zusätzliche Fragen.', 'Both are possible — as a coach there are a few extra questions at the end.', 'Les deux sont possibles — en tant que coach, quelques questions supplémentaires suivent à la fin.', 'Ambas son posibles: como entrenador hay unas preguntas adicionales al final.')}</div>
             </div>
             {profile.isBrand?(
               <div style={{display:'flex',flexDirection:'column',gap:13}}>
                 <div>
-                  <Lbl>Firmenname *</Lbl>
+                  <Lbl>{L('Firmenname *', 'Company name *', 'Nom de l\'entreprise *', 'Nombre de la empresa *')}</Lbl>
                   <Inp placeholder='z.B. Winnas Nutrition' value={profile.companyName||''} onChange={v=>setProfile(p=>({...p,companyName:v}))}/>
                 </div>
                 <button onClick={saveProfile} disabled={!profile.companyName||saving}
                   style={{width:'100%',padding:'13px',borderRadius:8,background:profile.companyName?`linear-gradient(135deg,#2980b9,#5dade2)`:'#ddd',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:profile.companyName?'pointer':'default'}}>
-                  {saving?'...':'ALS MARKE FORTFAHREN'}
+                  {saving?'...':L('ALS MARKE FORTFAHREN', 'CONTINUE AS BRAND', 'CONTINUER EN TANT QUE MARQUE', 'CONTINUAR COMO MARCA')}
                 </button>
               </div>
             ):(
@@ -3051,7 +3056,7 @@ nicht öffentlich gemacht</div>
                     <div style={{position:'relative',display:'inline-block'}}>
                       <div style={{width:110,height:110,borderRadius:'50%',background:'#fdf0ef',border:'3px solid #e74c3c',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',margin:'0 auto',animation:'pulse 1.8s infinite',boxShadow:'0 0 0 6px rgba(231,76,60,0.15)'}}>
                         {uploading?<div style={{fontSize:28}} className='spin'>⏳</div>
-                          :<div style={{textAlign:'center'}}><div style={{fontSize:36}}>📸</div><div style={{color:RED,fontSize:10,marginTop:4,fontWeight:700}}>FOTO</div></div>}
+                          :<div style={{textAlign:'center'}}><div style={{fontSize:36}}>📸</div><div style={{color:RED,fontSize:10,marginTop:4,fontWeight:700}}>{L('FOTO', 'PHOTO', 'PHOTO', 'FOTO')}</div></div>}
                       </div>
                     </div>
                   </label>
@@ -3083,21 +3088,21 @@ nicht öffentlich gemacht</div>
                     <div style={{position:'absolute',bottom:4,right:4,background:'#27ae60',borderRadius:'50%',width:24,height:24,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,border:'2px solid #fff',pointerEvents:'none'}}>✓</div>
                   </div>
                 )}
-                <div style={{color:avatarPreview?'#27ae60':RED,fontSize:12,marginTop:8,fontWeight:700}}>{avatarPreview?'Foto hochgeladen ✓':'Profilbild hinzufügen (erforderlich)'}</div>
-                {avatarPreview&&<div style={{color:'#bbb',fontSize:10,marginTop:2}}>Zum Verschieben im Kreis ziehen</div>}
-                {!avatarPreview&&<div style={{color:'#bbb',fontSize:10,marginTop:2}}>{appLang==='FR'?'Une photo est obligatoire pour continuer':appLang==='EN'?'A photo is required to continue':'Ein Profilbild ist zum Fortfahren nötig'}</div>}
+                <div style={{color:avatarPreview?'#27ae60':RED,fontSize:12,marginTop:8,fontWeight:700}}>{avatarPreview?L('Foto hochgeladen ✓', 'Photo uploaded ✓', 'Photo chargée ✓', 'Foto subida ✓'):L('Profilbild hinzufügen (erforderlich)', 'Add profile photo (required)', 'Ajouter une photo de profil (obligatoire)', 'Añadir foto de perfil (obligatoria)')}</div>
+                {avatarPreview&&<div style={{color:'#bbb',fontSize:10,marginTop:2}}>{L('Zum Verschieben im Kreis ziehen', 'Drag inside the circle to reposition', 'Fais glisser dans le cercle pour déplacer', 'Arrastra dentro del círculo para mover')}</div>}
+                {!avatarPreview&&<div style={{color:'#bbb',fontSize:10,marginTop:2}}>{L('Ein Profilbild ist zum Fortfahren nötig', 'A photo is required to continue', 'Une photo est obligatoire pour continuer', 'Se necesita una foto de perfil para continuar')}</div>}
                 {avatarPreview&&(
                   <label style={{display:'inline-block',marginTop:8,cursor:'pointer',color:RED,fontSize:11,fontWeight:700,textDecoration:'underline'}}>
                     <input type='file' accept='image/*' onChange={handlePhoto} style={{display:'none'}}/>
-                    Anderes Foto wählen
+                    {L('Anderes Foto wählen', 'Choose another photo', 'Choisir une autre photo', 'Elegir otra foto')}
                   </label>
                 )}
               </div>
             </div>
-            <Lbl>{appLang==='FR'?'Votre nom':appLang==='EN'?'Your name':'Dein Name'}</Lbl><Inp placeholder='z.B. Max Mueller' value={profile.name} onChange={v=>setProfile(p=>({...p,name:v}))}/>
-            <Lbl>Alter</Lbl><Inp placeholder='z.B. 25' type='number' value={profile.age} onChange={v=>setProfile(p=>({...p,age:v}))}/>
-            <Lbl>Standort</Lbl><Inp placeholder='z.B. Berlin' value={profile.city} onChange={v=>setProfile(p=>({...p,city:v}))}/>
-            <Lbl>Ich bin</Lbl>
+            <Lbl>{L('Dein Name', 'Your name', 'Ton nom', 'Tu nombre')}</Lbl><Inp placeholder='z.B. Max Mueller' value={profile.name} onChange={v=>setProfile(p=>({...p,name:v}))}/>
+            <Lbl>{L('Alter', 'Age', 'Âge', 'Edad')}</Lbl><Inp placeholder='z.B. 25' type='number' value={profile.age} onChange={v=>setProfile(p=>({...p,age:v}))}/>
+            <Lbl>{L('Standort', 'Location', 'Localisation', 'Ubicación')}</Lbl><Inp placeholder='z.B. Berlin' value={profile.city} onChange={v=>setProfile(p=>({...p,city:v}))}/>
+            <Lbl>{L('Ich bin', 'I am', 'Je suis', 'Soy')}</Lbl>
             <div style={{display:'flex',gap:10,marginTop:2,marginBottom:4}}>
               {[['Mann','♂️','male'],['Frau','♀️','female']].map(([label,icon,val])=>(
                 <button key={val} onClick={()=>setProfile(p=>({...p,gender:val}))}
@@ -3107,7 +3112,7 @@ nicht öffentlich gemacht</div>
                 </button>
               ))}
             </div>
-            <Lbl>Level</Lbl>
+            <Lbl>{L('Level', 'Level', 'Niveau', 'Nivel')}</Lbl>
             <div style={{display:'flex',gap:10,marginTop:2}}>
               {[['Amateur','🥋',false],['Profi','⭐',true]].map(([label,icon,val])=>(
                 <button key={label} onClick={()=>setProfile(p=>({...p,isPro:val}))}
@@ -3118,13 +3123,13 @@ nicht öffentlich gemacht</div>
                 </button>
               ))}
             </div>
-            <Lbl>Land</Lbl>
+            <Lbl>{L('Land', 'Country', 'Pays', 'País')}</Lbl>
             <div style={{display:'flex',flexWrap:'wrap',gap:7,marginTop:2}}>
               {[['🇩🇪','DE','Deutschland'],['🇦🇹','AT','Österreich'],['🇨🇭','CH','Schweiz'],['🇫🇷','FR','Frankreich'],['🇬🇧','GB','UK'],['🇺🇸','US','USA'],['🇳🇱','NL','Niederlande'],['🇧🇪','BE','Belgien'],['🇮🇹','IT','Italien'],['🇪🇸','ES','Spanien'],['🇧🇬','BG','Bulgarien'],['🇭🇷','HR','Kroatien'],['🇨🇾','CY','Zypern'],['🇨🇿','CZ','Tschechien'],['🇩🇰','DK','Dänemark'],['🇪🇪','EE','Estland'],['🇫🇮','FI','Finnland'],['🇬🇷','GR','Griechenland'],['🇭🇺','HU','Ungarn'],['🇮🇪','IE','Irland'],['🇱🇻','LV','Lettland'],['🇱🇹','LT','Litauen'],['🇱🇺','LU','Luxemburg'],['🇲🇹','MT','Malta'],['🇵🇱','PL','Polen'],['🇵🇹','PT','Portugal'],['🇷🇴','RO','Rumänien'],['🇸🇰','SK','Slowakei'],['🇸🇮','SI','Slowenien'],['🇸🇪','SE','Schweden'],['🌍','OTHER','Andere']].map(([flag,code,name])=>(
                 <button key={code} onClick={()=>setProfile(p=>({...p,country:code}))}
                   style={{padding:'8px 12px',borderRadius:10,border:'2px solid '+(profile.country===code?RED:'#e0e0e0'),background:profile.country===code?'#fdf0ef':'#fff',cursor:'pointer',display:'flex',alignItems:'center',gap:5,transition:'all 0.2s'}}>
                   <span style={{fontSize:18}}>{flag}</span>
-                  <span style={{color:profile.country===code?RED:'#555',fontWeight:700,fontSize:12}}>{name}</span>
+                  <span style={{color:profile.country===code?RED:'#555',fontWeight:700,fontSize:12}}>{countryName(code,name,appLang)}</span>
                 </button>
               ))}
             </div>
@@ -3134,9 +3139,9 @@ nicht öffentlich gemacht</div>
         )}
         {step===2&&(
           <div style={{display:'flex',flexDirection:'column',gap:13}}>
-            <Lbl>{appLang==='FR'?'Votre salle':appLang==='EN'?'Your gym':'Dein Gym'}</Lbl>
+            <Lbl>{L('Dein Gym', 'Your gym', 'Ta salle', 'Tu gimnasio')}</Lbl>
             <div style={{position:'relative'}}>
-              <Inp placeholder={appLang==='FR'?'Chercher une salle…':appLang==='EN'?'Search gym…':'Gym suchen…'} value={profile.gym} onChange={v=>{
+              <Inp placeholder={L('Gym suchen…', 'Search gym…', 'Chercher une salle…', 'Buscar gimnasio…')} value={profile.gym} onChange={v=>{
                 setProfile(p=>({...p,gym:v}));
                 if(v.length>=2){
                   const q=v.toLowerCase();
@@ -3161,7 +3166,7 @@ nicht öffentlich gemacht</div>
                         <div style={{color:'#1a1a1a',fontWeight:700,fontSize:13}}>{g.name}</div>
                         <div style={{color:'#aaa',fontSize:11}}>📍 {g.ct} · {g.styles?.join(', ')}</div>
                       </div>
-                      {g.code&&<div style={{color:'#27ae60',fontSize:10,fontWeight:700}}>✅ Verifizierbar</div>}
+                      {g.code&&<div style={{color:'#27ae60',fontSize:10,fontWeight:700}}>{L('✅ Verifizierbar', '✅ Verifiable', '✅ Vérifiable', '✅ Verificable')}</div>}
                     </div>
                   ))}
                   <div onClick={()=>{setShowGymSuggestions(false);setShowRegisterGym(true);setNewGymData(d=>({...d,name:profile.gym}));}} style={{padding:'10px 14px',display:'flex',alignItems:'center',gap:10,cursor:'pointer',background:'#fdf8ff',borderTop:'1px solid #f0e8ff'}} onMouseEnter={e=>e.currentTarget.style.background='#f0e8ff'} onMouseLeave={e=>e.currentTarget.style.background='#fdf8ff'}>
@@ -3186,24 +3191,24 @@ nicht öffentlich gemacht</div>
               <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}}>
                 <div style={{background:'#fff',borderRadius:20,width:'100%',maxWidth:360,overflow:'hidden',boxShadow:'0 20px 60px rgba(0,0,0,0.25)'}}>
                   <div style={{background:'linear-gradient(135deg,#6c3483,#8e44ad)',padding:'18px 20px'}}>
-                    <div className='rj' style={{color:'#fff',fontSize:20,letterSpacing:2}}>GYM ANMELDEN</div>
+                    <div className='rj' style={{color:'#fff',fontSize:20,letterSpacing:2}}>{L('GYM ANMELDEN', 'REGISTER GYM', 'ENREGISTRER LA SALLE', 'REGISTRAR GIMNASIO')}</div>
                     <div style={{color:'rgba(255,255,255,0.65)',fontSize:11,marginTop:2}}>{t.gymBeingAdded}</div>
                   </div>
                   <div style={{padding:'18px 20px',display:'flex',flexDirection:'column',gap:10}}>
                     {gymRegSent?(
                       <div style={{textAlign:'center',padding:'20px 0'}}>
                         <div style={{fontSize:48,marginBottom:10}}>✅</div>
-                        <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18}}>ANMELDUNG GESENDET!</div>
-                        <div style={{color:'#888',fontSize:12,marginTop:6,lineHeight:1.6}}>Wir prüfen dein Gym und fügen es innerhalb von 48h hinzu. Du bekommst eine E-Mail sobald es live ist.</div>
-                        <button onClick={()=>{setShowRegisterGym(false);setGymRegSent(false);}} style={{marginTop:16,padding:'11px 28px',borderRadius:10,background:'linear-gradient(135deg,#8e44ad,#9b59b6)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer'}}>SCHLIESSEN</button>
+                        <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18}}>{L('ANMELDUNG GESENDET!', 'SUBMISSION SENT!', 'DEMANDE ENVOYÉE !', '¡SOLICITUD ENVIADA!')}</div>
+                        <div style={{color:'#888',fontSize:12,marginTop:6,lineHeight:1.6}}>{L('Wir prüfen dein Gym und fügen es innerhalb von 48h hinzu. Du bekommst eine E-Mail sobald es live ist.', 'We will review your gym and add it within 48h. You will get an email as soon as it is live.', 'Nous vérifions ta salle et l\'ajoutons sous 48 h. Tu recevras un e-mail dès qu\'elle est en ligne.', 'Revisaremos tu gimnasio y lo añadiremos en 48 h. Recibirás un correo cuando esté activo.')}</div>
+                        <button onClick={()=>{setShowRegisterGym(false);setGymRegSent(false);}} style={{marginTop:16,padding:'11px 28px',borderRadius:10,background:'linear-gradient(135deg,#8e44ad,#9b59b6)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer'}}>{L('SCHLIESSEN', 'CLOSE', 'FERMER', 'CERRAR')}</button>
                       </div>
                     ):(
                       <>
                         {[
-                          ['GYM NAME *',newGymData.name,'name','z.B. Tiger Gym Berlin'],
-                          ['STADT *',newGymData.city,'city','z.B. Berlin'],
-                          ['ADRESSE',newGymData.address,'address','z.B. Müllerstraße 12'],
-                          ['KAMPFSTIL',newGymData.style,'style','z.B. Boxing, MMA'],
+                          [L('GYM NAME *', 'GYM NAME *', 'NOM DE LA SALLE *', 'NOMBRE DEL GIMNASIO *'),newGymData.name,'name','z.B. Tiger Gym Berlin'],
+                          [L('STADT *', 'CITY *', 'VILLE *', 'CIUDAD *'),newGymData.city,'city','z.B. Berlin'],
+                          [L('ADRESSE', 'ADDRESS', 'ADRESSE', 'DIRECCIÓN'),newGymData.address,'address',L('z.B. Müllerstraße 12', 'e.g. Main Street 12', 'p. ex. 12 rue Principale', 'p. ej. Calle Mayor 12')],
+                          [L('KAMPFSTIL', 'FIGHTING STYLE', 'STYLE DE COMBAT', 'ESTILO DE COMBATE'),newGymData.style,'style','z.B. Boxing, MMA'],
                         ].map(([label,val,key,ph])=>(
                           <div key={key}>
                             <div style={{color:'#aaa',fontSize:9,letterSpacing:1,marginBottom:4}}>{label}</div>
@@ -3212,7 +3217,7 @@ nicht öffentlich gemacht</div>
                           </div>
                         ))}
                         <div style={{background:'#fdf8ff',borderRadius:8,padding:'10px',border:'1px solid #e8d5f5',marginTop:2}}>
-                          <div style={{color:'#8e44ad',fontSize:11,lineHeight:1.6}}>💡 Nach der Prüfung erscheint dein Gym in der App und du kannst dich als Mitglied verifizieren.</div>
+                          <div style={{color:'#8e44ad',fontSize:11,lineHeight:1.6}}>{L('💡 Nach der Prüfung erscheint dein Gym in der App und du kannst dich als Mitglied verifizieren.', '💡 After review your gym appears in the app and you can verify your membership.', '💡 Après vérification, ta salle apparaît dans l\'app et tu peux vérifier ton adhésion.', '💡 Tras la revisión tu gimnasio aparecerá en la app y podrás verificar tu membresía.')}</div>
                         </div>
                         <div style={{display:'flex',gap:8,marginTop:4}}>
                           <button onClick={()=>{setShowRegisterGym(false);setGymRegSent(false);}} style={{flex:1,padding:'11px',borderRadius:10,background:'transparent',border:'1px solid #eee',color:'#aaa',fontFamily:'DM Sans,sans-serif',fontSize:13,cursor:'pointer'}}>{t.cancel}</button>
@@ -3235,13 +3240,13 @@ nicht öffentlich gemacht</div>
                                 })
                               });
                               await loadDbGyms(session);
-                              showMsg(appLang==='FR'?'✅ Salle enregistrée!':appLang==='EN'?'✅ Gym saved!':'✅ Gym gespeichert!');
-                            }catch(e){showMsg('Fehler: '+e.message);}
+                              showMsg(L('✅ Gym gespeichert!', '✅ Gym saved!', '✅ Salle enregistrée!', '✅ ¡Gimnasio guardado!'));
+                            }catch(e){showMsg(L('Fehler: ','Error: ','Erreur : ','Error: ')+e.message);}
                             setProfile(p=>({...p,gym:newGymData.name}));
                             setGymRegSent(true);
                           }} disabled={!newGymData.name||!newGymData.city}
                             style={{flex:2,padding:'11px',borderRadius:10,background:newGymData.name&&newGymData.city?'linear-gradient(135deg,#8e44ad,#9b59b6)':'#eee',border:'none',color:newGymData.name&&newGymData.city?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:newGymData.name&&newGymData.city?'pointer':'not-allowed'}}>
-                            ➕ ANMELDEN
+                            {L('➕ ANMELDEN', '➕ REGISTER', '➕ ENREGISTRER', '➕ REGISTRAR')}
                           </button>
                         </div>
                       </>
@@ -3250,7 +3255,7 @@ nicht öffentlich gemacht</div>
                 </div>
               </div>
             )}
-            <Lbl>Ueber dich</Lbl><Inp placeholder='z.B. 5 Jahre Boxing Erfahrung…' value={profile.bio} onChange={v=>{setShowGymSuggestions(false);setProfile(p=>({...p,bio:v}));}} onFocus={()=>setShowGymSuggestions(false)}/>
+            <Lbl>{L('Ueber dich', 'About you', 'À propos de toi', 'Sobre ti')}</Lbl><Inp placeholder='z.B. 5 Jahre Boxing Erfahrung…' value={profile.bio} onChange={v=>{setShowGymSuggestions(false);setProfile(p=>({...p,bio:v}));}} onFocus={()=>setShowGymSuggestions(false)}/>
             <Lbl>{t.fightStyle}</Lbl>
             <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
               {STYLES.map(s=>{
@@ -3265,7 +3270,7 @@ nicht öffentlich gemacht</div>
             </div>
             {(profile.style||'').split(',').map(x=>x.trim()).some(s=>BELT_STYLES.includes(s))&&(
               <>
-                <Lbl>Guertelrang</Lbl>
+                <Lbl>{L('Guertelrang', 'Belt rank', 'Grade de ceinture', 'Grado de cinturón')}</Lbl>
                 <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
                   {BELT_RANKS.map(b=>(
                     <button key={b} onClick={()=>setProfile(p=>({...p,belt:b}))}
@@ -3279,17 +3284,17 @@ nicht öffentlich gemacht</div>
         {step===3&&(
           <div style={{display:'flex',flexDirection:'column',gap:13}}>
             <div style={{display:'flex',gap:11}}>
-              <div style={{flex:1}}><Lbl>Groesse (cm)</Lbl><Inp placeholder='180' type='number' value={profile.height} onChange={v=>setProfile(p=>({...p,height:v}))}/></div>
+              <div style={{flex:1}}><Lbl>{L('Groesse (cm)', 'Height (cm)', 'Taille (cm)', 'Altura (cm)')}</Lbl><Inp placeholder='180' type='number' value={profile.height} onChange={v=>setProfile(p=>({...p,height:v}))}/></div>
               <div style={{flex:1}}><Lbl>{t.fightWeight}</Lbl><Inp placeholder='77' type='number' value={profile.weight} onChange={v=>setProfile(p=>({...p,weight:v}))}/></div>
             </div>
-            <Lbl>Gewichtsklasse</Lbl>
+            <Lbl>{L('Gewichtsklasse', 'Weight class', 'Catégorie de poids', 'Categoría de peso')}</Lbl>
             <select value={normalizeWeightClass(profile.weightClass)} onChange={e=>setProfile(p=>({...p,weightClass:e.target.value}))} style={{background:'#fff',border:'1px solid #ddd',borderRadius:8,padding:'12px 13px',color:profile.weightClass?'#1a1a1a':'#aaa',fontSize:14,width:'100%'}}>
-              <option value=''>Gewichtsklasse waehlen</option>
+              <option value=''>{L('Gewichtsklasse waehlen', 'Choose weight class', 'Choisir la catégorie de poids', 'Elige la categoría de peso')}</option>
               {WEIGHT_CLASSES.map(w=><option key={w} value={w}>{w}</option>)}
             </select>
             <Lbl>{t.fightRecord}</Lbl>
             <div style={{display:'flex',gap:7}}>
-              {[['wins','SIEGE','#27ae60'],['losses','NIEDER',RED],['draws','UNENTSCH','#d4a017'],['ko','KOs',RED]].map(([key,label,color])=>(
+              {[['wins',L('SIEGE', 'WINS', 'VICTOIRES', 'VICTORIAS'),'#27ae60'],['losses',L('NIEDER', 'LOSSES', 'DÉFAITES', 'DERROTAS'),RED],['draws',L('UNENTSCH', 'DRAWS', 'NULS', 'EMPATES'),'#d4a017'],['ko','KOs',RED]].map(([key,label,color])=>(
                 <div key={key} style={{flex:1,textAlign:'center'}}>
                   <div style={{color:color,fontSize:9,letterSpacing:1,marginBottom:3}}>{label}</div>
                   <input type='number' min='0' value={stats[key]} onChange={e=>setStats(s=>({...s,[key]:parseInt(e.target.value)||0}))} style={{width:'100%',background:'#fff',border:'1px solid #ddd',borderRadius:6,padding:'9px 3px',color:'#1a1a1a',fontSize:20,textAlign:'center',fontFamily:'Rajdhani,sans-serif'}}/>
@@ -3300,12 +3305,12 @@ nicht öffentlich gemacht</div>
         )}
         {step===4&&(
           <div style={{display:'flex',flexDirection:'column',gap:13}}>
-            <div style={{color:'#8e44ad',fontSize:13,fontWeight:700,marginBottom:2}}>🎓 Noch ein paar Fragen als Trainer</div>
-            <Lbl>Gym / Verein, wo du unterrichtest</Lbl>
+            <div style={{color:'#8e44ad',fontSize:13,fontWeight:700,marginBottom:2}}>{L('🎓 Noch ein paar Fragen als Trainer', '🎓 A few more questions as a coach', '🎓 Quelques questions de plus en tant que coach', '🎓 Unas preguntas más como entrenador')}</div>
+            <Lbl>{L('Gym / Verein, wo du unterrichtest', 'Gym / club where you teach', 'Salle / club où tu enseignes', 'Gimnasio / club donde enseñas')}</Lbl>
             <Inp placeholder='z.B. Tiger Gym Berlin' value={profile.coachGym||''} onChange={v=>setProfile(p=>({...p,coachGym:v}))}/>
-            <Lbl>Jahre Erfahrung als Trainer</Lbl>
+            <Lbl>{L('Jahre Erfahrung als Trainer', 'Years of experience as a coach', 'Années d\'expérience comme coach', 'Años de experiencia como entrenador')}</Lbl>
             <Inp placeholder='z.B. 8' type='number' value={profile.coachExperience||''} onChange={v=>setProfile(p=>({...p,coachExperience:v}))}/>
-            <Lbl>Kampfstile, die du unterrichtest</Lbl>
+            <Lbl>{L('Kampfstile, die du unterrichtest', 'Fighting styles you teach', 'Styles de combat que tu enseignes', 'Estilos de combate que enseñas')}</Lbl>
             <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
               {STYLES.map(s=>{
                 const selected=(profile.coachStyles||'').split(',').map(x=>x.trim()).filter(Boolean);
@@ -3317,14 +3322,14 @@ nicht öffentlich gemacht</div>
                 }} style={{padding:'7px 13px',borderRadius:4,border:'1px solid '+(isSelected?'#8e44ad':'#ddd'),background:isSelected?'#f5edfc':'#fff',color:isSelected?'#8e44ad':'#666',fontFamily:'DM Sans,sans-serif',fontSize:13,fontWeight:700,cursor:'pointer'}}>{s}</button>);
               })}
             </div>
-            <Lbl>Trainer-Bio (Erfolge, dein Ansatz)</Lbl>
+            <Lbl>{L('Trainer-Bio (Erfolge, dein Ansatz)', 'Coach bio (achievements, your approach)', 'Bio du coach (succès, ton approche)', 'Bio de entrenador (logros, tu enfoque)')}</Lbl>
             <Inp placeholder='z.B. 10 Jahre Erfahrung, spezialisiert auf...' value={profile.coachBio||''} onChange={v=>setProfile(p=>({...p,coachBio:v}))}/>
-            <Lbl>Trainer-Profilbild (optional)</Lbl>
-            <div style={{color:'#888',fontSize:11,marginBottom:8,lineHeight:1.5}}>Wird in der Trainer-Rangliste und deinem Trainer-Profil gezeigt — kann sich von deinem normalen Profilbild unterscheiden.</div>
+            <Lbl>{L('Trainer-Profilbild (optional)', 'Coach profile photo (optional)', 'Photo de profil du coach (facultatif)', 'Foto de perfil de entrenador (opcional)')}</Lbl>
+            <div style={{color:'#888',fontSize:11,marginBottom:8,lineHeight:1.5}}>{L('Wird in der Trainer-Rangliste und deinem Trainer-Profil gezeigt — kann sich von deinem normalen Profilbild unterscheiden.', 'Shown in the coach ranking and your coach profile — can differ from your normal profile photo.', 'Affichée dans le classement des coachs et ton profil de coach — peut différer de ta photo de profil habituelle.', 'Se muestra en el ranking de entrenadores y en tu perfil de entrenador — puede ser distinta de tu foto de perfil normal.')}</div>
             <div style={{display:'flex',alignItems:'center',gap:14}}>
               <div style={{width:70,height:70,borderRadius:14,background:coachAvatarPreview?'#000':'#f5edfc',border:'2px solid '+(coachAvatarPreview?'#8e44ad':'#ddd'),overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                 {coachAvatarPreview
-                  ?<img loading="lazy" src={coachAvatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='Trainer-Profilbild'/>
+                  ?<img loading="lazy" src={coachAvatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={L('Trainer-Profilbild', 'Coach profile photo', 'Photo de profil du coach', 'Foto de perfil de entrenador')}/>
                   :<div style={{fontSize:24}}>🎓</div>}
               </div>
               <label style={{padding:'10px 16px',borderRadius:8,background:'#8e44ad',color:'#fff',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
@@ -3335,7 +3340,7 @@ nicht öffentlich gemacht</div>
           </div>
         )}
         <div style={{display:'flex',gap:9,marginTop:22}}>
-          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{flex:1,padding:'13px',borderRadius:8,background:'#fff',border:'1px solid #ddd',color:'#666',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>Zurueck</button>}
+          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{flex:1,padding:'13px',borderRadius:8,background:'#fff',border:'1px solid #ddd',color:'#666',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>{L('Zurueck', 'Back', 'Retour', 'Volver')}</button>}
           <div style={{flex:2,display:'flex',flexDirection:'column',gap:4}}>
             <button onClick={async()=>{
               if(!canGo())return;
@@ -3345,7 +3350,7 @@ nicht öffentlich gemacht</div>
             }} style={{width:'100%',padding:'13px',borderRadius:8,background:canGo()?`linear-gradient(135deg,${RED},${LIGHT_RED})`:'#eee',border:'none',color:canGo()?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:canGo()?'pointer':'not-allowed',transition:'all 0.2s'}}>
               {saving?t.saving:(step===3&&!profile.isCoach)||step===4?t.letsGo:t.next}
             </button>
-            {step===1&&!(avatarPreview||avatarUrl)&&<div style={{color:RED,fontSize:10,textAlign:'center',fontWeight:600}}>{appLang==='FR'?'⬆ Télécharger une photo pour continuer':appLang==='EN'?'⬆ Upload profile photo to continue':'⬆ Profilbild hochladen um fortzufahren'}</div>}
+            {step===1&&!(avatarPreview||avatarUrl)&&<div style={{color:RED,fontSize:10,textAlign:'center',fontWeight:600}}>{L('⬆ Profilbild hochladen um fortzufahren', '⬆ Upload profile photo to continue', '⬆ Télécharger une photo pour continuer', '⬆ Sube una foto de perfil para continuar')}</div>}
           </div>
         </div>
       </div>
@@ -3386,11 +3391,11 @@ nicht öffentlich gemacht</div>
 
               {/* Navigations-Items */}
               {[
-                {icon:'',label:'Events',action:()=>{setTab('events');setShowMenu(false);loadEvents(session);}},
-                {icon:'',label:'News',action:()=>{setShowNews(true);setShowMenu(false);loadNews();}},
-                {icon:'',label:'Mein Profil',action:()=>{setTab('stats');setShowMenu(false);}},
-                {icon:'',label:'Equipment',action:()=>{setShowEquipment(true);setShowMenu(false);}},
-                {icon:'',label:'Supplements',action:()=>{setShowSupplements(true);setShowMenu(false);}},
+                {icon:'',label:L('Events','Events','Événements','Eventos'),action:()=>{setTab('events');setShowMenu(false);loadEvents(session);}},
+                {icon:'',label:L('News','News','Actualités','Noticias'),action:()=>{setShowNews(true);setShowMenu(false);loadNews();}},
+                {icon:'',label:L('Mein Profil','My profile','Mon profil','Mi perfil'),action:()=>{setTab('stats');setShowMenu(false);}},
+                {icon:'',label:L('Equipment','Equipment','Équipement','Equipamiento'),action:()=>{setShowEquipment(true);setShowMenu(false);}},
+                {icon:'',label:L('Supplements','Supplements','Compléments','Suplementos'),action:()=>{setShowSupplements(true);setShowMenu(false);}},
               ].map(item=>(
                 <div key={item.label} onClick={item.action}
                   style={{display:'flex',alignItems:'center',gap:12,padding:'10px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px',transition:'background 0.15s'}}
@@ -3405,7 +3410,7 @@ nicht öffentlich gemacht</div>
 
               {/* BENACHRICHTIGUNGEN */}
               <div onClick={async()=>{
-                if(!('Notification' in window)){showMsg('Nicht unterstützt');return;}
+                if(!('Notification' in window)){showMsg(L('Nicht unterstützt', 'Not supported', 'Non pris en charge', 'No compatible'));return;}
                 if(Notification.permission==='granted'){showMsg('Benachrichtigungen aktiv 🔔');}
                 else if(Notification.permission==='denied'){showMsg('In Browser-Einstellungen erlauben');}
                 else{const p=await Notification.requestPermission();showMsg(p==='granted'?'Aktiviert! 🔔':'Abgelehnt');}
@@ -3415,7 +3420,7 @@ nicht öffentlich gemacht</div>
                 <div style={{display:'flex',alignItems:'center',gap:12}}>
                   <div style={{fontSize:17,width:24,textAlign:'center',opacity:0.85}}></div>
                   <div>
-                    <div style={{color:darkMode?'#e0e0e0':'#222',fontSize:13,fontWeight:600}}>Benachrichtigungen</div>
+                    <div style={{color:darkMode?'#e0e0e0':'#222',fontSize:13,fontWeight:600}}>{L('Benachrichtigungen', 'Notifications', 'Notifications', 'Notificaciones')}</div>
                     <div style={{color:'#aaa',fontSize:10,marginTop:1}}>{typeof Notification!=='undefined'&&Notification.permission==='granted'?'Aktiv':'Nicht aktiv'}</div>
                   </div>
                 </div>
@@ -3430,7 +3435,7 @@ nicht öffentlich gemacht</div>
                 onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                 <div style={{display:'flex',alignItems:'center',gap:12}}>
                   <div style={{fontSize:17,width:24,textAlign:'center',opacity:0.85}}></div>
-                  <div style={{color:darkMode?'#e0e0e0':'#222',fontSize:13,fontWeight:600}}>Dark Mode</div>
+                  <div style={{color:darkMode?'#e0e0e0':'#222',fontSize:13,fontWeight:600}}>{L('Dark Mode', 'Dark mode', 'Mode sombre', 'Modo oscuro')}</div>
                 </div>
                 <div style={{width:34,height:19,borderRadius:10,background:darkMode?RED:'#ccc',position:'relative',flexShrink:0}}>
                   <div style={{position:'absolute',top:2.5,left:darkMode?17:2.5,width:14,height:14,borderRadius:'50%',background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
@@ -3475,8 +3480,8 @@ nicht öffentlich gemacht</div>
                   </div>
                 ))}
                 <div onClick={()=>{
-                  if(!window.confirm('Account wirklich löschen?'))return;
-                  if(!window.confirm('Bist du sicher? Diese Aktion kann nicht rückgängig gemacht werden!'))return;
+                  if(!window.confirm(L('Account wirklich löschen?', 'Really delete account?', 'Supprimer vraiment le compte ?', '¿Eliminar realmente la cuenta?')))return;
+                  if(!window.confirm(L('Bist du sicher? Diese Aktion kann nicht rückgängig gemacht werden!', 'Are you sure? This action cannot be undone!', 'Es-tu sûr ? Cette action est irréversible !', '¿Seguro? ¡Esta acción no se puede deshacer!')))return;
                   (async()=>{
                     try{
                       await fetch(SUPA_URL+'/rest/v1/swipes?swiper_id=eq.'+session.userId,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
@@ -3485,7 +3490,7 @@ nicht öffentlich gemacht</div>
                       await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+session.userId,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                       try{localStorage.clear();}catch{}
                       setSession(null);setMyProfile(null);setShowMenu(false);
-                    }catch(e){showMsg('Fehler: '+e.message);}
+                    }catch(e){showMsg(L('Fehler: ','Error: ','Erreur : ','Error: ')+e.message);}
                   })();
                 }}
                   style={{display:'flex',alignItems:'center',gap:12,padding:'9px 18px',cursor:'pointer',borderRadius:8,margin:'1px 8px'}}
@@ -3501,9 +3506,14 @@ nicht öffentlich gemacht</div>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 18px',borderTop:'1px solid '+(darkMode?'#222':'#efefef')}}>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
                 <div style={{fontSize:15,width:24,textAlign:'center',opacity:0.7}}></div>
-                <div style={{color:darkMode?'#aaa':'#666',fontSize:12,fontWeight:600}}>Sprache</div>
+                <div style={{color:darkMode?'#aaa':'#666',fontSize:12,fontWeight:600}}>{L('Sprache','Language','Langue','Idioma')}</div>
               </div>
               <div style={{display:'flex',gap:3,background:darkMode?'#222':'#ebebeb',borderRadius:16,padding:3}}>
+                {(()=>{
+                  let auto=true;try{auto=!localStorage.getItem(LANG_KEY);}catch(e){}
+                  return <button onClick={()=>{try{localStorage.removeItem(LANG_KEY);}catch(e){}const dl=detectLangFromDevice();setAppLang(dl);showMsg(makeL(dl)('Automatisch (Gerätesprache) 🌐','Automatic (device language) 🌐',"Automatique (langue de l'appareil) 🌐",'Automático (idioma del dispositivo) 🌐'));}}
+                    style={{padding:'3px 9px',borderRadius:13,background:auto?(darkMode?'#333':'#fff'):'transparent',border:'none',color:auto?(darkMode?'#fff':'#111'):(darkMode?'#555':'#999'),fontSize:11,fontWeight:700,cursor:'pointer',transition:'all 0.15s',boxShadow:auto?'0 1px 3px rgba(0,0,0,0.12)':'none'}}>🌐 AUTO</button>;
+                })()}
                 {[['DE','🇩🇪'],['EN','🇬🇧'],['FR','🇫🇷'],['ES','🇪🇸']].map(([lang,flag])=>(
                   <button key={lang} onClick={()=>{setAppLang(lang);try{localStorage.setItem('fighter_lang',lang);}catch{}showMsg(lang==='DE'?'Deutsch 🇩🇪':lang==='FR'?'Français 🇫🇷':lang==='ES'?'Español 🇪🇸':'English 🇬🇧');}}
                     style={{padding:'3px 9px',borderRadius:13,background:appLang===lang?(darkMode?'#333':'#fff'):'transparent',border:'none',color:appLang===lang?(darkMode?'#fff':'#111'):(darkMode?'#555':'#999'),fontSize:11,fontWeight:700,cursor:'pointer',transition:'all 0.15s',boxShadow:appLang===lang?'0 1px 3px rgba(0,0,0,0.12)':'none'}}>
@@ -3518,7 +3528,7 @@ nicht öffentlich gemacht</div>
               onMouseEnter={e=>e.currentTarget.style.background=darkMode?'#2a2a2a':'#f9f9f9'}
               onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
               <div style={{fontSize:20,width:28,textAlign:'center'}}>📩</div>
-              <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,fontWeight:600}}>{appLang==='EN'?'Send Feedback':'Feedback senden'}</div>
+              <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,fontWeight:600}}>{L('Feedback senden', 'Send Feedback', 'Envoyer un retour', 'Enviar comentarios')}</div>
             </div>
 
             {/* Logout */}
@@ -3537,19 +3547,19 @@ nicht öffentlich gemacht</div>
           <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:'20px 20px 0 0',width:'100%',maxWidth:480,padding:'24px 20px 40px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
               <div>
-                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:2}}>{appLang==='EN'?'SEND FEEDBACK':'FEEDBACK SENDEN'}</div>
-                <div style={{color:'#aaa',fontSize:11,marginTop:2}}>{appLang==='EN'?'Help us improve FighterApp':'Hilf uns FighterApp besser zu machen'}</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:2}}>{L('FEEDBACK SENDEN', 'SEND FEEDBACK', 'ENVOYER UN RETOUR', 'ENVIAR COMENTARIOS')}</div>
+                <div style={{color:'#aaa',fontSize:11,marginTop:2}}>{L('Hilf uns FighterApp besser zu machen', 'Help us improve FighterApp', 'Aide-nous à améliorer FighterApp', 'Ayúdanos a mejorar FighterApp')}</div>
               </div>
               <button onClick={()=>{setShowFeedback(false);setFeedbackSent(false);setFeedbackText('');}} style={{background:'none',border:'none',fontSize:22,cursor:'pointer',color:'#aaa'}}>✕</button>
             </div>
             {feedbackSent?(
               <div style={{textAlign:'center',padding:'20px 0'}}>
                 <div style={{fontSize:48,marginBottom:12}}>🙏</div>
-                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:6}}>{appLang==='EN'?'THANK YOU!':'DANKE!'}</div>
-                <div style={{color:'#aaa',fontSize:13}}>{appLang==='EN'?'Your feedback helps us improve.':'Dein Feedback hilft uns die App zu verbessern.'}</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:6}}>{L('DANKE!', 'THANK YOU!', 'MERCI !', '¡GRACIAS!')}</div>
+                <div style={{color:'#aaa',fontSize:13}}>{L('Dein Feedback hilft uns die App zu verbessern.', 'Your feedback helps us improve.', 'Ton retour nous aide à améliorer l\'app.', 'Tus comentarios nos ayudan a mejorar la app.')}</div>
                 <button onClick={()=>{setShowFeedback(false);setFeedbackSent(false);setFeedbackText('');}}
                   style={{marginTop:20,padding:'12px 32px',borderRadius:10,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer'}}>
-                  {appLang==='EN'?'CLOSE':'SCHLIESSEN'}
+                  {L('SCHLIESSEN', 'CLOSE', 'FERMER', 'CERRAR')}
                 </button>
               </div>
             ):(
@@ -3557,12 +3567,12 @@ nicht öffentlich gemacht</div>
                 <textarea
                   value={feedbackText}
                   onChange={e=>setFeedbackText(e.target.value)}
-                  placeholder={appLang==='EN'?'What do you like? What should we improve? Ideas for new features...':'Was gefällt dir? Was sollen wir verbessern? Ideen für neue Features...'}
+                  placeholder={L('Was gefällt dir? Was sollen wir verbessern? Ideen für neue Features...', 'What do you like? What should we improve? Ideas for new features...', 'Qu\'est-ce qui te plaît ? Que devrions-nous améliorer ? Des idées de nouvelles fonctionnalités...', '¿Qué te gusta? ¿Qué deberíamos mejorar? Ideas para nuevas funciones...')}
                   rows={5}
                   style={{width:'100%',padding:'12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontFamily:'DM Sans,sans-serif',resize:'none',boxSizing:'border-box',marginBottom:12}}
                 />
                 <button onClick={async()=>{
-                  if(!feedbackText.trim()){showMsg(appLang==='EN'?'Please enter feedback':'Bitte Feedback eingeben');return;}
+                  if(!feedbackText.trim()){showMsg(L('Bitte Feedback eingeben', 'Please enter feedback', 'Merci de saisir ton retour', 'Escribe tus comentarios'));return;}
                   try{
                     await fetch(SUPA_URL+'/rest/v1/feedback',{
                       method:'POST',
@@ -3573,7 +3583,7 @@ nicht öffentlich gemacht</div>
                   setFeedbackSent(true);
                 }} disabled={!feedbackText.trim()}
                   style={{width:'100%',padding:'14px',borderRadius:10,background:feedbackText.trim()?`linear-gradient(135deg,${RED},#e74c3c)`:'#eee',border:'none',color:feedbackText.trim()?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:feedbackText.trim()?'pointer':'not-allowed'}}>
-                  {appLang==='EN'?'SEND 📩':'SENDEN 📩'}
+                  {L('SENDEN 📩', 'SEND 📩', 'ENVOYER 📩', 'ENVIAR 📩')}
                 </button>
               </>
             )}
@@ -3587,8 +3597,8 @@ nicht öffentlich gemacht</div>
           <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:'20px 20px 0 0',width:'100%',maxWidth:480,padding:'24px 20px 44px',maxHeight:'90vh',overflowY:'auto'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
               <div>
-                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:2}}>FEEDBACK & WÜNSCHE</div>
-                <div style={{color:'#aaa',fontSize:11,marginTop:2}}>Hilf uns Fighter App besser zu machen</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:2}}>{L('FEEDBACK & WÜNSCHE', 'FEEDBACK & WISHES', 'RETOURS & SOUHAITS', 'COMENTARIOS Y DESEOS')}</div>
+                <div style={{color:'#aaa',fontSize:11,marginTop:2}}>{L('Hilf uns Fighter App besser zu machen', 'Help us make Fighter App better', 'Aide-nous à améliorer Fighter App', 'Ayúdanos a mejorar Fighter App')}</div>
               </div>
               <button onClick={()=>setShowFeedbackModal(false)} style={{background:'none',border:'none',fontSize:22,cursor:'pointer',color:'#aaa'}}>✕</button>
             </div>
@@ -3599,7 +3609,7 @@ nicht öffentlich gemacht</div>
                 <div style={{color:'#aaa',fontSize:13,lineHeight:1.7}}>Dein {feedbackType==='wunsch'?'Wunsch':'Feedback'} wurde gesendet. Wir lesen alles!</div>
                 <button onClick={()=>{setShowFeedbackModal(false);setFeedbackSent(false);setFeedbackText('');}}
                   style={{marginTop:20,padding:'12px 32px',borderRadius:10,background:`linear-gradient(135deg,#c0392b,#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer'}}>
-                  SCHLIESSEN
+                  {L('SCHLIESSEN', 'CLOSE', 'FERMER', 'CERRAR')}
                 </button>
               </div>
             ):(
@@ -3614,13 +3624,13 @@ nicht öffentlich gemacht</div>
                   ))}
                 </div>
                 <div style={{color:'#aaa',fontSize:11,marginBottom:8}}>
-                  {feedbackType==='wunsch'?'Was wünschst du dir für die App? Neue Features, Verbesserungen...':'Was läuft gut? Was soll besser werden?'}
+                  {feedbackType==='wunsch'?L('Was wünschst du dir für die App? Neue Features, Verbesserungen...', 'What do you wish for in the app? New features, improvements...', 'Que souhaites-tu pour l\'app ? Nouvelles fonctions, améliorations...', '¿Qué deseas para la app? Nuevas funciones, mejoras...'):L('Was läuft gut? Was soll besser werden?', 'What\'s going well? What should be better?', 'Qu\'est-ce qui marche bien ? Qu\'est-ce qui doit être amélioré ?', '¿Qué funciona bien? ¿Qué debería mejorar?')}
                 </div>
                 <textarea value={feedbackText} onChange={e=>setFeedbackText(e.target.value)}
-                  placeholder={feedbackType==='wunsch'?'z.B. Ich wünsche mir eine Funktion für...':'z.B. Das Matching könnte...'}
+                  placeholder={feedbackType==='wunsch'?L('z.B. Ich wünsche mir eine Funktion für...', 'e.g. I would like a feature for...', 'p. ex. J\'aimerais une fonction pour...', 'p. ej. Me gustaría una función para...'):L('z.B. Das Matching könnte...', 'e.g. The matching could...', 'p. ex. Le matching pourrait...', 'p. ej. El matching podría...')}
                   rows={5} style={{width:'100%',padding:'12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontFamily:'DM Sans,sans-serif',resize:'none',boxSizing:'border-box',marginBottom:12}}/>
                 <button onClick={async()=>{
-                  if(!feedbackText.trim()){showMsg('Bitte Text eingeben');return;}
+                  if(!feedbackText.trim()){showMsg(L('Bitte Text eingeben', 'Please enter some text', 'Saisis un texte', 'Escribe un texto'));return;}
                   try{
                     await fetch(SUPA_URL+'/rest/v1/feedback',{
                       method:'POST',
@@ -3645,8 +3655,8 @@ nicht öffentlich gemacht</div>
           <div style={{display:'flex',alignItems:'center',gap:12,padding:'calc(14px + env(safe-area-inset-top)) 16px 14px',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee'),position:'sticky',top:0,zIndex:10}}>
             <button onClick={()=>setShowEquipment(false)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
             <div>
-              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:3}}>EQUIPMENT</div>
-              <div style={{color:'#aaa',fontSize:11}}>{appLang==='FR'?'Équipement arts martiaux':appLang==='EN'?'Top Combat Sports Equipment':'Top Kampfsport-Ausrüstung'}</div>
+              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:3}}>{L('EQUIPMENT', 'EQUIPMENT', 'ÉQUIPEMENT', 'EQUIPAMIENTO')}</div>
+              <div style={{color:'#aaa',fontSize:11}}>{L('Top Kampfsport-Ausrüstung', 'Top Combat Sports Equipment', 'Équipement arts martiaux', 'Equipamiento top de deportes de combate')}</div>
             </div>
           </div>
           <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%'}}>
@@ -3662,8 +3672,8 @@ nicht öffentlich gemacht</div>
           <div style={{display:'flex',alignItems:'center',gap:12,padding:'calc(14px + env(safe-area-inset-top)) 16px 14px',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee'),position:'sticky',top:0,zIndex:10}}>
             <button onClick={()=>setShowSupplements(false)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
             <div>
-              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:3}}>SUPPLEMENTS</div>
-              <div style={{color:'#aaa',fontSize:11}}>{appLang==='FR'?'Compléments pour sportifs de combat':appLang==='EN'?'Supplements for Combat Athletes':'Supplements für Kampfsportler'}</div>
+              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:3}}>{L('SUPPLEMENTS', 'SUPPLEMENTS', 'COMPLÉMENTS', 'SUPLEMENTOS')}</div>
+              <div style={{color:'#aaa',fontSize:11}}>{L('Supplements für Kampfsportler', 'Supplements for Combat Athletes', 'Compléments pour sportifs de combat', 'Suplementos para deportistas de combate')}</div>
             </div>
           </div>
           <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%'}}>
@@ -3679,8 +3689,8 @@ nicht öffentlich gemacht</div>
           <div style={{display:'flex',alignItems:'center',gap:12,padding:'calc(14px + env(safe-area-inset-top)) 16px 14px',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee'),position:'sticky',top:0,zIndex:10}}>
             <button onClick={()=>setShowNews(false)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>←</button>
             <div>
-              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:3}}>NEWS</div>
-              <div style={{color:'#aaa',fontSize:11}}>Aktuelle Kampfsport-News von Sherdog &amp; BoxingScene</div>
+              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:3}}>{L('NEWS', 'NEWS', 'ACTUALITÉS', 'NOTICIAS')}</div>
+              <div style={{color:'#aaa',fontSize:11}}>{L('Aktuelle Kampfsport-News von Sherdog &amp; BoxingScene', 'Latest combat sports news from Sherdog & BoxingScene', 'Actualités des sports de combat de Sherdog & BoxingScene', 'Últimas noticias de deportes de combate de Sherdog y BoxingScene')}</div>
             </div>
           </div>
           <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%'}}>
@@ -3691,7 +3701,7 @@ nicht öffentlich gemacht</div>
                 <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:6}}>
                   <span style={{background:RED,borderRadius:20,padding:'1px 8px',color:'#fff',fontSize:10,fontWeight:700}}>📢 FIGHTER TEAM</span>
                   {am.created_at&&<span style={{color:'#999',fontSize:10}}>{new Date(am.created_at).toLocaleDateString('de-DE')}</span>}
-                  {!am.read&&<span style={{background:'#27ae60',borderRadius:20,padding:'1px 8px',color:'#fff',fontSize:9,fontWeight:700}}>NEU</span>}
+                  {!am.read&&<span style={{background:'#27ae60',borderRadius:20,padding:'1px 8px',color:'#fff',fontSize:9,fontWeight:700}}>{L('NEU', 'NEW', 'NOUVEAU', 'NUEVO')}</span>}
                 </div>
                 <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,lineHeight:1.6,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{am.message}</div>
               </div>
@@ -3699,7 +3709,7 @@ nicht öffentlich gemacht</div>
             {newsLoading?(
               <div style={{textAlign:'center',padding:'40px 0',color:'#aaa'}}>Lädt...</div>
             ):newsItems.length===0?(
-              <div style={{textAlign:'center',padding:'40px 0',color:'#aaa'}}>Keine News gefunden. Später nochmal versuchen.</div>
+              <div style={{textAlign:'center',padding:'40px 0',color:'#aaa'}}>{L('Keine News gefunden. Später nochmal versuchen.', 'No news found. Try again later.', 'Aucune actualité trouvée. Réessaie plus tard.', 'No se encontraron noticias. Inténtalo más tarde.')}</div>
             ):(
               newsItems.map((item,i)=>(
                 <a key={i} href={item.link} target='_blank' rel='noopener noreferrer'
@@ -3710,7 +3720,7 @@ nicht öffentlich gemacht</div>
                   </div>
                   <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,lineHeight:1.4}}>{item.title}</div>
                   {item.description&&<div style={{color:'#999',fontSize:12,marginTop:5,lineHeight:1.5}}>{item.description}</div>}
-                  <div style={{color:RED,fontSize:11,fontWeight:700,marginTop:8}}>Weiterlesen →</div>
+                  <div style={{color:RED,fontSize:11,fontWeight:700,marginTop:8}}>{L('Weiterlesen →', 'Read more →', 'Lire la suite →', 'Leer más →')}</div>
                 </a>
               ))
             )}
@@ -3728,16 +3738,16 @@ nicht öffentlich gemacht</div>
           <div onClick={e=>e.stopPropagation()} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:20,padding:'28px 24px',maxWidth:340,width:'100%',textAlign:'center',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),boxShadow:'0 20px 60px rgba(0,0,0,0.4)'}}>
             <div style={{fontSize:44,marginBottom:8}}>⭐</div>
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:1,marginBottom:8}}>
-              {appLang==='FR'?'Tu aimes Fighter ?':appLang==='EN'?'Do you like Fighter?':'Gefällt dir die Fighter App?'}
+              {L('Gefällt dir die Fighter App?', 'Do you like Fighter?', 'Tu aimes Fighter ?', '¿Te gusta Fighter?')}
             </div>
             <div style={{color:darkMode?'#aaa':'#888',fontSize:14,lineHeight:1.6,marginBottom:22}}>
-              {appLang==='FR'?'Ton avis nous aide énormément. Note-nous sur l\'App Store !':appLang==='EN'?'Your rating helps us a lot. Rate us on the App Store!':'Deine Bewertung hilft uns riesig weiter. Vergib ein paar Sterne im App Store!'}
+              {L('Deine Bewertung hilft uns riesig weiter. Vergib ein paar Sterne im App Store!', 'Your rating helps us a lot. Rate us on the App Store!', 'Ton avis nous aide énormément. Note-nous sur l\'App Store !', 'Tu valoración nos ayuda muchísimo. ¡Puntúanos en la App Store!')}
             </div>
             <button onClick={openAppStoreReview} style={{width:'100%',padding:'14px',borderRadius:12,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:17,letterSpacing:1,cursor:'pointer',marginBottom:10,boxShadow:'0 4px 16px rgba(192,57,43,0.3)'}}>
-              {appLang==='FR'?'⭐ OUI, NOTER':appLang==='EN'?'⭐ YES, RATE':'⭐ JA, BEWERTEN'}
+              {L('⭐ JA, BEWERTEN', '⭐ YES, RATE', '⭐ OUI, NOTER', '⭐ SÍ, VALORAR')}
             </button>
             <button onClick={snoozeRating} style={{width:'100%',padding:'10px',borderRadius:12,background:'none',border:'none',color:darkMode?'#888':'#aaa',fontSize:13,fontWeight:600,cursor:'pointer'}}>
-              {appLang==='FR'?'Plus tard':appLang==='EN'?'Maybe later':'Vielleicht später'}
+              {L('Vielleicht später', 'Maybe later', 'Plus tard', 'Quizás más tarde')}
             </button>
           </div>
         </div>
@@ -3759,9 +3769,9 @@ nicht öffentlich gemacht</div>
           <span style={{fontSize:18}}>⬆️</span>
           <div style={{flex:1}}>
             <div style={{color:'#fff',fontSize:12,fontWeight:700}}>Neue Version verfügbar ({latestVersion})</div>
-            <div style={{color:'rgba(255,255,255,0.85)',fontSize:10,marginTop:2,lineHeight:1.4}}>Aktualisiere jetzt für die neuesten Funktionen & Fixes</div>
+            <div style={{color:'rgba(255,255,255,0.85)',fontSize:10,marginTop:2,lineHeight:1.4}}>{L('Aktualisiere jetzt für die neuesten Funktionen & Fixes', 'Update now for the latest features & fixes', 'Mets à jour pour les dernières fonctions et corrections', 'Actualiza ahora para las últimas funciones y correcciones')}</div>
           </div>
-          <button onClick={()=>{try{window.open('https://apps.apple.com/app/id'+APP_STORE_ID,'_blank');}catch{window.location.href='https://apps.apple.com/app/id'+APP_STORE_ID;}}} style={{background:'rgba(255,255,255,0.25)',border:'none',borderRadius:8,color:'#fff',fontSize:11,fontWeight:700,padding:'6px 12px',cursor:'pointer',flexShrink:0,whiteSpace:'nowrap'}}>UPDATE</button>
+          <button onClick={()=>{try{window.open('https://apps.apple.com/app/id'+APP_STORE_ID,'_blank');}catch{window.location.href='https://apps.apple.com/app/id'+APP_STORE_ID;}}} style={{background:'rgba(255,255,255,0.25)',border:'none',borderRadius:8,color:'#fff',fontSize:11,fontWeight:700,padding:'6px 12px',cursor:'pointer',flexShrink:0,whiteSpace:'nowrap'}}>{L('UPDATE', 'UPDATE', 'METTRE À JOUR', 'ACTUALIZAR')}</button>
           <button onClick={()=>setUpdateAvailable(false)} style={{background:'rgba(255,255,255,0.2)',border:'none',borderRadius:6,color:'#fff',fontSize:16,padding:'4px 8px',cursor:'pointer',flexShrink:0}}>✕</button>
         </div>
       )}
@@ -3769,8 +3779,8 @@ nicht öffentlich gemacht</div>
         <div style={{background:'linear-gradient(135deg,#c0392b,#e74c3c)',padding:'10px 16px',display:'flex',alignItems:'center',gap:10}}>
           <span style={{fontSize:18}}>🔔</span>
           <div style={{flex:1}}>
-            <div style={{color:'#fff',fontSize:12,fontWeight:700}}>Verpasse keine Matches & Nachrichten!</div>
-            <div style={{color:'rgba(255,255,255,0.85)',fontSize:10,marginTop:2,lineHeight:1.4}}>iPhone-Einstellungen → Fighter → Mitteilungen → Erlauben</div>
+            <div style={{color:'#fff',fontSize:12,fontWeight:700}}>{L('Verpasse keine Matches & Nachrichten!', 'Don\'t miss any matches & messages!', 'Ne rate aucun match ni message !', '¡No te pierdas ningún match ni mensaje!')}</div>
+            <div style={{color:'rgba(255,255,255,0.85)',fontSize:10,marginTop:2,lineHeight:1.4}}>{L('iPhone-Einstellungen → Fighter → Mitteilungen → Erlauben', 'iPhone Settings → Fighter → Notifications → Allow', 'Réglages iPhone → Fighter → Notifications → Autoriser', 'Ajustes del iPhone → Fighter → Notificaciones → Permitir')}</div>
           </div>
           <button onClick={()=>setShowPushReminder(false)} style={{background:'rgba(255,255,255,0.2)',border:'none',borderRadius:6,color:'#fff',fontSize:16,padding:'4px 10px',cursor:'pointer',flexShrink:0}}>✕</button>
         </div>
@@ -3780,14 +3790,14 @@ nicht öffentlich gemacht</div>
         {myProfile&&!myProfile.avatar_url&&(
           <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(13,13,13,0.97)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 24px',textAlign:'center'}}>
             <div style={{fontSize:54,marginBottom:18}}>📸</div>
-            <div className='rj' style={{fontSize:28,color:'#fff',letterSpacing:2,marginBottom:14}}>{appLang==='FR'?'PHOTO REQUISE':appLang==='EN'?'PHOTO REQUIRED':'PROFILBILD FEHLT'}</div>
-            <div style={{color:'rgba(255,255,255,0.7)',fontSize:15,lineHeight:1.6,maxWidth:320,marginBottom:24,fontFamily:'DM Sans,sans-serif'}}>{appLang==='FR'?"Ajoute une photo de profil. Sans photo, tu n'apparais PAS dans les cartes de swipe.":appLang==='EN'?'Add a profile photo. Without one you will NOT appear in the swipe cards.':'Lade ein Profilbild hoch. Ohne Foto wirst du NICHT in den Swipe-Karten angezeigt.'}</div>
+            <div className='rj' style={{fontSize:28,color:'#fff',letterSpacing:2,marginBottom:14}}>{L('PROFILBILD FEHLT', 'PHOTO REQUIRED', 'PHOTO REQUISE', 'FALTA LA FOTO')}</div>
+            <div style={{color:'rgba(255,255,255,0.7)',fontSize:15,lineHeight:1.6,maxWidth:320,marginBottom:24,fontFamily:'DM Sans,sans-serif'}}>{L('Lade ein Profilbild hoch. Ohne Foto wirst du NICHT in den Swipe-Karten angezeigt.', 'Add a profile photo. Without one you will NOT appear in the swipe cards.', 'Ajoute une photo de profil. Sans photo, tu n\'apparais PAS dans les cartes de swipe.', 'Sube una foto de perfil. Sin foto NO aparecerás en las tarjetas de swipe.')}</div>
             {avatarPreview&&<img loading="lazy" src={avatarPreview} alt='' style={{width:120,height:120,borderRadius:'50%',objectFit:'cover',border:'3px solid '+RED,marginBottom:20}}/>}
             <label style={{display:'inline-block',padding:'14px 28px',borderRadius:12,background:'rgba(255,255,255,0.1)',color:'#fff',border:'1px solid rgba(255,255,255,0.25)',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:1,cursor:'pointer',marginBottom:14}}>
-              {uploading?(appLang==='EN'?'Uploading...':'Lädt...'):avatarPreview?(appLang==='FR'?'Changer':appLang==='EN'?'Change photo':'Foto ändern'):(appLang==='FR'?'Choisir une photo':appLang==='EN'?'Choose photo':'Foto auswählen')}
+              {uploading?(L('Lädt...', 'Uploading...', 'Chargement...', 'Subiendo...')):avatarPreview?(L('Foto ändern', 'Change photo', 'Changer la photo', 'Cambiar foto')):(L('Foto auswählen', 'Choose photo', 'Choisir une photo', 'Elegir foto'))}
               <input type='file' accept='image/*' onChange={handlePhoto} style={{display:'none'}}/>
             </label>
-            {avatarUrl&&<button onClick={saveProfile} disabled={saving} style={{display:'block',width:'100%',maxWidth:280,padding:'14px',borderRadius:12,background:saving?'#444':`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:17,letterSpacing:2,cursor:saving?'not-allowed':'pointer'}}>{saving?(appLang==='EN'?'Saving...':'Speichert...'):(appLang==='FR'?'ENREGISTRER':appLang==='EN'?'SAVE':'SPEICHERN')}</button>}
+            {avatarUrl&&<button onClick={saveProfile} disabled={saving} style={{display:'block',width:'100%',maxWidth:280,padding:'14px',borderRadius:12,background:saving?'#444':`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:17,letterSpacing:2,cursor:saving?'not-allowed':'pointer'}}>{saving?(L('Speichert...', 'Saving...', 'Enregistrement...', 'Guardando...')):(L('SPEICHERN', 'SAVE', 'ENREGISTRER', 'GUARDAR'))}</button>}
           </div>
         )}
         {tab==='swipe'&&(
@@ -3832,7 +3842,7 @@ nicht öffentlich gemacht</div>
             {matchTierRef.current==='minimal'&&visibleCards.length>0&&(
               <div style={{width:'calc(100% - 24px)',maxWidth:380,margin:'0 0 8px',background:'#8e44ad15',border:'1px solid #8e44ad33',borderRadius:10,padding:'8px 12px',display:'flex',alignItems:'center',gap:8}}>
                 <span style={{fontSize:16}}>💡</span>
-                <div style={{color:darkMode?'#ccc':'#666',fontSize:11,lineHeight:1.4}}>Noch wenige Kämpfer in deiner Nähe — wir zeigen dir daher einen größeren Umkreis. Lad Freunde ein, um die Auswahl zu vergrößern!</div>
+                <div style={{color:darkMode?'#ccc':'#666',fontSize:11,lineHeight:1.4}}>{L('Noch wenige Kämpfer in deiner Nähe — wir zeigen dir daher einen größeren Umkreis. Lad Freunde ein, um die Auswahl zu vergrößern!', 'Still few fighters near you — so we show a wider area. Invite friends to grow the selection!', 'Encore peu de combattants près de toi — nous élargissons donc le périmètre. Invite des amis pour agrandir le choix !', 'Aún hay pocos luchadores cerca de ti, por eso mostramos un área mayor. ¡Invita a amigos para ampliar la selección!')}</div>
               </div>
             )}
             <div style={{position:'relative',width:'min(330px, calc(100vw - 40px))',height:'min(430px, 58dvh)',flexShrink:0,touchAction:'none'}}>
@@ -3844,16 +3854,16 @@ nicht öffentlich gemacht</div>
                   <div style={{color:'rgba(255,255,255,0.5)',fontSize:13,marginTop:6,lineHeight:1.6}}>{filterWeightClass&&myWeightClass?`Keine Fighter in deiner Nähe gefunden. Lade Trainingspartner ein, damit es hier voller wird.`:`Alle Fighter wurden gesehen! Neue kommen täglich dazu. Je mehr Kämpfer aus deiner Stadt dabei sind, desto mehr Matches – lade Trainingspartner ein.`}</div>
                   <div style={{display:'flex',gap:12,marginTop:8,width:'100%'}}>
                     <button onClick={async()=>{setSwStats({ch:0,de:0});if(session&&myProfile){await loadRealFighters(session,myProfile);}}} style={{flex:1,padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1,cursor:'pointer'}}>
-                      🔄 NEUE FIGHTER
+                      {L('🔄 NEUE FIGHTER', '🔄 NEW FIGHTERS', '🔄 NOUVEAUX COMBATTANTS', '🔄 NUEVOS LUCHADORES')}
                     </button>
                     <button onClick={()=>setTab('chat')} style={{flex:1,padding:'12px',borderRadius:10,background:'rgba(255,255,255,0.1)',color:'#fff',border:'1px solid rgba(255,255,255,0.2)',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1,cursor:'pointer'}}>
                       💬 CHATS
                     </button>
                   </div>
                   <button onClick={inviteFriends} style={{marginTop:2,width:'100%',padding:'12px',borderRadius:10,background:'transparent',color:'#fff',border:'1px dashed rgba(255,255,255,0.35)',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:'pointer'}}>
-                    👥 TRAININGSPARTNER EINLADEN
+                    {L('👥 TRAININGSPARTNER EINLADEN', '👥 INVITE TRAINING PARTNERS', '👥 INVITER DES PARTENAIRES D\'ENTRAÎNEMENT', '👥 INVITAR COMPAÑEROS DE ENTRENAMIENTO')}
                   </button>
-                  <div style={{color:'rgba(255,255,255,0.3)',fontSize:11,marginTop:4}}>{appLang==='FR'?'Conseil: Double-tap sur une carte = voir le profil':appLang==='EN'?'Tip: Double-tap a card = view profile':'Tipp: Doppel-Tap auf eine Karte = Profil ansehen'}</div>
+                  <div style={{color:'rgba(255,255,255,0.3)',fontSize:11,marginTop:4}}>{L('Tipp: Doppel-Tap auf eine Karte = Profil ansehen', 'Tip: Double-tap a card = view profile', 'Conseil: Double-tap sur une carte = voir le profil', 'Consejo: toca dos veces una tarjeta = ver perfil')}</div>
                 </div>
               ):visibleCards.slice(-3).map((f,idx,arr)=>{
                 // NUR die obersten 3 Karten rendern (nicht alle 150-370)!
@@ -3901,7 +3911,7 @@ nicht öffentlich gemacht</div>
                     </>)}
                     <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'12px 16px 16px'}}> 
                       <div style={{display:'flex',gap:8,marginBottom:8}}>
-                        {[{v:f.wins||0,l:'SIEGE',c:'#27ae60'},{v:f.losses||0,l:'NIEDER',c:'#e74c3c'},{v:f.draws||0,l:'UNENTSCH',c:'#d4a017'},{v:f.ko||0,l:'KOs',c:'#e74c3c'}].map(({v,l,c})=>(
+                        {[{v:f.wins||0,l:L('SIEGE', 'WINS', 'VICTOIRES', 'VICTORIAS'),c:'#27ae60'},{v:f.losses||0,l:L('NIEDER', 'LOSSES', 'DÉFAITES', 'DERROTAS'),c:'#e74c3c'},{v:f.draws||0,l:L('UNENTSCH', 'DRAWS', 'NULS', 'EMPATES'),c:'#d4a017'},{v:f.ko||0,l:'KOs',c:'#e74c3c'}].map(({v,l,c})=>(
                           <div key={l} style={{textAlign:'center',background:'rgba(0,0,0,0.5)',borderRadius:8,padding:'4px 8px'}}>
                             <div className='rj' style={{color:c,fontSize:18,lineHeight:1}}>{v}</div>
                             <div style={{color:'rgba(255,255,255,0.55)',fontSize:7,letterSpacing:1}}>{l}</div>
@@ -3916,12 +3926,12 @@ nicht öffentlich gemacht</div>
                           <div style={{display:'flex',gap:5,marginTop:6,flexWrap:'wrap'}}>
                             {f.style&&<div style={{background:fA,borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{f.style}</div>}
                             {(f.weight_class||f.weightClass)&&<div style={{background:normalizeWeightClass(f.weight_class||f.weightClass)===myWeightClass?'rgba(211,84,0,0.7)':'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:normalizeWeightClass(f.weight_class||f.weightClass)===myWeightClass?700:400}}>⚖️ {(f.weight_class||f.weightClass||'').split(' (')[0]}{normalizeWeightClass(f.weight_class||f.weightClass)===myWeightClass?' ✓':''}</div>}
-                            {f.is_pro&&<div style={{background:'#d4a01733',borderRadius:20,padding:'2px 10px',color:'#d4a017',fontSize:11,fontWeight:700}}>⭐ PROFI</div>}
+                            {f.is_pro&&<div style={{background:'#d4a01733',borderRadius:20,padding:'2px 10px',color:'#d4a017',fontSize:11,fontWeight:700}}>{L('⭐ PROFI', '⭐ PRO', '⭐ PRO', '⭐ PRO')}</div>}
                           {f.country&&f.country!=='DE'&&f.country!=='OTHER'&&<div style={{background:'rgba(255,255,255,0.15)',borderRadius:20,padding:'2px 8px',color:'#fff',fontSize:13}}>{{'AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[f.country]||'🌍'}</div>}
                           {f.city&&<div style={{background:f._sameCity?'rgba(39,174,96,0.3)':'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>📍 {f.city}{f._dist&&f._dist<500&&!f._sameCity?' · '+f._dist+'km':''}{f._sameCity?' · Deine Stadt':''}</div>}
-                          {f._sameStyle&&<div style={{background:'rgba(192,57,43,0.5)',border:'1px solid rgba(192,57,43,0.7)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>🥊 Gleicher Stil</div>}
-                       {f._sameWC&&<div style={{background:'rgba(212,160,23,0.5)',border:'1px solid rgba(212,160,23,0.7)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>⚖️ Gleiche Klasse</div>}
-                       {f._sameCity&&!f._sameStyle&&<div style={{background:'rgba(39,174,96,0.5)',border:'1px solid rgba(39,174,96,0.7)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>📍 In deiner Nähe</div>}
+                          {f._sameStyle&&<div style={{background:'rgba(192,57,43,0.5)',border:'1px solid rgba(192,57,43,0.7)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{L('🥊 Gleicher Stil', '🥊 Same style', '🥊 Même style', '🥊 Mismo estilo')}</div>}
+                       {f._sameWC&&<div style={{background:'rgba(212,160,23,0.5)',border:'1px solid rgba(212,160,23,0.7)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{L('⚖️ Gleiche Klasse', '⚖️ Same class', '⚖️ Même catégorie', '⚖️ Misma categoría')}</div>}
+                       {f._sameCity&&!f._sameStyle&&<div style={{background:'rgba(39,174,96,0.5)',border:'1px solid rgba(39,174,96,0.7)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{L('📍 In deiner Nähe', '📍 Near you', '📍 Près de toi', '📍 Cerca de ti')}</div>}
                           </div>
                           {f.bio&&<div style={{color:'rgba(255,255,255,0.5)',fontSize:10,marginTop:5,fontStyle:'italic'}}>"{f.bio}"</div>}
                         </div>
@@ -4029,10 +4039,10 @@ nicht öffentlich gemacht</div>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:24,letterSpacing:2}}>{t.noMatches}</div>
                 <div style={{color:'#aaa',fontSize:13,lineHeight:1.8,maxWidth:260,textAlign:'center'}}>{t.noMatchesSub}</div>
                 <button onClick={()=>setTab('swipe')} style={{marginTop:10,padding:'14px 32px',borderRadius:12,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:17,letterSpacing:2,cursor:'pointer',boxShadow:'0 4px 16px rgba(192,57,43,0.3)'}}>
-                  ⚔️ JETZT SWIPEN
+                  {L('⚔️ JETZT SWIPEN', '⚔️ SWIPE NOW', '⚔️ SWIPER MAINTENANT', '⚔️ HAZ SWIPE YA')}
                 </button>
                 <button onClick={inviteFriends} style={{padding:'12px 28px',borderRadius:12,background:'transparent',color:darkMode?'#ddd':'#555',border:'1px dashed '+(darkMode?'#555':'#bbb'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1.5,cursor:'pointer'}}>
-                  👥 TRAININGSPARTNER EINLADEN
+                  {L('👥 TRAININGSPARTNER EINLADEN', '👥 INVITE TRAINING PARTNERS', '👥 INVITER DES PARTENAIRES D\'ENTRAÎNEMENT', '👥 INVITAR COMPAÑEROS DE ENTRENAMIENTO')}
                 </button>
                 <div style={{color:'#ddd',fontSize:11,marginTop:2}}>{t.newFightersDaily}</div>
               </div>
@@ -4085,7 +4095,7 @@ nicht öffentlich gemacht</div>
                               {m.last_message_text.startsWith('⚔️')?'⚔️ Fight Request':m.last_message_text.startsWith('✅')?'✅ Angenommen':m.last_message_text.startsWith('❌')?'❌ Abgelehnt':m.last_message_text}
                             </div>
                           ):(
-                            <div style={{color:'#ccc',fontSize:11,marginTop:2,fontStyle:'italic'}}>{appLang==='FR'?'Pas encore de messages':appLang==='EN'?'No messages yet':'Noch keine Nachrichten'}</div>
+                            <div style={{color:'#ccc',fontSize:11,marginTop:2,fontStyle:'italic'}}>{L('Noch keine Nachrichten', 'No messages yet', 'Pas encore de messages', 'Aún no hay mensajes')}</div>
                           )}
                         </div>
                         <div style={{textAlign:'right',flexShrink:0,width:64,minWidth:0}}>
@@ -4117,17 +4127,17 @@ nicht öffentlich gemacht</div>
               <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.65)',zIndex:500,display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
                 <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:'20px 20px 0 0',width:'100%',maxWidth:480,padding:'20px 20px 40px',maxHeight:'85vh',overflowY:'auto'}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:18}}>
-                    <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:2}}>PROFIL BEARBEITEN</div>
+                    <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:2}}>{L('PROFIL BEARBEITEN', 'EDIT PROFILE', 'MODIFIER LE PROFIL', 'EDITAR PERFIL')}</div>
                     <button onClick={()=>setEditMode(false)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#aaa'}}>✕</button>
                   </div>
                   <div style={{display:'flex',flexDirection:'column',gap:12}}>
                     {/* FOTO ÄNDERN */}
                     <div style={{textAlign:'center',marginBottom:4}}>
-                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>PROFILBILD</div>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>{L('PROFILBILD', 'PROFILE PHOTO', 'PHOTO DE PROFIL', 'FOTO DE PERFIL')}</div>
                       <label style={{cursor:'pointer',display:'inline-block',position:'relative'}}>
                         <input type='file' accept='image/*' style={{display:'none'}} onChange={async(e)=>{
                           const file=e.target.files[0];if(!file||!session)return;
-                          showMsg('Foto wird hochgeladen...');
+                          showMsg(L('Foto wird hochgeladen...', 'Uploading photo...', 'Chargement de la photo...', 'Subiendo foto...'));
                           const compressed=await compressImage(file,800,0.82);
                           const path='fighter_'+session.userId+'_'+Date.now()+'.jpg';
                           const url=await uploadPhoto(compressed,path,session.token);
@@ -4138,7 +4148,7 @@ nicht öffentlich gemacht</div>
                               headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
                               body:JSON.stringify({avatar_url:url})
                             });
-                            showMsg('Foto geändert ✓');
+                            showMsg(L('Foto geändert ✓', 'Photo changed ✓', 'Photo modifiée ✓', 'Foto cambiada ✓'));
                           }
                         }}/>
                         <div style={{width:80,height:80,borderRadius:'50%',overflow:'hidden',border:'3px solid '+RED,background:'#f0f0f0',margin:'0 auto',position:'relative'}}>
@@ -4150,7 +4160,7 @@ nicht öffentlich gemacht</div>
                         <div style={{color:RED,fontSize:11,marginTop:5,fontWeight:700}}>Foto ändern</div>
                       </label>
                     </div>
-                    {[['NAME *','name','text',profile.name],['STADT *','city','text',profile.city],['GYM','gym','text',profile.gym],['GRÖSSE (cm)','height','number',profile.height],['GEWICHT (kg)','weight','number',profile.weight],['BIO','bio','text',profile.bio],['INSTAGRAM / YOUTUBE','socialUrl','text',profile.socialUrl]].map(([label,key,type,current])=>(
+                    {[[L('NAME *', 'NAME *', 'NOM *', 'NOMBRE *'),'name','text',profile.name],[L('STADT *', 'CITY *', 'VILLE *', 'CIUDAD *'),'city','text',profile.city],['GYM','gym','text',profile.gym],[L('GRÖSSE (cm)', 'HEIGHT (cm)', 'TAILLE (cm)', 'ALTURA (cm)'),'height','number',profile.height],['GEWICHT (kg)','weight','number',profile.weight],['BIO','bio','text',profile.bio],['INSTAGRAM / YOUTUBE','socialUrl','text',profile.socialUrl]].map(([label,key,type,current])=>(
                       <div key={key}>
                         <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{label}</div>
                         <input type={type} defaultValue={current||''} onChange={e=>setEditProfile(p=>({...p,[key]:e.target.value}))}
@@ -4158,7 +4168,7 @@ nicht öffentlich gemacht</div>
                       </div>
                     ))}
                     <div>
-                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>KAMPFSTIL (mehrere möglich)</div>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>{L('KAMPFSTIL (mehrere möglich)', 'FIGHTING STYLE (multiple allowed)', 'STYLE DE COMBAT (plusieurs possibles)', 'ESTILO DE COMBATE (varios posibles)')}</div>
                       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
                         {STYLES.map(s=>{
                           const currentStyles=(editProfile.style!==undefined?editProfile.style:profile.style)||'';
@@ -4175,15 +4185,15 @@ nicht öffentlich gemacht</div>
                       </div>
                     </div>
                     <div>
-                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>GEWICHTSKLASSE</div>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('GEWICHTSKLASSE', 'WEIGHT CLASS', 'CATÉGORIE DE POIDS', 'CATEGORÍA DE PESO')}</div>
                       <select defaultValue={normalizeWeightClass(profile.weightClass)||''} onChange={e=>setEditProfile(p=>({...p,weightClass:e.target.value}))}
                         style={{width:'100%',padding:'11px 13px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontFamily:'DM Sans,sans-serif'}}>
-                        <option value=''>{appLang==='FR'?'Choisir':appLang==='EN'?'Please select':'Bitte wählen'}</option>
+                        <option value=''>{L('Bitte wählen', 'Please select', 'Choisir', 'Selecciona')}</option>
                         {WEIGHT_CLASSES.map(w=><option key={w} value={w}>{w}</option>)}
                       </select>
                     </div>
                     <div>
-                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>GESCHLECHT</div>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>{L('GESCHLECHT', 'GENDER', 'GENRE', 'GÉNERO')}</div>
                       <div style={{display:'flex',gap:8,marginBottom:12}}>
                         {[['Mann','♂️','male'],['Frau','♀️','female']].map(([label,icon,val])=>(
                           <button key={val} onClick={()=>setEditProfile(p=>({...p,gender:val}))}
@@ -4195,7 +4205,7 @@ nicht öffentlich gemacht</div>
                       </div>
                     </div>
                     <div>
-                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>LEVEL</div>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>{L('LEVEL', 'LEVEL', 'NIVEAU', 'NIVEL')}</div>
                       <div style={{display:'flex',gap:8}}>
                         {[['Amateur','🥋',false],['Profi','⭐',true]].map(([label,icon,val])=>(
                           <button key={label} onClick={()=>setEditProfile(p=>({...p,isPro:val}))}
@@ -4207,18 +4217,18 @@ nicht öffentlich gemacht</div>
                       </div>
                     </div>
                     <div>
-                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>LAND</div>
+                      <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>{L('LAND', 'COUNTRY', 'PAYS', 'PAÍS')}</div>
                       <select defaultValue={profile.country||'DE'} onChange={e=>setEditProfile(p=>({...p,country:e.target.value}))}
                         style={{width:'100%',padding:'11px 13px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontFamily:'DM Sans,sans-serif'}}>
                         {[['DE','🇩🇪 Deutschland'],['AT','🇦🇹 Österreich'],['CH','🇨🇭 Schweiz'],['FR','🇫🇷 Frankreich'],['GB','🇬🇧 UK'],['US','🇺🇸 USA'],['NL','🇳🇱 Niederlande'],['BE','🇧🇪 Belgien'],['IT','🇮🇹 Italien'],['ES','🇪🇸 Spanien'],['BG','🇧🇬 Bulgarien'],['HR','🇭🇷 Kroatien'],['CY','🇨🇾 Zypern'],['CZ','🇨🇿 Tschechien'],['DK','🇩🇰 Dänemark'],['EE','🇪🇪 Estland'],['FI','🇫🇮 Finnland'],['GR','🇬🇷 Griechenland'],['HU','🇭🇺 Ungarn'],['IE','🇮🇪 Irland'],['LV','🇱🇻 Lettland'],['LT','🇱🇹 Litauen'],['LU','🇱🇺 Luxemburg'],['MT','🇲🇹 Malta'],['PL','🇵🇱 Polen'],['PT','🇵🇹 Portugal'],['RO','🇷🇴 Rumänien'],['SK','🇸🇰 Slowakei'],['SI','🇸🇮 Slowenien'],['SE','🇸🇪 Schweden'],['OTHER','🌍 Andere']].map(([code,label])=>(
-                          <option key={code} value={code}>{label}</option>
+                          <option key={code} value={code}>{label.slice(0,label.indexOf(' ')+1)+countryName(code,label.slice(label.indexOf(' ')+1),appLang)}</option>
                         ))}
                       </select>
-                      <div style={{color:'#999',fontSize:11,marginTop:5,lineHeight:1.4}}>Wirkt sich sofort auf dein Matching aus (z.B. Land-Filter und Rangliste).</div>
+                      <div style={{color:'#999',fontSize:11,marginTop:5,lineHeight:1.4}}>{L('Wirkt sich sofort auf dein Matching aus (z.B. Land-Filter und Rangliste).', 'Takes effect on your matching immediately (e.g. country filter and ranking).', 'Prend effet immédiatement sur ton matching (p. ex. filtre pays et classement).', 'Afecta de inmediato a tu matching (p. ej., filtro de país y ranking).')}</div>
                     </div>
                     {(editProfile.style||profile.style||'').split(',').map(x=>x.trim()).some(s=>BELT_STYLES.includes(s))&&(
                       <div>
-                        <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>GUERTELRANG</div>
+                        <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>{L('GUERTELRANG', 'BELT RANK', 'GRADE DE CEINTURE', 'GRADO DE CINTURÓN')}</div>
                         <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
                           {BELT_RANKS.map(b=>{
                             const currentBelt=editProfile.belt!==undefined?editProfile.belt:profile.belt;
@@ -4230,7 +4240,7 @@ nicht öffentlich gemacht</div>
                     )}
                     <div style={{background:'#f8f4ff',border:'1px solid #e0d4f7',borderRadius:12,padding:'12px 14px'}}>
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                        <div style={{color:'#1a1a1a',fontSize:12,fontWeight:700}}>🎓 Bist du auch Trainer?</div>
+                        <div style={{color:'#1a1a1a',fontSize:12,fontWeight:700}}>{L('🎓 Bist du auch Trainer?', '🎓 Are you also a coach?', '🎓 Es-tu aussi coach ?', '🎓 ¿Eres también entrenador?')}</div>
                         <button onClick={()=>setEditProfile(p=>({...p,isCoach:!(p.isCoach!==undefined?p.isCoach:profile.isCoach)}))}
                           style={{padding:'6px 14px',borderRadius:8,border:'2px solid '+((editProfile.isCoach!==undefined?editProfile.isCoach:profile.isCoach)?'#8e44ad':'#ddd'),background:(editProfile.isCoach!==undefined?editProfile.isCoach:profile.isCoach)?'#8e44ad':'#fff',color:(editProfile.isCoach!==undefined?editProfile.isCoach:profile.isCoach)?'#fff':'#888',fontWeight:700,fontSize:12,cursor:'pointer'}}>
                           {(editProfile.isCoach!==undefined?editProfile.isCoach:profile.isCoach)?'Ja ✓':'Nein'}
@@ -4239,7 +4249,7 @@ nicht öffentlich gemacht</div>
                       {(editProfile.isCoach!==undefined?editProfile.isCoach:profile.isCoach)&&(
                         <div style={{marginTop:12,display:'flex',flexDirection:'column',gap:10}}>
                           <div style={{position:'relative'}}>
-                            <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>GYM / VEREIN</div>
+                            <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('GYM / VEREIN', 'GYM / CLUB', 'SALLE / CLUB', 'GIMNASIO / CLUB')}</div>
                             <input value={editProfile.coachGym!==undefined?editProfile.coachGym:(profile.coachGym||'')} onChange={e=>{
                                 const v=e.target.value;
                                 setEditProfile(p=>({...p,coachGym:v}));
@@ -4273,12 +4283,12 @@ nicht öffentlich gemacht</div>
                             )}
                           </div>
                           <div>
-                            <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>JAHRE ERFAHRUNG ALS TRAINER</div>
+                            <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('JAHRE ERFAHRUNG ALS TRAINER', 'YEARS OF EXPERIENCE AS A COACH', 'ANNÉES D\'EXPÉRIENCE COMME COACH', 'AÑOS DE EXPERIENCIA COMO ENTRENADOR')}</div>
                             <input type='number' value={editProfile.coachExperience!==undefined?editProfile.coachExperience:(profile.coachExperience||'')} onChange={e=>setEditProfile(p=>({...p,coachExperience:e.target.value}))} placeholder='z.B. 8'
                               style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
                           </div>
                           <div>
-                            <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>UNTERRICHTETE KAMPFSTILE</div>
+                            <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('UNTERRICHTETE KAMPFSTILE', 'STYLES YOU TEACH', 'STYLES ENSEIGNÉS', 'ESTILOS QUE ENSEÑAS')}</div>
                             <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
                               {STYLES.map(s=>{
                                 const currentStyles=editProfile.coachStyles!==undefined?editProfile.coachStyles:(profile.coachStyles||'');
@@ -4292,17 +4302,17 @@ nicht öffentlich gemacht</div>
                             </div>
                           </div>
                           <div>
-                            <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>TRAINER-BIO</div>
+                            <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('TRAINER-BIO', 'COACH BIO', 'BIO DU COACH', 'BIO DE ENTRENADOR')}</div>
                             <input value={editProfile.coachBio!==undefined?editProfile.coachBio:(profile.coachBio||'')} onChange={e=>setEditProfile(p=>({...p,coachBio:e.target.value}))} placeholder='Erfolge, dein Ansatz...'
                               style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
                           </div>
                           <div>
-                            <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>TRAINER-PROFILBILD</div>
-                            <div style={{color:'#888',fontSize:11,marginBottom:8,lineHeight:1.5}}>Wird in der Trainer-Rangliste gezeigt — kann sich von deinem normalen Profilbild unterscheiden.</div>
+                            <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('TRAINER-PROFILBILD', 'COACH PROFILE PHOTO', 'PHOTO DE PROFIL DU COACH', 'FOTO DE PERFIL DE ENTRENADOR')}</div>
+                            <div style={{color:'#888',fontSize:11,marginBottom:8,lineHeight:1.5}}>{L('Wird in der Trainer-Rangliste gezeigt — kann sich von deinem normalen Profilbild unterscheiden.', 'Shown in the coach ranking — can differ from your normal profile photo.', 'Affichée dans le classement des coachs — peut différer de ta photo de profil habituelle.', 'Se muestra en el ranking de entrenadores — puede ser distinta de tu foto de perfil normal.')}</div>
                             <div style={{display:'flex',alignItems:'center',gap:14}}>
                               <div style={{width:60,height:60,borderRadius:12,background:coachAvatarPreview?'#000':(darkMode?'#111':'#f5edfc'),border:'2px solid '+(coachAvatarPreview?'#8e44ad':(darkMode?'#333':'#ddd')),overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                                 {coachAvatarPreview
-                                  ?<img loading="lazy" src={coachAvatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='Trainer-Profilbild'/>
+                                  ?<img loading="lazy" src={coachAvatarPreview} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={L('Trainer-Profilbild', 'Coach profile photo', 'Photo de profil du coach', 'Foto de perfil de entrenador')}/>
                                   :<div style={{fontSize:20}}>🎓</div>}
                               </div>
                               <label style={{padding:'9px 14px',borderRadius:8,background:'#8e44ad',color:'#fff',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>
@@ -4328,24 +4338,24 @@ nicht öffentlich gemacht</div>
               const nk=prog.next.k;
               return(
                 <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',border:'1px solid '+RED+'33',marginBottom:11,boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
-                  <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:1.5,marginBottom:8}}>DEIN PROFIL IST {prog.pct} % VOLLSTÄNDIG</div>
+                  <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:1.5,marginBottom:8}}>{L('DEIN PROFIL IST '+prog.pct+' % VOLLSTÄNDIG','YOUR PROFILE IS '+prog.pct+' % COMPLETE','TON PROFIL EST COMPLET À '+prog.pct+' %','TU PERFIL ESTÁ COMPLETO AL '+prog.pct+' %')}</div>
                   <div style={{height:8,borderRadius:4,background:darkMode?'#2a2a2a':'#eee',overflow:'hidden',marginBottom:10}}>
                     <div style={{width:prog.pct+'%',height:'100%',borderRadius:4,background:`linear-gradient(90deg,${RED},${LIGHT_RED})`,transition:'width 0.4s'}}/>
                   </div>
-                  <div style={{color:darkMode?'#bbb':'#555',fontSize:13,lineHeight:1.5,marginBottom:10}}>Nächster Schritt: {prog.next.label}</div>
+                  <div style={{color:darkMode?'#bbb':'#555',fontSize:13,lineHeight:1.5,marginBottom:10}}>{L('Nächster Schritt: ','Next step: ','Prochaine étape : ','Siguiente paso: ')}{progressLabel(prog.next.k,prog.next.label,L)}</div>
                   <button onClick={()=>{
                     if(nk==='record')setTab('ranking');
                     else if(nk==='gymver')setShowGymVerify(true);
                     else{setEditProfile({});setEditMode(true);}
-                  }} style={{width:'100%',padding:'11px',borderRadius:10,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:'pointer'}}>JETZT ERLEDIGEN</button>
+                  }} style={{width:'100%',padding:'11px',borderRadius:10,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:'pointer'}}>{L('JETZT ERLEDIGEN', 'DO IT NOW', 'FAIS-LE MAINTENANT', 'HAZLO AHORA')}</button>
                 </div>
               );
             })()}
             <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:11,textAlign:'center',boxShadow:'0 1px 4px rgba(0,0,0,0.06)',position:'relative'}}>
               <div style={{position:'absolute',top:12,right:12,display:'flex',gap:6,alignItems:'center'}}>
                 <button onClick={()=>{
-                  const shareText=`⚔️ ${profile.name} auf Fighter\n${profile.style} · ${profile.weightClass?profile.weightClass.split(' (')[0]:''}\n📍 ${profile.city}\n\nFinde mich und andere Kämpfer in deiner Nähe auf Fighter:`;
-                  shareLink({title:'Fighter — '+profile.name,text:shareText,url:inviteUrl(myProfile?.id),onCopied:()=>showMsg('Profil-Link kopiert! 📋')});
+                  const shareText=`⚔️ ${profile.name} ${L('auf Fighter','on Fighter','sur Fighter','en Fighter')}\n${profile.style} · ${profile.weightClass?profile.weightClass.split(' (')[0]:''}\n📍 ${profile.city}\n\n${L('Finde mich und andere Kämpfer in deiner Nähe auf Fighter:','Find me and other fighters near you on Fighter:','Trouve-moi et d\'autres combattants près de chez toi sur Fighter :','Encuéntrame a mí y a otros luchadores cerca de ti en Fighter:')}`;
+                  shareLink({title:'Fighter — '+profile.name,text:shareText,url:inviteUrl(myProfile?.id),onCopied:()=>showMsg(L('Profil-Link kopiert! 📋', 'Profile link copied! 📋', 'Lien du profil copié ! 📋', '¡Enlace del perfil copiado! 📋'))});
                 }} style={{background:'none',border:'none',color:darkMode?'#666':'#aaa',fontSize:16,cursor:'pointer',padding:'4px'}}>
                   🔗
                 </button>
@@ -4380,19 +4390,19 @@ nicht öffentlich gemacht</div>
             {/* FREUNDE EINLADEN / REWARD-SYSTEM */}
             <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginBottom:11,boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,letterSpacing:1}}>🎁 FREUNDE EINLADEN</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:15,letterSpacing:1}}>{L('🎁 FREUNDE EINLADEN', '🎁 INVITE FRIENDS', '🎁 INVITER DES AMIS', '🎁 INVITA A AMIGOS')}</div>
                 <div style={{color:RED,fontSize:13,fontWeight:700}}>{myProfile?.referral_count||0} {(myProfile?.referral_count||0)===1?'Freund':'Freunde'}</div>
               </div>
               <div style={{color:darkMode?'#999':'#666',fontSize:12,marginBottom:12,lineHeight:1.4}}>
-                Lade Freunde mit deinem Link ein. Jeder, der sich registriert <b>und</b> sein Profil fertig anlegt, schaltet dir den nächsten Marken-Rabattcode bei Equipment und Supplements frei.
+                {L('Lade Freunde mit deinem Link ein. Jeder, der sich registriert und sein Profil fertig anlegt, schaltet dir den nächsten Marken-Rabattcode bei Equipment und Supplements frei.','Invite friends with your link. Everyone who signs up and completes their profile unlocks your next brand discount code in Equipment and Supplements.',"Invite des amis avec ton lien. Chaque personne qui s'inscrit et termine son profil débloque pour toi le prochain code de remise de marque dans Équipement et Compléments.",'Invita a amigos con tu enlace. Cada persona que se registre y complete su perfil te desbloquea el siguiente código de descuento de marca en Equipamiento y Suplementos.')}
               </div>
               <button onClick={()=>{
                 const inviteLink='https://fighterapp.de/?ref='+(myProfile?.id||'');
-                const shareText='🥊 Komm zu Fighter! Melde dich mit meinem Link an: '+inviteLink;
+                const shareText=L('🥊 Komm zu Fighter! Melde dich mit meinem Link an: ', '🥊 Join me on Fighter! Sign up with my link: ', '🥊 Rejoins-moi sur Fighter ! Inscris-toi avec mon lien : ', '🥊 ¡Ven a Fighter! Regístrate con mi enlace: ')+inviteLink;
                 if(navigator.share){navigator.share({title:'Fighter App',text:shareText,url:inviteLink}).catch(()=>{});}
-                else{navigator.clipboard?.writeText(inviteLink);showMsg('Einladungslink kopiert! 📋');}
+                else{navigator.clipboard?.writeText(inviteLink);showMsg(L('Einladungslink kopiert! 📋', 'Invite link copied! 📋', 'Lien d\'invitation copié ! 📋', '¡Enlace de invitación copiado! 📋'));}
               }} style={{width:'100%',padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:'pointer',marginBottom:12}}>
-                🔗 EINLADUNGSLINK TEILEN
+                {L('🔗 EINLADUNGSLINK TEILEN', '🔗 SHARE INVITE LINK', '🔗 PARTAGER LE LIEN D\'INVITATION', '🔗 COMPARTIR ENLACE DE INVITACIÓN')}
               </button>
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 {[['🛒 Equipment','equipment',()=>{setShowEquipment(true);}],['💊 Supplements','supplement',()=>{setShowSupplements(true);}]].map(([label,key,openScreen])=>{
@@ -4408,9 +4418,9 @@ nicht öffentlich gemacht</div>
                         <span style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:700}}>{label}</span>
                         <span style={{color:total>0&&unlockedN===total?'#27ae60':RED,fontSize:12,fontWeight:700}}>{unlockedN}/{total} Marken</span>
                       </div>
-                      {total===0&&<div style={{color:darkMode?'#777':'#999',fontSize:11,marginTop:3}}>Noch keine Marken-Rabatte hier</div>}
+                      {total===0&&<div style={{color:darkMode?'#777':'#999',fontSize:11,marginTop:3}}>{L('Noch keine Marken-Rabatte hier', 'No brand discounts here yet', 'Pas encore de remises de marques ici', 'Aún no hay descuentos de marcas aquí')}</div>}
                       {total>0&&nextBrandLabel&&<div style={{color:darkMode?'#777':'#999',fontSize:11,marginTop:3}}>🔒 Nächster Code: {nextBrandLabel} (ab {unlockedN+1} {unlockedN+1===1?'Freund':'Freunden'})</div>}
-                      {total>0&&!nextBrandLabel&&<div style={{color:'#27ae60',fontSize:11,marginTop:3}}>✅ Alle Marken-Codes freigeschaltet!</div>}
+                      {total>0&&!nextBrandLabel&&<div style={{color:'#27ae60',fontSize:11,marginTop:3}}>{L('✅ Alle Marken-Codes freigeschaltet!', '✅ All brand codes unlocked!', '✅ Tous les codes de marque sont débloqués !', '✅ ¡Todos los códigos de marca desbloqueados!')}</div>}
                     </div>
                   );
                 })}
@@ -4443,7 +4453,7 @@ nicht öffentlich gemacht</div>
             </div>
 
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:7,marginBottom:9}}>
-              {[['SIEGE',stats.wins,'#27ae60'],['NIEDERLAGEN',stats.losses,RED],['UNENTSCHIEDEN',stats.draws,'#d4a017']].map(([label,val,color])=>(
+              {[[L('SIEGE', 'WINS', 'VICTOIRES', 'VICTORIAS'),stats.wins,'#27ae60'],[L('NIEDERLAGEN', 'LOSSES', 'DÉFAITES', 'DERROTAS'),stats.losses,RED],[L('UNENTSCHIEDEN', 'DRAWS', 'NULS', 'EMPATES'),stats.draws,'#d4a017']].map(([label,val,color])=>(
                 <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:11,padding:'13px 5px',textAlign:'center',border:'1px solid '+color+'33',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
                   <div className='rj' style={{color:color,fontSize:36,lineHeight:1}}>{val}</div>
                   <div style={{color:'#bbb',fontSize:8,letterSpacing:1,marginTop:3}}>{label}</div>
@@ -4461,9 +4471,9 @@ nicht öffentlich gemacht</div>
               ))}
             </div>
             <div style={{background:'#fff',borderRadius:11,padding:'13px',border:'1px solid #eee',marginBottom:9}}>
-              <div style={{color:'#ccc',fontSize:9,letterSpacing:2,marginBottom:11}}>REKORD BEARBEITEN</div>
+              <div style={{color:'#ccc',fontSize:9,letterSpacing:2,marginBottom:11}}>{L('REKORD BEARBEITEN', 'EDIT RECORD', 'MODIFIER LE PALMARÈS', 'EDITAR RÉCORD')}</div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:5}}>
-                {[['wins','SIEGE','#27ae60'],['losses','NIEDER',RED],['draws','UNENTSCH','#d4a017'],['ko','KOs',RED]].map(([key,label,color])=>(
+                {[['wins',L('SIEGE', 'WINS', 'VICTOIRES', 'VICTORIAS'),'#27ae60'],['losses',L('NIEDER', 'LOSSES', 'DÉFAITES', 'DERROTAS'),RED],['draws',L('UNENTSCH', 'DRAWS', 'NULS', 'EMPATES'),'#d4a017'],['ko','KOs',RED]].map(([key,label,color])=>(
                   <div key={key} style={{textAlign:'center'}}>
                     <div style={{color:'#ccc',fontSize:8,marginBottom:3}}>{label}</div>
                     <button onClick={()=>setStats(s=>({...s,[key]:s[key]+1}))} style={{width:'100%',background:'#f5f5f5',border:'1px solid '+color+'22',borderRadius:4,color:color,fontSize:13,cursor:'pointer',padding:'3px 0',marginBottom:3}}>+</button>
@@ -4478,8 +4488,8 @@ nicht öffentlich gemacht</div>
             </button>
             {/* VERIFIZIERTER KAMPFREKORD */}
             <div id='record-verify-box' style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),marginTop:8,marginBottom:8}}>
-              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,letterSpacing:2,marginBottom:10}}>🏅 KAMPFREKORD VERIFIZIEREN</div>
-              <div style={{color:'#aaa',fontSize:11,marginBottom:10,lineHeight:1.6}}>Lade ein Foto deiner Urkunde, Medaille oder eines offiziellen Kampfergebnisses hoch. Dein Rekord bekommt dann ein ✅ Verifiziert-Badge.</div>
+              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,letterSpacing:2,marginBottom:10}}>{L('🏅 KAMPFREKORD VERIFIZIEREN', '🏅 VERIFY FIGHT RECORD', '🏅 VÉRIFIER LE PALMARÈS', '🏅 VERIFICAR RÉCORD DE COMBATE')}</div>
+              <div style={{color:'#aaa',fontSize:11,marginBottom:10,lineHeight:1.6}}>{L('Lade ein Foto deiner Urkunde, Medaille oder eines offiziellen Kampfergebnisses hoch. Dein Rekord bekommt dann ein ✅ Verifiziert-Badge.', 'Upload a photo of your certificate, medal or an official fight result. Your record then gets a ✅ Verified badge.', 'Charge une photo de ton diplôme, de ta médaille ou d\'un résultat officiel. Ton palmarès reçoit alors un badge ✅ Vérifié.', 'Sube una foto de tu diploma, medalla o un resultado oficial. Tu récord recibirá entonces una insignia ✅ Verificado.')}</div>
               <label style={{cursor:'pointer',display:'block'}}>
                 <input type='file' accept='image/*' style={{display:'none'}} onChange={async(e)=>{
                   const file=e.target.files[0];if(!file||!session)return;
@@ -4493,16 +4503,16 @@ nicht öffentlich gemacht</div>
                       headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
                       body:JSON.stringify({record_proof_url:url,record_verified:'pending'})
                     });
-                    showMsg('✅ Nachweis hochgeladen! Wird innerhalb 48h geprüft.');
+                    showMsg(L('✅ Nachweis hochgeladen! Wird innerhalb 48h geprüft.', '✅ Proof uploaded! It will be reviewed within 48h.', '✅ Justificatif chargé ! Vérification sous 48 h.', '✅ ¡Comprobante subido! Se revisará en 48 h.'));
                   }else showMsg('Upload fehlgeschlagen');
                 }}/>
                 <div style={{background:darkMode?'#111':'#f5f5f5',border:'1.5px dashed '+(myProfile?.record_verified==='verified'?'#27ae60':myProfile?.record_verified==='pending'?'#d4a017':'#ccc'),borderRadius:10,padding:'14px',textAlign:'center'}}>
                   {myProfile?.record_verified==='verified'?(
-                    <div><div style={{fontSize:24}}>✅</div><div style={{color:'#27ae60',fontWeight:700,fontSize:12,marginTop:4}}>REKORD VERIFIZIERT</div></div>
+                    <div><div style={{fontSize:24}}>✅</div><div style={{color:'#27ae60',fontWeight:700,fontSize:12,marginTop:4}}>{L('REKORD VERIFIZIERT', 'RECORD VERIFIED', 'PALMARÈS VÉRIFIÉ', 'RÉCORD VERIFICADO')}</div></div>
                   ):myProfile?.record_verified==='pending'?(
-                    <div><div style={{fontSize:24}}>⏳</div><div style={{color:'#d4a017',fontWeight:700,fontSize:12,marginTop:4}}>WIRD GEPRÜFT</div><div style={{color:'#aaa',fontSize:10,marginTop:2}}>Bis zu 48 Stunden</div></div>
+                    <div><div style={{fontSize:24}}>⏳</div><div style={{color:'#d4a017',fontWeight:700,fontSize:12,marginTop:4}}>{L('WIRD GEPRÜFT', 'UNDER REVIEW', 'EN COURS DE VÉRIFICATION', 'EN REVISIÓN')}</div><div style={{color:'#aaa',fontSize:10,marginTop:2}}>{L('Bis zu 48 Stunden', 'Up to 48 hours', 'Jusqu\'à 48 heures', 'Hasta 48 horas')}</div></div>
                   ):(
-                    <div><div style={{fontSize:24}}>📄</div><div style={{color:darkMode?'#aaa':'#888',fontSize:12,marginTop:4}}>Urkunde / Medaille hochladen</div><div style={{color:'#ccc',fontSize:10,marginTop:2}}>JPG, PNG · max 5MB</div></div>
+                    <div><div style={{fontSize:24}}>📄</div><div style={{color:darkMode?'#aaa':'#888',fontSize:12,marginTop:4}}>{L('Urkunde / Medaille hochladen', 'Upload certificate / medal', 'Charger un diplôme / une médaille', 'Subir diploma / medalla')}</div><div style={{color:'#ccc',fontSize:10,marginTop:2}}>JPG, PNG · max 5MB</div></div>
                   )}
                 </div>
               </label>
@@ -4518,7 +4528,7 @@ nicht öffentlich gemacht</div>
                     {locationSource==='gps'?'GPS Standort aktiv ✅':locationSource==='ip'?'Standort via IP 🌐':'Kein Standort'}
                   </div>
                   <div style={{color:locationSource==='gps'?'#27ae60':locationSource==='ip'?'#2980b9':'#aaa',fontSize:11,marginTop:1}}>
-                    {locationSource==='gps'?'Genauer Standort — beste Matching-Ergebnisse':locationSource==='ip'?'Ungefährer Standort — GPS für bessere Ergebnisse aktivieren':'GPS aktivieren für besseres Matching'}
+                    {locationSource==='gps'?'Genauer Standort — beste Matching-Ergebnisse':locationSource==='ip'?L('Ungefährer Standort — GPS für bessere Ergebnisse aktivieren', 'Approximate location — enable GPS for better results', 'Position approximative — active le GPS pour de meilleurs résultats', 'Ubicación aproximada: activa el GPS para mejores resultados'):L('GPS aktivieren für besseres Matching', 'Enable GPS for better matching', 'Active le GPS pour un meilleur matching', 'Activa el GPS para un mejor matching')}
                   </div>
                   {myLat&&myLon&&<div style={{color:'#ccc',fontSize:10,marginTop:2}}>{myLat.toFixed(4)}, {myLon.toFixed(4)}</div>}
                 </div>
@@ -4526,7 +4536,7 @@ nicht öffentlich gemacht</div>
               {locationSource!=='gps'&&(
                 <button onClick={getGPSLocation} disabled={locationLoading}
                   style={{width:'100%',marginTop:12,padding:'11px',borderRadius:10,background:locationLoading?'#eee':'linear-gradient(135deg,#27ae60,#2ecc71)',border:'none',color:locationLoading?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:locationLoading?'not-allowed':'pointer'}}>
-                  {locationLoading?'GPS wird ermittelt...':'📍 PRÄZISEN STANDORT AKTIVIEREN'}
+                  {locationLoading?L('GPS wird ermittelt...', 'Getting GPS location...', 'Localisation GPS en cours...', 'Obteniendo ubicación GPS...'):L('📍 PRÄZISEN STANDORT AKTIVIEREN', '📍 ENABLE PRECISE LOCATION', '📍 ACTIVER LA POSITION PRÉCISE', '📍 ACTIVAR UBICACIÓN PRECISA')}
                 </button>
               )}
               {locationSource==='gps'&&(
@@ -4537,7 +4547,7 @@ nicht öffentlich gemacht</div>
                   }
                   showMsg('GPS Standort entfernt');
                 }} style={{width:'100%',marginTop:12,padding:'9px',borderRadius:10,background:'transparent',border:'1px solid #e74c3c44',color:'#e74c3c',fontFamily:'DM Sans,sans-serif',fontSize:12,cursor:'pointer'}}>
-                  GPS zurücksetzen
+                  {L('GPS zurücksetzen', 'Reset GPS', 'Réinitialiser le GPS', 'Restablecer GPS')}
                 </button>
               )}
             </div>
@@ -4561,7 +4571,7 @@ nicht öffentlich gemacht</div>
                   <div style={{color:'#aaa',fontSize:10,marginTop:2}}>{t.trainingWith}</div>
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:7}}>
-                  <div style={{color:'#aaa',fontSize:9,textAlign:'right'}}>{historyPublic?'Öffentlich':'Privat'}</div>
+                  <div style={{color:'#aaa',fontSize:9,textAlign:'right'}}>{historyPublic?L('Öffentlich', 'Public', 'Public', 'Público'):L('Privat', 'Private', 'Privé', 'Privado')}</div>
                   <div onClick={async()=>{
                     const next=!historyPublic;
                     setHistoryPublic(next);
@@ -4576,7 +4586,7 @@ nicht öffentlich gemacht</div>
                         });
                       }catch(e){console.error('history_public save error',e);}
                     }
-                    showMsg(next?'Trainings-Historie ist jetzt öffentlich 👁':'Trainings-Historie ist jetzt privat 🔒');
+                    showMsg(next?L('Trainings-Historie ist jetzt öffentlich 👁', 'Training history is now public 👁', 'L\'historique d\'entraînement est maintenant public 👁', 'El historial de entrenamiento ahora es público 👁'):L('Trainings-Historie ist jetzt privat 🔒', 'Training history is now private 🔒', 'L\'historique d\'entraînement est maintenant privé 🔒', 'El historial de entrenamiento ahora es privado 🔒'));
                   }} style={{width:38,height:22,borderRadius:11,background:historyPublic?'#27ae60':'#ccc',position:'relative',cursor:'pointer',flexShrink:0}}>
                     <div style={{position:'absolute',top:3,left:historyPublic?19:3,width:16,height:16,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
                   </div>
@@ -4585,7 +4595,7 @@ nicht öffentlich gemacht</div>
               {!historyPublic&&(
                 <div style={{background:darkMode?'#111':'#f5f5f7',borderRadius:8,padding:'8px 12px',marginBottom:10,display:'flex',alignItems:'center',gap:8}}>
                   <span style={{fontSize:14}}>🔒</span>
-                  <div style={{color:'#aaa',fontSize:11}}>Nur du siehst deine Trainings-Historie. Aktiviere den Toggle um sie öffentlich zu machen.</div>
+                  <div style={{color:'#aaa',fontSize:11}}>{L('Nur du siehst deine Trainings-Historie. Aktiviere den Toggle um sie öffentlich zu machen.', 'Only you can see your training history. Turn on the toggle to make it public.', 'Toi seul vois ton historique d\'entraînement. Active l\'interrupteur pour le rendre public.', 'Solo tú ves tu historial de entrenamiento. Activa el interruptor para hacerlo público.')}</div>
                 </div>
               )}
               {fightHistory.length===0?(
@@ -4611,7 +4621,7 @@ nicht öffentlich gemacht</div>
                     </div>
                     );
                     return f.id
-                      ?<SwipeableChatRow key={f.id} darkMode={darkMode} radius={10} bg={darkMode?'#111':'#f9f9f9'} confirmText='Diesen Eintrag aus deiner Trainingshistorie löschen?' onDelete={()=>deleteHistoryEntry(f)}>{histRow}</SwipeableChatRow>
+                      ?<SwipeableChatRow key={f.id} darkMode={darkMode} radius={10} bg={darkMode?'#111':'#f9f9f9'} confirmText={L('Diesen Eintrag aus deiner Trainingshistorie löschen?', 'Delete this entry from your training history?', 'Supprimer cette entrée de ton historique d\'entraînement ?', '¿Eliminar esta entrada de tu historial de entrenamiento?')} onDelete={()=>deleteHistoryEntry(f)}>{histRow}</SwipeableChatRow>
                       :<div key={i}>{histRow}</div>;
                   })}
                 </div>
@@ -4619,7 +4629,7 @@ nicht öffentlich gemacht</div>
             </div>
             {dbMatches.length>3&&(
               <div style={{marginTop:14}}>
-                <div style={{color:'#bbb',fontSize:9,letterSpacing:2,marginBottom:8,fontWeight:700}}>MEINE MATCHES</div>
+                <div style={{color:'#bbb',fontSize:9,letterSpacing:2,marginBottom:8,fontWeight:700}}>{L('MEINE MATCHES', 'MY MATCHES', 'MES MATCHS', 'MIS MATCHES')}</div>
                 {dbMatches.map(m=>{
                   const other=m.profile_a_id===myProfile?.id?m.profile_b:m.profile_a;
                   if(!other)return null;
@@ -4662,13 +4672,13 @@ nicht öffentlich gemacht</div>
                 const hard=Object.entries(GYMS).flatMap(([ct,gs])=>gs.map(gx=>({...gx,ct}))).find(gx=>gx.name===g.name);
                 const db=dbGyms.find(dg=>dg.name===g.name);
                 const base=hard||db||g;
-                setViewGym({gym:{styles:[],...base,city:base.city||base.ct||'',members:base.members||0,rating:base.rating||0,styles:base.styles||[base.style||'Kampfsport'],address:base.address||base.city||'',desc:base.desc||base.description||'',street:base.street||base.address||'',zip:base.zip||'',founded:base.founded||''},key:g.k});
+                setViewGym({gym:{styles:[],...base,city:base.city||base.ct||'',members:base.members||0,rating:base.rating||0,styles:base.styles||[base.style||L('Kampfsport', 'Combat sports', 'Sports de combat', 'Deportes de combate')],address:base.address||base.city||'',desc:base.desc||base.description||'',street:base.street||base.address||'',zip:base.zip||'',founded:base.founded||''},key:g.k});
               };
               return(<>
                 {/* TOP 5 */}
                 <div style={{marginBottom:12}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-                    <div className='rj' style={{color:'#d4a017',fontSize:15,letterSpacing:2}}>🏆 GYM RANKING</div>
+                    <div className='rj' style={{color:'#d4a017',fontSize:15,letterSpacing:2}}>{L('🏆 GYM RANKING', '🏆 GYM RANKING', '🏆 CLASSEMENT DES SALLES', '🏆 RANKING DE GIMNASIOS')}</div>
                     <div style={{color:'#aaa',fontSize:10}}>{t.sortedByRatings}</div>
                   </div>
                   {top5.map((g,i)=>{
@@ -4705,7 +4715,7 @@ nicht öffentlich gemacht</div>
                 {gymRankMode?(
                   /* REST DES RANKINGS ab #6 */
                   <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                    <div style={{color:'#aaa',fontSize:10,letterSpacing:2,fontWeight:700,marginBottom:4}}>PLÄTZE #6 UND WEITER</div>
+                    <div style={{color:'#aaa',fontSize:10,letterSpacing:2,fontWeight:700,marginBottom:4}}>{L('PLÄTZE #6 UND WEITER', 'PLACES #6 AND BELOW', 'PLACES N°6 ET SUIVANTES', 'PUESTOS DEL 6 EN ADELANTE')}</div>
                     {rest.map((gym,i)=>(
                       <div key={gym.k} onClick={()=>openGym(gym)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:darkMode?'#1a1a1a':'#fff',borderRadius:12,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),cursor:'pointer'}}>
                         <div style={{fontSize:i+6>=100?13:18,width:32,textAlign:'center',flexShrink:0}}><span className='rj' style={{color:'#bbb'}}>#{i+6}</span></div>
@@ -4734,12 +4744,12 @@ nicht öffentlich gemacht</div>
                   <div style={{position:'relative',flexShrink:0,width:110}}>
                     <div onClick={()=>{setGymCountryOpen(o=>!o);setCitySearchOpen(false);}} style={{display:'flex',alignItems:'center',gap:6,padding:'10px 10px',borderRadius:12,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),cursor:'pointer'}}>
                       <span style={{fontSize:14}}>{({DE:'🇩🇪',AT:'🇦🇹',CH:'🇨🇭',ALL:'🌍'})[gymCountry]}</span>
-                      <span style={{flex:1,color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:600}}>{gymCountry==='ALL'?'Alle':gymCountry}</span>
+                      <span style={{flex:1,color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:600}}>{gymCountry==='ALL'?L('Alle','All','Tous','Todos'):gymCountry}</span>
                       <span style={{color:'#aaa',fontSize:10,transform:gymCountryOpen?'rotate(180deg)':'none',transition:'transform 0.2s'}}>▼</span>
                     </div>
                     {gymCountryOpen&&(
                       <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,zIndex:21,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,0.15)',padding:6}}>
-                        {[['DE','🇩🇪','DE'],['AT','🇦🇹','AT'],['CH','🇨🇭','CH'],['ALL','🌍','Alle']].map(([code,flag,label])=>(
+                        {[['DE','🇩🇪','DE'],['AT','🇦🇹','AT'],['CH','🇨🇭','CH'],['ALL','🌍',L('Alle','All','Tous','Todos')]].map(([code,flag,label])=>(
                           <div key={code} onClick={()=>{
                             setGymCountry(code);
                             setGymCountryOpen(false);
@@ -4764,13 +4774,13 @@ nicht öffentlich gemacht</div>
                   <div style={{position:'relative',flex:1}}>
                     <div onClick={()=>{setCitySearchOpen(o=>!o);setGymCountryOpen(false);}} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 14px',borderRadius:12,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),cursor:'pointer'}}>
                       <span style={{fontSize:14}}>📍</span>
-                      <span style={{flex:1,color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>{city||'Stadt wählen'}</span>
+                      <span style={{flex:1,color:darkMode?'#fff':'#1a1a1a',fontSize:14,fontWeight:600}}>{city||L('Stadt wählen', 'Choose city', 'Choisir une ville', 'Elige ciudad')}</span>
                       <span style={{color:'#aaa',fontSize:11,transform:citySearchOpen?'rotate(180deg)':'none',transition:'transform 0.2s'}}>▼</span>
                     </div>
                     {citySearchOpen&&(
                       <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,zIndex:20,background:darkMode?'#1a1a1a':'#fff',border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),borderRadius:12,boxShadow:'0 8px 24px rgba(0,0,0,0.15)',maxHeight:320,display:'flex',flexDirection:'column'}}>
                         <div style={{padding:'10px 12px',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
-                          <input autoFocus value={citySearchQuery} onChange={e=>setCitySearchQuery(e.target.value)} placeholder='Stadt suchen...' style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#111':'#f7f7f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,outline:'none',boxSizing:'border-box'}}/>
+                          <input autoFocus value={citySearchQuery} onChange={e=>setCitySearchQuery(e.target.value)} placeholder={L('Stadt suchen...', 'Search city...', 'Chercher une ville...', 'Buscar ciudad...')} style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#111':'#f7f7f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,outline:'none',boxSizing:'border-box'}}/>
                         </div>
                         <div style={{overflowY:'auto',padding:'6px'}}>
                           {(()=>{
@@ -4805,7 +4815,7 @@ nicht öffentlich gemacht</div>
                           <div style={{flex:1}}>
                             <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15}}>{gym.name||''}</div>
                             <div style={{color:darkMode?'#aaa':'#888',fontSize:11,marginTop:1}}>📍 {gym.address||gym.city||''}</div>
-                            <div style={{display:'flex',gap:4,marginTop:6,flexWrap:'wrap'}}>{(gym.styles||[gym.style||'Kampfsport']).filter(Boolean).map(s=><Tag key={s} text={s} accent={RED}/>)}</div>
+                            <div style={{display:'flex',gap:4,marginTop:6,flexWrap:'wrap'}}>{(gym.styles||[gym.style||L('Kampfsport', 'Combat sports', 'Sports de combat', 'Deportes de combate')]).filter(Boolean).map(s=><Tag key={s} text={s} accent={RED}/>)}</div>
                           </div>
                         </div>
                         <div style={{marginTop:9,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -4813,7 +4823,7 @@ nicht öffentlich gemacht</div>
                           <div style={{display:'flex',alignItems:'center',gap:3}}><span style={{color:'#d4a017'}}>★</span><span style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14}}>{gym.rating||0}</span></div>
                         </div>
                         <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
-                          <div style={{color:darkMode?'#666':'#aaa',fontSize:10,marginBottom:4}}>Gym bewerten:</div>
+                          <div style={{color:darkMode?'#666':'#aaa',fontSize:10,marginBottom:4}}>{L('Gym bewerten:', 'Rate gym:', 'Noter la salle :', 'Valorar gimnasio:')}</div>
                           <div style={{display:'flex',gap:2,alignItems:'center'}}>
                             {[1,2,3,4,5].map(star=>{
                               const k=(city||gym.city)+'-'+gym.name;
@@ -4842,7 +4852,7 @@ nicht öffentlich gemacht</div>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
               <div>
                 <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3}}>EVENTS</div>
-                <div style={{color:'#aaa',fontSize:11,marginTop:2}}>Community Sparrings & Trainings</div>
+                <div style={{color:'#aaa',fontSize:11,marginTop:2}}>{L('Community Sparrings & Trainings', 'Community sparring & training sessions', 'Sparrings et entraînements communautaires', 'Sparrings y entrenamientos de la comunidad')}</div>
               </div>
               {isAdmin&&(
                 <button onClick={()=>{setEditEventId(null);setShowCreateEvent(true);}}
@@ -4880,8 +4890,8 @@ nicht öffentlich gemacht</div>
                           <div style={{textAlign:'right',flexShrink:0}}>
                             {bezahlt
                               ?<div style={{color:'#27ae60',fontSize:11,fontWeight:700}}>✅ Bezahlt{mein.amount_paid?' · '+Number(mein.amount_paid).toFixed(2)+'€':''}</div>
-                              :<div style={{color:darkMode?'#888':'#999',fontSize:11,fontWeight:700}}>Angemeldet</div>}
-                            {vorbei&&<div style={{color:'#aaa',fontSize:10,marginTop:1}}>vorbei</div>}
+                              :<div style={{color:darkMode?'#888':'#999',fontSize:11,fontWeight:700}}>{L('Angemeldet', 'Registered', 'Inscrit', 'Inscrito')}</div>}
+                            {vorbei&&<div style={{color:'#aaa',fontSize:10,marginTop:1}}>{L('vorbei', 'over', 'terminé', 'terminado')}</div>}
                           </div>
                         </div>
                       );
@@ -4903,20 +4913,20 @@ nicht öffentlich gemacht</div>
             ):events.length===0?(
               <div style={{textAlign:'center',padding:'50px 20px'}}>
                 <div style={{fontSize:56,marginBottom:12}}>📅</div>
-                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:2,marginBottom:8}}>NOCH KEINE EVENTS</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:2,marginBottom:8}}>{L('NOCH KEINE EVENTS', 'NO EVENTS YET', 'PAS ENCORE D\'ÉVÉNEMENTS', 'AÚN NO HAY EVENTOS')}</div>
                 <div style={{color:'#aaa',fontSize:13,lineHeight:1.7,maxWidth:260,margin:'0 auto'}}>
-                  {isAdmin?'Erstelle das erste Community Sparring!':'Bald gibt es hier Events in deiner Stadt. Schau später nochmal rein 🥊'}
+                  {isAdmin?'Erstelle das erste Community Sparring!':L('Bald gibt es hier Events in deiner Stadt. Schau später nochmal rein 🥊', 'Events in your city are coming soon. Check back later 🥊', 'Bientôt des événements dans ta ville. Reviens plus tard 🥊', 'Pronto habrá eventos en tu ciudad. Vuelve más tarde 🥊')}
                 </div>
                 {isAdmin&&(
                   <button onClick={()=>{setEditEventId(null);setShowCreateEvent(true);}}
                     style={{marginTop:16,padding:'13px 28px',borderRadius:12,background:`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>
-                    ➕ ERSTES EVENT ERSTELLEN
+                    {L('➕ ERSTES EVENT ERSTELLEN', '➕ CREATE FIRST EVENT', '➕ CRÉER LE PREMIER ÉVÉNEMENT', '➕ CREAR EL PRIMER EVENTO')}
                   </button>
                 )}
                 {!isAdmin&&(
                   <button onClick={inviteFriends}
                     style={{marginTop:16,padding:'13px 28px',borderRadius:12,background:'transparent',border:'1px dashed '+(darkMode?'#555':'#bbb'),color:darkMode?'#ddd':'#555',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,letterSpacing:1.5,cursor:'pointer'}}>
-                    👥 FIGHTER AUS DEINER STADT EINLADEN
+                    {L('👥 FIGHTER AUS DEINER STADT EINLADEN', '👥 INVITE FIGHTERS FROM YOUR CITY', '👥 INVITER DES COMBATTANTS DE TA VILLE', '👥 INVITA A LUCHADORES DE TU CIUDAD')}
                   </button>
                 )}
               </div>
@@ -4952,8 +4962,8 @@ nicht öffentlich gemacht</div>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
                           <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
                             <div style={{background:color+'18',border:'1px solid '+color+'44',borderRadius:20,padding:'2px 9px',color:color,fontSize:10,fontWeight:700}}>{ev.event_type}</div>
-                            {isJoined&&!isPast&&<div style={{background:'#27ae6018',border:'1px solid #27ae6044',borderRadius:20,padding:'2px 9px',color:'#27ae60',fontSize:10,fontWeight:700}}>✓ Angemeldet</div>}
-                            {isPast&&<div style={{background:'#88888818',borderRadius:20,padding:'2px 9px',color:'#888',fontSize:10,fontWeight:700}}>Vergangen</div>}
+                            {isJoined&&!isPast&&<div style={{background:'#27ae6018',border:'1px solid #27ae6044',borderRadius:20,padding:'2px 9px',color:'#27ae60',fontSize:10,fontWeight:700}}>{L('✓ Angemeldet', '✓ Registered', '✓ Inscrit', '✓ Inscrito')}</div>}
+                            {isPast&&<div style={{background:'#88888818',borderRadius:20,padding:'2px 9px',color:'#888',fontSize:10,fontWeight:700}}>{L('Vergangen', 'Past', 'Passé', 'Pasado')}</div>}
                           </div>
                           <div style={{textAlign:'right',flexShrink:0}}>
                             <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:700}}>
@@ -4990,7 +5000,7 @@ nicht öffentlich gemacht</div>
                         {/* PARTICIPANTS BAR */}
                         <div style={{marginBottom:10}}>
                           <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-                            <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:600}}>👥 Teilnehmer</div>
+                            <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:600}}>{L('👥 Teilnehmer', '👥 Participants', '👥 Participants', '👥 Participantes')}</div>
                             <div style={{color:isFull?RED:color,fontSize:11,fontWeight:700}}>{parts.length}/{ev.max_participants||10}{isFull?' · Voll':''}</div>
                           </div>
                           <div style={{height:4,background:darkMode?'#2a2a2a':'#f0f0f0',borderRadius:2}}>
@@ -5003,7 +5013,7 @@ nicht öffentlich gemacht</div>
                           <div style={{display:'flex',gap:8}}>
                             {isOwner?(
                               <button onClick={async()=>{
-                                if(!window.confirm('Event löschen?'))return;
+                                if(!window.confirm(L('Event löschen?', 'Delete event?', 'Supprimer l\'événement ?', '¿Eliminar evento?')))return;
                                 try{
                                   // Teilnehmer zuerst löschen, dann Event
                                   if(isAdmin){
@@ -5013,15 +5023,15 @@ nicht öffentlich gemacht</div>
                                     await fetch(SUPA_URL+'/rest/v1/event_participants?event_id=eq.'+ev.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                                     await fetch(SUPA_URL+'/rest/v1/events?id=eq.'+ev.id,{method:'DELETE',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                                   }
-                                  await loadEvents(session);showMsg('Event gelöscht ✅');
-                                }catch(e){showMsg('Fehler: '+e.message);}
+                                  await loadEvents(session);showMsg(L('Event gelöscht ✅', 'Event deleted ✅', 'Événement supprimé ✅', 'Evento eliminado ✅'));
+                                }catch(e){showMsg(L('Fehler: ','Error: ','Erreur : ','Error: ')+e.message);}
                               }} style={{flex:1,padding:'10px',borderRadius:10,background:'transparent',border:'1px solid #e74c3c44',color:'#e74c3c',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
-                                🗑️ Löschen
+                                {L('🗑️ Löschen', '🗑️ Delete', '🗑️ Supprimer', '🗑️ Eliminar')}
                               </button>
                             ):aktiveMitgliedschaft?(
                               <div style={{flex:1,padding:'10px',borderRadius:10,background:darkMode?'#12210f':'#f0faf0',border:'1px solid #27ae6044',textAlign:'center'}}>
                                 <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13}}>
-                                  📅 Mitgliedschaft aktiv
+                                  {L('📅 Mitgliedschaft aktiv', '📅 Membership active', '📅 Adhésion active', '📅 Membresía activa')}
                                 </div>
                                 <div style={{color:darkMode?'#888':'#999',fontSize:11,marginTop:2}}>
                                   Gültig bis {new Date(aktiveMitgliedschaft.valid_until).toLocaleDateString('de')}
@@ -5033,7 +5043,7 @@ nicht öffentlich gemacht</div>
                                   ⏳ Warte auf {mitgebrachterFreundName}
                                 </div>
                                 <div style={{color:darkMode?'#888':'#999',fontSize:11,marginTop:2}}>
-                                  Sobald dein Freund zahlt, bekommst du 10€ Rabatt
+                                  {L('Sobald dein Freund zahlt, bekommst du 10€ Rabatt', 'As soon as your friend pays, you get €10 off', 'Dès que ton ami paie, tu obtiens 10 € de remise', 'En cuanto tu amigo pague, recibirás 10 € de descuento')}
                                 </div>
                               </div>
                             ):freundHatBezahlt?(
@@ -5044,16 +5054,16 @@ nicht öffentlich gemacht</div>
                             ):isJoined&&istBezahlt?(
                               <div style={{flex:1,padding:'10px',borderRadius:10,background:darkMode?'#12210f':'#f0faf0',border:'1px solid #27ae6044',textAlign:'center'}}>
                                 <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13}}>
-                                  🎟️ Ticket bezahlt
+                                  {L('🎟️ Ticket bezahlt', '🎟️ Ticket paid', '🎟️ Billet payé', '🎟️ Entrada pagada')}
                                 </div>
                                 <div style={{color:darkMode?'#888':'#999',fontSize:11,marginTop:2}}>
-                                  Erstattung nur über den Veranstalter
+                                  {L('Erstattung nur über den Veranstalter', 'Refunds only via the organizer', 'Remboursement uniquement via l\'organisateur', 'Reembolso solo a través del organizador')}
                                 </div>
                               </div>
                             ):isJoined?(
                               <button onClick={()=>leaveEvent(ev.id)}
                                 style={{flex:1,padding:'10px',borderRadius:10,background:'transparent',border:'1px solid '+(darkMode?'#333':'#ddd'),color:darkMode?'#aaa':'#888',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
-                                Abmelden
+                                {L('Abmelden', 'Leave', 'Se désinscrire', 'Darse de baja')}
                               </button>
                             ):(
                               <>
@@ -5091,8 +5101,8 @@ nicht öffentlich gemacht</div>
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:8}}>{t.worldRanking}</div>
             <div style={{display:'flex',gap:5,marginBottom:11}}>
-              <button onClick={()=>setRankMode('user')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='user'?'#2980b9':'transparent',border:'1px solid '+(rankMode==='user'?'#2980b9':(darkMode?'#333':'#ddd')),color:rankMode==='user'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>🏅 AMATEURE</button>
-              <button onClick={()=>setRankMode('pro')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='pro'?'#d4a017':'transparent',border:'1px solid '+(rankMode==='pro'?'#d4a017':(darkMode?'#333':'#ddd')),color:rankMode==='pro'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>⭐ PROFIS</button>
+              <button onClick={()=>setRankMode('user')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='user'?'#2980b9':'transparent',border:'1px solid '+(rankMode==='user'?'#2980b9':(darkMode?'#333':'#ddd')),color:rankMode==='user'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>{L('🏅 AMATEURE', '🏅 AMATEURS', '🏅 AMATEURS', '🏅 AMATEURS')}</button>
+              <button onClick={()=>setRankMode('pro')} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='pro'?'#d4a017':'transparent',border:'1px solid '+(rankMode==='pro'?'#d4a017':(darkMode?'#333':'#ddd')),color:rankMode==='pro'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>{L('⭐ PROFIS', '⭐ PROS', '⭐ PROS', '⭐ PROFESIONALES')}</button>
               <button onClick={()=>{setRankMode('trainer');loadCoaches(session);}} style={{flex:1,padding:'7px 4px',borderRadius:8,background:rankMode==='trainer'?'#8e44ad':'transparent',border:'1px solid '+(rankMode==='trainer'?'#8e44ad':(darkMode?'#333':'#ddd')),color:rankMode==='trainer'?'#fff':(darkMode?'#aaa':'#666'),fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:11,cursor:'pointer'}}>{t.trainer}</button>
             </div>
             {rankMode!=='trainer'&&(
@@ -5101,7 +5111,7 @@ nicht öffentlich gemacht</div>
                   {({'DE':'🇩🇪','AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[profile.country||'DE']||'🌍')} Mein Land
                 </button>
                 <button onClick={()=>setCountryFilter('world')} style={{flex:1,padding:'6px',borderRadius:20,background:countryFilter==='world'?'#2980b9':'transparent',border:'1px solid '+(countryFilter==='world'?'#2980b9':(darkMode?'#333':'#ddd')),color:countryFilter==='world'?'#fff':(darkMode?'#aaa':'#666'),fontSize:11,fontWeight:700,cursor:'pointer'}}>
-                  🌍 Weltweit
+                  {L('🌍 Weltweit', '🌍 Worldwide', '🌍 Monde entier', '🌍 En todo el mundo')}
                 </button>
               </div>
             )}
@@ -5117,7 +5127,7 @@ nicht öffentlich gemacht</div>
                 ):coaches.length===0?(
                   <div style={{textAlign:'center',padding:'40px 20px',color:'#aaa'}}>
                     <div style={{fontSize:32,marginBottom:8}}>🎓</div>
-                    <div style={{fontSize:13}}>Noch keine registrierten Trainer. Wer sich bei der Registrierung als Trainer einträgt, erscheint hier.</div>
+                    <div style={{fontSize:13}}>{L('Noch keine registrierten Trainer. Wer sich bei der Registrierung als Trainer einträgt, erscheint hier.', 'No registered coaches yet. Anyone who signs up as a coach appears here.', 'Pas encore de coachs inscrits. Ceux qui s\'inscrivent comme coach apparaissent ici.', 'Aún no hay entrenadores registrados. Quien se registre como entrenador aparecerá aquí.')}</div>
                   </div>
                 ):coaches.map((c,i)=>{
                   const medal=['🥇','🥈','🥉'];
@@ -5135,7 +5145,7 @@ nicht öffentlich gemacht</div>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{display:'flex',alignItems:'center',gap:5}}>
                           <div className='rj' style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontSize:15,letterSpacing:0.5}}>{c.name}</div>
-                          <div style={{background:'#8e44ad22',border:'1px solid #8e44ad44',borderRadius:10,padding:'1px 6px',color:'#8e44ad',fontSize:9,fontWeight:700,flexShrink:0}}>🎓 TRAINER</div>
+                          <div style={{background:'#8e44ad22',border:'1px solid #8e44ad44',borderRadius:10,padding:'1px 6px',color:'#8e44ad',fontSize:9,fontWeight:700,flexShrink:0}}>{L('🎓 TRAINER', '🎓 COACHES', '🎓 COACHS', '🎓 ENTRENADORES')}</div>
                         </div>
                         <div style={{color:'#8e44ad',fontSize:11,fontWeight:700,marginTop:1}}>{c.coach_styles||'-'}</div>
                         <div style={{color:darkMode?'#555':'#bbb',fontSize:10,marginTop:1}}>🏋️ {c.coach_gym||'-'} · {c.city||'-'}</div>
@@ -5152,7 +5162,7 @@ nicht öffentlich gemacht</div>
                     {/* Direkte Bewertung ohne erst ins Profil zu muessen. */}
                     {!isMe&&(
                       <div style={{display:'flex',alignItems:'center',gap:4,padding:'0 13px 12px'}}>
-                        <span style={{color:'#999',fontSize:10,marginRight:2}}>Bewerten:</span>
+                        <span style={{color:'#999',fontSize:10,marginRight:2}}>{L('Bewerten:', 'Rate:', 'Noter :', 'Valorar:')}</span>
                         {[1,2,3,4,5].map(n=>(
                           <button key={n} onClick={()=>rateCoach(c.id,n)} style={{background:'none',border:'none',fontSize:18,cursor:'pointer',padding:0,color:(c.myRating||0)>=n?'#d4a017':'#ddd'}}>★</button>
                         ))}
@@ -5203,54 +5213,54 @@ nicht öffentlich gemacht</div>
             {rankMode!=='trainer'&&!(profile.country||myProfile?.country)&&(
               <div style={{background:darkMode?'#2a1f10':'#fff8e8',borderRadius:12,padding:'16px',border:'1px solid #d4a01755',marginBottom:12,textAlign:'center'}}>
                 <div style={{fontSize:24,marginBottom:6}}>🌍</div>
-                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,marginBottom:4}}>Vervollständige dein Profil</div>
-                <div style={{color:'#888',fontSize:12,lineHeight:1.5,marginBottom:12}}>Um in der Rangliste aufzutauchen, musst du dein Land angeben.</div>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,marginBottom:4}}>{L('Vervollständige dein Profil', 'Complete your profile', 'Complète ton profil', 'Completa tu perfil')}</div>
+                <div style={{color:'#888',fontSize:12,lineHeight:1.5,marginBottom:12}}>{L('Um in der Rangliste aufzutauchen, musst du dein Land angeben.', 'To appear in the ranking you need to set your country.', 'Pour apparaître dans le classement, tu dois indiquer ton pays.', 'Para aparecer en el ranking debes indicar tu país.')}</div>
                 <button onClick={()=>{setTab('stats');setEditProfile({});setEditMode(true);}} style={{padding:'9px 20px',borderRadius:8,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
-                  JETZT VERVOLLSTÄNDIGEN
+                  {L('JETZT VERVOLLSTÄNDIGEN', 'COMPLETE NOW', 'COMPLÈTE MAINTENANT', 'COMPLÉTALO AHORA')}
                 </button>
               </div>
             )}
             {rankMode!=='trainer'&&(profile.record_verified||myProfile?.record_verified)==='verified'&&!(myProfile?.gym_verified===true||gymVerified)&&(
               <div style={{background:darkMode?'#1a1a10':'#fffbe8',borderRadius:12,padding:'16px',border:'1px solid #d4a01755',marginBottom:12,textAlign:'center'}}>
                 <div style={{fontSize:24,marginBottom:6}}>🏋️</div>
-                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,marginBottom:4}}>Gym-Mitgliedschaft verifizieren</div>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,marginBottom:4}}>{L('Gym-Mitgliedschaft verifizieren', 'Verify gym membership', 'Vérifier l\'adhésion à la salle', 'Verificar membresía del gimnasio')}</div>
                 <div style={{color:'#888',fontSize:12,lineHeight:1.5,marginBottom:12}}>
-                  Dein Kampfrekord ist verifiziert. Den grünen Haken bekommst du, wenn du auch mit dem Code deines Gyms bestätigst, dass du dort wirklich trainierst.
+                  {L('Dein Kampfrekord ist verifiziert. Den grünen Haken bekommst du, wenn du auch mit dem Code deines Gyms bestätigst, dass du dort wirklich trainierst.', 'Your fight record is verified. You get the green check when you also confirm with your gym\'s code that you really train there.', 'Ton palmarès est vérifié. Tu obtiens la coche verte quand tu confirmes aussi avec le code de ta salle que tu t\'y entraînes vraiment.', 'Tu récord está verificado. Recibes la marca verde cuando confirmas también con el código de tu gimnasio que entrenas allí de verdad.')}
                 </div>
                 <button onClick={()=>setShowGymVerify(true)} style={{padding:'9px 20px',borderRadius:8,background:'linear-gradient(135deg,#27ae60,#2ecc71)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
-                  GYM-CODE EINGEBEN
+                  {L('GYM-CODE EINGEBEN', 'ENTER GYM CODE', 'SAISIR LE CODE DE LA SALLE', 'INTRODUCIR CÓDIGO DEL GIMNASIO')}
                 </button>
               </div>
             )}
             {rankMode!=='trainer'&&!((profile.gym||myProfile?.gym)||'').trim()&&(
               <div style={{background:darkMode?'#1a1a1a':'#fff5f4',borderRadius:12,padding:'16px',border:'1px solid '+RED+'44',marginBottom:12,textAlign:'center'}}>
                 <div style={{fontSize:24,marginBottom:6}}>🥋</div>
-                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,marginBottom:4}}>Gym eintragen</div>
-                <div style={{color:'#888',fontSize:12,lineHeight:1.5,marginBottom:12}}>Ohne Gym kannst du nicht in der Rangliste erscheinen. Trage dein Gym in deinem Profil ein.</div>
-                <button onClick={()=>{setTab('stats');setEditProfile({});setEditMode(true);}} style={{padding:'9px 20px',borderRadius:8,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>GYM EINTRAGEN</button>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,marginBottom:4}}>{L('Gym eintragen', 'Add your gym', 'Renseigne ta salle', 'Añade tu gimnasio')}</div>
+                <div style={{color:'#888',fontSize:12,lineHeight:1.5,marginBottom:12}}>{L('Ohne Gym kannst du nicht in der Rangliste erscheinen. Trage dein Gym in deinem Profil ein.', 'Without a gym you cannot appear in the ranking. Add your gym in your profile.', 'Sans salle, tu ne peux pas apparaître dans le classement. Renseigne ta salle dans ton profil.', 'Sin gimnasio no puedes aparecer en el ranking. Añade tu gimnasio en tu perfil.')}</div>
+                <button onClick={()=>{setTab('stats');setEditProfile({});setEditMode(true);}} style={{padding:'9px 20px',borderRadius:8,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>{L('GYM EINTRAGEN', 'ADD GYM', 'RENSEIGNER LA SALLE', 'AÑADIR GIMNASIO')}</button>
               </div>
             )}
             {rankMode!=='trainer'&&(profile.country||myProfile?.country)&&(profile.record_verified||myProfile?.record_verified)!=='verified'&&(
               <div style={{background:darkMode?'#1a2510':'#f0f8e8',borderRadius:12,padding:'16px',border:'1px solid #27ae6055',marginBottom:12,textAlign:'center'}}>
                 <div style={{fontSize:24,marginBottom:6}}>🏅</div>
-                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,marginBottom:4}}>Kampfrekord verifizieren</div>
+                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:14,marginBottom:4}}>{L('Kampfrekord verifizieren', 'Verify fight record', 'Vérifier le palmarès', 'Verificar récord de combate')}</div>
                 <div style={{color:'#888',fontSize:12,lineHeight:1.5,marginBottom:12}}>
                   {(profile.record_verified||myProfile?.record_verified)==='pending'
-                    ?'Dein Nachweis wird geprüft — sobald bestätigt, bekommst du den Haken und stehst vor allen nicht verifizierten Fightern.'
+                    ?L('Dein Nachweis wird geprüft — sobald bestätigt, bekommst du den Haken und stehst vor allen nicht verifizierten Fightern.', 'Your proof is being reviewed — once confirmed you get the check and rank above all unverified fighters.', 'Ton justificatif est en cours de vérification — une fois validé, tu obtiens la coche et tu passes devant tous les combattants non vérifiés.', 'Tu comprobante está en revisión: una vez confirmado recibirás la marca y estarás por delante de todos los luchadores no verificados.')
                     :(myProfile?.wins||0)+(myProfile?.losses||0)+(myProfile?.draws||0)===0
-                    ?'Ohne Kämpfe erscheinst du erst in der Rangliste, wenn dein Rekord verifiziert ist. Hast du noch keine Kämpfe, tippe unten auf "Ich habe noch keine Kämpfe". Sonst lade einen Nachweis hoch.'
+                    ?L('Ohne Kämpfe erscheinst du erst in der Rangliste, wenn dein Rekord verifiziert ist. Hast du noch keine Kämpfe, tippe unten auf "Ich habe noch keine Kämpfe". Sonst lade einen Nachweis hoch.', 'Without fights you only appear in the ranking once your record is verified. If you have no fights yet, tap "I have no fights yet" below. Otherwise upload proof.', 'Sans combats, tu n\'apparais dans le classement qu\'une fois ton palmarès vérifié. Si tu n\'as pas encore de combats, appuie sur « Je n\'ai encore aucun combat » ci-dessous. Sinon, charge un justificatif.', 'Sin combates solo apareces en el ranking cuando tu récord esté verificado. Si aún no tienes combates, toca «Aún no tengo combates» abajo. Si no, sube un comprobante.')
                     :'Du stehst in der Rangliste, aber noch ohne Haken. Den grünen Haken bekommst du mit verifiziertem Kampfrekord UND verifizierter Gym-Mitgliedschaft (Gym-Code). Lade einen Nachweis hoch (Urkunde, offizielles Ergebnis).'}
                 </div>
                 {(profile.record_verified||myProfile?.record_verified)!=='pending'&&(
                   <>
                     <button onClick={()=>{setTab('stats');setTimeout(()=>{const el=document.getElementById('record-verify-box');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},200);}} style={{padding:'9px 20px',borderRadius:8,background:'linear-gradient(135deg,#27ae60,#2ecc71)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
-                      NACHWEIS HOCHLADEN
+                      {L('NACHWEIS HOCHLADEN', 'UPLOAD PROOF', 'CHARGER UN JUSTIFICATIF', 'SUBIR COMPROBANTE')}
                     </button>
                     {(myProfile?.wins||0)+(myProfile?.losses||0)+(myProfile?.draws||0)===0&&(
                       <button onClick={async()=>{
                         // 0-0-0 laesst sich nicht faelschen (bringt 0 Punkte) - deshalb
                         // hier direkt verifizieren, ohne Warten auf Pruefung durch uns.
-                        if(!window.confirm('Du hast noch keine Kämpfe? Dein Rekord wird als 0-0-0 verifiziert und du bekommst damit den Haken in der Rangliste.'))return;
+                        if(!window.confirm(L('Du hast noch keine Kämpfe? Dein Rekord wird als 0-0-0 verifiziert und du bekommst damit den Haken in der Rangliste.', 'No fights yet? Your record is verified as 0-0-0 and you get the check in the ranking.', 'Pas encore de combats ? Ton palmarès est vérifié à 0-0-0 et tu obtiens la coche dans le classement.', '¿Aún no tienes combates? Tu récord se verifica como 0-0-0 y recibes la marca en el ranking.')))return;
                         try{
                           await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{
                             method:'PATCH',
@@ -5260,9 +5270,9 @@ nicht öffentlich gemacht</div>
                           setMyProfile(p=>({...p,wins:0,losses:0,draws:0,ko:0,record_verified:'verified'}));
                           setStats({wins:0,losses:0,draws:0,ko:0});
                           showMsg('✅ Als "keine Kämpfe" markiert - du hast jetzt den Haken in der Rangliste.');
-                        }catch(e){showMsg('Fehler: '+e.message);}
+                        }catch(e){showMsg(L('Fehler: ','Error: ','Erreur : ','Error: ')+e.message);}
                       }} style={{marginTop:8,padding:'8px 16px',borderRadius:8,background:'none',border:'1px solid #27ae6066',color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>
-                        ICH HABE NOCH KEINE KÄMPFE
+                        {L('ICH HABE NOCH KEINE KÄMPFE', 'I HAVE NO FIGHTS YET', 'JE N\'AI ENCORE AUCUN COMBAT', 'AÚN NO TENGO COMBATES')}
                       </button>
                     )}
                   </>
@@ -5282,7 +5292,7 @@ nicht öffentlich gemacht</div>
                       {(()=>{
                         const rec=(f.isMe?(profile.record_verified||myProfile?.record_verified):f.record_verified)==='verified';
                         const gym=f.isMe?(myProfile?.gym_verified===true||!!gymVerified):f.gym_verified===true;
-                        if(rec&&gym)return <div style={{background:'#27ae6018',border:'1px solid #27ae6055',borderRadius:3,padding:'1px 4px',color:'#27ae60',fontSize:8,fontWeight:700}}>✓ VERIFIZIERT</div>;
+                        if(rec&&gym)return <div style={{background:'#27ae6018',border:'1px solid #27ae6055',borderRadius:3,padding:'1px 4px',color:'#27ae60',fontSize:8,fontWeight:700}}>{L('✓ VERIFIZIERT', '✓ VERIFIED', '✓ VÉRIFIÉ', '✓ VERIFICADO')}</div>;
                         return null;
                       })()}
                     </div>
@@ -5301,8 +5311,8 @@ nicht öffentlich gemacht</div>
 
         {tab==='trainer'&&(
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
-            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:4}}>TOP TRAINER</div>
-            <div style={{color:'#888',fontSize:12,marginBottom:11}}>Die besten Coaches der Welt</div>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:4}}>{L('TOP TRAINER', 'TOP COACHES', 'TOP COACHS', 'MEJORES ENTRENADORES')}</div>
+            <div style={{color:'#888',fontSize:12,marginBottom:11}}>{L('Die besten Coaches der Welt', 'The best coaches in the world', 'Les meilleurs coachs du monde', 'Los mejores entrenadores del mundo')}</div>
             <div style={{display:'flex',gap:5,overflowX:'auto',paddingBottom:7,marginBottom:11}}>
               {trStyles.map(s=>(<button key={s} onClick={()=>setTrainerF(s)} style={{flexShrink:0,padding:'5px 11px',borderRadius:16,background:trainerF===s?'#d4a017':'#fff',border:'1px solid '+(trainerF===s?'#d4a017':'#e0e0e0'),color:trainerF===s?'#fff':'#555',fontFamily:'DM Sans,sans-serif',fontSize:12,fontWeight:600,cursor:'pointer',transition:'all 0.2s'}}>{s==='All'?'Alle':s}</button>))}
             </div>
@@ -5325,7 +5335,7 @@ nicht öffentlich gemacht</div>
                       </div>
                     </div>
                     <div style={{marginTop:9,color:darkMode?'#ccc':'#666',fontSize:12,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee'),paddingTop:8}}>{tr.bio}</div>
-                    <div style={{marginTop:8,background:darkMode?'#2a2a2a':'#f8f8f8',borderRadius:7,padding:'7px 10px'}}><div style={{color:'#aaa',fontSize:9,letterSpacing:1,marginBottom:3}}>BEKANNTE SCHUELER</div><div style={{color:darkMode?'#ccc':'#666',fontSize:12,fontWeight:600}}>{tr.pupils}</div></div>
+                    <div style={{marginTop:8,background:darkMode?'#2a2a2a':'#f8f8f8',borderRadius:7,padding:'7px 10px'}}><div style={{color:'#aaa',fontSize:9,letterSpacing:1,marginBottom:3}}>{L('BEKANNTE SCHUELER', 'KNOWN STUDENTS', 'ÉLÈVES CONNUS', 'ALUMNOS CONOCIDOS')}</div><div style={{color:darkMode?'#ccc':'#666',fontSize:12,fontWeight:600}}>{tr.pupils}</div></div>
                     <div style={{marginTop:8,height:3,background:'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:(tr.rating/10*100)+'%',background:`linear-gradient(90deg,${tr.accent},${tr.accent}66)`,borderRadius:2}}/></div>
                   </div>
                 </div>
@@ -5336,7 +5346,7 @@ nicht öffentlich gemacht</div>
 
         {tab==='sports'&&(
           <div style={{padding:'10px 13px 16px',maxWidth:420,margin:'0 auto'}}>
-            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:4}}>SPORTARTEN</div>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:4}}>{L('SPORTARTEN', 'SPORTS', 'SPORTS', 'DEPORTES')}</div>
             <div style={{color:'#888',fontSize:12,marginBottom:11}}>{t.findEventsCity}</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7,marginBottom:14}}>
               {Object.keys(SPORTS).map(s=>{const{color,emoji}=SPORTS[s];const sel=sport===s;return(<button key={s} onClick={()=>setSport(s)} style={{padding:'12px 10px',borderRadius:11,background:sel?color+'25':(darkMode?'#1a1a1a':'#fff'),border:'1px solid '+(sel?color:(darkMode?'#2a2a2a':'#eee')),cursor:'pointer',transition:'all 0.2s',textAlign:'left',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}><div style={{fontSize:22,marginBottom:4}}>{emoji}</div><div style={{color:sel?color:'#555',fontWeight:700,fontSize:13}}>{s}</div><div style={{color:darkMode?'#666':'#bbb',fontSize:10,marginTop:2}}>{SPORTS[s].games.length} Events</div></button>);})}
@@ -5378,7 +5388,7 @@ nicht öffentlich gemacht</div>
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
               <div style={{fontSize:28}}>📢</div>
               <div>
-                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:1}}>NACHRICHT VOM TEAM</div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:1}}>{L('NACHRICHT VOM TEAM', 'MESSAGE FROM THE TEAM', 'MESSAGE DE L\'ÉQUIPE', 'MENSAJE DEL EQUIPO')}</div>
                 <div style={{color:'#aaa',fontSize:11}}>Fighter Support</div>
               </div>
             </div>
@@ -5392,7 +5402,7 @@ nicht öffentlich gemacht</div>
               setShowAdminMsg(false);
               await markAdminMessagesRead();
             }} style={{width:'100%',padding:'12px',borderRadius:10,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginTop:4}}>
-              VERSTANDEN ✓
+              {L('VERSTANDEN ✓', 'GOT IT ✓', 'COMPRIS ✓', 'ENTENDIDO ✓')}
             </button>
           </div>
         </div>
@@ -5404,7 +5414,7 @@ nicht öffentlich gemacht</div>
             <div style={{color:'#aaa',fontSize:12,marginBottom:16}}>{t.pwChangeSub}</div>
             <input
               type='password'
-              placeholder='Aktuelles Passwort'
+              placeholder={L('Aktuelles Passwort', 'Current password', 'Mot de passe actuel', 'Contraseña actual')}
               value={oldPassword}
               onChange={e=>setOldPassword(e.target.value)}
               style={{width:'100%',padding:'12px',borderRadius:10,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',marginBottom:8,outline:'none'}}
@@ -5418,33 +5428,33 @@ nicht öffentlich gemacht</div>
             />
             <input
               type='password'
-              placeholder='Neues Passwort wiederholen'
+              placeholder={L('Neues Passwort wiederholen', 'Repeat new password', 'Répète le nouveau mot de passe', 'Repite la nueva contraseña')}
               value={newPassword2}
               onChange={e=>setNewPassword2(e.target.value)}
               style={{width:'100%',padding:'12px',borderRadius:10,border:'1px solid '+(darkMode?'#333':'#ddd'),background:darkMode?'#111':'#f9f9f9',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',marginBottom:8,outline:'none'}}
             />
             {pwChangeMsg&&<div style={{color:pwChangeMsg.includes('✅')?'#27ae60':'#e74c3c',fontSize:12,marginBottom:8}}>{pwChangeMsg}</div>}
             <div style={{display:'flex',gap:10,marginTop:8}}>
-              <button onClick={()=>{setShowPwChange(false);setOldPassword('');setNewPassword('');setNewPassword2('');setPwChangeMsg('');}} style={{flex:1,padding:'12px',borderRadius:10,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>ABBRECHEN</button>
+              <button onClick={()=>{setShowPwChange(false);setOldPassword('');setNewPassword('');setNewPassword2('');setPwChangeMsg('');}} style={{flex:1,padding:'12px',borderRadius:10,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#fff':'#666',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>{L('ABBRECHEN', 'CANCEL', 'ANNULER', 'CANCELAR')}</button>
               <button onClick={async()=>{
-                if(!oldPassword){setPwChangeMsg('Bitte aktuelles Passwort eingeben');return;}
-                if(!newPassword||newPassword.length<6){setPwChangeMsg('Neues Passwort: mindestens 6 Zeichen!');return;}
-                if(newPassword!==newPassword2){setPwChangeMsg('Die neuen Passwörter stimmen nicht überein');return;}
-                if(newPassword===oldPassword){setPwChangeMsg('Neues Passwort muss sich vom alten unterscheiden');return;}
-                setPwChangeMsg('Wird geprüft...');
+                if(!oldPassword){setPwChangeMsg(L('Bitte aktuelles Passwort eingeben', 'Please enter your current password', 'Saisis ton mot de passe actuel', 'Introduce tu contraseña actual'));return;}
+                if(!newPassword||newPassword.length<6){setPwChangeMsg(L('Neues Passwort: mindestens 6 Zeichen!', 'New password: at least 6 characters!', 'Nouveau mot de passe : au moins 6 caractères !', 'Nueva contraseña: ¡al menos 6 caracteres!'));return;}
+                if(newPassword!==newPassword2){setPwChangeMsg(L('Die neuen Passwörter stimmen nicht überein', 'The new passwords do not match', 'Les nouveaux mots de passe ne correspondent pas', 'Las nuevas contraseñas no coinciden'));return;}
+                if(newPassword===oldPassword){setPwChangeMsg(L('Neues Passwort muss sich vom alten unterscheiden', 'The new password must differ from the old one', 'Le nouveau mot de passe doit être différent de l\'ancien', 'La nueva contraseña debe ser distinta de la anterior'));return;}
+                setPwChangeMsg(L('Wird geprüft...', 'Checking...', 'Vérification...', 'Comprobando...'));
                 try{
                   // E-Mail des Nutzers von Supabase holen
                   const ures=await fetch(SUPA_URL+'/auth/v1/user',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}});
                   const udata=await ures.json();
                   const email=udata.email;
-                  if(!email){setPwChangeMsg('Fehler: E-Mail nicht gefunden');return;}
+                  if(!email){setPwChangeMsg(L('Fehler: E-Mail nicht gefunden', 'Error: email not found', 'Erreur : e-mail introuvable', 'Error: correo no encontrado'));return;}
                   // Altes Passwort per Test-Login verifizieren
                   const verify=await fetch(SUPA_URL+'/auth/v1/token?grant_type=password',{
                     method:'POST',headers:{'Content-Type':'application/json',apikey:SUPA_KEY},
                     body:JSON.stringify({email,password:oldPassword})
                   });
                   const vdata=await verify.json();
-                  if(!vdata.access_token){setPwChangeMsg('Aktuelles Passwort ist falsch');return;}
+                  if(!vdata.access_token){setPwChangeMsg(L('Aktuelles Passwort ist falsch', 'Current password is incorrect', 'Le mot de passe actuel est incorrect', 'La contraseña actual es incorrecta'));return;}
                   // Neues Passwort setzen (mit frischem Token aus der Verifikation)
                   const resp=await fetch(SUPA_URL+'/auth/v1/user',{
                     method:'PUT',
@@ -5453,13 +5463,13 @@ nicht öffentlich gemacht</div>
                   });
                   const data=await resp.json();
                   if(data.id){
-                    setPwChangeMsg('✅ Passwort geändert!');
+                    setPwChangeMsg(L('✅ Passwort geändert!', '✅ Password changed!', '✅ Mot de passe modifié !', '✅ ¡Contraseña cambiada!'));
                     setTimeout(()=>{setShowPwChange(false);setOldPassword('');setNewPassword('');setNewPassword2('');setPwChangeMsg('');},1500);
                   } else {
                     setPwChangeMsg('Fehler: '+(data.message||data.msg||'Unbekannt'));
                   }
                 }catch(e){setPwChangeMsg('Fehler: '+e.message);}
-              }} style={{flex:1,padding:'12px',borderRadius:10,background:'#c0392b',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>SPEICHERN</button>
+              }} style={{flex:1,padding:'12px',borderRadius:10,background:'#c0392b',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>{L('SPEICHERN', 'SAVE', 'ENREGISTRER', 'GUARDAR')}</button>
             </div>
           </div>
         </div>
@@ -5524,10 +5534,10 @@ nicht öffentlich gemacht</div>
         <div style={{position:'fixed',inset:0,zIndex:450,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={()=>setShowRankReminder(false)}>
           <div onClick={e=>e.stopPropagation()} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:16,padding:'22px 20px',maxWidth:360,width:'100%',textAlign:'center',border:'1px solid '+RED+'44'}}>
             <div style={{fontSize:34,marginBottom:6}}>🏆</div>
-            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:8}}>DEIN RANG FEHLT NOCH</div>
-            <div style={{color:'#888',fontSize:13,lineHeight:1.5,marginBottom:12}}>Damit du in der Rangliste angezeigt wirst, fehlt noch etwas in deinem Profil:</div>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:20,letterSpacing:2,marginBottom:8}}>{L('DEIN RANG FEHLT NOCH', 'YOUR RANK IS STILL MISSING', 'TON RANG MANQUE ENCORE', 'AÚN FALTA TU PUESTO')}</div>
+            <div style={{color:'#888',fontSize:13,lineHeight:1.5,marginBottom:12}}>{L('Damit du in der Rangliste angezeigt wirst, fehlt noch etwas in deinem Profil:', 'To appear in the ranking, something is still missing in your profile:', 'Pour apparaître dans le classement, il manque encore quelque chose dans ton profil :', 'Para aparecer en el ranking, aún falta algo en tu perfil:')}</div>
             <div style={{textAlign:'left',marginBottom:16}}>
-              {rankIssuesOf(myProfile).map(it=>(
+              {rankIssuesOf(myProfile,L).map(it=>(
                 <div key={it.k} style={{display:'flex',gap:8,color:darkMode?'#ddd':'#333',fontSize:13,lineHeight:1.4,marginBottom:6}}><span style={{color:RED}}>•</span><span>{it.text}</span></div>
               ))}
             </div>
@@ -5536,8 +5546,8 @@ nicht öffentlich gemacht</div>
               setShowRankReminder(false);
               if(only){setTab('ranking');}
               else{setTab('stats');setEditProfile({});setEditMode(true);}
-            }} style={{width:'100%',padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer',marginBottom:8}}>PROFIL VERVOLLSTÄNDIGEN</button>
-            <button onClick={()=>setShowRankReminder(false)} style={{background:'none',border:'none',color:'#999',fontSize:12,cursor:'pointer'}}>Später</button>
+            }} style={{width:'100%',padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer',marginBottom:8}}>{L('PROFIL VERVOLLSTÄNDIGEN', 'COMPLETE PROFILE', 'COMPLÉTER LE PROFIL', 'COMPLETAR PERFIL')}</button>
+            <button onClick={()=>setShowRankReminder(false)} style={{background:'none',border:'none',color:'#999',fontSize:12,cursor:'pointer'}}>{L('Später', 'Later', 'Plus tard', 'Más tarde')}</button>
           </div>
         </div>
       )}
@@ -5561,12 +5571,12 @@ nicht öffentlich gemacht</div>
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.65)',zIndex:700,display:'flex',alignItems:'flex-end',justifyContent:'center'}}>
           <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:'20px 20px 0 0',width:'100%',maxWidth:480,padding:'20px 20px 40px',maxHeight:'90vh',overflowY:'auto'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:2}}>{editEventId?'EVENT BEARBEITEN':'EVENT ERSTELLEN'}</div>
+              <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:2}}>{editEventId?L('EVENT BEARBEITEN', 'EDIT EVENT', 'MODIFIER L\'ÉVÉNEMENT', 'EDITAR EVENTO'):L('EVENT ERSTELLEN', 'CREATE EVENT', 'CRÉER UN ÉVÉNEMENT', 'CREAR EVENTO')}</div>
               <button onClick={closeEventForm} style={{background:'none',border:'none',fontSize:22,cursor:'pointer',color:'#aaa'}}>✕</button>
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:12}}>
               <div>
-                <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>TYP</div>
+                <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('TYP', 'TYPE', 'TYPE', 'TIPO')}</div>
                 <div style={{display:'flex',gap:7,flexWrap:'wrap'}}>
                   {['Sparring','Community Training','Wettkampf','Open Mat','Seminar'].map(t=>(
                     <button key={t} onClick={()=>setNewEvent(e=>({...e,event_type:t}))}
@@ -5577,9 +5587,9 @@ nicht öffentlich gemacht</div>
                 </div>
               </div>
               {[
-                ['TITEL *','title','text','z.B. Community Sparring Düsseldorf'],
-                ['STADT *','city','text','z.B. Düsseldorf'],
-                ['ADRESSE','address','text','z.B. Tiger Gym, Fichtenstraße 12'],
+                [L('TITEL *', 'TITLE *', 'TITRE *', 'TÍTULO *'),'title','text',L('z.B. Community Sparring Düsseldorf', 'e.g. Community Sparring Berlin', 'p. ex. Sparring communautaire Paris', 'p. ej. Sparring comunitario Madrid')],
+                [L('STADT *', 'CITY *', 'VILLE *', 'CIUDAD *'),'city','text',L('z.B. Düsseldorf', 'e.g. Berlin', 'p. ex. Paris', 'p. ej. Madrid')],
+                [L('ADRESSE', 'ADDRESS', 'ADRESSE', 'DIRECCIÓN'),'address','text',L('z.B. Tiger Gym, Fichtenstraße 12', 'e.g. Tiger Gym, Main Street 12', 'p. ex. Tiger Gym, 12 rue Principale', 'p. ej. Tiger Gym, Calle Mayor 12')],
               ].map(([lbl,key,type,ph])=>(
                 <div key={key}>
                   <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{lbl}</div>
@@ -5589,34 +5599,34 @@ nicht öffentlich gemacht</div>
               ))}
               <div style={{display:'flex',gap:10}}>
                 <div style={{flex:1}}>
-                  <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>DATUM *</div>
+                  <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('DATUM *', 'DATE *', 'DATE *', 'FECHA *')}</div>
                   <input type='date' value={newEvent.event_date} onChange={e=>setNewEvent(ev=>({...ev,event_date:e.target.value}))}
                     style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
                 </div>
                 <div style={{flex:1}}>
-                  <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>UHRZEIT</div>
+                  <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('UHRZEIT', 'TIME', 'HEURE', 'HORA')}</div>
                   <input type='time' value={newEvent.event_time} onChange={e=>setNewEvent(ev=>({...ev,event_time:e.target.value}))}
                     style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
                 </div>
               </div>
               <div>
-                <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>MAX. TEILNEHMER</div>
+                <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('MAX. TEILNEHMER', 'MAX. PARTICIPANTS', 'PARTICIPANTS MAX.', 'MÁX. PARTICIPANTES')}</div>
                 <input type='number' min='2' max='100' value={newEvent.max_participants} onChange={e=>setNewEvent(ev=>({...ev,max_participants:e.target.value}))}
                   style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
               </div>
               <div>
-                <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>PREIS PRO SESSION (€) — leer lassen für kostenlos</div>
+                <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('PREIS PRO SESSION (€) — leer lassen für kostenlos', 'PRICE PER SESSION (€) — leave empty for free', 'PRIX PAR SÉANCE (€) — laisser vide si gratuit', 'PRECIO POR SESIÓN (€) — dejar vacío si es gratis')}</div>
                 <input type='number' min='0' step='0.5' placeholder='z.B. 10' value={newEvent.price} onChange={e=>setNewEvent(ev=>({...ev,price:e.target.value}))}
                   style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
               </div>
               <div>
-                <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>MONATSBEITRAG (€) — leer lassen, falls es keinen gibt</div>
-                <div style={{color:'#888',fontSize:10,marginBottom:5,lineHeight:1.4}}>Wer den Monatsbeitrag zahlt, kann alle Sessions diesen Monat besuchen — unabhängig davon, wie viele einzelne Termine du anlegst.</div>
+                <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('MONATSBEITRAG (€) — leer lassen, falls es keinen gibt', 'MONTHLY FEE (€) — leave empty if there is none', 'ABONNEMENT MENSUEL (€) — laisser vide s\'il n\'y en a pas', 'CUOTA MENSUAL (€) — dejar vacío si no hay')}</div>
+                <div style={{color:'#888',fontSize:10,marginBottom:5,lineHeight:1.4}}>{L('Wer den Monatsbeitrag zahlt, kann alle Sessions diesen Monat besuchen — unabhängig davon, wie viele einzelne Termine du anlegst.', 'Anyone who pays the monthly fee can attend all sessions this month — regardless of how many individual dates you create.', 'Celui qui paie l\'abonnement mensuel peut assister à toutes les séances du mois — quel que soit le nombre de dates créées.', 'Quien pague la cuota mensual puede asistir a todas las sesiones de este mes, sin importar cuántas fechas individuales crees.')}</div>
                 <input type='number' min='0' step='0.5' placeholder='z.B. 35' value={newEvent.priceMonthly} onChange={e=>setNewEvent(ev=>({...ev,priceMonthly:e.target.value}))}
                   style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
               </div>
               <div>
-                <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>KAMPFSTILE</div>
+                <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('KAMPFSTILE', 'FIGHTING STYLES', 'STYLES DE COMBAT', 'ESTILOS DE COMBATE')}</div>
                 <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
                   {['Boxing','MMA','Muay Thai','BJJ','Kickboxing','Grappling','Wrestling','Karate','Alle'].map(s=>(
                     <button key={s} onClick={()=>setNewEvent(ev=>({...ev,styles:ev.styles.includes(s)?ev.styles.filter(x=>x!==s):[...ev.styles,s]}))}
@@ -5627,13 +5637,13 @@ nicht öffentlich gemacht</div>
                 </div>
               </div>
               <div>
-                <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>BESCHREIBUNG</div>
-                <textarea value={newEvent.description} onChange={e=>setNewEvent(ev=>({...ev,description:e.target.value}))} placeholder='Was erwartet die Teilnehmer? Level, Ausrüstung, Besonderheiten...' rows={3}
+                <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('BESCHREIBUNG', 'DESCRIPTION', 'DESCRIPTION', 'DESCRIPCIÓN')}</div>
+                <textarea value={newEvent.description} onChange={e=>setNewEvent(ev=>({...ev,description:e.target.value}))} placeholder={L('Was erwartet die Teilnehmer? Level, Ausrüstung, Besonderheiten...', 'What can participants expect? Level, equipment, special notes...', 'À quoi les participants peuvent-ils s\'attendre ? Niveau, équipement, particularités...', '¿Qué pueden esperar los participantes? Nivel, equipo, particularidades...')} rows={3}
                   style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box',resize:'none'}}/>
               </div>
               <button onClick={editEventId?saveEventEdit:createEvent} disabled={creatingEvent}
                 style={{width:'100%',padding:'14px',borderRadius:12,background:creatingEvent?'#eee':`linear-gradient(135deg,${RED},#e74c3c)`,border:'none',color:creatingEvent?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:18,letterSpacing:2,cursor:creatingEvent?'not-allowed':'pointer',marginTop:4}}>
-                {creatingEvent?(editEventId?'SPEICHERT...':'ERSTELLT...'):(editEventId?'ÄNDERUNGEN SPEICHERN 💾':'EVENT ERSTELLEN 🥊')}
+                {creatingEvent?(editEventId?'SPEICHERT...':'ERSTELLT...'):(editEventId?L('ÄNDERUNGEN SPEICHERN 💾', 'SAVE CHANGES 💾', 'ENREGISTRER LES MODIFICATIONS 💾', 'GUARDAR CAMBIOS 💾'):'EVENT ERSTELLEN 🥊')}
               </button>
             </div>
           </div>
@@ -5642,8 +5652,8 @@ nicht öffentlich gemacht</div>
       {friendPickerEventId&&(
         <div onClick={()=>setFriendPickerEventId(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:900,display:'flex',alignItems:'flex-end'}}>
           <div onClick={e=>e.stopPropagation()} style={{width:'100%',background:darkMode?'#0d0d0d':'#fff',borderRadius:'20px 20px 0 0',padding:'20px',maxHeight:'70vh',display:'flex',flexDirection:'column'}}>
-            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:1,marginBottom:4}}>Freund mitbringen</div>
-            <div style={{color:'#888',fontSize:12,marginBottom:14,lineHeight:1.5}}>Wähle deinen Trainingspartner aus. Sobald er/sie sich auch anmeldet und bezahlt, bekommst du 10€ Rabatt.</div>
+            <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:1,marginBottom:4}}>{L('Freund mitbringen', 'Bring a friend', 'Amener un ami', 'Traer a un amigo')}</div>
+            <div style={{color:'#888',fontSize:12,marginBottom:14,lineHeight:1.5}}>{L('Wähle deinen Trainingspartner aus. Sobald er/sie sich auch anmeldet und bezahlt, bekommst du 10€ Rabatt.', 'Choose your training partner. As soon as they also register and pay, you get €10 off.', 'Choisis ton partenaire d\'entraînement. Dès qu\'il/elle s\'inscrit et paie aussi, tu obtiens 10 € de remise.', 'Elige a tu compañero de entrenamiento. En cuanto también se inscriba y pague, recibirás 10 € de descuento.')}</div>
             <input placeholder='Namen suchen...' value={friendSearchQuery} onChange={e=>setFriendSearchQuery(e.target.value)}
               style={{width:'100%',padding:'11px 14px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#1a1a1a':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',marginBottom:10}}/>
             <div style={{overflowY:'auto',flex:1}}>
@@ -5655,7 +5665,7 @@ nicht öffentlich gemacht</div>
                 </div>
               ))}
             </div>
-            <button onClick={()=>setFriendPickerEventId(null)} style={{width:'100%',padding:'12px',borderRadius:10,background:'transparent',border:'1px solid '+(darkMode?'#333':'#ddd'),color:darkMode?'#999':'#666',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginTop:10}}>Abbrechen</button>
+            <button onClick={()=>setFriendPickerEventId(null)} style={{width:'100%',padding:'12px',borderRadius:10,background:'transparent',border:'1px solid '+(darkMode?'#333':'#ddd'),color:darkMode?'#999':'#666',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',marginTop:10}}>{L('Abbrechen', 'Cancel', 'Annuler', 'Cancelar')}</button>
           </div>
         </div>
       )}
@@ -5667,14 +5677,14 @@ nicht öffentlich gemacht</div>
       )}
       {matched&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.88)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',zIndex:100,gap:12}}>
-          <div className='rj' style={{color:RED,fontSize:12,letterSpacing:8}}>⚡ NEUES MATCH</div>
+          <div className='rj' style={{color:RED,fontSize:12,letterSpacing:8}}>{L('⚡ NEUES MATCH', '⚡ NEW MATCH', '⚡ NOUVEAU MATCH', '⚡ NUEVO MATCH')}</div>
           <div className='rj' style={{fontSize:46,color:'#fff',letterSpacing:4,textAlign:'center',lineHeight:1,animation:'pulse 1.2s infinite'}}>IT'S A MATCH!</div>
-          <div style={{fontSize:14,color:'rgba(255,255,255,0.6)',textAlign:'center'}}>Ihr habt beide geswipt — jetzt chatten!</div>
+          <div style={{fontSize:14,color:'rgba(255,255,255,0.6)',textAlign:'center'}}>{L('Ihr habt beide geswipt — jetzt chatten!', 'You both swiped — start chatting!', 'Vous avez tous les deux swipé — discutez maintenant !', '¡Los dos habéis hecho swipe — a chatear!')}</div>
           {matched.avatar_url?<img loading="lazy" src={matched.avatar_url} style={{width:140,height:140,borderRadius:'50%',objectFit:'cover',border:'3px solid '+RED}} alt=''/>:<div style={{fontSize:52}}>{matched.emoji||''}</div>}
           <div className='rj' style={{color:'#fff',fontSize:24,letterSpacing:2}}>{matched.name}</div>
           <div style={{color:matched.accent||RED,fontSize:12,fontWeight:700}}>{matched.style} · {matched.city}</div>
           <div style={{display:'flex',gap:10,marginTop:8}}>
-            <button onClick={()=>{setMatched(null);setTab('chat');}} style={{padding:'13px 28px',borderRadius:12,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>💬 JETZT CHATTEN</button>
+            <button onClick={()=>{setMatched(null);setTab('chat');}} style={{padding:'13px 28px',borderRadius:12,background:`linear-gradient(135deg,${RED},#e74c3c)`,color:'#fff',border:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:'pointer'}}>{L('💬 JETZT CHATTEN', '💬 CHAT NOW', '💬 DISCUTER MAINTENANT', '💬 CHATEA AHORA')}</button>
             <button onClick={()=>setMatched(null)} style={{padding:'13px 20px',borderRadius:12,background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.2)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>{t.weiterSwipen}</button>
           </div>
         </div>

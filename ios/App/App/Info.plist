@@ -14,6 +14,13 @@
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>de</string>
+		<string>en</string>
+		<string>fr</string>
+		<string>es</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Fighter</string>
 	<key>CFBundleExecutable</key>
