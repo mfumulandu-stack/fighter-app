@@ -18,6 +18,7 @@ import AuthScreen from './AuthScreen';
 import { Lbl, Inp, Tag, Btn } from './uiHelpers';
 import { profileProgressOf, shareLink, inviteUrl } from './growth';
 import GymVerifyModal from './GymVerifyModal';
+import { LIST_FIELDS, CARD_FIELDS, mergeProfileDetail, isFresh } from './profileLoad';
 import BrandDashboard from './BrandDashboard';
 import OnboardingTour from './OnboardingTour';
 import SwipeableChatRow from './SwipeableChatRow';
@@ -209,6 +210,7 @@ function MainApp(){
   const [adminMessages,setAdminMessages]=useState([]);
   const [showAdminMsg,setShowAdminMsg]=useState(false);
   const [allProfiles,setAllProfiles]=useState([]);
+  const allProfilesAtRef=React.useRef(0);
   const [rankingLoading,setRankingLoading]=useState(false);
   const [whoLikedTab,setWhoLikedTab]=useState(false);
   const [newLikesCount,setNewLikesCount]=useState(0);
@@ -465,26 +467,14 @@ function MainApp(){
     return()=>clearTimeout(tm);
   },[session,myProfile?.id,myProfile?.gym,myProfile?.country,myProfile?.wins,myProfile?.losses,myProfile?.draws,myProfile?.record_verified,screen]);
 
-  // Rangliste neu laden wenn Tab geöffnet wird
+  // Rangliste neu laden wenn Tab geöffnet wird - mit der schlanken Liste
+  // (LIST_FIELDS) statt allen Spalten, und nur wenn die Liste nicht gerade
+  // erst (unter 60 Sekunden) geladen wurde.
   useEffect(()=>{
     if(tab==='ranking'&&session){
+      if(isFresh(allProfilesAtRef.current,Date.now()))return;
       setRankingLoading(true);
-      // Erst mit Session Token versuchen
-      fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&is_brand=neq.true&order=created_at.desc&limit=2000',{
-        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
-      }).then(r=>r.json()).then(data=>{
-        if(Array.isArray(data)){
-          setAllProfiles(data);
-          setRankingLoading(false);
-        } else {
-          return fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&is_brand=neq.true&order=created_at.desc&limit=2000',{
-            headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
-          }).then(r=>r.json()).then(d=>{
-            if(Array.isArray(d))setAllProfiles(d);
-            setRankingLoading(false);
-          });
-        }
-      }).catch(()=>setRankingLoading(false));
+      loadAllProfiles(session).finally(()=>setRankingLoading(false));
     }
     // session gehoert auch hier in die Liste - gleicher Fehler wie beim
     // Events-Tab oben: sonst bleibt die Rangliste leer, wenn die Seite
@@ -789,7 +779,8 @@ function MainApp(){
         loadFightHistory(s);
         loadDbGyms(s);
         loadWhoLikedMe(s,p);
-        loadAllProfiles(s);
+        // Erst nach den Swipe-Karten und nur, wenn die Rangliste sie nicht schon geholt hat
+        setTimeout(()=>{if(!allProfilesAtRef.current)loadAllProfiles(s);},4000);
         loadAdminMessages(s);
         // Standort: GPS falls bereits gespeichert, sonst IP
         if(p.lat&&p.lon){
@@ -1005,13 +996,14 @@ function MainApp(){
   async function loadAllProfiles(s){
     try{
       const token=s?.token||session?.token;
-      const profileFields='id,user_id,name,age,city,gym,style,avatar_url,weight,weight_class,is_pro,country,gender,belt,wins,losses,draws,ko,last_seen,lat,lon,record_verified,banned';
+      const profileFields=LIST_FIELDS;
       const resp=await fetch(SUPA_URL+'/rest/v1/profiles?banned=neq.true&is_brand=neq.true&order=created_at.desc&limit=2000&select='+profileFields,{
         headers:{apikey:SUPA_KEY,Authorization:'Bearer '+token}
       });
       const data=await resp.json();
       if(Array.isArray(data)){
         setAllProfiles(data);
+        allProfilesAtRef.current=Date.now();
       }else{
         // Fallback mit anon key
         try{
@@ -1019,7 +1011,7 @@ function MainApp(){
             headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
           });
           const d2=await r2.json();
-          if(Array.isArray(d2))setAllProfiles(d2);
+          if(Array.isArray(d2)){setAllProfiles(d2);allProfilesAtRef.current=Date.now();}
         }catch{}
       }
     }catch(e){console.warn('loadAllProfiles Fehler:',e);}
@@ -1065,10 +1057,10 @@ function MainApp(){
 
   async function loadRealFighters(s,myP,isInitial=false){
     try{
-      let all = await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true&is_brand=neq.true&order=created_at.desc&limit=2000&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery',s.token);
+      let all = await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true&is_brand=neq.true&order=created_at.desc&limit=2000&select='+CARD_FIELDS,s.token);
       if(!Array.isArray(all)||all.length===0){
         try{
-          const r=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=neq.'+s.userId+'&banned=neq.true&is_brand=neq.true&select=id,user_id,name,age,city,gym,style,avatar_url,weight_class,is_pro,country,gender,wins,losses,draws,ko,last_seen,lat,lon,weight,height,videos,gallery',{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
+          const r=await fetch(SUPA_URL+'/rest/v1/profiles?user_id=neq.'+s.userId+'&banned=neq.true&is_brand=neq.true&select='+CARD_FIELDS,{headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}});
           all=await r.json();
         }catch{}
       }
@@ -2634,6 +2626,22 @@ function MainApp(){
     }).then(r=>r.json()).then(data=>{
       if(Array.isArray(data))setViewProfileHistory(data);
     }).catch(()=>{});
+  },[viewProfile?.id]);
+
+  // Volles Profil nachladen: Listen und Karten sind schlank (ohne Bio,
+  // Galerie, Link ...). Beim Oeffnen eines Profils wird der eine volle
+  // Datensatz geholt und eingemischt - egal von wo das Profil geoeffnet wurde.
+  useEffect(()=>{
+    if(!viewProfile||!session||typeof viewProfile.id!=='string')return;
+    const pid=viewProfile.id;
+    let cancelled=false;
+    fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+pid+'&select=*',{
+      headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
+    }).then(r=>r.ok?r.json():null).then(d=>{
+      if(cancelled||!Array.isArray(d)||!d[0])return;
+      setViewProfile(v=>mergeProfileDetail(v,d[0],pid));
+    }).catch(()=>{});
+    return()=>{cancelled=true;};
   },[viewProfile?.id]);
 
   // Verifizierungsstatus des angesehenen Profils (eigener Abruf, bricht nichts wenn Spalte fehlt)
