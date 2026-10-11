@@ -2686,8 +2686,8 @@ function MainApp(){
   if(whoLikedTab&&!viewProfile)return(
     <div style={{height:'100dvh',overflowY:'auto',WebkitOverflowScrolling:'touch',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column'}}> 
       <style>{css}</style>
-      <div style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
-        <button onClick={()=>setWhoLikedTab(false)} style={{background:'none',border:'none',color:darkMode?'#fff':'#1a1a1a',fontSize:20,cursor:'pointer',padding:'0 8px 0 0'}}>←</button>
+      <div style={{display:'flex',alignItems:'center',gap:6,padding:'calc(10px + env(safe-area-inset-top)) 16px 10px',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee'),position:'sticky',top:0,zIndex:5,flexShrink:0}}>
+        <button onClick={()=>setWhoLikedTab(false)} aria-label='Zurück' style={{background:'none',border:'none',color:darkMode?'#fff':'#1a1a1a',fontSize:24,cursor:'pointer',minWidth:44,minHeight:44,display:'flex',alignItems:'center',justifyContent:'center',marginLeft:-10}}>←</button>
         <div>
           <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,letterSpacing:2}}>{t.interestTitle}</div>
           <div style={{color:'#aaa',fontSize:11}}>{whoLikedMe.length} {t.interestSub}</div>
@@ -2994,7 +2994,7 @@ function MainApp(){
   // Chat) - nur echte Matches/Swipes werden fuer sie nie gespeichert (siehe
   // doSwipe). Keine eigene eingeschraenkte Ansicht mehr noetig.
   if(profile.isBrand&&!myProfile)return(
-    <div style={{height:'100dvh',overflowY:'auto',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'40px 20px'}}>
+    <div style={{height:'100dvh',overflowY:'auto',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'calc(40px + env(safe-area-inset-top)) 20px 40px'}}>
       <div className='rj' style={{fontSize:48,color:'#1a1a1a',letterSpacing:5}}>FIGHTER</div>
       <div style={{color:'#2980b9',fontSize:11,letterSpacing:3,marginTop:5,fontWeight:700,marginBottom:30}}>{L('MARKEN-PARTNER', 'BRAND PARTNER', 'PARTENAIRE DE MARQUE', 'SOCIO DE MARCA')}</div>
       <div style={{width:'100%',maxWidth:340}}>
@@ -3013,7 +3013,7 @@ function MainApp(){
     <div style={{height:'100dvh',overflowY:'auto',WebkitOverflowScrolling:'touch',background:'#f5f5f7',display:'flex',flexDirection:'column',alignItems:'center',padding:'0 0 40px'}}>
       <style>{css}</style>
       {showImgEditor&&imgEditorSrc&&<ImgPositionEditor src={imgEditorSrc} onSave={imgEditorCallback} onCancel={()=>setShowImgEditor(false)}/>}
-      <div style={{width:'100%',maxWidth:420,padding:'32px 24px 0',textAlign:'center'}}>
+      <div style={{width:'100%',maxWidth:420,padding:'calc(32px + env(safe-area-inset-top)) 24px 0',textAlign:'center'}}>
         <div className='rj fadeUp' style={{fontSize:64,color:'#1a1a1a',letterSpacing:6,lineHeight:1}}>FIGHTER</div>
         <div style={{color:RED,fontSize:11,letterSpacing:7,marginTop:5,fontWeight:600}}>{L('FINDE DEINEN GEGNER', 'FIND YOUR OPPONENT', 'TROUVE TON ADVERSAIRE', 'ENCUENTRA A TU RIVAL')}</div>
       </div>
@@ -5477,7 +5477,7 @@ function MainApp(){
       {showGymVerify&&<div style={{position:'fixed',inset:0,zIndex:500}}><style>{css}</style><GymVerifyModal onClose={()=>{setShowGymVerify(false);setGymCodeInput('');setGymVerifyError('');}} gymCodeInput={gymCodeInput} setGymCodeInput={setGymCodeInput} gymVerifyError={gymVerifyError} setGymVerifyError={setGymVerifyError} gymVerified={gymVerified} setGymVerified={setGymVerified} darkMode={darkMode} showMsg={showMsg} authToken={session?.token} onMembershipChange={ok=>setMyProfile(p=>p?{...p,gym_verified:ok}:p)}/></div>}
       {/* IMPRESSUM MODAL */}
       {showImpressum&&(
-        <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:400,overflowY:'auto',padding:'20px 16px 40px'}}>
+        <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:400,overflowY:'auto',padding:'calc(20px + env(safe-area-inset-top)) 16px 40px'}}>
           <div style={{maxWidth:480,margin:'0 auto'}}>
             <button onClick={()=>setShowImpressum(false)} style={{background:'none',border:'none',color:'#c0392b',fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>{t.back}</button>
             <div style={{background:'#fff',borderRadius:14,padding:'20px',border:'1px solid #eee'}}>
@@ -5495,7 +5495,7 @@ function MainApp(){
       )}
       {/* DATENSCHUTZ MODAL */}
       {showDatenschutz&&(
-        <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:400,overflowY:'auto',padding:'20px 16px 40px'}}>
+        <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:400,overflowY:'auto',padding:'calc(20px + env(safe-area-inset-top)) 16px 40px'}}>
           <div style={{maxWidth:480,margin:'0 auto'}}>
             <button onClick={()=>setShowDatenschutz(false)} style={{background:'none',border:'none',color:'#c0392b',fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>{t.back}</button>
             <div style={{background:'#fff',borderRadius:14,padding:'20px',border:'1px solid #eee'}}>
@@ -5514,7 +5514,7 @@ function MainApp(){
       )}
       {/* AGB MODAL */}
       {showAGB&&(
-        <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:400,overflowY:'auto',padding:'20px 16px 40px'}}>
+        <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:400,overflowY:'auto',padding:'calc(20px + env(safe-area-inset-top)) 16px 40px'}}>
           <div style={{maxWidth:480,margin:'0 auto'}}>
             <button onClick={()=>setShowAGB(false)} style={{background:'none',border:'none',color:'#c0392b',fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>{t.back}</button>
             <div style={{background:'#fff',borderRadius:14,padding:'20px',border:'1px solid #eee'}}>

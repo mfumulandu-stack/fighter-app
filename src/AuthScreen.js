@@ -358,7 +358,7 @@ function AuthScreen({ onSession, appLang }) {
         </div>
       )}
       {showDatenschutz&&(
-        <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:500,overflowY:'auto',padding:'20px 16px 40px'}}>
+        <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:500,overflowY:'auto',padding:'calc(20px + env(safe-area-inset-top)) 16px 40px'}}>
           <div style={{maxWidth:480,margin:'0 auto'}}>
             <button onClick={()=>setShowDatenschutz(false)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>{L('← Zurück','← Back','← Retour','← Volver')}</button>
             <div style={{background:'#fff',borderRadius:14,padding:'20px',border:'1px solid #eee'}}>
@@ -376,7 +376,7 @@ function AuthScreen({ onSession, appLang }) {
         </div>
       )}
       {showAGB&&(
-        <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:500,overflowY:'auto',padding:'20px 16px 40px'}}>
+        <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:500,overflowY:'auto',padding:'calc(20px + env(safe-area-inset-top)) 16px 40px'}}>
           <div style={{maxWidth:480,margin:'0 auto'}}>
             <button onClick={()=>setShowAGB(false)} style={{background:'none',border:'none',color:RED,fontSize:20,cursor:'pointer',marginBottom:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>{L('← Zurück','← Back','← Retour','← Volver')}</button>
             <div style={{background:'#fff',borderRadius:14,padding:'20px',border:'1px solid #eee'}}>
