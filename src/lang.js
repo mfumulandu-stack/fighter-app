@@ -24,12 +24,13 @@ function regionOf(tag) {
 }
 
 // Welche Sprache soll die App zeigen?
-//  1. ausdrueckliche Wahl des Nutzers (gespeichert), falls gueltig
-//  2. die erste unterstuetzte Sprache aus der Sprachliste des Geraets
-//  3. Geraet ohne unterstuetzte Sprache: DACH-Region -> Deutsch, sonst Englisch
-export function detectLang({ saved, languages, language } = {}) {
-  const s = String(saved == null ? '' : saved).toUpperCase();
-  if (SUPPORTED.includes(s)) return s;
+//  1. Geraetesprache: die erste unterstuetzte aus der Sprachliste des Handys
+//  2. Handy ohne unterstuetzte Sprache: DACH-Region -> Deutsch, sonst Englisch
+//  3. Eine selbst gewaehlte Sprache (saved) gilt NUR, solange die Handysprache
+//     (savedDevice) noch dieselbe ist wie bei der Wahl. Aendert sich die
+//     Handysprache - oder fehlt savedDevice, weil die Wahl aus einer aelteren
+//     Version stammt -, gewinnt die Handysprache.
+export function deviceLang({ languages, language } = {}) {
   const list = (Array.isArray(languages) && languages.length ? languages : [language])
     .filter(Boolean);
   for (const tag of list) {
@@ -40,19 +41,45 @@ export function detectLang({ saved, languages, language } = {}) {
   return list.length ? 'EN' : 'DE';
 }
 
-// Liest die Geraetesprache aus dem Browser (WebView). Faellt bei Fehlern auf Deutsch.
+export function detectLang({ saved, savedDevice, languages, language } = {}) {
+  const dev = deviceLang({ languages, language });
+  const s = String(saved == null ? '' : saved).toUpperCase();
+  const sd = String(savedDevice == null ? '' : savedDevice).toUpperCase();
+  if (SUPPORTED.includes(s) && sd === dev) return s;
+  return dev;
+}
+
+export const LANG_DEV_KEY = 'fighter_lang_dev';
+
+function deviceInfo() {
+  return {
+    languages: typeof navigator !== 'undefined' ? navigator.languages : undefined,
+    language: typeof navigator !== 'undefined' ? (navigator.language || navigator.userLanguage) : undefined,
+  };
+}
+
+// Liest die Sprache aus Browser/WebView. Eine veraltete Wahl wird dabei entfernt.
 export function detectLangFromDevice() {
   try {
     let saved = null;
-    try { saved = localStorage.getItem(LANG_KEY); } catch (e) {}
-    return detectLang({
-      saved,
-      languages: typeof navigator !== 'undefined' ? navigator.languages : undefined,
-      language: typeof navigator !== 'undefined' ? (navigator.language || navigator.userLanguage) : undefined,
-    });
+    let savedDevice = null;
+    try { saved = localStorage.getItem(LANG_KEY); savedDevice = localStorage.getItem(LANG_DEV_KEY); } catch (e) {}
+    const lang = detectLang({ saved, savedDevice, ...deviceInfo() });
+    if (saved && String(saved).toUpperCase() !== lang) {
+      try { localStorage.removeItem(LANG_KEY); localStorage.removeItem(LANG_DEV_KEY); } catch (e) {}
+    }
+    return lang;
   } catch (e) {
     return 'DE';
   }
+}
+
+// Merkt sich die Wahl des Nutzers zusammen mit der aktuellen Handysprache.
+export function saveLangChoice(lang) {
+  try {
+    localStorage.setItem(LANG_KEY, lang);
+    localStorage.setItem(LANG_DEV_KEY, deviceLang(deviceInfo()));
+  } catch (e) {}
 }
 
 // Waehlt aus {DE, EN, FR, ES} den Text der Sprache. Fehlt er, wird auf

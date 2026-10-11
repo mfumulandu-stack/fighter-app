@@ -19,7 +19,7 @@ import { Lbl, Inp, Tag, Btn } from './uiHelpers';
 import { profileProgressOf, shareLink, inviteUrl } from './growth';
 import GymVerifyModal from './GymVerifyModal';
 import { LIST_FIELDS, CARD_FIELDS, mergeProfileDetail, isFresh } from './profileLoad';
-import { detectLangFromDevice, makeL, LANG_KEY, countryName } from './lang';
+import { detectLangFromDevice, saveLangChoice, makeL, countryName } from './lang';
 import { progressLabel } from './progressLabels';
 import BrandDashboard from './BrandDashboard';
 import OnboardingTour from './OnboardingTour';
@@ -327,12 +327,11 @@ function MainApp(){
   // Aendert der Nutzer die Handysprache, waehrend die App laeuft, folgt die App -
   // aber nur, solange er keine Sprache selbst gewaehlt hat.
   useEffect(()=>{
-    const onChange=()=>{
-      try{if(localStorage.getItem(LANG_KEY))return;}catch(e){}
-      setAppLang(detectLangFromDevice());
-    };
+    const onChange=()=>{setAppLang(detectLangFromDevice());};
+    const onVisible=()=>{if(document.visibilityState==='visible')onChange();};
     window.addEventListener('languagechange',onChange);
-    return()=>window.removeEventListener('languagechange',onChange);
+    document.addEventListener('visibilitychange',onVisible);
+    return()=>{window.removeEventListener('languagechange',onChange);document.removeEventListener('visibilitychange',onVisible);};
   },[]);
 
   const [showFeedback,setShowFeedback]=useState(false);
@@ -3533,13 +3532,8 @@ function MainApp(){
                 <div style={{color:darkMode?'#aaa':'#666',fontSize:12,fontWeight:600}}>{L('Sprache','Language','Langue','Idioma')}</div>
               </div>
               <div style={{display:'flex',gap:3,background:darkMode?'#222':'#ebebeb',borderRadius:16,padding:3}}>
-                {(()=>{
-                  let auto=true;try{auto=!localStorage.getItem(LANG_KEY);}catch(e){}
-                  return <button onClick={()=>{try{localStorage.removeItem(LANG_KEY);}catch(e){}const dl=detectLangFromDevice();setAppLang(dl);showMsg(makeL(dl)('Automatisch (Gerätesprache) 🌐','Automatic (device language) 🌐',"Automatique (langue de l'appareil) 🌐",'Automático (idioma del dispositivo) 🌐'));}}
-                    style={{padding:'3px 9px',borderRadius:13,background:auto?(darkMode?'#333':'#fff'):'transparent',border:'none',color:auto?(darkMode?'#fff':'#111'):(darkMode?'#555':'#999'),fontSize:11,fontWeight:700,cursor:'pointer',transition:'all 0.15s',boxShadow:auto?'0 1px 3px rgba(0,0,0,0.12)':'none'}}>🌐 AUTO</button>;
-                })()}
                 {[['DE','🇩🇪'],['EN','🇬🇧'],['FR','🇫🇷'],['ES','🇪🇸']].map(([lang,flag])=>(
-                  <button key={lang} onClick={()=>{setAppLang(lang);try{localStorage.setItem('fighter_lang',lang);}catch{}showMsg(lang==='DE'?'Deutsch 🇩🇪':lang==='FR'?'Français 🇫🇷':lang==='ES'?'Español 🇪🇸':'English 🇬🇧');}}
+                  <button key={lang} onClick={()=>{setAppLang(lang);saveLangChoice(lang);showMsg(lang==='DE'?'Deutsch 🇩🇪':lang==='FR'?'Français 🇫🇷':lang==='ES'?'Español 🇪🇸':'English 🇬🇧');}}
                     style={{padding:'3px 9px',borderRadius:13,background:appLang===lang?(darkMode?'#333':'#fff'):'transparent',border:'none',color:appLang===lang?(darkMode?'#fff':'#111'):(darkMode?'#555':'#999'),fontSize:11,fontWeight:700,cursor:'pointer',transition:'all 0.15s',boxShadow:appLang===lang?'0 1px 3px rgba(0,0,0,0.12)':'none'}}>
                     {flag} {lang}
                   </button>

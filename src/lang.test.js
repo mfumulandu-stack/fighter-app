@@ -1,4 +1,4 @@
-import { SUPPORTED, langFromTag, detectLang, pickLang, makeL, countryName } from './lang';
+import { SUPPORTED, langFromTag, detectLang, deviceLang, pickLang, makeL, countryName } from './lang';
 
 test('Sprach-Tags werden erkannt', () => {
   expect(langFromTag('de-AT')).toBe('DE');
@@ -9,9 +9,19 @@ test('Sprach-Tags werden erkannt', () => {
   expect(langFromTag(null)).toBe('');
 });
 
-test('Gespeicherte Wahl hat Vorrang, aber nur wenn gueltig', () => {
-  expect(detectLang({ saved: 'FR', languages: ['de-DE'] })).toBe('FR');
-  expect(detectLang({ saved: 'xx', languages: ['es-ES'] })).toBe('ES');
+test('Gespeicherte Wahl gilt, solange sich die Handysprache nicht aendert', () => {
+  expect(detectLang({ saved: 'FR', savedDevice: 'DE', languages: ['de-DE'] })).toBe('FR');
+  expect(detectLang({ saved: 'xx', savedDevice: 'ES', languages: ['es-ES'] })).toBe('ES');
+});
+
+test('Aendert sich die Handysprache, gewinnt die Handysprache', () => {
+  // Wahl EN auf deutschem Handy, danach Handy auf Spanisch gestellt
+  expect(detectLang({ saved: 'EN', savedDevice: 'DE', languages: ['es-ES'] })).toBe('ES');
+});
+
+test('Wahl aus der alten Version (ohne Merker) wird ignoriert', () => {
+  expect(detectLang({ saved: 'EN', languages: ['es-ES'] })).toBe('ES');
+  expect(deviceLang({ languages: ['fr-FR', 'en'] })).toBe('FR');
 });
 
 test('Geraetesprache: erste unterstuetzte aus der Liste gewinnt', () => {
