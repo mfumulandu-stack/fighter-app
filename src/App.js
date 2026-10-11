@@ -210,6 +210,17 @@ function MainApp(){
   const [recentSwiped,setRecentSwiped]=useState([]);
   const [whoLikedMe,setWhoLikedMe]=useState([]);
   const [adminMessages,setAdminMessages]=useState([]);
+  // Vom User ausgeblendete Team-Nachrichten (nur auf diesem Geraet gemerkt)
+  const [hiddenAdminMsgs,setHiddenAdminMsgs]=useState(()=>{
+    try{const a=JSON.parse(localStorage.getItem('fighter_hidden_admin_msgs')||'[]');return Array.isArray(a)?a:[];}catch{return [];}
+  });
+  function hideAdminMsg(id){
+    setHiddenAdminMsgs(prev=>{
+      const next=prev.includes(id)?prev:[...prev,id].slice(-200);
+      try{localStorage.setItem('fighter_hidden_admin_msgs',JSON.stringify(next));}catch{}
+      return next;
+    });
+  }
   const [showAdminMsg,setShowAdminMsg]=useState(false);
   const [allProfiles,setAllProfiles]=useState([]);
   const allProfilesAtRef=React.useRef(0);
@@ -3696,12 +3707,13 @@ function MainApp(){
           <div style={{padding:'16px',maxWidth:480,margin:'0 auto',width:'100%'}}>
             {/* Nachrichten vom Fighter Team (Admin-Broadcasts) zuerst — hier kann
                 die komplette Nachricht aus der Push-Benachrichtigung nachgelesen werden */}
-            {adminMessages.slice(0,5).map(am=>(
+            {adminMessages.filter(am=>!hiddenAdminMsgs.includes(am.id)&&(!am.created_at||Date.now()-new Date(am.created_at).getTime()<30*86400000)).slice(0,5).map(am=>(
               <div key={am.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px 16px',marginBottom:10,border:'1.5px solid '+RED+'66'}}>
                 <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:6}}>
                   <span style={{background:RED,borderRadius:20,padding:'1px 8px',color:'#fff',fontSize:10,fontWeight:700}}>📢 FIGHTER TEAM</span>
                   {am.created_at&&<span style={{color:'#999',fontSize:10}}>{new Date(am.created_at).toLocaleDateString('de-DE')}</span>}
                   {!am.read&&<span style={{background:'#27ae60',borderRadius:20,padding:'1px 8px',color:'#fff',fontSize:9,fontWeight:700}}>{L('NEU', 'NEW', 'NOUVEAU', 'NUEVO')}</span>}
+                  <span onClick={()=>hideAdminMsg(am.id)} aria-label={L('Ausblenden', 'Hide', 'Masquer', 'Ocultar')} style={{marginLeft:'auto',color:'#999',fontSize:16,cursor:'pointer',padding:'0 4px',lineHeight:1}}>✕</span>
                 </div>
                 <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,lineHeight:1.6,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{am.message}</div>
               </div>
@@ -3985,9 +3997,9 @@ function MainApp(){
                 ganz oben, aber optisch abgesetzt. Der Tipp oeffnet die
                 News-Ansicht, wo die vollstaendigen Nachrichten schon
                 dargestellt werden - bewusst keine zweite Anzeige dafuer. */}
-            {adminMessages.length>0&&(()=>{
-              const ungelesen=adminMessages.filter(m=>!m.read).length;
-              const neueste=adminMessages[0];
+            {adminMessages.some(m=>!m.read&&!hiddenAdminMsgs.includes(m.id))&&(()=>{
+              const ungelesen=adminMessages.filter(m=>!m.read&&!hiddenAdminMsgs.includes(m.id)).length;
+              const neueste=adminMessages.find(m=>!m.read&&!hiddenAdminMsgs.includes(m.id));
               return(
                 <div onClick={async()=>{setShowNews(true);await markAdminMessagesRead();}}
                   style={{display:'flex',alignItems:'center',gap:12,background:darkMode?'#2a1414':'#fdecea',borderRadius:13,padding:'13px',marginBottom:8,border:'1px solid '+RED+'44',cursor:'pointer'}}>
