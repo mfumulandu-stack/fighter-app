@@ -183,7 +183,7 @@
       counterDate:'🔄 COUNTER-OFFER', backToChat:'💬 BACK TO CHAT',
       fightAccepted:'FIGHT ACCEPTED', fightDeclined:'FIGHT DECLINED', counterTerm:'COUNTER-OFFER',
       // Ranking
-      worldRanking:'WORLD RANKINGS', amateurs:'🏅 AMATEURS', pros:'🌍 PROS', trainer:'🎓 TRAINERS',
+      worldRanking:'WORLD RANKINGS', amateurs:'🏅 AMATEURS', pros:'🌍 PROS', trainer:'🎓 COACHES',
       all:'All', wins:'WINS', losses:'LOSSES', draws:'DRAWS', kos:'KOs',
       points:'Pts', winRate:'WIN RATE', fights:'fights total',
       rankFormula:'WIN +3 · DRAW +1 · LOSS -2',
@@ -298,7 +298,7 @@
       counterDate:'🔄 CONTRE-PROPOSITION', backToChat:'💬 RETOUR AU CHAT',
       fightAccepted:'COMBAT ACCEPTÉ', fightDeclined:'COMBAT REFUSÉ', counterTerm:'CONTRE-OFFRE',
       // Ranking
-      worldRanking:'CLASSEMENT MONDIAL', amateurs:'🏅 AMATEURS', pros:'🌍 PROS', trainer:'🎓 ENTRAÎNEURS',
+      worldRanking:'CLASSEMENT MONDIAL', amateurs:'🏅 AMATEURS', pros:'🌍 PROS', trainer:'🎓 COACHS',
       all:'Tous', wins:'VICTOIRES', losses:'DÉFAITES', draws:'NULS', kos:'KOs',
       points:'Pts', winRate:'TAUX VICTOIRE', fights:'combats au total',
       rankFormula:'VICTOIRE +3 · NUL +1 · DÉFAITE -2',
@@ -408,7 +408,7 @@
       counterDate:'🔄 CONTRAPROPUESTA', backToChat:'💬 VOLVER AL CHAT',
       fightAccepted:'COMBATE ACEPTADO', fightDeclined:'COMBATE RECHAZADO', counterTerm:'FECHA ALTERNATIVA',
       // Ranking
-      worldRanking:'RANKING MUNDIAL', amateurs:'🏅 AMATEURS', pros:'🌍 PROFESIONALES', trainer:'🎓 ENTRENADOR',
+      worldRanking:'RANKING MUNDIAL', amateurs:'🏅 AMATEURS', pros:'🌍 PROFESIONALES', trainer:'🎓 ENTRENADORES',
       all:'Todos', wins:'VICTORIAS', losses:'DERROTAS', draws:'EMPATES', kos:'KOs',
       points:'Pts', winRate:'% VICTORIAS', fights:'Combates totales',
       rankFormula:'VICTORIA +3 · EMPATE +1 · DERROTA -2',

@@ -7,9 +7,11 @@
 
 import { useState } from 'react';
 import { SUPA_URL, SUPA_KEY } from './constants';
+import { makeL } from './lang';
 
-function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,setGymVerifyError,gymVerified,setGymVerified,darkMode,showMsg,authToken,onMembershipChange}){
+function GymVerifyModal({appLang,onClose,gymCodeInput,setGymCodeInput,gymVerifyError,setGymVerifyError,gymVerified,setGymVerified,darkMode,showMsg,authToken,onMembershipChange}){
   const [verifying,setVerifying]=useState(false);
+  const L=makeL(appLang||'DE');
   const bg=darkMode?'rgba(0,0,0,0.85)':'rgba(0,0,0,0.6)';
   const card='#fff';
   const text='#1a1a1a';
@@ -53,13 +55,13 @@ function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,set
         setGymVerified(verified);
         localStorage.setItem('fighter_gym_verified',JSON.stringify(verified));
         if(claimed&&onMembershipChange)onMembershipChange(true);
-        showMsg('✅ Gym verifiziert! Du bist jetzt '+found.gym_name+' Mitglied');
+        showMsg(L('✅ Gym verifiziert! Du bist jetzt '+found.gym_name+' Mitglied', '✅ Gym verified! You are now a member of '+found.gym_name, '✅ Salle vérifiée ! Tu es maintenant membre de '+found.gym_name, '✅ ¡Gimnasio verificado! Ahora eres miembro de '+found.gym_name));
         onClose();
       }else{
-        setGymVerifyError('Ungültiger Code. Bitte frage dein Gym nach dem Fighter-Code.');
+        setGymVerifyError(L('Ungültiger Code. Bitte frage dein Gym nach dem Fighter-Code.', 'Invalid code. Please ask your gym for the Fighter code.', 'Code invalide. Demande le code Fighter à ta salle.', 'Código no válido. Pide el código de Fighter a tu gimnasio.'));
       }
     }catch(e){
-      setGymVerifyError('Netzwerkfehler — bitte erneut versuchen.');
+      setGymVerifyError(L('Netzwerkfehler — bitte erneut versuchen.', 'Network error — please try again.', 'Erreur réseau — réessaie.', 'Error de red — inténtalo de nuevo.'));
     }
     setVerifying(false);
   }
@@ -77,7 +79,7 @@ function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,set
       }).catch(()=>{});
     }
     if(onMembershipChange)onMembershipChange(false);
-    showMsg('Gym-Verifizierung entfernt');
+    showMsg(L('Gym-Verifizierung entfernt', 'Gym verification removed', 'Vérification de la salle supprimée', 'Verificación del gimnasio eliminada'));
     onClose();
   }
 
@@ -87,8 +89,8 @@ function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,set
         <div style={{background:'linear-gradient(135deg,#1a1a1a,#c0392b)',padding:'20px 20px 18px'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <div>
-              <div className='rj' style={{color:'#fff',fontSize:20,letterSpacing:2}}>GYM VERIFIZIEREN</div>
-              <div style={{color:'rgba(255,255,255,0.6)',fontSize:11,marginTop:2}}>Bestätige deine Gym-Mitgliedschaft</div>
+              <div className='rj' style={{color:'#fff',fontSize:20,letterSpacing:2}}>{L('GYM VERIFIZIEREN', 'VERIFY GYM', 'VÉRIFIER LA SALLE', 'VERIFICAR GIMNASIO')}</div>
+              <div style={{color:'rgba(255,255,255,0.6)',fontSize:11,marginTop:2}}>{L('Bestätige deine Gym-Mitgliedschaft', 'Confirm your gym membership', 'Confirme ton abonnement à la salle', 'Confirma tu membresía del gimnasio')}</div>
             </div>
             <div style={{fontSize:32}}>🏅</div>
           </div>
@@ -99,35 +101,35 @@ function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,set
             <div>
               <div style={{background:darkMode?'#0a1f0a':'#f0faf0',borderRadius:12,padding:'16px',border:'1px solid #27ae6044',textAlign:'center',marginBottom:16}}>
                 <div style={{fontSize:40,marginBottom:8}}>{gymVerified.gymEmoji}</div>
-                <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:1}}>✅ VERIFIZIERTES MITGLIED</div>
+                <div style={{color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:1}}>{L('✅ VERIFIZIERTES MITGLIED', '✅ VERIFIED MEMBER', '✅ MEMBRE VÉRIFIÉ', '✅ MIEMBRO VERIFICADO')}</div>
                 <div style={{color:text,fontWeight:700,fontSize:14,marginTop:4}}>{gymVerified.gymName}</div>
                 <div style={{color:sub,fontSize:12,marginTop:2}}>📍 {gymVerified.gymCity}</div>
-                <div style={{color:'#bbb',fontSize:10,marginTop:6}}>Seit: {new Date(gymVerified.verifiedAt).toLocaleDateString('de')}</div>
+                <div style={{color:'#bbb',fontSize:10,marginTop:6}}>{L('Seit', 'Since', 'Depuis', 'Desde')}: {new Date(gymVerified.verifiedAt).toLocaleDateString(L('de','en','fr','es'))}</div>
               </div>
-              <div style={{color:sub,fontSize:12,textAlign:'center',marginBottom:14}}>Dein Profil zeigt jetzt das ✅ Verifiziert-Badge</div>
+              <div style={{color:sub,fontSize:12,textAlign:'center',marginBottom:14}}>{L('Dein Profil zeigt jetzt das ✅ Verifiziert-Badge', 'Your profile now shows the ✅ Verified badge', 'Ton profil affiche maintenant le badge ✅ Vérifié', 'Tu perfil ahora muestra la insignia ✅ Verificado')}</div>
               <button onClick={removeVerification} style={{width:'100%',padding:'11px',borderRadius:10,background:'transparent',border:'1px solid #e74c3c',color:'#e74c3c',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:8}}>
-                Verifizierung entfernen
+                {L('Verifizierung entfernen', 'Remove verification', 'Supprimer la vérification', 'Quitar verificación')}
               </button>
               <button onClick={onClose} style={{width:'100%',padding:'11px',borderRadius:10,background:`linear-gradient(135deg,#c0392b,#e74c3c)`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:15,cursor:'pointer'}}>
-                SCHLIESSEN
+                {L('SCHLIESSEN', 'CLOSE', 'FERMER', 'CERRAR')}
               </button>
             </div>
           ):(
             <div>
               <div style={{background:darkMode?'#1f1f1f':'#f8f8f8',borderRadius:10,padding:'12px',marginBottom:16,border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
-                <div style={{color:'#d4a017',fontSize:12,fontWeight:700,marginBottom:6}}>💡 WIE BEKOMME ICH DEN CODE?</div>
+                <div style={{color:'#d4a017',fontSize:12,fontWeight:700,marginBottom:6}}>{L('💡 WIE BEKOMME ICH DEN CODE?', '💡 HOW DO I GET THE CODE?', '💡 COMMENT OBTENIR LE CODE ?', '💡 ¿CÓMO CONSIGO EL CÓDIGO?')}</div>
                 <div style={{color:sub,fontSize:12,lineHeight:1.6}}>
-                  Frage an der Rezeption deines Gyms nach dem <strong>Fighter-App Code</strong>. Der Code (6 bis 8 Zeichen) wird dir direkt mitgeteilt.
+                  {L('Frage an der Rezeption deines Gyms nach dem ', 'Ask at your gym\'s front desk for the ', 'Demande à l\'accueil de ta salle le ', 'Pregunta en la recepción de tu gimnasio por el ')}<strong>{L('Fighter-App Code', 'Fighter App code', 'code Fighter App', 'código de Fighter App')}</strong>{L('. Der Code (6 bis 8 Zeichen) wird dir direkt mitgeteilt.', '. The code (6 to 8 characters) is given to you in person.', '. Le code (6 à 8 caractères) t\'est communiqué directement.', '. El código (de 6 a 8 caracteres) te lo dan directamente.')}
                 </div>
               </div>
 
               <div style={{marginBottom:12}}>
-                <div style={{color:sub,fontSize:10,letterSpacing:1,marginBottom:6}}>GYM-CODE EINGEBEN</div>
+                <div style={{color:sub,fontSize:10,letterSpacing:1,marginBottom:6}}>{L('GYM-CODE EINGEBEN', 'ENTER GYM CODE', 'SAISIR LE CODE DE LA SALLE', 'INTRODUCE EL CÓDIGO DEL GIMNASIO')}</div>
                 <input
                   value={gymCodeInput}
                   onChange={e=>{setGymCodeInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8));setGymVerifyError('');}}
                   onKeyDown={e=>e.key==='Enter'&&verify()}
-                  placeholder='z.B. 3F9A1C2E'
+                  placeholder={L('z.B. 3F9A1C2E', 'e.g. 3F9A1C2E', 'ex. 3F9A1C2E', 'p. ej. 3F9A1C2E')}
                   maxLength={8}
                   style={{width:'100%',padding:'12px 10px',borderRadius:10,border:'2px solid '+(gymVerifyError?'#e74c3c':darkMode?'#333':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:text,fontSize:16,fontFamily:'Rajdhani,sans-serif',fontWeight:700,letterSpacing:1.5,textAlign:'center',boxSizing:'border-box'}}
                 />
@@ -136,10 +138,10 @@ function GymVerifyModal({onClose,gymCodeInput,setGymCodeInput,gymVerifyError,set
 
               <button onClick={verify} disabled={gymCodeInput.length<6||verifying}
                 style={{width:'100%',padding:'13px',borderRadius:10,background:(gymCodeInput.length>=6&&!verifying)?'linear-gradient(135deg,#27ae60,#2ecc71)':'#eee',border:'none',color:(gymCodeInput.length>=6&&!verifying)?'#fff':'#aaa',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:(gymCodeInput.length>=6&&!verifying)?'pointer':'not-allowed',marginBottom:8}}>
-                {verifying?'Prüfe...':'✅ VERIFIZIEREN'}
+                {verifying?L('Prüfe...', 'Checking...', 'Vérification...', 'Comprobando...'):L('✅ VERIFIZIEREN', '✅ VERIFY', '✅ VÉRIFIER', '✅ VERIFICAR')}
               </button>
               <button onClick={onClose} style={{width:'100%',padding:'10px',borderRadius:10,background:'transparent',border:'1px solid '+(darkMode?'#333':'#eee'),color:'#aaa',fontFamily:'DM Sans,sans-serif',fontSize:13,cursor:'pointer'}}>
-                Abbrechen
+                {L('Abbrechen', 'Cancel', 'Annuler', 'Cancelar')}
               </button>
             </div>
           )}

@@ -965,6 +965,19 @@ function MainApp(){
     }
   },[viewGym,tab]);
 
+  // Alle Reiter teilen sich EINEN Scroll-Container (mainScrollRef). Ohne das
+  // hier blieb die Scroll-Position von Rang/Gyms/Profil erhalten, und die
+  // Karte im Fight-Reiter war nach dem Wechsel nach oben aus dem Bild
+  // geschoben. Rang und Gyms stellen ihre eigene Position selbst wieder her.
+  useEffect(()=>{
+    if(tab==='ranking'||tab==='gyms')return;
+    const el=mainScrollRef.current;
+    if(!el)return;
+    el.scrollTop=0;
+    const t1=setTimeout(()=>{if(el)el.scrollTop=0;},50);
+    return()=>clearTimeout(t1);
+  },[tab]);
+
   // Gyms regelmaessig neu laden, damit Aenderungen (neues Gym, geaendertes
   // Logo/Foto, aktualisierte Adresse usw.) fuer alle Nutzer zeitnah
   // ankommen - vorher wurden Gyms nur einmal beim App-Start geladen und
@@ -3010,7 +3023,7 @@ function MainApp(){
       <div style={{color:'#2980b9',fontSize:11,letterSpacing:3,marginTop:5,fontWeight:700,marginBottom:30}}>{L('MARKEN-PARTNER', 'BRAND PARTNER', 'PARTENAIRE DE MARQUE', 'SOCIO DE MARCA')}</div>
       <div style={{width:'100%',maxWidth:340}}>
         <Lbl>{L('Firmenname *', 'Company name *', 'Nom de l\'entreprise *', 'Nombre de la empresa *')}</Lbl>
-        <Inp placeholder='z.B. Winnas Nutrition' value={profile.companyName||''} onChange={v=>setProfile(p=>({...p,companyName:v}))}/>
+        <Inp placeholder={L('z.B. Winnas Nutrition', 'e.g. Winnas Nutrition', 'ex. Winnas Nutrition', 'p. ej. Winnas Nutrition')} value={profile.companyName||''} onChange={v=>setProfile(p=>({...p,companyName:v}))}/>
         <button onClick={saveProfile} disabled={!profile.companyName||saving}
           style={{width:'100%',marginTop:14,padding:'13px',borderRadius:8,background:profile.companyName?'linear-gradient(135deg,#2980b9,#5dade2)':'#ddd',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:profile.companyName?'pointer':'default'}}>
           {saving?'...':L('ALS MARKE FORTFAHREN', 'CONTINUE AS BRAND', 'CONTINUER EN TANT QUE MARQUE', 'CONTINUAR COMO MARCA')}
@@ -3050,7 +3063,7 @@ function MainApp(){
               <div style={{display:'flex',flexDirection:'column',gap:13}}>
                 <div>
                   <Lbl>{L('Firmenname *', 'Company name *', 'Nom de l\'entreprise *', 'Nombre de la empresa *')}</Lbl>
-                  <Inp placeholder='z.B. Winnas Nutrition' value={profile.companyName||''} onChange={v=>setProfile(p=>({...p,companyName:v}))}/>
+                  <Inp placeholder={L('z.B. Winnas Nutrition', 'e.g. Winnas Nutrition', 'ex. Winnas Nutrition', 'p. ej. Winnas Nutrition')} value={profile.companyName||''} onChange={v=>setProfile(p=>({...p,companyName:v}))}/>
                 </div>
                 <button onClick={saveProfile} disabled={!profile.companyName||saving}
                   style={{width:'100%',padding:'13px',borderRadius:8,background:profile.companyName?`linear-gradient(135deg,#2980b9,#5dade2)`:'#ddd',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:2,cursor:profile.companyName?'pointer':'default'}}>
@@ -3110,9 +3123,9 @@ function MainApp(){
                 )}
               </div>
             </div>
-            <Lbl>{L('Dein Name', 'Your name', 'Ton nom', 'Tu nombre')}</Lbl><Inp placeholder='z.B. Max Mueller' value={profile.name} onChange={v=>setProfile(p=>({...p,name:v}))}/>
-            <Lbl>{L('Alter', 'Age', 'Âge', 'Edad')}</Lbl><Inp placeholder='z.B. 25' type='number' value={profile.age} onChange={v=>setProfile(p=>({...p,age:v}))}/>
-            <Lbl>{L('Standort', 'Location', 'Localisation', 'Ubicación')}</Lbl><Inp placeholder='z.B. Berlin' value={profile.city} onChange={v=>setProfile(p=>({...p,city:v}))}/>
+            <Lbl>{L('Dein Name', 'Your name', 'Ton nom', 'Tu nombre')}</Lbl><Inp placeholder={L('z.B. Max Mueller', 'e.g. Max Miller', 'ex. Max Muller', 'p. ej. Max Müller')} value={profile.name} onChange={v=>setProfile(p=>({...p,name:v}))}/>
+            <Lbl>{L('Alter', 'Age', 'Âge', 'Edad')}</Lbl><Inp placeholder={L('z.B. 25', 'e.g. 25', 'ex. 25', 'p. ej. 25')} type='number' value={profile.age} onChange={v=>setProfile(p=>({...p,age:v}))}/>
+            <Lbl>{L('Standort', 'Location', 'Localisation', 'Ubicación')}</Lbl><Inp placeholder={L('z.B. Berlin', 'e.g. Berlin', 'ex. Berlin', 'p. ej. Berlín')} value={profile.city} onChange={v=>setProfile(p=>({...p,city:v}))}/>
             <Lbl>{L('Ich bin', 'I am', 'Je suis', 'Soy')}</Lbl>
             <div style={{display:'flex',gap:10,marginTop:2,marginBottom:4}}>
               {[['Mann','♂️','male'],['Frau','♀️','female']].map(([label,icon,val])=>(
@@ -3130,7 +3143,7 @@ function MainApp(){
                   style={{flex:1,padding:'14px 10px',borderRadius:10,border:'2px solid '+(profile.isPro===val?RED:'#e0e0e0'),background:profile.isPro===val?'#fdf0ef':'#fff',cursor:'pointer',textAlign:'center',transition:'all 0.2s'}}>
                   <div style={{fontSize:26,marginBottom:4}}>{icon}</div>
                   <div style={{color:profile.isPro===val?RED:'#555',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:1}}>{label}</div>
-                  <div style={{color:'#aaa',fontSize:10,marginTop:2}}>{val?'Wettkampf-Erfahrung':'Einsteiger / Hobbyist'}</div>
+                  <div style={{color:'#aaa',fontSize:10,marginTop:2}}>{val?L('Wettkampf-Erfahrung', 'Competition experience', 'Expérience en compétition', 'Experiencia en competición'):L('Einsteiger / Hobbyist', 'Beginner / hobbyist', 'Débutant / amateur', 'Principiante / aficionado')}</div>
                 </button>
               ))}
             </div>
@@ -3266,7 +3279,7 @@ function MainApp(){
                 </div>
               </div>
             )}
-            <Lbl>{L('Ueber dich', 'About you', 'À propos de toi', 'Sobre ti')}</Lbl><Inp placeholder='z.B. 5 Jahre Boxing Erfahrung…' value={profile.bio} onChange={v=>{setShowGymSuggestions(false);setProfile(p=>({...p,bio:v}));}} onFocus={()=>setShowGymSuggestions(false)}/>
+            <Lbl>{L('Ueber dich', 'About you', 'À propos de toi', 'Sobre ti')}</Lbl><Inp placeholder={L('z.B. 5 Jahre Boxing Erfahrung…', 'e.g. 5 years of boxing experience…', 'ex. 5 ans d\'expérience en boxe…', 'p. ej. 5 años de experiencia en boxeo…')} value={profile.bio} onChange={v=>{setShowGymSuggestions(false);setProfile(p=>({...p,bio:v}));}} onFocus={()=>setShowGymSuggestions(false)}/>
             <Lbl>{t.fightStyle}</Lbl>
             <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
               {STYLES.map(s=>{
@@ -3318,9 +3331,9 @@ function MainApp(){
           <div style={{display:'flex',flexDirection:'column',gap:13}}>
             <div style={{color:'#8e44ad',fontSize:13,fontWeight:700,marginBottom:2}}>{L('🎓 Noch ein paar Fragen als Trainer', '🎓 A few more questions as a coach', '🎓 Quelques questions de plus en tant que coach', '🎓 Unas preguntas más como entrenador')}</div>
             <Lbl>{L('Gym / Verein, wo du unterrichtest', 'Gym / club where you teach', 'Salle / club où tu enseignes', 'Gimnasio / club donde enseñas')}</Lbl>
-            <Inp placeholder='z.B. Tiger Gym Berlin' value={profile.coachGym||''} onChange={v=>setProfile(p=>({...p,coachGym:v}))}/>
+            <Inp placeholder={L('z.B. Tiger Gym Berlin', 'e.g. Tiger Gym Berlin', 'ex. Tiger Gym Berlin', 'p. ej. Tiger Gym Berlín')} value={profile.coachGym||''} onChange={v=>setProfile(p=>({...p,coachGym:v}))}/>
             <Lbl>{L('Jahre Erfahrung als Trainer', 'Years of experience as a coach', 'Années d\'expérience comme coach', 'Años de experiencia como entrenador')}</Lbl>
-            <Inp placeholder='z.B. 8' type='number' value={profile.coachExperience||''} onChange={v=>setProfile(p=>({...p,coachExperience:v}))}/>
+            <Inp placeholder={L('z.B. 8', 'e.g. 8', 'ex. 8', 'p. ej. 8')} type='number' value={profile.coachExperience||''} onChange={v=>setProfile(p=>({...p,coachExperience:v}))}/>
             <Lbl>{L('Kampfstile, die du unterrichtest', 'Fighting styles you teach', 'Styles de combat que tu enseignes', 'Estilos de combate que enseñas')}</Lbl>
             <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
               {STYLES.map(s=>{
@@ -3334,7 +3347,7 @@ function MainApp(){
               })}
             </div>
             <Lbl>{L('Trainer-Bio (Erfolge, dein Ansatz)', 'Coach bio (achievements, your approach)', 'Bio du coach (succès, ton approche)', 'Bio de entrenador (logros, tu enfoque)')}</Lbl>
-            <Inp placeholder='z.B. 10 Jahre Erfahrung, spezialisiert auf...' value={profile.coachBio||''} onChange={v=>setProfile(p=>({...p,coachBio:v}))}/>
+            <Inp placeholder={L('z.B. 10 Jahre Erfahrung, spezialisiert auf...', 'e.g. 10 years of experience, specialised in...', 'ex. 10 ans d\'expérience, spécialisé en...', 'p. ej. 10 años de experiencia, especializado en...')} value={profile.coachBio||''} onChange={v=>setProfile(p=>({...p,coachBio:v}))}/>
             <Lbl>{L('Trainer-Profilbild (optional)', 'Coach profile photo (optional)', 'Photo de profil du coach (facultatif)', 'Foto de perfil de entrenador (opcional)')}</Lbl>
             <div style={{color:'#888',fontSize:11,marginBottom:8,lineHeight:1.5}}>{L('Wird in der Trainer-Rangliste und deinem Trainer-Profil gezeigt — kann sich von deinem normalen Profilbild unterscheiden.', 'Shown in the coach ranking and your coach profile — can differ from your normal profile photo.', 'Affichée dans le classement des coachs et ton profil de coach — peut différer de ta photo de profil habituelle.', 'Se muestra en el ranking de entrenadores y en tu perfil de entrenador — puede ser distinta de tu foto de perfil normal.')}</div>
             <div style={{display:'flex',alignItems:'center',gap:14}}>
@@ -3344,7 +3357,7 @@ function MainApp(){
                   :<div style={{fontSize:24}}>🎓</div>}
               </div>
               <label style={{padding:'10px 16px',borderRadius:8,background:'#8e44ad',color:'#fff',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
-                {uploadingCoachAvatar?'Lädt...':coachAvatarPreview?'Foto ändern':'Foto auswählen'}
+                {uploadingCoachAvatar?L('Lädt...', 'Loading...', 'Chargement...', 'Cargando...'):coachAvatarPreview?L('Foto ändern', 'Change photo', 'Changer la photo', 'Cambiar foto'):L('Foto auswählen', 'Choose photo', 'Choisir une photo', 'Elegir foto')}
                 <input type='file' accept='image/*' onChange={handleCoachAvatarUpload} disabled={uploadingCoachAvatar} style={{display:'none'}}/>
               </label>
             </div>
@@ -3719,7 +3732,7 @@ function MainApp(){
               </div>
             ))}
             {newsLoading?(
-              <div style={{textAlign:'center',padding:'40px 0',color:'#aaa'}}>Lädt...</div>
+              <div style={{textAlign:'center',padding:'40px 0',color:'#aaa'}}>{L('Lädt...', 'Loading...', 'Chargement...', 'Cargando...')}</div>
             ):newsItems.length===0?(
               <div style={{textAlign:'center',padding:'40px 0',color:'#aaa'}}>{L('Keine News gefunden. Später nochmal versuchen.', 'No news found. Try again later.', 'Aucune actualité trouvée. Réessaie plus tard.', 'No se encontraron noticias. Inténtalo más tarde.')}</div>
             ):(
@@ -4169,7 +4182,7 @@ function MainApp(){
                             <span style={{fontSize:18}}>📷</span>
                           </div>
                         </div>
-                        <div style={{color:RED,fontSize:11,marginTop:5,fontWeight:700}}>Foto ändern</div>
+                        <div style={{color:RED,fontSize:11,marginTop:5,fontWeight:700}}>{L('Foto ändern', 'Change photo', 'Changer la photo', 'Cambiar foto')}</div>
                       </label>
                     </div>
                     {[[L('NAME *', 'NAME *', 'NOM *', 'NOMBRE *'),'name','text',profile.name],[L('STADT *', 'CITY *', 'VILLE *', 'CIUDAD *'),'city','text',profile.city],['GYM','gym','text',profile.gym],[L('GRÖSSE (cm)', 'HEIGHT (cm)', 'TAILLE (cm)', 'ALTURA (cm)'),'height','number',profile.height],['GEWICHT (kg)','weight','number',profile.weight],['BIO','bio','text',profile.bio],['INSTAGRAM / YOUTUBE','socialUrl','text',profile.socialUrl]].map(([label,key,type,current])=>(
@@ -4273,7 +4286,7 @@ function MainApp(){
                                 }else{
                                   setShowCoachGymSuggestions(false);
                                 }
-                              }} placeholder='z.B. Tiger Gym Berlin'
+                              }} placeholder={L('z.B. Tiger Gym Berlin', 'e.g. Tiger Gym Berlin', 'ex. Tiger Gym Berlin', 'p. ej. Tiger Gym Berlín')}
                               style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
                             {showCoachGymSuggestions&&coachGymSuggestions.length>0&&(
                               <div style={{position:'absolute',top:'100%',left:0,right:0,background:darkMode?'#1a1a1a':'#fff',borderRadius:10,boxShadow:'0 8px 24px rgba(0,0,0,0.12)',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),zIndex:100,overflow:'hidden',marginTop:4}}>
@@ -4296,7 +4309,7 @@ function MainApp(){
                           </div>
                           <div>
                             <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('JAHRE ERFAHRUNG ALS TRAINER', 'YEARS OF EXPERIENCE AS A COACH', 'ANNÉES D\'EXPÉRIENCE COMME COACH', 'AÑOS DE EXPERIENCIA COMO ENTRENADOR')}</div>
-                            <input type='number' value={editProfile.coachExperience!==undefined?editProfile.coachExperience:(profile.coachExperience||'')} onChange={e=>setEditProfile(p=>({...p,coachExperience:e.target.value}))} placeholder='z.B. 8'
+                            <input type='number' value={editProfile.coachExperience!==undefined?editProfile.coachExperience:(profile.coachExperience||'')} onChange={e=>setEditProfile(p=>({...p,coachExperience:e.target.value}))} placeholder={L('z.B. 8', 'e.g. 8', 'ex. 8', 'p. ej. 8')}
                               style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
                           </div>
                           <div>
@@ -4315,7 +4328,7 @@ function MainApp(){
                           </div>
                           <div>
                             <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('TRAINER-BIO', 'COACH BIO', 'BIO DU COACH', 'BIO DE ENTRENADOR')}</div>
-                            <input value={editProfile.coachBio!==undefined?editProfile.coachBio:(profile.coachBio||'')} onChange={e=>setEditProfile(p=>({...p,coachBio:e.target.value}))} placeholder='Erfolge, dein Ansatz...'
+                            <input value={editProfile.coachBio!==undefined?editProfile.coachBio:(profile.coachBio||'')} onChange={e=>setEditProfile(p=>({...p,coachBio:e.target.value}))} placeholder={L('Erfolge, dein Ansatz...', 'Achievements, your approach...', 'Succès, ton approche...', 'Logros, tu enfoque...')}
                               style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
                           </div>
                           <div>
@@ -4328,7 +4341,7 @@ function MainApp(){
                                   :<div style={{fontSize:20}}>🎓</div>}
                               </div>
                               <label style={{padding:'9px 14px',borderRadius:8,background:'#8e44ad',color:'#fff',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>
-                                {uploadingCoachAvatar?'Lädt...':coachAvatarPreview?'Foto ändern':'Foto auswählen'}
+                                {uploadingCoachAvatar?L('Lädt...', 'Loading...', 'Chargement...', 'Cargando...'):coachAvatarPreview?L('Foto ändern', 'Change photo', 'Changer la photo', 'Cambiar foto'):L('Foto auswählen', 'Choose photo', 'Choisir une photo', 'Elegir foto')}
                                 <input type='file' accept='image/*' onChange={handleCoachAvatarUpload} disabled={uploadingCoachAvatar} style={{display:'none'}}/>
                               </label>
                             </div>
@@ -5135,7 +5148,7 @@ function MainApp(){
             {rankMode==='trainer'&&(
               <div style={{display:'flex',flexDirection:'column',gap:8}}>
                 {coachesLoading?(
-                  <div style={{textAlign:'center',padding:'40px 0',color:'#aaa'}}>Lädt...</div>
+                  <div style={{textAlign:'center',padding:'40px 0',color:'#aaa'}}>{L('Lädt...', 'Loading...', 'Chargement...', 'Cargando...')}</div>
                 ):coaches.length===0?(
                   <div style={{textAlign:'center',padding:'40px 20px',color:'#aaa'}}>
                     <div style={{fontSize:32,marginBottom:8}}>🎓</div>
@@ -5157,7 +5170,7 @@ function MainApp(){
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{display:'flex',alignItems:'center',gap:5}}>
                           <div className='rj' style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontSize:15,letterSpacing:0.5}}>{c.name}</div>
-                          <div style={{background:'#8e44ad22',border:'1px solid #8e44ad44',borderRadius:10,padding:'1px 6px',color:'#8e44ad',fontSize:9,fontWeight:700,flexShrink:0}}>{L('🎓 TRAINER', '🎓 COACHES', '🎓 COACHS', '🎓 ENTRENADORES')}</div>
+                          <div style={{background:'#8e44ad22',border:'1px solid #8e44ad44',borderRadius:10,padding:'1px 6px',color:'#8e44ad',fontSize:9,fontWeight:700,flexShrink:0}}>{L('🎓 TRAINER', '🎓 COACH', '🎓 COACH', '🎓 ENTRENADOR')}</div>
                         </div>
                         <div style={{color:'#8e44ad',fontSize:11,fontWeight:700,marginTop:1}}>{c.coach_styles||'-'}</div>
                         <div style={{color:darkMode?'#555':'#bbb',fontSize:10,marginTop:1}}>🏋️ {c.coach_gym||'-'} · {c.city||'-'}</div>
@@ -5486,7 +5499,7 @@ function MainApp(){
           </div>
         </div>
       )}
-      {showGymVerify&&<div style={{position:'fixed',inset:0,zIndex:500}}><style>{css}</style><GymVerifyModal onClose={()=>{setShowGymVerify(false);setGymCodeInput('');setGymVerifyError('');}} gymCodeInput={gymCodeInput} setGymCodeInput={setGymCodeInput} gymVerifyError={gymVerifyError} setGymVerifyError={setGymVerifyError} gymVerified={gymVerified} setGymVerified={setGymVerified} darkMode={darkMode} showMsg={showMsg} authToken={session?.token} onMembershipChange={ok=>setMyProfile(p=>p?{...p,gym_verified:ok}:p)}/></div>}
+      {showGymVerify&&<div style={{position:'fixed',inset:0,zIndex:500}}><style>{css}</style><GymVerifyModal appLang={appLang} onClose={()=>{setShowGymVerify(false);setGymCodeInput('');setGymVerifyError('');}} gymCodeInput={gymCodeInput} setGymCodeInput={setGymCodeInput} gymVerifyError={gymVerifyError} setGymVerifyError={setGymVerifyError} gymVerified={gymVerified} setGymVerified={setGymVerified} darkMode={darkMode} showMsg={showMsg} authToken={session?.token} onMembershipChange={ok=>setMyProfile(p=>p?{...p,gym_verified:ok}:p)}/></div>}
       {/* IMPRESSUM MODAL */}
       {showImpressum&&(
         <div style={{position:'fixed',inset:0,background:'#f5f5f7',zIndex:400,overflowY:'auto',padding:'calc(20px + env(safe-area-inset-top)) 16px 40px'}}>
@@ -5628,13 +5641,13 @@ function MainApp(){
               </div>
               <div>
                 <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('PREIS PRO SESSION (€) — leer lassen für kostenlos', 'PRICE PER SESSION (€) — leave empty for free', 'PRIX PAR SÉANCE (€) — laisser vide si gratuit', 'PRECIO POR SESIÓN (€) — dejar vacío si es gratis')}</div>
-                <input type='number' min='0' step='0.5' placeholder='z.B. 10' value={newEvent.price} onChange={e=>setNewEvent(ev=>({...ev,price:e.target.value}))}
+                <input type='number' min='0' step='0.5' placeholder={L('z.B. 10', 'e.g. 10', 'ex. 10', 'p. ej. 10')} value={newEvent.price} onChange={e=>setNewEvent(ev=>({...ev,price:e.target.value}))}
                   style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
               </div>
               <div>
                 <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:5}}>{L('MONATSBEITRAG (€) — leer lassen, falls es keinen gibt', 'MONTHLY FEE (€) — leave empty if there is none', 'ABONNEMENT MENSUEL (€) — laisser vide s\'il n\'y en a pas', 'CUOTA MENSUAL (€) — dejar vacío si no hay')}</div>
                 <div style={{color:'#888',fontSize:10,marginBottom:5,lineHeight:1.4}}>{L('Wer den Monatsbeitrag zahlt, kann alle Sessions diesen Monat besuchen — unabhängig davon, wie viele einzelne Termine du anlegst.', 'Anyone who pays the monthly fee can attend all sessions this month — regardless of how many individual dates you create.', 'Celui qui paie l\'abonnement mensuel peut assister à toutes les séances du mois — quel que soit le nombre de dates créées.', 'Quien pague la cuota mensual puede asistir a todas las sesiones de este mes, sin importar cuántas fechas individuales crees.')}</div>
-                <input type='number' min='0' step='0.5' placeholder='z.B. 35' value={newEvent.priceMonthly} onChange={e=>setNewEvent(ev=>({...ev,priceMonthly:e.target.value}))}
+                <input type='number' min='0' step='0.5' placeholder={L('z.B. 35', 'e.g. 35', 'ex. 35', 'p. ej. 35')} value={newEvent.priceMonthly} onChange={e=>setNewEvent(ev=>({...ev,priceMonthly:e.target.value}))}
                   style={{width:'100%',padding:'10px 12px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#e0e0e0'),background:darkMode?'#111':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:13,boxSizing:'border-box'}}/>
               </div>
               <div>
