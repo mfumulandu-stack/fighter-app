@@ -2730,7 +2730,7 @@ function MainApp(){
   // die es NICHT mehr auf false setzen) - sonst landet man nach dem
   // Schliessen des Profils auf dem normalen Haupt-Tab statt wieder hier.
   if(whoLikedTab&&!viewProfile)return(
-    <div style={{height:'100dvh',overflowY:'auto',WebkitOverflowScrolling:'touch',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column'}}> 
+    <div style={{height:'100dvh',overflow:'hidden',background:darkMode?'#0d0d0d':'#f5f5f7',display:'flex',flexDirection:'column'}}> 
       <style>{css}</style>
       <div style={{display:'flex',alignItems:'center',gap:6,padding:'calc(10px + env(safe-area-inset-top)) 16px 10px',background:darkMode?'#1a1a1a':'#fff',borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#eee'),position:'sticky',top:0,zIndex:5,flexShrink:0}}>
         <button onClick={()=>setWhoLikedTab(false)} aria-label='Zurück' style={{background:'none',border:'none',color:darkMode?'#fff':'#1a1a1a',fontSize:24,cursor:'pointer',minWidth:44,minHeight:44,display:'flex',alignItems:'center',justifyContent:'center',marginLeft:-10}}>←</button>
@@ -2739,7 +2739,7 @@ function MainApp(){
           <div style={{color:'#aaa',fontSize:11}}>{whoLikedMe.length} {t.interestSub}</div>
         </div>
       </div>
-      <div style={{flex:1,overflowY:'auto',padding:'12px 16px',display:'flex',flexDirection:'column',gap:10}}>
+      <div style={{flex:1,minHeight:0,overflowY:'auto',WebkitOverflowScrolling:'touch',overscrollBehavior:'contain',padding:'12px 16px calc(24px + env(safe-area-inset-bottom))',display:'flex',flexDirection:'column',gap:10}}>
         {whoLikedMe.length===0?(
           <div style={{textAlign:'center',padding:'60px 20px',color:darkMode?'#555':'#bbb'}}>
             <div style={{fontSize:48,marginBottom:12}}>🥊</div>
@@ -2747,7 +2747,7 @@ function MainApp(){
             <div style={{fontSize:12,marginTop:6}}>{t.keepSwiping}</div>
           </div>
         ):whoLikedMe.map((p,i)=>(
-          <div key={i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),overflow:'hidden',boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
+          <div key={i} style={{flexShrink:0,background:darkMode?'#1a1a1a':'#fff',borderRadius:14,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),overflow:'hidden',boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
             <div style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px'}}>
               <div onClick={()=>{setViewProfile(p);}} style={{width:54,height:54,borderRadius:12,overflow:'hidden',flexShrink:0,cursor:'pointer',border:'2px solid '+RED+'44'}}>
                 {p.avatar_url?<img loading="lazy" src={p.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{width:'100%',height:'100%',background:'#2a2a2a',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>🥊</div>}
