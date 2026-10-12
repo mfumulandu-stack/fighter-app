@@ -17,6 +17,7 @@ import { css } from './styles';
 import AuthScreen from './AuthScreen';
 import { Lbl, Inp, Tag, Btn } from './uiHelpers';
 import { profileProgressOf, shareLink, inviteUrl } from './growth';
+import { isUuid, inviteCodeOf, cleanInviteCode, inviteCodeFilter } from './inviteCode';
 import GymVerifyModal from './GymVerifyModal';
 import { LIST_FIELDS, CARD_FIELDS, mergeProfileDetail, isFresh } from './profileLoad';
 import { detectLangFromDevice, saveLangChoice, makeL, countryName } from './lang';
@@ -174,6 +175,11 @@ function MainApp(){
   const tab=tabRaw;
   const setTab=(t)=>{try{localStorage.setItem('fighter_tab',t)}catch{}setTabRaw(t);};
   const [step,setStep]=useState(1);
+  // Einladungscode eines Freundes (optional, Registrierung Schritt 1). Kam der Freund ueber den
+  // Link, ist er schon eingetragen; sonst tippt man ihn ein (Link geht beim App-Store-Weg verloren).
+  const [inviteCodeInput,setInviteCodeInput]=useState(()=>{
+    try{const r=localStorage.getItem('fighter_ref_code')||'';return isUuid(r)?inviteCodeOf(r):'';}catch{return '';}
+  });
   const [saving,setSaving]=useState(false);
   const [msg,setMsg]=useState('');
   const [myProfile,setMyProfile]=useState(null);
@@ -2038,14 +2044,31 @@ function MainApp(){
           // Edge Function prueft alles nochmal selbst nach, daher reicht
           // hier ein einfacher Aufruf ohne Warten auf das Ergebnis.
           try{
-            const refCode=localStorage.getItem('fighter_ref_code');
-            if(refCode&&refCode!==profile_data.id){
-              fetch(SUPA_URL+'/functions/v1/credit-referral',{
-                method:'POST',
-                headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
-                body:JSON.stringify({referrerId:refCode,newProfileId:profile_data.id,userToken:session.token})
-              }).catch(err=>console.error('credit-referral',err));
-            }
+            const storedRef=localStorage.getItem('fighter_ref_code');
+            const typedCode=cleanInviteCode(inviteCodeInput);
+            (async()=>{
+              let refId=null;
+              // 1) Link-Code (Web) gilt, wenn kein anderer Code eingetippt wurde
+              if(storedRef&&isUuid(storedRef)&&(typedCode.length!==8||inviteCodeOf(storedRef)===typedCode))refId=storedRef;
+              // 2) Eingetippter Einladungscode: Einladenden ueber die ersten 8 ID-Zeichen suchen
+              else if(typedCode.length===8){
+                try{
+                  const rr=await fetch(SUPA_URL+'/rest/v1/profiles?select=id&limit=2&'+inviteCodeFilter(typedCode),{
+                    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+session.token}
+                  });
+                  const rows=await rr.json();
+                  if(Array.isArray(rows)&&rows.length===1)refId=rows[0].id;
+                  else showMsg(L('Einladungscode nicht gefunden', 'Invite code not found', 'Code d\'invitation introuvable', 'Código de invitación no encontrado'));
+                }catch(err){console.error('invite code lookup',err);}
+              }
+              if(refId&&refId!==profile_data.id){
+                fetch(SUPA_URL+'/functions/v1/credit-referral',{
+                  method:'POST',
+                  headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY},
+                  body:JSON.stringify({referrerId:refId,newProfileId:profile_data.id,userToken:session.token})
+                }).catch(err=>console.error('credit-referral',err));
+              }
+            })();
             localStorage.removeItem('fighter_ref_code');
           }catch(err){console.error('referral credit',err);}
           fetch(SUPA_URL+'/functions/v1/send-welcome-email',{
@@ -3127,7 +3150,7 @@ function MainApp(){
             <Lbl>{L('Standort', 'Location', 'Localisation', 'Ubicación')}</Lbl><Inp placeholder={L('z.B. Berlin', 'e.g. Berlin', 'ex. Berlin', 'p. ej. Berlín')} value={profile.city} onChange={v=>setProfile(p=>({...p,city:v}))}/>
             <Lbl>{L('Ich bin', 'I am', 'Je suis', 'Soy')}</Lbl>
             <div style={{display:'flex',gap:10,marginTop:2,marginBottom:4}}>
-              {[['Mann','♂️','male'],['Frau','♀️','female']].map(([label,icon,val])=>(
+              {[[L('Mann', 'Male', 'Homme', 'Hombre'),'♂️','male'],[L('Frau', 'Female', 'Femme', 'Mujer'),'♀️','female']].map(([label,icon,val])=>(
                 <button key={val} onClick={()=>setProfile(p=>({...p,gender:val}))}
                   style={{flex:1,padding:'12px 6px',borderRadius:10,border:'2px solid '+(profile.gender===val?RED:'#e0e0e0'),background:profile.gender===val?'#fdf0ef':'#fff',cursor:'pointer',textAlign:'center',transition:'all 0.2s'}}>
                   <div style={{fontSize:22,marginBottom:3}}>{icon}</div>
@@ -3158,6 +3181,9 @@ function MainApp(){
             </div>
             </>
             )}
+            <Lbl>{L('Einladungscode (optional)', 'Invite code (optional)', 'Code d\'invitation (facultatif)', 'Código de invitación (opcional)')}</Lbl>
+            <Inp placeholder={L('z.B. 3F9A1C2E', 'e.g. 3F9A1C2E', 'ex. 3F9A1C2E', 'p. ej. 3F9A1C2E')} value={inviteCodeInput} onChange={v=>setInviteCodeInput(cleanInviteCode(v))} autoComplete='off'/>
+            <div style={{color:'#999',fontSize:10,marginTop:-4,lineHeight:1.4}}>{L('Hat dich ein Freund eingeladen? Gib seinen Code ein – er bekommt dafür einen Rabatt.', 'Did a friend invite you? Enter their code – they get a discount for it.', 'Un ami t\'a invité ? Saisis son code – il obtient une remise.', '¿Te invitó un amigo? Introduce su código – recibirá un descuento.')}</div>
           </div>
         )}
         {step===2&&(
@@ -4214,7 +4240,7 @@ function MainApp(){
                     <div>
                       <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:8}}>{L('GESCHLECHT', 'GENDER', 'GENRE', 'GÉNERO')}</div>
                       <div style={{display:'flex',gap:8,marginBottom:12}}>
-                        {[['Mann','♂️','male'],['Frau','♀️','female']].map(([label,icon,val])=>(
+                        {[[L('Mann', 'Male', 'Homme', 'Hombre'),'♂️','male'],[L('Frau', 'Female', 'Femme', 'Mujer'),'♀️','female']].map(([label,icon,val])=>(
                           <button key={val} onClick={()=>setEditProfile(p=>({...p,gender:val}))}
                             style={{flex:1,padding:'8px 4px',borderRadius:10,border:'2px solid '+((editProfile.gender!==undefined?editProfile.gender:(profile.gender||'male'))===val?RED:(darkMode?'#333':'#e0e0e0')),background:(editProfile.gender!==undefined?editProfile.gender:(profile.gender||'male'))===val?'#fdf0ef':'transparent',cursor:'pointer',textAlign:'center'}}>
                             <div style={{fontSize:18}}>{icon}</div>
@@ -4415,9 +4441,19 @@ function MainApp(){
               <div style={{color:darkMode?'#999':'#666',fontSize:12,marginBottom:12,lineHeight:1.4}}>
                 {L('Lade Freunde mit deinem Link ein. Jeder, der sich registriert und sein Profil fertig anlegt, schaltet dir den nächsten Marken-Rabattcode bei Equipment und Supplements frei.','Invite friends with your link. Everyone who signs up and completes their profile unlocks your next brand discount code in Equipment and Supplements.',"Invite des amis avec ton lien. Chaque personne qui s'inscrit et termine son profil débloque pour toi le prochain code de remise de marque dans Équipement et Compléments.",'Invita a amigos con tu enlace. Cada persona que se registre y complete su perfil te desbloquea el siguiente código de descuento de marca en Equipamiento y Suplementos.')}
               </div>
+              {myProfile?.id&&(
+                <div onClick={()=>{try{navigator.clipboard?.writeText(inviteCodeOf(myProfile.id));}catch{}showMsg(L('Code kopiert! 📋', 'Code copied! 📋', 'Code copié ! 📋', '¡Código copiado! 📋'));}}
+                  style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,padding:'10px 12px',borderRadius:10,background:darkMode?'#111':'#f5f5f7',border:'1px dashed '+RED+'88',marginBottom:10,cursor:'pointer'}}>
+                  <div>
+                    <div style={{color:darkMode?'#999':'#777',fontSize:10,letterSpacing:1}}>{L('DEIN EINLADUNGSCODE', 'YOUR INVITE CODE', 'TON CODE D\'INVITATION', 'TU CÓDIGO DE INVITACIÓN')}</div>
+                    <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:4}}>{inviteCodeOf(myProfile.id)}</div>
+                  </div>
+                  <div style={{color:RED,fontSize:11,fontWeight:700}}>{L('KOPIEREN', 'COPY', 'COPIER', 'COPIAR')}</div>
+                </div>
+              )}
               <button onClick={()=>{
                 const inviteLink='https://fighterapp.de/?ref='+(myProfile?.id||'');
-                const shareText=L('🥊 Komm zu Fighter! Melde dich mit meinem Link an: ', '🥊 Join me on Fighter! Sign up with my link: ', '🥊 Rejoins-moi sur Fighter ! Inscris-toi avec mon lien : ', '🥊 ¡Ven a Fighter! Regístrate con mi enlace: ')+inviteLink;
+                const shareText=L('🥊 Komm zu Fighter! Lade die App und gib bei der Registrierung meinen Einladungscode ein: ', '🥊 Join me on Fighter! Download the app and enter my invite code when signing up: ', '🥊 Rejoins-moi sur Fighter ! Télécharge l\'app et saisis mon code d\'invitation à l\'inscription : ', '🥊 ¡Ven a Fighter! Descarga la app e introduce mi código de invitación al registrarte: ')+inviteCodeOf(myProfile?.id)+'\n'+inviteLink;
                 if(navigator.share){navigator.share({title:'Fighter App',text:shareText,url:inviteLink}).catch(()=>{});}
                 else{navigator.clipboard?.writeText(inviteLink);showMsg(L('Einladungslink kopiert! 📋', 'Invite link copied! 📋', 'Lien d\'invitation copié ! 📋', '¡Enlace de invitación copiado! 📋'));}
               }} style={{width:'100%',padding:'12px',borderRadius:10,background:`linear-gradient(135deg,${RED},${LIGHT_RED})`,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:'pointer',marginBottom:12}}>
