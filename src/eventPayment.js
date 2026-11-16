@@ -58,6 +58,39 @@ export function paidCount(parts) {
   return (parts || []).filter(p => p && p.paid).length;
 }
 
+// Liegt das Event vor heute? (Gleiche Regel wie in der Event-Liste des Admin-Panels.)
+export function isPastEvent(ev, now = Date.now()) {
+  if (!ev || !ev.event_date) return false;
+  return new Date(ev.event_date) < new Date(new Date(now).toDateString());
+}
+
+// Betrag, der bei dieser Zeile noch zu zahlen ist. Wer einen Freund mitbringt,
+// zahlt BAF_DISCOUNT weniger, sobald der Freund bezahlt hat.
+export function paymentDue(p, ev) {
+  const price = Number(ev && ev.price) || 0;
+  const st = participantStatus(p, ev);
+  if (st === 'unpaid') return price;
+  if (st === 'discount_open' || st === 'waiting_friend') return Math.max(0, price - BAF_DISCOUNT);
+  return 0;
+}
+
+// Liste hinter den Kacheln "OFFEN" / "WARTEN AUF FREUND" im Admin-Panel:
+// alle Anmeldungen mit dem gewuenschten Status, juengstes Event zuerst.
+// kinds: 'unpaid' + 'discount_open' = offen; 'waiting_friend' = wartet auf Freund.
+export function unpaidRows(events, partsByEvent, kinds = ['unpaid', 'discount_open'], now = Date.now()) {
+  const rows = [];
+  (events || []).forEach(ev => {
+    ((partsByEvent && partsByEvent[ev.id]) || []).forEach(p => {
+      const status = participantStatus(p, ev);
+      if (kinds.includes(status)) {
+        rows.push({ p, ev, status, due: paymentDue(p, ev), past: isPastEvent(ev, now) });
+      }
+    });
+  });
+  rows.sort((a, b) => new Date(b.ev.event_date || 0) - new Date(a.ev.event_date || 0));
+  return rows;
+}
+
 // Aktive Monatsmitglieder, die fuer dieses Event gelten (gleicher Ersteller).
 export function activeMembersFor(memberships, ev, now = Date.now()) {
   if (!ev) return [];

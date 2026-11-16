@@ -10,6 +10,9 @@ import {
   activeMembersFor,
   adminStatusLabel,
   userStatusTexts,
+  isPastEvent,
+  paymentDue,
+  unpaidRows,
 } from './eventPayment';
 
 const paidEv = { id: 1, price: 20, creator_id: 'ORG', max_participants: 3 };
@@ -112,5 +115,60 @@ describe('Texte', () => {
       expect(t).toHaveLength(4);
       t.forEach((x) => expect(x.length).toBeGreaterThan(2));
     }
+  });
+});
+
+describe('Liste hinter OFFEN', () => {
+  const now = new Date(2026, 10, 16, 8, 30).getTime(); // 16.11.2026
+  const evOld = { id: 'old', title: 'Camp 1', price: 10, event_date: '2026-10-18' };
+  const evNew = { id: 'new', title: 'Camp 2', price: 20, event_date: '2026-11-22' };
+  const evFree = { id: 'free', title: 'Gratis', price: 0, event_date: '2026-11-23' };
+  const parts = {
+    old: [
+      { id: 1, paid: true, user_id: 'a' },
+      { id: 2, paid: false, user_id: 'b' },
+    ],
+    new: [
+      { id: 3, paid: false, user_id: 'c', brought_friend_id: 'x', baf_unlocked: false },
+      { id: 4, paid: false, user_id: 'd', brought_friend_id: 'y', baf_unlocked: true },
+      { id: 5, paid: false, user_id: 'e' },
+    ],
+    free: [{ id: 6, paid: false, user_id: 'f' }],
+  };
+  const events = [evOld, evNew, evFree];
+
+  test('offen = unbezahlt + Rabatt frei, kostenlose Events nie', () => {
+    const rows = unpaidRows(events, parts, undefined, now);
+    expect(rows.map(r => r.p.id).sort()).toEqual([2, 4, 5]);
+    expect(rows.every(r => r.status !== 'free')).toBe(true);
+  });
+  test('wartend getrennt', () => {
+    const rows = unpaidRows(events, parts, ['waiting_friend'], now);
+    expect(rows.map(r => r.p.id)).toEqual([3]);
+  });
+  test('juengstes Event zuerst', () => {
+    const rows = unpaidRows(events, parts, undefined, now);
+    expect(rows[0].ev.id).toBe('new');
+    expect(rows[rows.length - 1].ev.id).toBe('old');
+  });
+  test('vergangen-Markierung', () => {
+    const rows = unpaidRows(events, parts, undefined, now);
+    expect(rows.find(r => r.p.id === 2).past).toBe(true);
+    expect(rows.find(r => r.p.id === 5).past).toBe(false);
+    expect(isPastEvent({ event_date: '2026-11-16' }, now)).toBe(false); // heute zaehlt nicht als vorbei
+    expect(isPastEvent({}, now)).toBe(false);
+    expect(isPastEvent(null, now)).toBe(false);
+  });
+  test('offener Betrag', () => {
+    expect(paymentDue({ paid: false }, evNew)).toBe(20);
+    expect(paymentDue({ paid: false, brought_friend_id: 'y', baf_unlocked: true }, evNew)).toBe(10);
+    expect(paymentDue({ paid: false, brought_friend_id: 'x' }, evNew)).toBe(10);
+    expect(paymentDue({ paid: false, brought_friend_id: 'y', baf_unlocked: true }, { price: 5 })).toBe(0);
+    expect(paymentDue({ paid: true }, evNew)).toBe(0);
+    expect(paymentDue({ paid: false }, evFree)).toBe(0);
+  });
+  test('robust gegen leere Eingaben', () => {
+    expect(unpaidRows(undefined, undefined)).toEqual([]);
+    expect(unpaidRows(events, {})).toEqual([]);
   });
 });

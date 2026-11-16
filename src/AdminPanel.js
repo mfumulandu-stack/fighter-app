@@ -19,7 +19,7 @@ import React, { useState, useEffect } from 'react';
 import { SUPA_URL, SUPA_KEY, RED, APP_STORE_ID } from './constants';
 import { adminFetch, uploadPhoto } from './supabaseApi';
 import { buildTimeSeries, activeUserCounts, countSince, equipmentRanking, totalEquipmentClicks, eventRevenue, eventParticipationStats, gymStats, rankingActiveCount, DAY_MS } from './adminAnalytics';
-import { participantStatus, adminStatusLabel, capacityCount, paidAmount, revenueOf, paidCount, activeMembersFor } from './eventPayment';
+import { participantStatus, adminStatusLabel, capacityCount, paidAmount, revenueOf, paidCount, activeMembersFor, unpaidRows } from './eventPayment';
 
 export default function AdminPanel({
   session, darkMode, appLang, t,
@@ -143,6 +143,7 @@ export default function AdminPanel({
   // deshalb in der Liste unsichtbar, obwohl das Geld da war.
   const [adminMemberships,setAdminMemberships]=useState([]);
   const [adminNames,setAdminNames]=useState({});
+  const [payListView,setPayListView]=useState(null); // 'offen' | 'warten': Liste hinter den Kacheln OFFEN / WARTEN AUF FREUND
   async function loadPaymentExtras(){
     if(!session?.token)return;
     try{
@@ -788,11 +789,14 @@ export default function AdminPanel({
                   const alleTeilnahmen=events.flatMap(ev=>(eventParticipants[ev.id]||[]).map(p=>({...p,eventPrice:Number(ev.price)||0})));
                   const gesamtAngemeldet=alleTeilnahmen.length;
                   const gesamtUmsatz=alleTeilnahmen.reduce((s,p)=>s+paidAmount(p,{price:p.eventPrice}),0);
-                  const statusVon=(p)=>participantStatus(p,{price:p.eventPrice});
-                  const offeneZahlungen=alleTeilnahmen.filter(p=>['unpaid','discount_open'].includes(statusVon(p))).length;
-                  const wartendAufFreund=alleTeilnahmen.filter(p=>statusVon(p)==='waiting_friend').length;
+                  const offeneListe=unpaidRows(events,eventParticipants);
+                  const wartendListe=unpaidRows(events,eventParticipants,['waiting_friend']);
+                  const offeneZahlungen=offeneListe.length;
+                  const wartendAufFreund=wartendListe.length;
+                  const zeigListe=payListView==='warten'?wartendListe:payListView==='offen'?offeneListe:[];
                   if(gesamtAngemeldet===0)return null;
                   return(
+                    <>
                     <div style={{display:'flex',gap:8,marginBottom:12}}>
                       <div style={{flex:1,background:darkMode?'#1a1a1a':'#f9f9f9',borderRadius:10,padding:'10px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),textAlign:'center'}}>
                         <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:18,fontWeight:700,fontFamily:'Rajdhani,sans-serif'}}>{gesamtAngemeldet}</div>
@@ -803,18 +807,43 @@ export default function AdminPanel({
                         <div style={{color:'#888',fontSize:9}}>EINGENOMMEN</div>
                       </div>
                       {offeneZahlungen>0&&(
-                        <div style={{flex:1,background:darkMode?'#2a1515':'#fdf0ef',borderRadius:10,padding:'10px',border:'1px solid #e74c3c33',textAlign:'center'}}>
+                        <div onClick={()=>setPayListView(payListView==='offen'?null:'offen')} style={{flex:1,cursor:'pointer',background:darkMode?'#2a1515':'#fdf0ef',borderRadius:10,padding:'10px',border:'1px solid '+(payListView==='offen'?'#e74c3c':'#e74c3c33'),textAlign:'center'}}>
                           <div style={{color:'#e74c3c',fontSize:18,fontWeight:700,fontFamily:'Rajdhani,sans-serif'}}>{offeneZahlungen}</div>
-                          <div style={{color:'#888',fontSize:9}}>OFFEN</div>
+                          <div style={{color:'#888',fontSize:9}}>OFFEN {payListView==='offen'?'▲':'▼'}</div>
                         </div>
                       )}
                       {wartendAufFreund>0&&(
-                        <div style={{flex:1,background:darkMode?'#2a1f10':'#fff8e8',borderRadius:10,padding:'10px',border:'1px solid #d4a01733',textAlign:'center'}}>
+                        <div onClick={()=>setPayListView(payListView==='warten'?null:'warten')} style={{flex:1,cursor:'pointer',background:darkMode?'#2a1f10':'#fff8e8',borderRadius:10,padding:'10px',border:'1px solid '+(payListView==='warten'?'#d4a017':'#d4a01733'),textAlign:'center'}}>
                           <div style={{color:'#d4a017',fontSize:18,fontWeight:700,fontFamily:'Rajdhani,sans-serif'}}>{wartendAufFreund}</div>
-                          <div style={{color:'#888',fontSize:9}}>WARTEN AUF FREUND</div>
+                          <div style={{color:'#888',fontSize:9}}>WARTEN AUF FREUND {payListView==='warten'?'▲':'▼'}</div>
                         </div>
                       )}
                     </div>
+                    {zeigListe.length>0&&(
+                      <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,border:'1px solid '+(payListView==='warten'?'#d4a01744':'#e74c3c44'),padding:'10px 12px',marginBottom:12}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                          <div style={{color:payListView==='warten'?'#d4a017':'#e74c3c',fontSize:11,fontWeight:700,letterSpacing:1}}>{payListView==='warten'?'WARTEN AUF IHREN FREUND':'NOCH NICHT BEZAHLT'} ({zeigListe.length})</div>
+                          <button onClick={()=>setPayListView(null)} style={{background:'transparent',border:'none',color:'#888',fontSize:16,cursor:'pointer',padding:'0 4px'}}>✕</button>
+                        </div>
+                        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                          {zeigListe.map((r,i)=>{
+                            const lb=adminStatusLabel(r.status);
+                            const freund=r.p.brought_friend_id?adminNames[r.p.brought_friend_id]:null;
+                            return(
+                              <div key={r.p.id||i} style={{background:darkMode?'#2a2a2a':'#f5f5f5',borderRadius:8,padding:'8px 10px',opacity:r.past?0.65:1}}>
+                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
+                                  <span style={{fontSize:13,fontWeight:700,color:darkMode?'#fff':'#1a1a1a'}}>{r.p.profiles?.name||String(r.p.user_id||'').slice(0,8)+'...'}</span>
+                                  <span style={{fontSize:12,fontWeight:700,color:lb.color,whiteSpace:'nowrap'}}>{r.due.toFixed(2)} €{r.status==='waiting_friend'?' nach Freund':' offen'}</span>
+                                </div>
+                                <div style={{color:'#888',fontSize:11,marginTop:2}}>{r.ev.title}{r.ev.event_date?' · '+new Date(r.ev.event_date).toLocaleDateString('de-DE'):''}{r.past?' · vergangen':''}</div>
+                                <div style={{color:lb.color,fontSize:10,fontWeight:700,marginTop:2}}>{lb.text}{freund?' – Freund: '+freund:''}{r.p.created_at?' · angemeldet '+new Date(r.p.created_at).toLocaleDateString('de-DE'):''}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    </>
                   );
                 })()}
                 <button onClick={()=>loadEvents(session)} style={{width:'100%',padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:12}}>🔄 EVENTS LADEN</button>
