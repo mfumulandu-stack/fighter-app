@@ -25,6 +25,7 @@ const ALLOWED_PREFIXES = [
   "/rest/v1/gym_logos",
   "/rest/v1/events",
   "/rest/v1/event_participants",
+  "/rest/v1/event_memberships",
   "/rest/v1/equipment",
   "/rest/v1/reports",
   "/rest/v1/admin_messages",

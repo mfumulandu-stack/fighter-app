@@ -19,6 +19,7 @@ import React, { useState, useEffect } from 'react';
 import { SUPA_URL, SUPA_KEY, RED, APP_STORE_ID } from './constants';
 import { adminFetch, uploadPhoto } from './supabaseApi';
 import { buildTimeSeries, activeUserCounts, countSince, equipmentRanking, totalEquipmentClicks, eventRevenue, eventParticipationStats, gymStats, rankingActiveCount, DAY_MS } from './adminAnalytics';
+import { participantStatus, adminStatusLabel, capacityCount, paidAmount, revenueOf, paidCount, activeMembersFor } from './eventPayment';
 
 export default function AdminPanel({
   session, darkMode, appLang, t,
@@ -136,6 +137,31 @@ export default function AdminPanel({
     }
   },[adminTab]);
   const [adminUsersLoaded,setAdminUsersLoaded]=useState(false);
+
+  // Monatsmitglieder + Namen der mitgebrachten Freunde fuer die Event-Teilnehmerliste.
+  // Monatsbeitraege erzeugen KEINE Teilnehmer-Zeile (eigene Tabelle event_memberships) und waren
+  // deshalb in der Liste unsichtbar, obwohl das Geld da war.
+  const [adminMemberships,setAdminMemberships]=useState([]);
+  const [adminNames,setAdminNames]=useState({});
+  async function loadPaymentExtras(){
+    if(!session?.token)return;
+    try{
+      const q=(path)=>adminFetch(SUPA_URL+path,{},session.token).then(r=>r.json()).then(d=>Array.isArray(d)?d:[]).catch(()=>[]);
+      const ms=await q('/rest/v1/event_memberships?select=*&valid_until=gte.'+encodeURIComponent(new Date().toISOString())+'&order=valid_until.desc&limit=500');
+      const ids=new Set(ms.map(m=>m.user_id).filter(Boolean));
+      Object.values(eventParticipants||{}).forEach(list=>(list||[]).forEach(p=>{if(p&&p.brought_friend_id)ids.add(p.brought_friend_id);}));
+      const names={};
+      if(ids.size>0){
+        const ps=await q('/rest/v1/profiles?select=id,name&id=in.('+[...ids].join(',')+')');
+        ps.forEach(p=>{names[p.id]=p.name;});
+      }
+      setAdminMemberships(ms);
+      setAdminNames(names);
+    }catch(e){console.error('loadPaymentExtras',e);}
+  }
+  useEffect(()=>{
+    if(adminTab==='events')loadPaymentExtras();
+  },[adminTab,eventParticipants]);
   const [adminSwipes,setAdminSwipes]=useState([]);
   const [adminMatches,setAdminMatches]=useState([]);
   const [adminChatMsgs,setAdminChatMsgs]=useState([]);
@@ -761,8 +787,10 @@ export default function AdminPanel({
                 {events.length>0&&(()=>{
                   const alleTeilnahmen=events.flatMap(ev=>(eventParticipants[ev.id]||[]).map(p=>({...p,eventPrice:Number(ev.price)||0})));
                   const gesamtAngemeldet=alleTeilnahmen.length;
-                  const gesamtUmsatz=alleTeilnahmen.reduce((s,p)=>s+(p.paid?(Number(p.amount_paid)||p.eventPrice||0):0),0);
-                  const offeneZahlungen=alleTeilnahmen.filter(p=>!p.paid&&p.eventPrice>0).length;
+                  const gesamtUmsatz=alleTeilnahmen.reduce((s,p)=>s+paidAmount(p,{price:p.eventPrice}),0);
+                  const statusVon=(p)=>participantStatus(p,{price:p.eventPrice});
+                  const offeneZahlungen=alleTeilnahmen.filter(p=>['unpaid','discount_open'].includes(statusVon(p))).length;
+                  const wartendAufFreund=alleTeilnahmen.filter(p=>statusVon(p)==='waiting_friend').length;
                   if(gesamtAngemeldet===0)return null;
                   return(
                     <div style={{display:'flex',gap:8,marginBottom:12}}>
@@ -778,6 +806,12 @@ export default function AdminPanel({
                         <div style={{flex:1,background:darkMode?'#2a1515':'#fdf0ef',borderRadius:10,padding:'10px',border:'1px solid #e74c3c33',textAlign:'center'}}>
                           <div style={{color:'#e74c3c',fontSize:18,fontWeight:700,fontFamily:'Rajdhani,sans-serif'}}>{offeneZahlungen}</div>
                           <div style={{color:'#888',fontSize:9}}>OFFEN</div>
+                        </div>
+                      )}
+                      {wartendAufFreund>0&&(
+                        <div style={{flex:1,background:darkMode?'#2a1f10':'#fff8e8',borderRadius:10,padding:'10px',border:'1px solid #d4a01733',textAlign:'center'}}>
+                          <div style={{color:'#d4a017',fontSize:18,fontWeight:700,fontFamily:'Rajdhani,sans-serif'}}>{wartendAufFreund}</div>
+                          <div style={{color:'#888',fontSize:9}}>WARTEN AUF FREUND</div>
                         </div>
                       )}
                     </div>
@@ -806,7 +840,7 @@ export default function AdminPanel({
                               <div style={{color:'#aaa',fontSize:11,marginTop:1}}>
                                 📅 {ev.event_date?new Date(ev.event_date+'T12:00:00').toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}):''}{ev.event_time?' · 🕐 '+ev.event_time+' Uhr':''}
                               </div>
-                              <div style={{color:'#888',fontSize:11,marginTop:2}}>👥 {parts.length}/{ev.max_participants||10} Teilnehmer</div>
+                              <div style={{color:'#888',fontSize:11,marginTop:2}}>👥 {capacityCount(parts,ev)}/{ev.max_participants||10} Teilnehmer{(()=>{const n=activeMembersFor(adminMemberships,ev).length;return n>0?' · 📅 '+n+(n>1?' Mitglieder':' Mitglied'):'';})()}</div>
                             </div>
                             <div style={{display:'flex',flexDirection:'column',gap:5,flexShrink:0}}>
                               <button onClick={async()=>{
@@ -829,8 +863,8 @@ export default function AdminPanel({
                               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
                                 <div style={{color:'#aaa',fontSize:9,letterSpacing:1}}>ANGEMELDETE TEILNEHMER ({parts.length})</div>
                                 {ev.price>0&&(()=>{
-                                  const bezahltCount=parts.filter(p=>p.paid).length;
-                                  const summe=parts.reduce((s,p)=>s+(p.paid?(Number(p.amount_paid)||Number(ev.price)||0):0),0);
+                                  const bezahltCount=paidCount(parts);
+                                  const summe=revenueOf(parts,ev);
                                   return <div style={{color:'#27ae60',fontSize:9,fontWeight:700}}>{bezahltCount}/{parts.length} bezahlt · {summe.toFixed(2)} €</div>;
                                 })()}
                               </div>
@@ -838,18 +872,34 @@ export default function AdminPanel({
                                 {parts.map((p,i)=>(
                                   <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:darkMode?'#2a2a2a':'#f5f5f5',borderRadius:6,padding:'5px 9px'}}>
                                     <span style={{fontSize:11,color:darkMode?'#ddd':'#333'}}>{p.profiles?.name||p.user_id?.slice(0,8)+'...'}</span>
-                                    {ev.price>0?(
-                                      p.paid
-                                        ?<span style={{fontSize:10,fontWeight:700,color:'#27ae60'}}>✅ {(Number(p.amount_paid)||Number(ev.price)||0).toFixed(2)} €</span>
-                                        :<span style={{fontSize:10,fontWeight:700,color:'#e74c3c'}}>❌ Nicht bezahlt</span>
-                                    ):(
-                                      <span style={{fontSize:10,color:'#888'}}>Kostenlos</span>
-                                    )}
+                                    {(()=>{
+                                      const st=participantStatus(p,ev);
+                                      const lb=adminStatusLabel(st);
+                                      const friend=st==='waiting_friend'&&adminNames[p.brought_friend_id]?' ('+adminNames[p.brought_friend_id]+')':'';
+                                      return <span style={{fontSize:10,fontWeight:700,color:lb.color}}>{st==='paid'?'✅ '+paidAmount(p,ev).toFixed(2)+' €':lb.text}{friend}</span>;
+                                    })()}
                                   </div>
                                 ))}
                               </div>
                             </div>
                           )}
+                          {(()=>{
+                            const ms=activeMembersFor(adminMemberships,ev);
+                            if(ms.length===0)return null;
+                            return(
+                              <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#f0f0f0')}}>
+                                <div style={{color:'#aaa',fontSize:9,letterSpacing:1,marginBottom:6}}>MONATSMITGLIEDER ({ms.length}) — gelten für alle Termine dieses Veranstalters</div>
+                                <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                                  {ms.map((m,i)=>(
+                                    <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',background:darkMode?'#2a2a2a':'#f5f5f5',borderRadius:6,padding:'5px 9px'}}>
+                                      <span style={{fontSize:11,color:darkMode?'#ddd':'#333'}}>{adminNames[m.user_id]||String(m.user_id||'').slice(0,8)+'...'}</span>
+                                      <span style={{fontSize:10,fontWeight:700,color:'#2980b9'}}>📅 bis {new Date(m.valid_until).toLocaleDateString('de-DE')}{m.amount_paid!=null?' · '+Number(m.amount_paid).toFixed(2)+' €':''}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
                     })}

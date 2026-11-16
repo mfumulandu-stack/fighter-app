@@ -18,6 +18,7 @@ import AuthScreen from './AuthScreen';
 import { Lbl, Inp, Tag, Btn } from './uiHelpers';
 import { profileProgressOf, shareLink, inviteUrl } from './growth';
 import { isUuid, inviteCodeOf, cleanInviteCode, inviteCodeFilter } from './inviteCode';
+import { participantStatus, isFullEvent, capacityCount, paidCount, revenueOf, userStatusTexts } from './eventPayment';
 import GymVerifyModal from './GymVerifyModal';
 import { LIST_FIELDS, CARD_FIELDS, mergeProfileDetail, isFresh } from './profileLoad';
 import { detectLangFromDevice, saveLangChoice, makeL, countryName } from './lang';
@@ -148,10 +149,14 @@ function MainApp(){
       // Rueckkehr von der Stripe-Zahlungsseite erkennen (erfolgreich oder abgebrochen)
       const search=new URLSearchParams(window.location.search);
       if(search.get('ticket')==='success'){
-        setTimeout(()=>showMsg(L('✅ Zahlung erfolgreich! Du bist jetzt fürs Event angemeldet 🎟️', '✅ Payment successful! You are now registered for the event 🎟️', '✅ Paiement réussi ! Tu es maintenant inscrit à l\'événement 🎟️', '✅ ¡Pago realizado! Ya estás inscrito en el evento 🎟️')),800);
+        // Die Anmeldung wird vom Server (Stripe-Webhook) erst einige Sekunden NACH der Rueckkehr eingetragen.
+        // Deshalb hier nur merken - der Effekt "Zahlung bestaetigen" (bei joinEventMonthly) prueft, sobald der
+        // Login da ist, ob die bezahlte Anmeldung wirklich existiert, und meldet dann das Ergebnis.
+        pendingTicketRef.current={eventId:search.get('event'),membership:search.get('membership')==='1'};
+        setTimeout(()=>showMsg(L('✅ Zahlung erhalten – deine Anmeldung wird bestätigt …', '✅ Payment received – confirming your registration …', '✅ Paiement reçu – confirmation de ton inscription …', '✅ Pago recibido – confirmando tu inscripción …')),800);
         window.history.replaceState(null,'',window.location.pathname);
       }else if(search.get('ticket')==='cancelled'){
-        setTimeout(()=>showMsg('Zahlung abgebrochen - kein Ticket gekauft'),800);
+        setTimeout(()=>showMsg(L('Zahlung abgebrochen – kein Ticket gekauft', 'Payment cancelled – no ticket bought', 'Paiement annulé – aucun billet acheté', 'Pago cancelado – no se compró ninguna entrada')),800);
         window.history.replaceState(null,'',window.location.pathname);
       }
     }catch(e){console.error('recovery detect',e);}
@@ -349,6 +354,7 @@ function MainApp(){
   const [friendPickerEventId,setFriendPickerEventId]=useState(null);
   const [friendSearchQuery,setFriendSearchQuery]=useState('');
   const [myMemberships,setMyMemberships]=useState([]);
+  const pendingTicketRef=useRef(null);
   const [eventParticipants,setEventParticipants]=useState({});
   const [newEvent,setNewEvent]=useState({title:'',description:'',event_type:'Sparring',city:'',address:'',event_date:'',event_time:'',max_participants:10,styles:[],price:'',priceMonthly:''});
   // null = Anlegen, sonst die ID des Events, das gerade bearbeitet wird.
@@ -1353,7 +1359,7 @@ function MainApp(){
         body:JSON.stringify({event_id:eventId,user_id:myProfile.id,paid:false,brought_friend_id:friendProfileId})
       });
       if(r.ok){
-        showMsg('Angemeldet! Sobald dein Freund auch zahlt, bekommst du 10€ Rabatt.');
+        showMsg(L('Vorgemerkt! Sobald dein Freund bezahlt hat, bekommst du eine Nachricht und kannst dein Ticket für 10 € weniger kaufen.', 'Noted! As soon as your friend has paid, you get a message and can buy your ticket for €10 less.', 'Noté ! Dès que ton ami a payé, tu reçois un message et tu peux acheter ton billet 10 € moins cher.', '¡Anotado! En cuanto tu amigo haya pagado, recibirás un mensaje y podrás comprar tu entrada por 10 € menos.'));
         loadEvents(session);
       }else{
         const t=await r.text().catch(()=>'');
@@ -1361,6 +1367,33 @@ function MainApp(){
       }
     }catch(e){showMsg('❌ Fehler: '+e.message);}
   }
+
+  // Zahlung bestaetigen: Nach der Rueckkehr von Stripe traegt der Server die Anmeldung erst ein paar
+  // Sekunden spaeter ein (Webhook). Statt sofort "angemeldet" zu melden, wird hier nachgesehen, ob die
+  // bezahlte Zeile bzw. Mitgliedschaft wirklich da ist (bis zu ~16 Sekunden).
+  useEffect(()=>{
+    const pending=pendingTicketRef.current;
+    if(!pending||!session?.token||!myProfile?.id)return;
+    pendingTicketRef.current=null;
+    (async()=>{
+      for(let i=0;i<8;i++){
+        try{
+          const token=await getFreshToken();
+          const found=pending.membership
+            ?await dbSelect('event_memberships','user_id=eq.'+myProfile.id+'&valid_until=gte.'+new Date().toISOString()+'&select=id&limit=1',token)
+            :await dbSelect('event_participants','event_id=eq.'+pending.eventId+'&user_id=eq.'+myProfile.id+'&paid=eq.true&select=id&limit=1',token);
+          if(Array.isArray(found)&&found.length>0){
+            await loadEvents(session);
+            showMsg(L('✅ Bezahlt – du bist angemeldet 🎟️', '✅ Paid – you are registered 🎟️', '✅ Payé – tu es inscrit 🎟️', '✅ Pagado – estás inscrito 🎟️'));
+            return;
+          }
+        }catch(e){console.error('Zahlung bestaetigen',e);}
+        await new Promise(r=>setTimeout(r,2000));
+      }
+      loadEvents(session);
+      showMsg(L('⏳ Zahlung wird noch bestätigt – du bekommst eine Nachricht, sobald alles gebucht ist.', '⏳ Payment is still being confirmed – you will get a message as soon as it is booked.', '⏳ Paiement en cours de confirmation – tu recevras un message dès que tout est réservé.', '⏳ El pago aún se está confirmando – recibirás un mensaje en cuanto esté reservado.'));
+    })();
+  },[session?.token,myProfile?.id]);
 
   // Analog zu joinEvent, aber fuer den Monatsbeitrag: eigener Stripe-
   // Checkout-Aufruf mit type:'membership' - der Server (create-checkout)
@@ -4945,7 +4978,7 @@ function MainApp(){
                           <div style={{textAlign:'right',flexShrink:0}}>
                             {bezahlt
                               ?<div style={{color:'#27ae60',fontSize:11,fontWeight:700}}>✅ Bezahlt{mein.amount_paid?' · '+Number(mein.amount_paid).toFixed(2)+'€':''}</div>
-                              :<div style={{color:darkMode?'#888':'#999',fontSize:11,fontWeight:700}}>{L('Angemeldet', 'Registered', 'Inscrit', 'Inscrito')}</div>}
+                              :<div style={{color:darkMode?'#888':'#999',fontSize:11,fontWeight:700}}>{L(...userStatusTexts(participantStatus(mein,ev)))}</div>}
                             {vorbei&&<div style={{color:'#aaa',fontSize:10,marginTop:1}}>{L('vorbei', 'over', 'terminé', 'terminado')}</div>}
                           </div>
                         </div>
@@ -4993,7 +5026,7 @@ function MainApp(){
                   const isJoined=!!meineTeilnahme;
                   const wartetAufFreund=isJoined&&!meineTeilnahme.paid&&meineTeilnahme.brought_friend_id&&!meineTeilnahme.baf_unlocked;
                   const freundHatBezahlt=isJoined&&!meineTeilnahme.paid&&meineTeilnahme.baf_unlocked;
-                  const mitgebrachterFreundName=wartetAufFreund?(allProfiles.find(p=>p.id===meineTeilnahme.brought_friend_id)?.name||'deinem Freund'):null;
+                  const mitgebrachterFreundName=wartetAufFreund?(allProfiles.find(p=>p.id===meineTeilnahme.brought_friend_id)?.name||L('deinen Freund', 'your friend', 'ton ami', 'tu amigo')):null;
                   // Bezahlte Tickets kann man nicht selbst zurueckgeben: das
                   // Loeschen der Zeile wuerde den Zahlungsnachweis vernichten,
                   // ohne dass Geld zurueckfliesst. Erstattung laeuft ueber den
@@ -5004,7 +5037,8 @@ function MainApp(){
                   // Einzel-Teilnahme-Zeile dafuer gibt.
                   const aktiveMitgliedschaft=myMemberships.find(m=>m.event_creator_id===ev.creator_id);
                   const hatMonatsbeitrag=ev.price_monthly&&Number(ev.price_monthly)>0;
-                  const isFull=parts.length>=(ev.max_participants||10);
+                  const belegt=capacityCount(parts,ev);
+                  const isFull=isFullEvent(parts,ev);
                   const isOwner=ev.creator_id===myProfile?.id;
                   const typeColors={'Sparring':RED,'Community Training':'#27ae60','Wettkampf':'#d4a017','Open Mat':'#2980b9','Seminar':'#8e44ad'};
                   const color=typeColors[ev.event_type]||RED;
@@ -5048,18 +5082,18 @@ function MainApp(){
                         {/* TICKET-EINNAHMEN (nur fuer den Ersteller sichtbar) */}
                         {isOwner&&ev.price>0&&(
                           <div style={{background:darkMode?'#1a2a1a':'#f0f9f0',borderRadius:8,padding:'8px 10px',marginBottom:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                            <div style={{color:'#27ae60',fontSize:11,fontWeight:700}}>💰 {parts.filter(p=>p.paid).length} Tickets verkauft</div>
-                            <div style={{color:'#27ae60',fontSize:13,fontWeight:700}}>{(parts.filter(p=>p.paid).length*ev.price).toFixed(2)}€</div>
+                            <div style={{color:'#27ae60',fontSize:11,fontWeight:700}}>💰 {paidCount(parts)} {L('Tickets verkauft', 'tickets sold', 'billets vendus', 'entradas vendidas')}</div>
+                            <div style={{color:'#27ae60',fontSize:13,fontWeight:700}}>{revenueOf(parts,ev).toFixed(2)}€</div>
                           </div>
                         )}
                         {/* PARTICIPANTS BAR */}
                         <div style={{marginBottom:10}}>
                           <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
                             <div style={{color:darkMode?'#aaa':'#888',fontSize:11,fontWeight:600}}>{L('👥 Teilnehmer', '👥 Participants', '👥 Participants', '👥 Participantes')}</div>
-                            <div style={{color:isFull?RED:color,fontSize:11,fontWeight:700}}>{parts.length}/{ev.max_participants||10}{isFull?' · Voll':''}</div>
+                            <div style={{color:isFull?RED:color,fontSize:11,fontWeight:700}}>{belegt}/{ev.max_participants||10}{isFull?L(' · Voll', ' · Full', ' · Complet', ' · Completo'):''}</div>
                           </div>
                           <div style={{height:4,background:darkMode?'#2a2a2a':'#f0f0f0',borderRadius:2}}>
-                            <div style={{height:'100%',width:Math.min(100,(parts.length/(ev.max_participants||10))*100)+'%',background:isFull?RED:color,borderRadius:2,transition:'width 0.4s'}}/>
+                            <div style={{height:'100%',width:Math.min(100,(belegt/(ev.max_participants||10))*100)+'%',background:isFull?RED:color,borderRadius:2,transition:'width 0.4s'}}/>
                           </div>
                         </div>
                         {/* ACTION BUTTONS */}
@@ -5089,13 +5123,13 @@ function MainApp(){
                                   {L('📅 Mitgliedschaft aktiv', '📅 Membership active', '📅 Adhésion active', '📅 Membresía activa')}
                                 </div>
                                 <div style={{color:darkMode?'#888':'#999',fontSize:11,marginTop:2}}>
-                                  Gültig bis {new Date(aktiveMitgliedschaft.valid_until).toLocaleDateString('de')}
+                                  {L('Gültig bis', 'Valid until', 'Valable jusqu’au', 'Válida hasta')} {new Date(aktiveMitgliedschaft.valid_until).toLocaleDateString('de')}
                                 </div>
                               </div>
                             ):wartetAufFreund?(
                               <div style={{flex:1,padding:'10px',borderRadius:10,background:darkMode?'#2a1f10':'#fff8e8',border:'1px solid #d4a01755',textAlign:'center'}}>
                                 <div style={{color:'#d4a017',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13}}>
-                                  ⏳ Warte auf {mitgebrachterFreundName}
+                                  {L('⏳ Warte auf', '⏳ Waiting for', '⏳ En attente de', '⏳ Esperando a')} {mitgebrachterFreundName}
                                 </div>
                                 <div style={{color:darkMode?'#888':'#999',fontSize:11,marginTop:2}}>
                                   {L('Sobald dein Freund zahlt, bekommst du 10€ Rabatt', 'As soon as your friend pays, you get €10 off', 'Dès que ton ami paie, tu obtiens 10 € de remise', 'En cuanto tu amigo pague, recibirás 10 € de descuento')}
@@ -5104,7 +5138,7 @@ function MainApp(){
                             ):freundHatBezahlt?(
                               <button onClick={()=>joinEvent(ev.id,ev.price)}
                                 style={{flex:1,padding:'10px',borderRadius:10,background:'linear-gradient(135deg,#27ae60,#2ecc71)',border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:13,letterSpacing:1,cursor:'pointer'}}>
-                                ✅ Freund hat gezahlt — jetzt für {Math.max(0,ev.price-10)}€ zahlen
+                                {(pr=>L('✅ Freund hat gezahlt — jetzt für '+pr+'€ zahlen', '✅ Friend has paid — pay just €'+pr+' now', '✅ Ton ami a payé — paie seulement '+pr+' € maintenant', '✅ Tu amigo ha pagado — paga solo '+pr+' € ahora'))(Math.max(0,ev.price-10))}
                               </button>
                             ):isJoined&&istBezahlt?(
                               <div style={{flex:1,padding:'10px',borderRadius:10,background:darkMode?'#12210f':'#f0faf0',border:'1px solid #27ae6044',textAlign:'center'}}>
@@ -5124,12 +5158,12 @@ function MainApp(){
                               <>
                               <button onClick={()=>joinEvent(ev.id,ev.price)} disabled={isFull}
                                 style={{flex:1,padding:'10px',borderRadius:10,background:isFull?'#eee':`linear-gradient(135deg,${color},${color}cc)`,border:'none',color:isFull?'#aaa':'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,letterSpacing:1,cursor:isFull?'not-allowed':'pointer'}}>
-                                {isFull?'Ausgebucht':(ev.price>0?'🎟️ TICKET KAUFEN ('+ev.price+'€)':'🥊 ANMELDEN')}
+                                {isFull?L('Ausgebucht', 'Sold out', 'Complet', 'Agotado'):(ev.price>0?L('🎟️ TICKET KAUFEN (', '🎟️ BUY TICKET (', '🎟️ ACHETER (', '🎟️ COMPRAR (')+ev.price+'€)':L('🥊 ANMELDEN', '🥊 JOIN', '🥊 S’INSCRIRE', '🥊 APUNTARSE'))}
                               </button>
                               {ev.price>0&&!isFull&&(
                                 <button onClick={()=>{setFriendPickerEventId(ev.id);setFriendSearchQuery('');}}
                                   style={{padding:'10px 14px',borderRadius:10,background:'transparent',border:'1px solid #d4a017',color:'#d4a017',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer',whiteSpace:'nowrap'}}>
-                                  BAF
+                                  👫 −10€
                                 </button>
                               )}
                               </>
@@ -5138,7 +5172,7 @@ function MainApp(){
                           {!isJoined&&!aktiveMitgliedschaft&&hatMonatsbeitrag&&!isFull&&(
                             <button onClick={()=>joinEventMonthly(ev.id)}
                               style={{width:'100%',marginTop:8,padding:'9px',borderRadius:10,background:'transparent',border:'1px solid #2980b955',color:'#2980b9',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>
-                              📅 Stattdessen Monatsbeitrag ({ev.price_monthly}€ — alle Sessions diesen Monat)
+                              {L('📅 Stattdessen Monatsbeitrag ('+ev.price_monthly+'€ — alle Sessions diesen Monat)', '📅 Monthly pass instead (€'+ev.price_monthly+' — all sessions this month)', '📅 Abonnement mensuel à la place ('+ev.price_monthly+' € — toutes les séances ce mois-ci)', '📅 Cuota mensual en su lugar ('+ev.price_monthly+' € — todas las sesiones este mes)')}
                             </button>
                           )}
                           </>
@@ -5708,7 +5742,7 @@ function MainApp(){
         <div onClick={()=>setFriendPickerEventId(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:900,display:'flex',alignItems:'flex-end'}}>
           <div onClick={e=>e.stopPropagation()} style={{width:'100%',background:darkMode?'#0d0d0d':'#fff',borderRadius:'20px 20px 0 0',padding:'20px',maxHeight:'70vh',display:'flex',flexDirection:'column'}}>
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:16,letterSpacing:1,marginBottom:4}}>{L('Freund mitbringen', 'Bring a friend', 'Amener un ami', 'Traer a un amigo')}</div>
-            <div style={{color:'#888',fontSize:12,marginBottom:14,lineHeight:1.5}}>{L('Wähle deinen Trainingspartner aus. Sobald er/sie sich auch anmeldet und bezahlt, bekommst du 10€ Rabatt.', 'Choose your training partner. As soon as they also register and pay, you get €10 off.', 'Choisis ton partenaire d\'entraînement. Dès qu\'il/elle s\'inscrit et paie aussi, tu obtiens 10 € de remise.', 'Elige a tu compañero de entrenamiento. En cuanto también se inscriba y pague, recibirás 10 € de descuento.')}</div>
+            <div style={{color:'#888',fontSize:12,marginBottom:14,lineHeight:1.5}}>{L('Wähle deinen Trainingspartner aus. Sobald er/sie sich auch anmeldet und bezahlt, bekommst du eine Nachricht und kannst dein Ticket für 10 € weniger kaufen.', 'Choose your training partner. As soon as they also register and pay, you get a message and can buy your ticket for €10 less.', 'Choisis ton partenaire d’entraînement. Dès qu’il/elle s’inscrit et paie aussi, tu reçois un message et tu peux acheter ton billet 10 € moins cher.', 'Elige a tu compañero de entrenamiento. En cuanto también se inscriba y pague, recibirás un mensaje y podrás comprar tu entrada por 10 € menos.')}</div>
             <input placeholder='Namen suchen...' value={friendSearchQuery} onChange={e=>setFriendSearchQuery(e.target.value)}
               style={{width:'100%',padding:'11px 14px',borderRadius:10,border:'1px solid '+(darkMode?'#2a2a2a':'#ddd'),background:darkMode?'#1a1a1a':'#f5f5f7',color:darkMode?'#fff':'#1a1a1a',fontSize:14,boxSizing:'border-box',marginBottom:10}}/>
             <div style={{overflowY:'auto',flex:1}}>

@@ -7,6 +7,9 @@ const SUPA_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPA_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY")!;
 const APP_URL = "https://fighterapp.de";
+// Zahlungsseite laeuft nach 2 Stunden ab (Stripe erlaubt 30 Min bis 24 Std). Bei Ablauf meldet der
+// Webhook das und schickt eine Erinnerung - bisher stand die Sitzung 24 Stunden offen.
+const CHECKOUT_TTL_SEC = 2 * 60 * 60;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -89,6 +92,14 @@ Deno.serve(async (req) => {
       mParams.append("metadata[event_id]", String(eventId));
       mParams.append("metadata[profile_id]", String(profile.id));
       mParams.append("metadata[creator_id]", String(event.creator_id || ""));
+      mParams.append("expires_at", String(Math.floor(Date.now() / 1000) + CHECKOUT_TTL_SEC));
+      mParams.append("client_reference_id", String(profile.id));
+      if (user.email) mParams.append("customer_email", user.email);
+      mParams.append("payment_intent_data[description]", `Monatsbeitrag: ${event.title} - ${profile.name || ""}`);
+      mParams.append("payment_intent_data[metadata][type]", "membership");
+      mParams.append("payment_intent_data[metadata][event_id]", String(eventId));
+      mParams.append("payment_intent_data[metadata][profile_id]", String(profile.id));
+      mParams.append("payment_intent_data[metadata][user_name]", profile.name || "");
 
       const mStripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
         method: "POST",
@@ -177,6 +188,14 @@ Deno.serve(async (req) => {
     params.append("metadata[profile_id]", String(profile.id));
     params.append("metadata[user_name]", profile.name || "");
     if (bafDiscountRow) params.append("metadata[baf_participant_id]", String(bafDiscountRow.id));
+    params.append("expires_at", String(Math.floor(Date.now() / 1000) + CHECKOUT_TTL_SEC));
+    params.append("client_reference_id", String(profile.id));
+    if (user.email) params.append("customer_email", user.email);
+    // Damit in Stripe sofort erkennbar ist, WER WAS bezahlt hat (sonst nur "pi_...", ohne Kunde).
+    params.append("payment_intent_data[description]", `Ticket: ${event.title} - ${profile.name || ""}${bafDiscountRow ? " (Freund-Rabatt)" : ""}`);
+    params.append("payment_intent_data[metadata][event_id]", String(eventId));
+    params.append("payment_intent_data[metadata][profile_id]", String(profile.id));
+    params.append("payment_intent_data[metadata][user_name]", profile.name || "");
 
     const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
