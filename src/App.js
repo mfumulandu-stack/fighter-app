@@ -3863,7 +3863,7 @@ function MainApp(){
           <button onClick={()=>setShowPushReminder(false)} style={{background:'rgba(255,255,255,0.2)',border:'none',borderRadius:6,color:'#fff',fontSize:16,padding:'4px 10px',cursor:'pointer',flexShrink:0}}>✕</button>
         </div>
       )}
-      <div ref={mainScrollRef} style={{flex:1,overflowY:tab==='swipe'?'hidden':'auto',overscrollBehavior:'contain',paddingBottom:tab==='swipe'?0:'calc(68px + env(safe-area-inset-bottom))'}}>
+      <div ref={mainScrollRef} style={{flex:1,minHeight:0,overflowY:tab==='swipe'?'hidden':'auto',overscrollBehavior:'contain',paddingBottom:tab==='swipe'?0:'calc(68px + env(safe-area-inset-bottom))',display:tab==='swipe'?'flex':'block',flexDirection:'column'}}>
 
         {myProfile&&!myProfile.avatar_url&&(
           <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(13,13,13,0.97)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 24px',textAlign:'center'}}>
@@ -3879,42 +3879,31 @@ function MainApp(){
           </div>
         )}
         {tab==='swipe'&&(
-          <div onTouchMove={(e)=>{if(!drag)e.preventDefault();}} style={{display:'flex',flexDirection:'column',alignItems:'center',paddingTop:8,touchAction:'none'}}>
-            {/* GPS-HINWEIS BANNER */}
-            {/* LAND FILTER */}
-            <div style={{display:'flex',gap:4,marginBottom:6,width:'calc(100% - 24px)',maxWidth:420,justifyContent:'center'}}>
-              <button onClick={()=>setCountryFilter('mine')} style={{padding:'3px 12px',borderRadius:20,background:'transparent',border:'none',color:countryFilter==='mine'?(darkMode?'#fff':'#1a1a1a'):(darkMode?'#444':'#ccc'),fontSize:11,fontWeight:countryFilter==='mine'?700:400,cursor:'pointer',transition:'all 0.2s'}}>
-                {({'DE':'🇩🇪','AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[profile.country||'DE']||'🌍')} {t.myCountry}
-              </button>
-              <div style={{width:1,background:darkMode?'#333':'#e0e0e0',margin:'4px 0'}}/>
-              <button onClick={()=>setCountryFilter('world')} style={{padding:'3px 12px',borderRadius:20,background:'transparent',border:'none',color:countryFilter==='world'?(darkMode?'#fff':'#1a1a1a'):(darkMode?'#444':'#ccc'),fontSize:11,fontWeight:countryFilter==='world'?700:400,cursor:'pointer',transition:'all 0.2s'}}>
-                {t.worldwide}
-              </button>
-            </div>
-            {/* WER HAT MICH GELIKET Banner */}
-            {/* Banner bleibt sichtbar, bis die Liste wirklich leer ist -
-                nicht nur bis er einmal angetippt wurde */}
-            {whoLikedMe.length>0&&(
-              <div onClick={()=>{
-                setWhoLikedTab(true);
-                setNewLikesCount(0);
-                const now=new Date().toISOString();
-                setLikesBannerSeen(now);
-                try{localStorage.setItem('fighter_likes_check',now);setLastLikesCheck(now);localStorage.setItem('fighter_banner_seen',now);}catch{}
-              }} style={{width:'calc(100% - 24px)',maxWidth:420,marginBottom:6,background:'transparent',border:'1px solid '+RED+'33',borderRadius:8,padding:'6px 12px',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}}>
-                <div style={{fontSize:14}}>❤️</div>
-                <div style={{flex:1,color:darkMode?'#aaa':'#888',fontSize:11}}>{whoLikedMe.length} {t.interestBanner}</div>
-                {newLikesCount>0&&<div style={{background:RED,color:'#fff',borderRadius:'50%',width:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,flexShrink:0}}>{newLikesCount}</div>}
+          <div onTouchMove={(e)=>{if(!drag)e.preventDefault();}} style={{display:'flex',flexDirection:'column',alignItems:'center',flex:1,minHeight:0,boxSizing:'border-box',paddingTop:6,paddingBottom:'calc(60px + env(safe-area-inset-bottom) + 6px)',touchAction:'none'}}>
+            {/* FIGHT-KARTE GROSS: Karte fuellt die ganze Breite und alle freie Hoehe, Buttons liegen auf dem Foto. Land-Umschalter + Likes in einer Zeile */}
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,width:'calc(100% - 16px)',maxWidth:460,marginBottom:8,flexShrink:0}}>
+              <div style={{display:'flex',background:darkMode?'#1a1a1a':'#e9e9ec',borderRadius:20,padding:3,flexShrink:0}}>
+                <button onClick={()=>setCountryFilter('mine')} style={{border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:countryFilter==='mine'?700:500,padding:'5px 12px',borderRadius:17,background:countryFilter==='mine'?(darkMode?'#2b2b2b':'#fff'):'transparent',color:countryFilter==='mine'?(darkMode?'#fff':'#1a1a1a'):(darkMode?'#aaa':'#777'),transition:'all 0.2s'}}>
+                  {({'DE':'🇩🇪','AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[profile.country||'DE']||'🌍')} {t.myCountry}
+                </button>
+                <button onClick={()=>setCountryFilter('world')} style={{border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:countryFilter==='world'?700:500,padding:'5px 12px',borderRadius:17,background:countryFilter==='world'?(darkMode?'#2b2b2b':'#fff'):'transparent',color:countryFilter==='world'?(darkMode?'#fff':'#1a1a1a'):(darkMode?'#aaa':'#777'),transition:'all 0.2s'}}>
+                  {t.worldwide}
+                </button>
               </div>
-            )}
-            <div style={{width:'calc(100% - 24px)',maxWidth:380,margin:'0 0 8px',background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'9px 12px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.06)'}}>
-              {avatarPreview?<img loading="lazy" src={avatarPreview} style={{width:36,height:36,borderRadius:'50%',objectFit:'cover',border:'2px solid '+RED}} alt='me'/>
-                :<div style={{fontSize:20,width:36,height:36,borderRadius:'50%',background:'#f0f0f0',display:'flex',alignItems:'center',justifyContent:'center'}}>🥊</div>}
-              <div style={{flex:1}}>
-                <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{profile.name}, {profile.age} - {profile.city}</div>
-                <div style={{color:RED,fontSize:11,marginTop:1}}>{profile.style} - {profile.weightClass?profile.weightClass.split(' (')[0]:''}</div>
-              </div>
-              <div style={{color:'#aaa',fontSize:10,textAlign:'right'}}>{profile.height}cm<br/>{profile.weight}kg</div>
+              {/* WER HAT MICH GELIKET: bleibt sichtbar, bis die Liste wirklich leer ist */}
+              {whoLikedMe.length>0&&(
+                <button aria-label={whoLikedMe.length+' '+t.interestBanner} onClick={()=>{
+                  setWhoLikedTab(true);
+                  setNewLikesCount(0);
+                  const now=new Date().toISOString();
+                  setLikesBannerSeen(now);
+                  try{localStorage.setItem('fighter_likes_check',now);setLastLikesCheck(now);localStorage.setItem('fighter_banner_seen',now);}catch{}
+                }} style={{display:'flex',alignItems:'center',gap:6,border:'1px solid '+RED+'88',background:RED+'1f',color:darkMode?'#fff':'#1a1a1a',fontFamily:'inherit',fontSize:12,fontWeight:700,padding:'6px 12px',borderRadius:20,cursor:'pointer',flexShrink:0}}>
+                  <span style={{fontSize:13}}>❤️</span>
+                  <span>{whoLikedMe.length} Likes</span>
+                  {newLikesCount>0&&<span style={{background:RED,color:'#fff',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700}}>{newLikesCount}</span>}
+                </button>
+              )}
             </div>
             {/* FILTER LEISTE - leer, kein Stil-Filter in Swipe Tab */}
             {matchTierRef.current==='minimal'&&visibleCards.length>0&&(
@@ -3923,7 +3912,7 @@ function MainApp(){
                 <div style={{color:darkMode?'#ccc':'#666',fontSize:11,lineHeight:1.4}}>{L('Noch wenige Kämpfer in deiner Nähe — wir zeigen dir daher einen größeren Umkreis. Lad Freunde ein, um die Auswahl zu vergrößern!', 'Still few fighters near you — so we show a wider area. Invite friends to grow the selection!', 'Encore peu de combattants près de toi — nous élargissons donc le périmètre. Invite des amis pour agrandir le choix !', 'Aún hay pocos luchadores cerca de ti, por eso mostramos un área mayor. ¡Invita a amigos para ampliar la selección!')}</div>
               </div>
             )}
-            <div style={{position:'relative',width:'min(330px, calc(100vw - 40px))',height:'min(430px, 58dvh)',flexShrink:0,touchAction:'none'}}>
+            <div style={{position:'relative',width:'calc(100% - 16px)',maxWidth:460,flex:1,minHeight:360,touchAction:'none'}}>
               {visibleCards.length===0?(
                 <div style={{width:'100%',height:'100%',borderRadius:20,background:'linear-gradient(160deg,#1a1a1a 0%,#2d1a1a 100%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:'30px 24px',textAlign:'center'}}>
                   <div style={{fontSize:64,marginBottom:4}}>🏆</div>
@@ -3961,7 +3950,7 @@ function MainApp(){
                         else{lastTapRef.current=now;dragStart(e);}
                       }
                     }}
-                    style={{position:'absolute',inset:0,borderRadius:16,background:'#111',boxShadow:isTop?'0 8px 32px rgba(0,0,0,0.2)':'none',cursor:isTop?'grab':'default',zIndex:isTop?10:isSec?5:1,transform:isTop?cStyle.transform:isSec?'scale(0.96) translateY(10px)':'scale(0.92) translateY(20px)',
+                    style={{position:'absolute',inset:0,borderRadius:22,background:'#111',boxShadow:isTop?'0 10px 30px rgba(0,0,0,0.35)':'none',cursor:isTop?'grab':'default',zIndex:isTop?10:isSec?5:1,transform:isTop?cStyle.transform:isSec?'scale(0.96) translateY(10px)':'scale(0.92) translateY(20px)',
                       // Karten dahinter ruecken jetzt sanft nach vorne, statt
                       // beim Wegswipen ruckartig zu "springen" - nur waehrend
                       // des aktiven Ziehens bleibt es uebergangslos, damit die
@@ -3978,7 +3967,7 @@ function MainApp(){
                       ?<img src={f.avatar_url} fetchpriority={isTop?'high':'auto'} decoding="async" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',objectPosition:(f.img_pos_x||50)+'% '+(f.img_pos_y||30)+'%',filter:isTop?'none':'blur(14px) brightness(0.6)'}} alt={f.name}/>
                       :<div style={{position:'absolute',inset:0,background:`linear-gradient(160deg,${fA}55 0%,#111 100%)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:120}}>{f.emoji||''}</div>
                     }
-                    <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0) 30%,rgba(0,0,0,0.95) 100%)'}}/>
+                    <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(0,0,0,0.3) 0%,rgba(0,0,0,0) 20%,rgba(0,0,0,0) 42%,rgba(0,0,0,0.96) 100%)'}}/>
                     {isTop&&(<>
                       <div style={{position:'absolute',top:22,left:18,border:'3px solid #27ae60',borderRadius:6,padding:'3px 12px',color:'#27ae60',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:26,letterSpacing:3,transform:'rotate(-18deg)',opacity:fop,transition:drag?'none':'opacity 0.12s'}}>FIGHT</div>
                       <div style={{position:'absolute',top:22,right:18,border:'3px solid '+RED,borderRadius:6,padding:'3px 12px',color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:26,letterSpacing:3,transform:'rotate(18deg)',opacity:pop,transition:drag?'none':'opacity 0.12s'}}>PASS</div>
@@ -3987,19 +3976,19 @@ function MainApp(){
                         <span style={{color:'rgba(255,255,255,0.85)',fontSize:10,fontWeight:600,letterSpacing:0.5}}>{t.profileSeen}</span>
                       </div>
                     </>)}
-                    <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'12px 16px 16px'}}> 
+                    <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'12px 18px 100px'}}> 
                       <div style={{display:'flex',gap:8,marginBottom:8}}>
                         {[{v:f.wins||0,l:L('SIEGE', 'WINS', 'VICTOIRES', 'VICTORIAS'),c:'#27ae60'},{v:f.losses||0,l:L('NIEDER', 'LOSSES', 'DÉFAITES', 'DERROTAS'),c:'#e74c3c'},{v:f.draws||0,l:L('UNENTSCH', 'DRAWS', 'NULS', 'EMPATES'),c:'#d4a017'},{v:f.ko||0,l:'KOs',c:'#e74c3c'}].map(({v,l,c})=>(
-                          <div key={l} style={{textAlign:'center',background:'rgba(0,0,0,0.5)',borderRadius:8,padding:'4px 8px'}}>
-                            <div className='rj' style={{color:c,fontSize:18,lineHeight:1}}>{v}</div>
-                            <div style={{color:'rgba(255,255,255,0.55)',fontSize:7,letterSpacing:1}}>{l}</div>
+                          <div key={l} style={{textAlign:'center',background:'rgba(0,0,0,0.5)',borderRadius:10,padding:'6px 12px'}}>
+                            <div className='rj' style={{color:c,fontSize:22,lineHeight:1}}>{v}</div>
+                            <div style={{color:'rgba(255,255,255,0.55)',fontSize:8,letterSpacing:1}}>{l}</div>
                           </div>
                         ))}
                       </div>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
                         <div style={{flex:1,minWidth:0}}>
-                          <div className='rj' style={{color:'#fff',fontSize:26,letterSpacing:1.5,lineHeight:1}}>
-                            {f.name}{f.age?<span style={{fontSize:19,opacity:0.75}}>, {f.age}</span>:null}
+                          <div className='rj' style={{color:'#fff',fontSize:34,letterSpacing:1.5,lineHeight:1}}>
+                            {f.name}{f.age?<span style={{fontSize:26,opacity:0.8}}>, {f.age}</span>:null}
                           </div>
                           <div style={{display:'flex',gap:5,marginTop:6,flexWrap:'wrap'}}>
                             {f.style&&<div style={{background:fA,borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{f.style}</div>}
@@ -4022,30 +4011,25 @@ function MainApp(){
                   </div>
                 );
               })}
-            </div>
-            {cards.length>0&&(
-              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,marginTop:10}}>
-                <div style={{display:'flex',gap:16,alignItems:'center'}}>
-                  <Btn onClick={()=>doSwipe('de')} color={RED} icon='✕' size={54}/>
-                  {lastSwiped&&<Btn onClick={undoSwipe} color='rgba(255,255,255,0.2)' icon='↩️' size={46}/>}
-                  <Btn onClick={()=>doSwipe('ch')} color='#27ae60' icon='⚔️' size={64} primary label='FIGHT'/>
-                  <Btn onClick={()=>doSwipe('ch')} color='#d4a017' icon='⭐' size={54}/>
+              {/* AKTIONS-BUTTONS: liegen auf dem Foto, bleiben beim Wegwischen der Karte stehen */}
+              {cards.length>0&&visibleCards.length>0&&(
+                <div style={{position:'absolute',left:0,right:0,bottom:16,zIndex:30,display:'flex',alignItems:'center',justifyContent:'center',gap:14,pointerEvents:'none'}}>
+                  <button aria-label={L('Passen','Pass','Passer','Pasar')} onClick={()=>doSwipe('de')} style={{pointerEvents:'auto',width:58,height:58,borderRadius:'50%',border:'2px solid #e74c3c',background:'rgba(0,0,0,0.55)',color:'#ff6b5b',fontSize:24,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0}}>✕</button>
+                  {lastSwiped&&<button aria-label={L('Rückgängig','Undo','Annuler','Deshacer')} onClick={undoSwipe} style={{pointerEvents:'auto',width:42,height:42,borderRadius:'50%',border:'1px solid rgba(255,255,255,0.35)',background:'rgba(0,0,0,0.55)',color:'#fff',fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0}}>↩️</button>}
+                  <button aria-label="Fight" onClick={()=>doSwipe('ch')} style={{pointerEvents:'auto',width:74,height:74,borderRadius:'50%',border:'none',background:'linear-gradient(135deg,#1e8f4e,#2ecc71)',color:'#fff',fontSize:32,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,boxShadow:'0 6px 20px rgba(46,204,113,0.4)'}}>⚔️</button>
+                  <button aria-label={L('Favorit','Favorite','Favori','Favorito')} onClick={()=>doSwipe('ch')} style={{pointerEvents:'auto',width:58,height:58,borderRadius:'50%',border:'2px solid #d4a017',background:'rgba(0,0,0,0.55)',color:'#d4a017',fontSize:24,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0}}>⭐</button>
                 </div>
-                {recentSwiped.length>0&&(
-                  <div style={{padding:'4px 16px 0',width:'100%',maxWidth:420}}>
-                    <div style={{color:'rgba(255,255,255,0.4)',fontSize:9,letterSpacing:2,marginBottom:6,textAlign:'center',fontWeight:700}}>{t.recentlySeen}</div>
-                    <div style={{display:'flex',gap:8,justifyContent:'center'}}>
-                      {recentSwiped.map((s,i)=>(
-                        <div key={i} onClick={()=>setViewProfile(s.profile)} style={{position:'relative',cursor:'pointer'}}>
-                          <div style={{width:44,height:44,borderRadius:10,overflow:'hidden',border:'2px solid '+(s.dir==='like'?'#27ae60':RED)}}>
-                            {s.profile.avatar_url?<img loading="lazy" src={s.profile.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='' onError={e=>{e.target.style.display='none'}}/>:<div style={{width:'100%',height:'100%',background:'#2a2a2a',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16}}>🥊</div>}
-                          </div>
-                          <div style={{position:'absolute',bottom:-2,right:-2,fontSize:8,background:s.dir==='like'?'#27ae60':RED,borderRadius:'50%',width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:700}}>{s.dir==='like'?'✓':'✕'}</div>
-                        </div>
-                      ))}
+              )}
+            </div>
+            {recentSwiped.length>0&&cards.length>0&&(
+              <div aria-label={t.recentlySeen} style={{display:'flex',gap:6,justifyContent:'center',marginTop:8,flexShrink:0}}>
+                {recentSwiped.map((s2,i)=>(
+                  <div key={i} onClick={()=>setViewProfile(s2.profile)} style={{position:'relative',cursor:'pointer'}}>
+                    <div style={{width:34,height:34,borderRadius:9,overflow:'hidden',border:'2px solid '+(s2.dir==='like'?'#27ae60':RED)}}>
+                      {s2.profile.avatar_url?<img loading="lazy" src={s2.profile.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='' onError={e=>{e.target.style.display='none'}}/>:<div style={{width:'100%',height:'100%',background:'#2a2a2a'}}/>}
                     </div>
                   </div>
-                )}
+                ))}
               </div>
             )}
 
