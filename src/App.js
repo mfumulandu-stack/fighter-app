@@ -28,6 +28,7 @@ import OnboardingTour from './OnboardingTour';
 import SwipeableChatRow from './SwipeableChatRow';
 import ErrorBoundary from './ErrorBoundary';
 import ImgPositionEditor from './ImgPositionEditor';
+import { rankCompare } from './rankOrder';
 import { WEIGHT_CLASSES, normalizeWeightClass, STYLES, BELT_STYLES, BELT_RANKS, FIGHTERS, GYMS, TRAINERS, SPORTS, getDistanceKm, getDistanceKmCoords, getBundesland, getLocationByIP } from './appData';
 // Weiterreichen nach aussen: auth.test.js und andere importieren diese
 // Funktionen aus './App' - das bleibt dadurch unveraendert gueltig.
@@ -2673,6 +2674,7 @@ function MainApp(){
       // Alle Fighter stehen in der Rangliste. Verifizierte stehen aber immer
       // vor nicht verifizierten (siehe Sortierung unten) - das verhindert,
       // dass erfundene Bilanzen vor geprueften stehen.
+      // Fighter ohne Kaempfe stehen am Ende der Liste.
       .filter(f=>rankF==='All'||!f.style||(f.style&&(f.style===rankF||f.style.includes(rankF))))
       .sort((a,b)=>{
         // Guertelfarbe (nur bei BJJ/Karate/Taekwondo/Judo relevant) zaehlt
@@ -2689,10 +2691,14 @@ function MainApp(){
           const gym=f.isMe?(myProfile?.gym_verified===true||!!gymVerified):f.gym_verified===true;
           return rec&&gym?2:rec?1:0;
         };
-        const verA=verLevel(a);
-        const verB=verLevel(b);
-        if(verA!==verB)return verB-verA;
-        return scoreB-scoreA;
+        // Wer echte Kaempfe hat, steht immer vor Fightern ohne Kaempfe (0-0-0).
+        // Sonst rutscht ein Neuling mit "keine Kaempfe" + Gym-Code (Stufe 2)
+        // vor jeden geprueften Kaempfer ohne Gym-Code. Siehe src/rankOrder.js.
+        const fightsOf=f=>(f.wins||0)+(f.losses||0)+(f.draws||0);
+        return rankCompare(
+          {fights:fightsOf(a),ver:verLevel(a),score:scoreA},
+          {fights:fightsOf(b),ver:verLevel(b),score:scoreB}
+        );
       });
   },[userOnly,profile,myProfile,rankMode,rankF,countryFilter,gymVerified]);
   const trStyles=['All','Boxing','MMA','Muay Thai','BJJ'];
