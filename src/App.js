@@ -3982,7 +3982,7 @@ function MainApp(){
                         <span style={{color:'rgba(255,255,255,0.85)',fontSize:10,fontWeight:600,letterSpacing:0.5}}>{t.profileSeen}</span>
                       </div>
                     </>)}
-                    <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'12px 18px 100px'}}> 
+                    <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'12px 18px 82px'}}> 
                       <div style={{display:'flex',gap:8,marginBottom:8}}>
                         {[{v:f.wins||0,l:L('SIEGE', 'WINS', 'VICTOIRES', 'VICTORIAS'),c:'#27ae60'},{v:f.losses||0,l:L('NIEDER', 'LOSSES', 'DÉFAITES', 'DERROTAS'),c:'#e74c3c'},{v:f.draws||0,l:L('UNENTSCH', 'DRAWS', 'NULS', 'EMPATES'),c:'#d4a017'},{v:f.ko||0,l:'KOs',c:'#e74c3c'}].map(({v,l,c})=>(
                           <div key={l} style={{textAlign:'center',background:'rgba(0,0,0,0.5)',borderRadius:10,padding:'6px 12px'}}>
@@ -4017,13 +4017,13 @@ function MainApp(){
                   </div>
                 );
               })}
-              {/* AKTIONS-BUTTONS: liegen auf dem Foto, bleiben beim Wegwischen der Karte stehen */}
+              {/* AKTIONS-BUTTONS: liegen auf dem Foto, bleiben beim Wegwischen der Karte stehen. BUTTONS KLEIN */}
               {cards.length>0&&visibleCards.length>0&&(
-                <div style={{position:'absolute',left:0,right:0,bottom:16,zIndex:30,display:'flex',alignItems:'center',justifyContent:'center',gap:14,pointerEvents:'none'}}>
-                  <button aria-label={L('Passen','Pass','Passer','Pasar')} onClick={()=>doSwipe('de')} style={{pointerEvents:'auto',width:58,height:58,borderRadius:'50%',border:'2px solid #e74c3c',background:'rgba(0,0,0,0.55)',color:'#ff6b5b',fontSize:24,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0}}>✕</button>
-                  {lastSwiped&&<button aria-label={L('Rückgängig','Undo','Annuler','Deshacer')} onClick={undoSwipe} style={{pointerEvents:'auto',width:42,height:42,borderRadius:'50%',border:'1px solid rgba(255,255,255,0.35)',background:'rgba(0,0,0,0.55)',color:'#fff',fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0}}>↩️</button>}
-                  <button aria-label="Fight" onClick={()=>doSwipe('ch')} style={{pointerEvents:'auto',width:74,height:74,borderRadius:'50%',border:'none',background:'linear-gradient(135deg,#1e8f4e,#2ecc71)',color:'#fff',fontSize:32,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,boxShadow:'0 6px 20px rgba(46,204,113,0.4)'}}>⚔️</button>
-                  <button aria-label={L('Favorit','Favorite','Favori','Favorito')} onClick={()=>doSwipe('ch')} style={{pointerEvents:'auto',width:58,height:58,borderRadius:'50%',border:'2px solid #d4a017',background:'rgba(0,0,0,0.55)',color:'#d4a017',fontSize:24,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0}}>⭐</button>
+                <div style={{position:'absolute',left:0,right:0,bottom:14,zIndex:30,display:'flex',alignItems:'center',justifyContent:'center',gap:12,pointerEvents:'none'}}>
+                  <button aria-label={L('Passen','Pass','Passer','Pasar')} onClick={()=>doSwipe('de')} style={{pointerEvents:'auto',width:44,height:44,borderRadius:'50%',border:'2px solid #e74c3c',background:'rgba(0,0,0,0.55)',color:'#ff6b5b',fontSize:18,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0}}>✕</button>
+                  {lastSwiped&&<button aria-label={L('Rückgängig','Undo','Annuler','Deshacer')} onClick={undoSwipe} style={{pointerEvents:'auto',width:34,height:34,borderRadius:'50%',border:'1px solid rgba(255,255,255,0.35)',background:'rgba(0,0,0,0.55)',color:'#fff',fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0}}>↩️</button>}
+                  <button aria-label="Fight" onClick={()=>doSwipe('ch')} style={{pointerEvents:'auto',width:56,height:56,borderRadius:'50%',border:'none',background:'linear-gradient(135deg,#1e8f4e,#2ecc71)',color:'#fff',fontSize:24,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0,boxShadow:'0 6px 20px rgba(46,204,113,0.4)'}}>⚔️</button>
+                  <button aria-label={L('Favorit','Favorite','Favori','Favorito')} onClick={()=>doSwipe('ch')} style={{pointerEvents:'auto',width:44,height:44,borderRadius:'50%',border:'2px solid #d4a017',background:'rgba(0,0,0,0.55)',color:'#d4a017',fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',padding:0}}>⭐</button>
                 </div>
               )}
             </div>
