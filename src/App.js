@@ -18,6 +18,7 @@ import AuthScreen from './AuthScreen';
 import { Lbl, Inp, Tag, Btn } from './uiHelpers';
 import { profileProgressOf, shareLink, inviteUrl } from './growth';
 import { isUuid, inviteCodeOf, cleanInviteCode, inviteCodeFilter } from './inviteCode';
+import { shouldShowInviteLanding, InviteLanding } from './inviteLanding';
 import { participantStatus, isFullEvent, capacityCount, paidCount, revenueOf, userStatusTexts } from './eventPayment';
 import GymVerifyModal from './GymVerifyModal';
 import { LIST_FIELDS, CARD_FIELDS, mergeProfileDetail, isFresh } from './profileLoad';
@@ -29,6 +30,10 @@ import SwipeableChatRow from './SwipeableChatRow';
 import ErrorBoundary from './ErrorBoundary';
 import ImgPositionEditor from './ImgPositionEditor';
 import { rankCompare } from './rankOrder';
+import CityPicker from './CityPicker';
+import { loadCityIndex, nearestCity } from './cityIndex';
+import { matchDistanceKm } from './geoDist';
+import { LEARNED_MATCHING_ON, featuresOf, learnPrefs, learnedBonusKm, samplesFromSwipes } from './learnedMatch';
 import { SkeletonCard, SkeletonRank } from './Skeleton';
 import { tapLight, tapMedium, success as hapticSuccess } from './haptics';
 import { WEIGHT_CLASSES, normalizeWeightClass, STYLES, BELT_STYLES, BELT_RANKS, FIGHTERS, GYMS, TRAINERS, SPORTS, getDistanceKm, getDistanceKmCoords, getBundesland, getLocationByIP } from './appData';
@@ -84,6 +89,15 @@ export default function App(){
     // Einladungslink (?ref=<profil-id des Einladenden>): merken, bis sich
     // diese Person registriert UND ihr Profil fertig anlegt - erst dann
     // (in saveProfile) wird der Freund serverseitig gutgeschrieben.
+    // iPhone-Safari + Einladungslink: direkt zum App Store (Seite zeigt den Code)
+    if(shouldShowInviteLanding({
+      ua:navigator.userAgent,platform:navigator.platform,maxTouchPoints:navigator.maxTouchPoints,
+      native:!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()),
+      standalone:!!(window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)),
+      search:window.location.search
+    })){
+      return <InviteLanding refId={params.get('ref')}/>;
+    }
     const refCode=params.get('ref');
     if(refCode){
       try{localStorage.setItem('fighter_ref_code',refCode);}catch{}
@@ -212,6 +226,7 @@ function MainApp(){
   const [uploading,setUploading]=useState(false);
   const [cards,setCards]=useState([...FIGHTERS]);
   const [cardsReady,setCardsReady]=useState(false);
+  const [swipeHistory,setSwipeHistory]=useState([]);
   const [drag,setDrag]=useState(false);
   const [offset,setOffset]=useState({x:0,y:0});
   const [start,setStart]=useState({x:0,y:0});
@@ -642,6 +657,27 @@ function MainApp(){
     restoreSession().finally(()=>clearTimeout(timeout));
   },[]);
 
+  // Stadt gewaehlt (Liste oder GPS-Bestaetigung): Name + Koordinaten setzen und, falls
+  // schon ein Profil existiert, direkt speichern.
+  async function saveCityChoice(c){
+    setProfile(p=>({...p,city:c.name}));
+    if(c.lat&&c.lon){setMyLat(c.lat);setMyLon(c.lon);}
+    setLocationSource(c.source||'city');
+    if(session&&myProfile&&c.name){
+      try{
+        const body={city:c.name,location_source:c.source||'city'};
+        if(c.lat&&c.lon){body.lat=c.lat;body.lon=c.lon;}
+        await fetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+myProfile.id,{
+          method:'PATCH',
+          headers:{'Content-Type':'application/json',apikey:SUPA_KEY,Authorization:'Bearer '+session.token,Prefer:'return=minimal'},
+          body:JSON.stringify(body)
+        });
+        setMyProfile(mp=>mp?{...mp,...body}:mp);
+        showMsg(L('📍 Standort gespeichert — ', '📍 Location saved — ', '📍 Localisation sauvegardée — ', '📍 Ubicación guardada — ')+c.name);
+      }catch{}
+    }
+  }
+
   async function getGPSLocation(){
     if(!navigator.geolocation){showMsg(L('GPS nicht verfügbar', 'GPS not available', 'GPS indisponible', 'GPS no disponible'));return;}
     setLocationLoading(true);
@@ -652,9 +688,9 @@ function MainApp(){
         setMyLat(lat);setMyLon(lon);setLocationSource('gps');
         // Reverse geocode to get city name
         try{
-          const r=await fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lon+'&format=json');
-          const d=await r.json();
-          const city=d.address?.city||d.address?.town||d.address?.village||d.address?.county||'';
+          // Stadt aus der eigenen Liste (offline, keine Weitergabe der Position an Dritte)
+          let city='';
+          try{const idx=await loadCityIndex();const nc=nearestCity(idx,lat,lon);city=nc?nc.name:'';}catch{}
           if(city)setProfile(p=>({...p,city}));
           // Save to DB
           if(session&&myProfile){
@@ -1116,6 +1152,8 @@ function MainApp(){
       // Alle Swipes aus DB laden
       const swiped=await dbSelect('swipes','swiper_id=eq.'+myP.id,s.token);
       const swipedIds=new Set(Array.isArray(swiped)?swiped.map(x=>x.target_id):[]);
+      // Lernendes Matching: eigene Swipes (Like/Pass) merken
+      if(Array.isArray(swiped))setSwipeHistory(swiped.map(x=>({target_id:x.target_id,direction:x.direction})));
       // Session-Swipes auch rausfiltern (sofortige Reaktion ohne DB-Runde)
       sessionSwipedRef.current.forEach(id=>swipedIds.add(id));
       // Matches filtern
@@ -2283,6 +2321,23 @@ function MainApp(){
   // einzigen App-Interaktion neu, auch bei voellig unabhaengigen
   // Aenderungen (z.B. eine Nachricht tippen). Jetzt laeuft sie nur noch
   // neu, wenn sich wirklich etwas Relevantes fuers Matching geaendert hat.
+  // ── LERNENDES MATCHING: persoenliche Vorlieben aus den eigenen Swipes ──
+  // Nur auf dem Geraet berechnet, gedeckelt (siehe learnedMatch.js).
+  const meForLearn=React.useMemo(()=>({
+    weight:parseInt(myProfile?.weight||profile?.weight||0),
+    age:parseInt(myProfile?.age||profile?.age||0),
+    fights:(parseInt(myProfile?.wins||profile?.wins||0))+(parseInt(myProfile?.losses||profile?.losses||0))+(parseInt(myProfile?.draws||profile?.draws||0)),
+    gym:myProfile?.gym||profile?.gym||''
+  }),[myProfile,profile]);
+  const learnedPrefs=React.useMemo(()=>{
+    if(!LEARNED_MATCHING_ON||!swipeHistory.length||!allProfiles.length)return null;
+    const byId={};allProfiles.forEach(p=>{if(p&&p.id)byId[p.id]=p;});
+    const samples=samplesFromSwipes(swipeHistory,byId,p=>featuresOf(meForLearn,p,{
+      styleRel:sameStyle(p)?'same':relatedStyle(p)?'related':'other',
+      dist:matchDistanceKm({city:myCity,lat:myLat,lon:myLon},p)
+    }));
+    return learnPrefs(samples);
+  },[swipeHistory,allProfiles,meForLearn,myCity,myLat,myLon,profile.style]);
   const matchTierRef=useRef('minimal');
   const filteredCards=React.useMemo(()=>{
   const myIsPro=myProfile?.is_pro===true||profile.isPro===true;
@@ -2321,9 +2376,7 @@ function MainApp(){
   const candidateFlags=candidatesBase.map(f=>{
     const fAge=parseInt(f.age)||0;
     const fWeight=parseInt(f.weight)||0;
-    const fDist=(myLat&&myLon&&f.lat&&f.lon)
-      ?getDistanceKmCoords(myLat,myLon,f.lat,f.lon)
-      :getDistanceKm(myCity,f.city||'');
+    const fDist=matchDistanceKm({city:myCity,lat:myLat,lon:myLon},f);
     const fSameStyle=sameStyle(f);
     const fRelatedStyle=relatedStyle(f);
     const fActive=f.last_seen&&(Date.now()-new Date(f.last_seen).getTime())<5184000000; // 60 Tage
@@ -2353,13 +2406,10 @@ function MainApp(){
     .map(f=>{
       // ── DISTANZ ──
       // GPS wenn beide haben, sonst Koordinaten-Tabelle, sonst Städte-Name
-      const dist=(myLat&&myLon&&f.lat&&f.lon)
-        ?getDistanceKmCoords(myLat,myLon,f.lat,f.lon)
-        :getDistanceKm(myCity,f.city||'');
+      const dist=matchDistanceKm({city:myCity,lat:myLat,lon:myLon},f);
 
       // ── ÜBEREINSTIMMUNGS-FLAGS ──
-      const hasGPS=myLat&&myLon&&f.lat&&f.lon;
-      const sameCityBool=hasGPS?dist<=15:((f.city||'').toLowerCase().trim()===(myCity||'').toLowerCase().trim()&&myCity!=='');
+      const sameCityBool=dist<=15||((f.city||'').toLowerCase().trim()===(myCity||'').toLowerCase().trim()&&myCity!=='');
       const sameStyleBool=sameStyle(f);
       const sameGenderBool=sameGender(f);
       const fWC=normalizeWeightClass(f.weight_class||'').split(' (')[0].trim();
@@ -2428,6 +2478,8 @@ function MainApp(){
       if(myGym&&fGym&&myGym===fGym) score-=25;
       // Verifizierter Kampfrekord - vertrauenswuerdiger Gegner
       if(f.record_verified==='verified') score-=0.3;
+      // Lernendes Matching: persoenlicher Bonus/Malus aus den eigenen Swipes (max. +-40 km-Aequivalent)
+      score+=learnedBonusKm(learnedPrefs,featuresOf(meForLearn,f,{styleRel:sameStyleBool?'same':relatedStyleBool?'related':'other',dist}));
 
       return{
         ...f,
@@ -2450,7 +2502,7 @@ function MainApp(){
       return (b._dist||9999)-(a._dist||9999);
     });
   return filteredCardsInner;
-  },[cards,blockedUsers,countryFilter,profile,myProfile,myLat,myLon,myCity,myBundesland]);
+  },[cards,blockedUsers,countryFilter,profile,myProfile,myLat,myLon,myCity,myBundesland,learnedPrefs,meForLearn]);
   // Leichte, zusaetzliche Filterung NACH der teuren Berechnung: entfernt
   // bereits in dieser Sitzung geswipte Karten, ohne die aufwendige
   // Distanz-/Sportart-Berechnung erneut laufen zu lassen. Vorher stand
@@ -3192,7 +3244,7 @@ function MainApp(){
             </div>
             <Lbl>{L('Dein Name', 'Your name', 'Ton nom', 'Tu nombre')}</Lbl><Inp placeholder={L('z.B. Max Mueller', 'e.g. Max Miller', 'ex. Max Muller', 'p. ej. Max Müller')} value={profile.name} onChange={v=>setProfile(p=>({...p,name:v}))}/>
             <Lbl>{L('Alter', 'Age', 'Âge', 'Edad')}</Lbl><Inp placeholder={L('z.B. 25', 'e.g. 25', 'ex. 25', 'p. ej. 25')} type='number' value={profile.age} onChange={v=>setProfile(p=>({...p,age:v}))}/>
-            <Lbl>{L('Standort', 'Location', 'Localisation', 'Ubicación')}</Lbl><Inp placeholder={L('z.B. Berlin', 'e.g. Berlin', 'ex. Berlin', 'p. ej. Berlín')} value={profile.city} onChange={v=>setProfile(p=>({...p,city:v}))}/>
+            <Lbl>{L('Standort', 'Location', 'Localisation', 'Ubicación')}</Lbl><CityPicker L={L} placeholder={L('z.B. Berlin', 'e.g. Berlin', 'ex. Berlin', 'p. ej. Berlín')} value={profile.city} onType={v=>setProfile(p=>({...p,city:v}))} onPick={saveCityChoice}/>
             <Lbl>{L('Ich bin', 'I am', 'Je suis', 'Soy')}</Lbl>
             <div style={{display:'flex',gap:10,marginTop:2,marginBottom:4}}>
               {[[L('Mann', 'Male', 'Homme', 'Hombre'),'♂️','male'],[L('Frau', 'Female', 'Femme', 'Mujer'),'♀️','female']].map(([label,icon,val])=>(
@@ -3228,6 +3280,7 @@ function MainApp(){
             )}
             <Lbl>{L('Einladungscode (optional)', 'Invite code (optional)', 'Code d\'invitation (facultatif)', 'Código de invitación (opcional)')}</Lbl>
             <Inp placeholder={L('z.B. 3F9A1C2E', 'e.g. 3F9A1C2E', 'ex. 3F9A1C2E', 'p. ej. 3F9A1C2E')} value={inviteCodeInput} onChange={v=>setInviteCodeInput(cleanInviteCode(v))} autoComplete='off'/>
+            {inviteCodeInput.length!==8&&<button type='button' onClick={async()=>{try{const t=await navigator.clipboard.readText();const c=cleanInviteCode(t);if(c.length===8)setInviteCodeInput(c);else showMsg(L('Kein Einladungscode in der Zwischenablage', 'No invite code on the clipboard', 'Aucun code d\'invitation dans le presse-papiers', 'No hay código de invitación en el portapapeles'));}catch(e){showMsg(L('Einfügen nicht möglich – Code bitte eintippen', 'Paste not possible – please type the code', 'Collage impossible – saisis le code', 'No se puede pegar: escribe el código'));}}} style={{alignSelf:'flex-start',marginTop:-2,background:'transparent',border:'1px solid #555',color:'#bbb',borderRadius:8,padding:'5px 12px',fontSize:12,cursor:'pointer'}}>{L('📋 Code einfügen', '📋 Paste code', '📋 Coller le code', '📋 Pegar código')}</button>}
             <div style={{color:'#999',fontSize:10,marginTop:-4,lineHeight:1.4}}>{L('Hat dich ein Freund eingeladen? Gib seinen Code ein – er bekommt dafür einen Rabatt.', 'Did a friend invite you? Enter their code – they get a discount for it.', 'Un ami t\'a invité ? Saisis son code – il obtient une remise.', '¿Te invitó un amigo? Introduce su código – recibirá un descuento.')}</div>
           </div>
         )}
@@ -4019,7 +4072,7 @@ function MainApp(){
                                 {wc&&<div style={chip}>{wc}</div>}
                                 {f.is_pro&&<div style={{...chip,color:'#e8c15a',borderColor:'rgba(232,193,90,0.4)'}}>PRO</div>}
                                 {flag&&<div style={chip}>{flag}</div>}
-                                {f.city&&<div style={chip}>{f.city}{f._dist&&f._dist<500&&!f._sameCity?' · '+f._dist+' km':''}</div>}
+                                {f.city&&<div style={chip}>{f.city}{f._dist!=null&&f._dist<9999?' · '+Math.max(1,f._dist)+' km':''}</div>}
                               </div>
                               {match.length>0&&<div style={{display:'flex',alignItems:'center',gap:7,marginTop:9,color:'rgba(255,255,255,0.9)',fontSize:12,fontWeight:600}}><span style={{width:7,height:7,borderRadius:'50%',background:RED,flexShrink:0}}/>{match.join(' · ')}</div>}
                             </>);
@@ -4628,6 +4681,10 @@ function MainApp(){
                   </div>
                   {myLat&&myLon&&<div style={{color:'#ccc',fontSize:10,marginTop:2}}>{myLat.toFixed(4)}, {myLon.toFixed(4)}</div>}
                 </div>
+              </div>
+              <div style={{marginTop:12}}>
+                <div style={{color:darkMode?'#aaa':'#777',fontSize:11,fontWeight:600,marginBottom:6}}>{L('Stadt ändern', 'Change city', 'Changer de ville', 'Cambiar ciudad')}</div>
+                <CityPicker L={L} showGps={false} placeholder={L('z.B. Berlin', 'e.g. Berlin', 'ex. Berlin', 'p. ej. Berlín')} value={profile.city} onType={v=>setProfile(p=>({...p,city:v}))} onPick={saveCityChoice}/>
               </div>
               {locationSource!=='gps'&&(
                 <button onClick={getGPSLocation} disabled={locationLoading}
