@@ -29,4 +29,15 @@ body.dark input,body.dark select,body.dark textarea{background:#111!important;co
 body.dark input::placeholder{color:#555!important}
 ::-webkit-scrollbar{display:none}
 textarea{resize:none}
+/* App-Gefuehl */
+button,a,[role=button]{touch-action:manipulation}
+button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:transform .12s ease,opacity .12s ease}
+button:active:not(:disabled){transform:scale(.97)}
+img{-webkit-touch-callout:none}
+@keyframes tabFade{from{opacity:0}to{opacity:1}}
+.tabfade>*{animation:tabFade .22s ease both}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skel{background:linear-gradient(90deg,#1c1c1c 25%,#2b2b2b 50%,#1c1c1c 75%);background-size:200% 100%;animation:shimmer 1.4s ease-in-out infinite}
+.skel-l{background:linear-gradient(90deg,#ececec 25%,#f6f6f6 50%,#ececec 75%);background-size:200% 100%}
+@media (prefers-reduced-motion:reduce){.tabfade>*,.skel{animation:none}button{transition:none}}
 `;

@@ -29,6 +29,8 @@ import SwipeableChatRow from './SwipeableChatRow';
 import ErrorBoundary from './ErrorBoundary';
 import ImgPositionEditor from './ImgPositionEditor';
 import { rankCompare } from './rankOrder';
+import { SkeletonCard, SkeletonRank } from './Skeleton';
+import { tapLight, tapMedium, success as hapticSuccess } from './haptics';
 import { WEIGHT_CLASSES, normalizeWeightClass, STYLES, BELT_STYLES, BELT_RANKS, FIGHTERS, GYMS, TRAINERS, SPORTS, getDistanceKm, getDistanceKmCoords, getBundesland, getLocationByIP } from './appData';
 // Weiterreichen nach aussen: auth.test.js und andere importieren diese
 // Funktionen aus './App' - das bleibt dadurch unveraendert gueltig.
@@ -209,6 +211,7 @@ function MainApp(){
   const [uploadingGallery,setUploadingGallery]=useState(false);
   const [uploading,setUploading]=useState(false);
   const [cards,setCards]=useState([...FIGHTERS]);
+  const [cardsReady,setCardsReady]=useState(false);
   const [drag,setDrag]=useState(false);
   const [offset,setOffset]=useState({x:0,y:0});
   const [start,setStart]=useState({x:0,y:0});
@@ -1099,6 +1102,8 @@ function MainApp(){
   const [swipeVersion,setSwipeVersion]=React.useState(0);
 
   async function loadRealFighters(s,myP,isInitial=false){
+    // Sicherheitsnetz: Platzhalter nie laenger als 20 s zeigen, auch wenn die Abfrage haengt
+    setTimeout(()=>setCardsReady(true),20000);
     try{
       let all = await dbSelect('profiles','user_id=neq.'+s.userId+'&banned=neq.true&is_brand=neq.true&order=created_at.desc&limit=2000&select='+CARD_FIELDS,s.token);
       if(!Array.isArray(all)||all.length===0){
@@ -1136,7 +1141,7 @@ function MainApp(){
         if(brandNew.length===0)return prev;
         return [...prev,...brandNew];
       });
-    }catch{}
+    }catch{}finally{setCardsReady(true);}
   }
 
   function getLastSeen(dateStr){
@@ -2516,6 +2521,7 @@ function MainApp(){
 
   async function doSwipe(dir){
     if(!top)return;
+    if(dir==='ch')tapMedium();else tapLight();
     setLastAct(dir);setOffset({x:0,y:0});
     if(dir==='ch'){
       setSwStats(s=>({...s,ch:s.ch+1}));
@@ -2561,7 +2567,7 @@ function MainApp(){
                 }
               }catch(err){console.error('match push',err);}
             })();
-            setTimeout(()=>{setMatched(top);loadMatches(session,myProfile);},300);
+            setTimeout(()=>{hapticSuccess();setMatched(top);loadMatches(session,myProfile);},300);
           }else{
             // Noch kein gegenseitiges Match - trotzdem den anderen benachrichtigen,
             // dass sich jemand fuer ihn interessiert (Name bewusst nicht verraten,
@@ -2858,7 +2864,7 @@ function MainApp(){
             <div style={{color:darkMode?'#888':'#999',fontSize:10,letterSpacing:1,marginBottom:6,fontWeight:600}}>{L('📸 FOTOS', '📸 PHOTOS', '📸 PHOTOS', '📸 FOTOS')}</div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:7}}>
               {(Array.isArray(viewProfile.gallery)?viewProfile.gallery:[]).slice(0,3).map((g,i)=>(
-                <div key={i} style={{aspectRatio:'1/1',borderRadius:11,overflow:'hidden',background:darkMode?'#1a1a1a':'#f0f0f0',border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
+                <div key={i} style={{aspectRatio:'1/1',borderRadius:12,overflow:'hidden',background:darkMode?'#1a1a1a':'#f0f0f0',border:'1px solid '+(darkMode?'#2a2a2a':'#eee')}}>
                   <img loading="lazy" src={g} alt='' onClick={()=>setLightboxImg(g)} style={{width:'100%',height:'100%',objectFit:'contain',cursor:'zoom-in'}}/>
                 </div>
               ))}
@@ -2869,20 +2875,20 @@ function MainApp(){
           {[[L('SIEGE', 'WINS', 'VICTOIRES', 'VICTORIAS'),viewProfile.wins||0,'#27ae60'],[L('NIEDER', 'LOSSES', 'DÉFAITES', 'DERROTAS'),viewProfile.losses||0,RED],[L('UNENTSCH', 'DRAWS', 'NULS', 'EMPATES'),viewProfile.draws||0,'#d4a017'],['KOs',viewProfile.ko||0,RED]].map(([label,val,color])=>(
             <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 4px',textAlign:'center',border:'1px solid '+color+'33'}}>
               <div className='rj' style={{color:color,fontSize:22}}>{val}</div>
-              <div style={{color:'#bbb',fontSize:8,letterSpacing:1,marginTop:2}}>{label}</div>
+              <div style={{color:'#bbb',fontSize:10,letterSpacing:1,marginTop:2}}>{label}</div>
             </div>
           ))}
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
           {[[L('GEWICHTSKLASSE', 'WEIGHT CLASS', 'CATÉGORIE DE POIDS', 'CATEGORÍA DE PESO'),viewProfile.weight_class||'-','#2980b9'],[L('GYM', 'GYM', 'SALLE', 'GIMNASIO'),viewProfile.gym||'-','#8e44ad'],[L('GRÖSSE', 'HEIGHT', 'TAILLE', 'ALTURA'),viewProfile.height?(viewProfile.height+'cm'):'-','#27ae60'],[L('GEWICHT', 'WEIGHT', 'POIDS', 'PESO'),viewProfile.weight?(viewProfile.weight+'kg'):'-','#e67e22'],...(viewProfile.belt?[[L('GÜRTELRANG', 'BELT RANK', 'GRADE DE CEINTURE', 'GRADO DE CINTURÓN'),viewProfile.belt,'#d4a017']]:[])].map(([label,val,color])=>(
             <div key={label} onClick={color==='#8e44ad'&&val!=='-'?()=>openGymByName(val):undefined} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'10px 12px',border:'1px solid '+color+(color==='#8e44ad'&&val!=='-'?'88':'22'),cursor:color==='#8e44ad'&&val!=='-'?'pointer':'default'}}>
-              <div style={{color:'#bbb',fontSize:9,letterSpacing:1}}>{label}</div>
+              <div style={{color:'#bbb',fontSize:10,letterSpacing:1}}>{label}</div>
               {color==='#8e44ad'&&val!=='-'?(()=>{
                 const gb=findGymByName(val);
                 const logo=gb?((gymLogos&&gymLogos[gb.code]?.logo_url)||gb.logo_url):null;
                 return(<div style={{display:'flex',alignItems:'center',gap:8,marginTop:4}}>
                   <div style={{width:26,height:26,borderRadius:6,background:darkMode?'#2a2a2a':'#f0f0f0',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
-                    {logo?<img loading="lazy" src={logo} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#aaa',fontSize:8,fontWeight:700,textAlign:'center',lineHeight:1.1}}>{(val||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
+                    {logo?<img loading="lazy" src={logo} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#aaa',fontSize:10,fontWeight:700,textAlign:'center',lineHeight:1.1}}>{(val||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
                   </div>
                   <div style={{color:color,fontWeight:700,fontSize:12,minWidth:0,wordBreak:'break-word'}}>{val} ›</div>
                 </div>);
@@ -2913,7 +2919,7 @@ function MainApp(){
         <div style={{padding:'0 12px',marginTop:12}}>
           <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,letterSpacing:2}}>{L('🤝 TRAININGS-HISTORIE', '🤝 TRAINING HISTORY', '🤝 HISTORIQUE D\'ENTRAÎNEMENT', '🤝 HISTORIAL DE ENTRENAMIENTO')}</div>
-            <div style={{background:viewProfile.history_public?'#27ae6018':'#88888818',border:'1px solid '+(viewProfile.history_public?'#27ae6044':'#88888844'),borderRadius:10,padding:'1px 7px',color:viewProfile.history_public?'#27ae60':'#888888',fontSize:9,fontWeight:700}}>
+            <div style={{background:viewProfile.history_public?'#27ae6018':'#88888818',border:'1px solid '+(viewProfile.history_public?'#27ae6044':'#88888844'),borderRadius:10,padding:'1px 7px',color:viewProfile.history_public?'#27ae60':'#888888',fontSize:10,fontWeight:700}}>
               {viewProfile.history_public?L('ÖFFENTLICH', 'PUBLIC', 'PUBLIC', 'PÚBLICO'):L('PRIVAT', 'PRIVATE', 'PRIVÉ', 'PRIVADO')}
             </div>
           </div>
@@ -2921,12 +2927,12 @@ function MainApp(){
             <div style={{display:'flex',flexDirection:'column',gap:5}}>
               {viewProfileHistory.map((f,i)=>(
                 <div key={f.id||i} style={{background:darkMode?'#1a1a1a':'#f9f9f9',borderRadius:8,padding:'9px 11px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:9}}>
-                  <div style={{width:30,height:30,borderRadius:7,background:'#2980b918',border:'1px solid #2980b933',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,flexShrink:0}}>🥊</div>
+                  <div style={{width:30,height:30,borderRadius:8,background:'#2980b918',border:'1px solid #2980b933',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,flexShrink:0}}>🥊</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:12,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{f.opponent_name}</div>
                     <div style={{color:'#aaa',fontSize:10,marginTop:1}}>{f.fight_type}{f.fight_type&&f.fight_date?' · ':''}{f.fight_date}</div>
                   </div>
-                  {f.location&&<div style={{color:'#ccc',fontSize:9,flexShrink:0}}>📍 {f.location}</div>}
+                  {f.location&&<div style={{color:'#ccc',fontSize:10,flexShrink:0}}>📍 {f.location}</div>}
                 </div>
               ))}
             </div>
@@ -2942,7 +2948,7 @@ function MainApp(){
               <div style={{filter:'blur(4px)',pointerEvents:'none',opacity:0.4}}>
                 {[1,2,3].map(i=>(
                   <div key={i} style={{background:darkMode?'#1a1a1a':'#f9f9f9',borderRadius:8,padding:'9px 11px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:9,marginBottom:5}}>
-                    <div style={{width:30,height:30,borderRadius:7,background:'#2980b918',border:'1px solid #2980b933',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13}}>🥊</div>
+                    <div style={{width:30,height:30,borderRadius:8,background:'#2980b918',border:'1px solid #2980b933',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13}}>🥊</div>
                     <div style={{flex:1}}>
                       <div style={{background:darkMode?'#333':'#e0e0e0',height:12,borderRadius:4,width:'60%',marginBottom:6}}/>
                       <div style={{background:darkMode?'#2a2a2a':'#eee',height:9,borderRadius:4,width:'40%'}}/>
@@ -3299,7 +3305,7 @@ function MainApp(){
                           [L('KAMPFSTIL', 'FIGHTING STYLE', 'STYLE DE COMBAT', 'ESTILO DE COMBATE'),newGymData.style,'style','z.B. Boxing, MMA'],
                         ].map(([label,val,key,ph])=>(
                           <div key={key}>
-                            <div style={{color:'#aaa',fontSize:9,letterSpacing:1,marginBottom:4}}>{label}</div>
+                            <div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:4}}>{label}</div>
                             <input value={val} onChange={e=>setNewGymData(d=>({...d,[key]:e.target.value}))} placeholder={ph}
                               style={{width:'100%',padding:'10px 12px',borderRadius:8,border:'1px solid #e0e0e0',background:'#f5f5f7',color:'#1a1a1a',fontSize:13,fontFamily:'DM Sans,sans-serif'}}/>
                           </div>
@@ -3384,7 +3390,7 @@ function MainApp(){
             <div style={{display:'flex',gap:7}}>
               {[['wins',L('SIEGE', 'WINS', 'VICTOIRES', 'VICTORIAS'),'#27ae60'],['losses',L('NIEDER', 'LOSSES', 'DÉFAITES', 'DERROTAS'),RED],['draws',L('UNENTSCH', 'DRAWS', 'NULS', 'EMPATES'),'#d4a017'],['ko','KOs',RED]].map(([key,label,color])=>(
                 <div key={key} style={{flex:1,textAlign:'center'}}>
-                  <div style={{color:color,fontSize:9,letterSpacing:1,marginBottom:3}}>{label}</div>
+                  <div style={{color:color,fontSize:10,letterSpacing:1,marginBottom:3}}>{label}</div>
                   <input type='number' min='0' value={stats[key]} onChange={e=>setStats(s=>({...s,[key]:parseInt(e.target.value)||0}))} style={{width:'100%',background:'#fff',border:'1px solid #ddd',borderRadius:6,padding:'9px 3px',color:'#1a1a1a',fontSize:20,textAlign:'center',fontFamily:'Rajdhani,sans-serif'}}/>
                 </div>
               ))}
@@ -3599,7 +3605,7 @@ function MainApp(){
               <div style={{display:'flex',gap:3,background:darkMode?'#222':'#ebebeb',borderRadius:16,padding:3}}>
                 {[['DE','🇩🇪'],['EN','🇬🇧'],['FR','🇫🇷'],['ES','🇪🇸']].map(([lang,flag])=>(
                   <button key={lang} onClick={()=>{setAppLang(lang);saveLangChoice(lang);showMsg(lang==='DE'?'Deutsch 🇩🇪':lang==='FR'?'Français 🇫🇷':lang==='ES'?'Español 🇪🇸':'English 🇬🇧');}}
-                    style={{padding:'3px 9px',borderRadius:13,background:appLang===lang?(darkMode?'#333':'#fff'):'transparent',border:'none',color:appLang===lang?(darkMode?'#fff':'#111'):(darkMode?'#555':'#999'),fontSize:11,fontWeight:700,cursor:'pointer',transition:'all 0.15s',boxShadow:appLang===lang?'0 1px 3px rgba(0,0,0,0.12)':'none'}}>
+                    style={{padding:'3px 9px',borderRadius:14,background:appLang===lang?(darkMode?'#333':'#fff'):'transparent',border:'none',color:appLang===lang?(darkMode?'#fff':'#111'):(darkMode?'#555':'#999'),fontSize:11,fontWeight:700,cursor:'pointer',transition:'all 0.15s',boxShadow:appLang===lang?'0 1px 3px rgba(0,0,0,0.12)':'none'}}>
                     {flag} {lang}
                   </button>
                 ))}
@@ -3701,7 +3707,7 @@ function MainApp(){
                 <div style={{display:'flex',gap:8,marginBottom:16,background:darkMode?'#2a2a2a':'#f0f0f0',borderRadius:12,padding:4}}>
                   {[['feedback','💬 Feedback'],['wunsch','⭐ Wunsch / Idee']].map(([type,label])=>(
                     <button key={type} onClick={()=>setFeedbackType(type)}
-                      style={{flex:1,padding:'10px',borderRadius:9,background:feedbackType===type?(darkMode?'#1a1a1a':'#fff'):'transparent',border:'none',color:feedbackType===type?(darkMode?'#fff':'#1a1a1a'):(darkMode?'#666':'#aaa'),fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',transition:'all 0.2s',boxShadow:feedbackType===type?'0 1px 4px rgba(0,0,0,0.1)':'none'}}>
+                      style={{flex:1,padding:'10px',borderRadius:10,background:feedbackType===type?(darkMode?'#1a1a1a':'#fff'):'transparent',border:'none',color:feedbackType===type?(darkMode?'#fff':'#1a1a1a'):(darkMode?'#666':'#aaa'),fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',transition:'all 0.2s',boxShadow:feedbackType===type?'0 1px 4px rgba(0,0,0,0.1)':'none'}}>
                       {label}
                     </button>
                   ))}
@@ -3784,7 +3790,7 @@ function MainApp(){
                 <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:6}}>
                   <span style={{background:RED,borderRadius:20,padding:'1px 8px',color:'#fff',fontSize:10,fontWeight:700}}>📢 FIGHTER TEAM</span>
                   {am.created_at&&<span style={{color:'#999',fontSize:10}}>{new Date(am.created_at).toLocaleDateString('de-DE')}</span>}
-                  {!am.read&&<span style={{background:'#27ae60',borderRadius:20,padding:'1px 8px',color:'#fff',fontSize:9,fontWeight:700}}>{L('NEU', 'NEW', 'NOUVEAU', 'NUEVO')}</span>}
+                  {!am.read&&<span style={{background:'#27ae60',borderRadius:20,padding:'1px 8px',color:'#fff',fontSize:10,fontWeight:700}}>{L('NEU', 'NEW', 'NOUVEAU', 'NUEVO')}</span>}
                   <span onClick={()=>hideAdminMsg(am.id)} aria-label={L('Ausblenden', 'Hide', 'Masquer', 'Ocultar')} style={{marginLeft:'auto',color:'#999',fontSize:16,cursor:'pointer',padding:'0 4px',lineHeight:1}}>✕</span>
                 </div>
                 <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,lineHeight:1.6,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{am.message}</div>
@@ -3839,9 +3845,9 @@ function MainApp(){
 
       {/* HEADER */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'calc(10px + env(safe-area-inset-top)) 16px 8px',flexShrink:0,borderBottom:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),background:darkMode?'#1a1a1a':'#fff'}}>
-        <div style={{width:36,height:36}}/>
+        <div style={{width:44,height:44}}/>
         <div className='rj' style={{fontSize:28,color:darkMode?'#ff4500':'#1a1a1a',letterSpacing:5,position:'absolute',left:'50%',transform:'translateX(-50%)'}}>FIGHTER</div>
-        <button onClick={()=>setShowMenu(true)} style={{background:'none',border:'none',cursor:'pointer',width:36,height:36,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5,borderRadius:8,marginLeft:'auto'}}>
+        <button onClick={()=>setShowMenu(true)} style={{background:'none',border:'none',cursor:'pointer',width:44,height:44,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5,borderRadius:8,marginLeft:'auto'}}>
           <div style={{width:20,height:2,background:darkMode?'#fff':'#1a1a1a',borderRadius:2}}/>
           <div style={{width:20,height:2,background:darkMode?'#fff':'#1a1a1a',borderRadius:2}}/>
           <div style={{width:20,height:2,background:darkMode?'#fff':'#1a1a1a',borderRadius:2}}/>
@@ -3869,7 +3875,7 @@ function MainApp(){
           <button onClick={()=>setShowPushReminder(false)} style={{background:'rgba(255,255,255,0.2)',border:'none',borderRadius:6,color:'#fff',fontSize:16,padding:'4px 10px',cursor:'pointer',flexShrink:0}}>✕</button>
         </div>
       )}
-      <div ref={mainScrollRef} style={{flex:1,minHeight:0,overflowY:tab==='swipe'?'hidden':'auto',overscrollBehavior:'contain',paddingBottom:tab==='swipe'?0:'calc(68px + env(safe-area-inset-bottom))',display:tab==='swipe'?'flex':'block',flexDirection:'column'}}>
+      <div ref={mainScrollRef} className='tabfade' style={{flex:1,minHeight:0,overflowY:tab==='swipe'?'hidden':'auto',overscrollBehavior:'contain',paddingBottom:tab==='swipe'?0:'calc(68px + env(safe-area-inset-bottom))',display:tab==='swipe'?'flex':'block',flexDirection:'column'}}>
 
         {myProfile&&!myProfile.avatar_url&&(
           <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(13,13,13,0.97)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 24px',textAlign:'center'}}>
@@ -3919,7 +3925,9 @@ function MainApp(){
               </div>
             )}
             <div style={{position:'relative',width:'calc(100% - 16px)',maxWidth:460,flex:1,minHeight:360,touchAction:'none'}}>
-              {visibleCards.length===0?(
+              {visibleCards.length===0&&!cardsReady?(
+                <SkeletonCard/>
+              ):visibleCards.length===0?(
                 <div style={{width:'100%',height:'100%',borderRadius:20,background:'linear-gradient(160deg,#1a1a1a 0%,#2d1a1a 100%)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:'30px 24px',textAlign:'center'}}>
                   <div style={{fontSize:64,marginBottom:4}}>🏆</div>
                   <div className='rj' style={{color:'#fff',fontSize:26,letterSpacing:3,lineHeight:1}}>{t.allFightersSeen}</div>
@@ -3987,7 +3995,7 @@ function MainApp(){
                         {[{v:f.wins||0,l:L('SIEGE', 'WINS', 'VICTOIRES', 'VICTORIAS'),c:'#27ae60'},{v:f.losses||0,l:L('NIEDER', 'LOSSES', 'DÉFAITES', 'DERROTAS'),c:'#e74c3c'},{v:f.draws||0,l:L('UNENTSCH', 'DRAWS', 'NULS', 'EMPATES'),c:'#d4a017'},{v:f.ko||0,l:'KOs',c:'#e74c3c'}].map(({v,l,c})=>(
                           <div key={l} style={{textAlign:'center',background:'rgba(0,0,0,0.5)',borderRadius:10,padding:'6px 12px'}}>
                             <div className='rj' style={{color:c,fontSize:22,lineHeight:1}}>{v}</div>
-                            <div style={{color:'rgba(255,255,255,0.55)',fontSize:8,letterSpacing:1}}>{l}</div>
+                            <div style={{color:'rgba(255,255,255,0.55)',fontSize:10,letterSpacing:1}}>{l}</div>
                           </div>
                         ))}
                       </div>
@@ -3996,17 +4004,27 @@ function MainApp(){
                           <div className='rj' style={{color:'#fff',fontSize:34,letterSpacing:1.5,lineHeight:1}}>
                             {f.name}{f.age?<span style={{fontSize:26,opacity:0.8}}>, {f.age}</span>:null}
                           </div>
-                          <div style={{display:'flex',gap:5,marginTop:6,flexWrap:'wrap'}}>
-                            {f.style&&<div style={{background:fA,borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{f.style}</div>}
-                            {(f.weight_class||f.weightClass)&&<div style={{background:normalizeWeightClass(f.weight_class||f.weightClass)===myWeightClass?'rgba(211,84,0,0.7)':'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:normalizeWeightClass(f.weight_class||f.weightClass)===myWeightClass?700:400}}>⚖️ {(f.weight_class||f.weightClass||'').split(' (')[0]}{normalizeWeightClass(f.weight_class||f.weightClass)===myWeightClass?' ✓':''}</div>}
-                            {f.is_pro&&<div style={{background:'#d4a01733',borderRadius:20,padding:'2px 10px',color:'#d4a017',fontSize:11,fontWeight:700}}>{L('⭐ PROFI', '⭐ PRO', '⭐ PRO', '⭐ PRO')}</div>}
-                          {f.country&&f.country!=='DE'&&f.country!=='OTHER'&&<div style={{background:'rgba(255,255,255,0.15)',borderRadius:20,padding:'2px 8px',color:'#fff',fontSize:13}}>{{'AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[f.country]||'🌍'}</div>}
-                          {f.city&&<div style={{background:f._sameCity?'rgba(39,174,96,0.3)':'rgba(255,255,255,0.2)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11}}>📍 {f.city}{f._dist&&f._dist<500&&!f._sameCity?' · '+f._dist+'km':''}{f._sameCity?' · Deine Stadt':''}</div>}
-                          {f._sameStyle&&<div style={{background:'rgba(192,57,43,0.5)',border:'1px solid rgba(192,57,43,0.7)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{L('🥊 Gleicher Stil', '🥊 Same style', '🥊 Même style', '🥊 Mismo estilo')}</div>}
-                       {f._sameWC&&<div style={{background:'rgba(212,160,23,0.5)',border:'1px solid rgba(212,160,23,0.7)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{L('⚖️ Gleiche Klasse', '⚖️ Same class', '⚖️ Même catégorie', '⚖️ Misma categoría')}</div>}
-                       {f._sameCity&&!f._sameStyle&&<div style={{background:'rgba(39,174,96,0.5)',border:'1px solid rgba(39,174,96,0.7)',borderRadius:20,padding:'2px 10px',color:'#fff',fontSize:11,fontWeight:700}}>{L('📍 In deiner Nähe', '📍 Near you', '📍 Près de toi', '📍 Cerca de ti')}</div>}
-                          </div>
-                          {f.bio&&<div style={{color:'rgba(255,255,255,0.5)',fontSize:10,marginTop:5,fontStyle:'italic'}}>"{f.bio}"</div>}
+                          {(()=>{
+                            const chip={background:'rgba(255,255,255,0.16)',border:'1px solid rgba(255,255,255,0.14)',borderRadius:20,padding:'3px 11px',color:'#fff',fontSize:12,fontWeight:600,backdropFilter:'blur(6px)',WebkitBackdropFilter:'blur(6px)'};
+                            const wc=((f.weight_class||f.weightClass)||'').split(' (')[0];
+                            const flag=f.country&&f.country!=='DE'&&f.country!=='OTHER'?({'AT':'🇦🇹','CH':'🇨🇭','FR':'🇫🇷','GB':'🇬🇧','US':'🇺🇸','NL':'🇳🇱','BE':'🇧🇪','IT':'🇮🇹','ES':'🇪🇸'}[f.country]||'🌍'):'';
+                            const match=[
+                              f._sameStyle&&L('Gleicher Stil','Same style','Même style','Mismo estilo'),
+                              f._sameWC&&L('Gleiche Klasse','Same class','Même catégorie','Misma categoría'),
+                              f._sameCity&&L('In deiner Nähe','Near you','Près de toi','Cerca de ti')
+                            ].filter(Boolean);
+                            return(<>
+                              <div style={{display:'flex',gap:6,marginTop:8,flexWrap:'wrap'}}>
+                                {f.style&&<div style={chip}>{f.style}</div>}
+                                {wc&&<div style={chip}>{wc}</div>}
+                                {f.is_pro&&<div style={{...chip,color:'#e8c15a',borderColor:'rgba(232,193,90,0.4)'}}>PRO</div>}
+                                {flag&&<div style={chip}>{flag}</div>}
+                                {f.city&&<div style={chip}>{f.city}{f._dist&&f._dist<500&&!f._sameCity?' · '+f._dist+' km':''}</div>}
+                              </div>
+                              {match.length>0&&<div style={{display:'flex',alignItems:'center',gap:7,marginTop:9,color:'rgba(255,255,255,0.9)',fontSize:12,fontWeight:600}}><span style={{width:7,height:7,borderRadius:'50%',background:RED,flexShrink:0}}/>{match.join(' · ')}</div>}
+                            </>);
+                          })()}
+                          {f.bio&&<div style={{color:'rgba(255,255,255,0.6)',fontSize:12,marginTop:8,fontStyle:'italic'}}>"{f.bio}"</div>}
                         </div>
                         <div style={{textAlign:'right',flexShrink:0,marginLeft:10}}>
                           {f.height&&<div style={{color:'rgba(255,255,255,0.6)',fontSize:12}}>{f.height} cm</div>}
@@ -4031,7 +4049,7 @@ function MainApp(){
               <div aria-label={t.recentlySeen} style={{display:'flex',gap:6,justifyContent:'center',marginTop:8,flexShrink:0}}>
                 {recentSwiped.map((s2,i)=>(
                   <div key={i} onClick={()=>setViewProfile(s2.profile)} style={{position:'relative',cursor:'pointer'}}>
-                    <div style={{width:34,height:34,borderRadius:9,overflow:'hidden',border:'2px solid '+(s2.dir==='like'?'#27ae60':RED)}}>
+                    <div style={{width:34,height:34,borderRadius:10,overflow:'hidden',border:'2px solid '+(s2.dir==='like'?'#27ae60':RED)}}>
                       {s2.profile.avatar_url?<img loading="lazy" src={s2.profile.avatar_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt='' onError={e=>{e.target.style.display='none'}}/>:<div style={{width:'100%',height:'100%',background:'#2a2a2a'}}/>}
                     </div>
                   </div>
@@ -4058,19 +4076,19 @@ function MainApp(){
               const neueste=adminMessages.find(m=>!m.read&&!hiddenAdminMsgs.includes(m.id));
               return(
                 <div onClick={async()=>{setShowNews(true);await markAdminMessagesRead();}}
-                  style={{display:'flex',alignItems:'center',gap:12,background:darkMode?'#2a1414':'#fdecea',borderRadius:13,padding:'13px',marginBottom:8,border:'1px solid '+RED+'44',cursor:'pointer'}}>
+                  style={{display:'flex',alignItems:'center',gap:12,background:darkMode?'#2a1414':'#fdecea',borderRadius:14,padding:'13px',marginBottom:8,border:'1px solid '+RED+'44',cursor:'pointer'}}>
                   <div style={{width:54,height:54,borderRadius:'50%',background:RED,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24}}>📢</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:'flex',alignItems:'center',gap:6}}>
                       <span style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15}}>Fighter App Team</span>
-                      <span style={{background:RED,borderRadius:20,padding:'1px 6px',color:'#fff',fontSize:9,fontWeight:700}}>SYSTEM</span>
+                      <span style={{background:RED,borderRadius:20,padding:'1px 6px',color:'#fff',fontSize:10,fontWeight:700}}>SYSTEM</span>
                     </div>
                     <div style={{color:darkMode?'#aaa':'#666',fontSize:12,marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                       {neueste?.message||''}
                     </div>
                   </div>
                   {ungelesen>0&&(
-                    <div style={{flexShrink:0,minWidth:22,height:22,borderRadius:11,background:'#27ae60',color:'#fff',fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>
+                    <div style={{flexShrink:0,minWidth:22,height:22,borderRadius:12,background:'#27ae60',color:'#fff',fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',padding:'0 6px'}}>
                       {ungelesen}
                     </div>
                   )}
@@ -4092,10 +4110,10 @@ function MainApp(){
             {matchesLoading&&dbMatches.length===0?(
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {[1,2,3].map(i=>(
-                  <div key={i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:13,padding:'13px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:12,opacity:1-i*0.2}}>
+                  <div key={i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'13px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),display:'flex',alignItems:'center',gap:12,opacity:1-i*0.2}}>
                     <div style={{width:54,height:54,borderRadius:'50%',background:darkMode?'#2a2a2a':'#f0f0f0',flexShrink:0,animation:'pulse 1.5s infinite'}}/>
                     <div style={{flex:1,display:'flex',flexDirection:'column',gap:7}}>
-                      <div style={{height:14,borderRadius:7,background:darkMode?'#2a2a2a':'#f0f0f0',width:'60%',animation:'pulse 1.5s infinite'}}/>
+                      <div style={{height:14,borderRadius:8,background:darkMode?'#2a2a2a':'#f0f0f0',width:'60%',animation:'pulse 1.5s infinite'}}/>
                       <div style={{height:10,borderRadius:5,background:darkMode?'#222':'#f5f5f5',width:'40%',animation:'pulse 1.5s infinite'}}/>
                     </div>
                   </div>
@@ -4144,7 +4162,7 @@ function MainApp(){
                   if(!m.id)return null;
                   return(
                     <SwipeableChatRow key={m.id} darkMode={darkMode} onDelete={()=>deleteChat(m.id)}>
-                    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:13,border:'1px solid '+ac+'33',overflow:'hidden',boxShadow:isOnline?'0 0 14px '+ac+'66':'0 1px 6px rgba(0,0,0,0.06)',width:'100%',boxSizing:'border-box'}}>
+                    <div style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,border:'1px solid '+ac+'33',overflow:'hidden',boxShadow:isOnline?'0 0 14px '+ac+'66':'0 1px 6px rgba(0,0,0,0.06)',width:'100%',boxSizing:'border-box'}}>
                       <div style={{height:3,background:'linear-gradient(90deg,'+ac+',transparent)'}}/>
                       <div style={{padding:'13px',display:'flex',alignItems:'center',gap:10,minHeight:84,boxSizing:'border-box'}}>
                         <div onClick={()=>setViewProfile(other)} style={{cursor:'pointer',flexShrink:0,position:'relative'}}>
@@ -4168,7 +4186,7 @@ function MainApp(){
                         </div>
                         <div style={{textAlign:'right',flexShrink:0,width:64,minWidth:0}}>
                           <div style={{color:'#ccc',fontSize:10}}>{m.last_message_at?new Date(m.last_message_at).toLocaleDateString('de',{day:'2-digit',month:'2-digit'}):''}</div>
-                          {other.last_seen&&<div style={{color:ac,fontSize:9,marginTop:3,lineHeight:1.25,whiteSpace:'normal',wordBreak:'break-word',overflowWrap:'anywhere'}}>{getLastSeen(other.last_seen)}</div>}
+                          {other.last_seen&&<div style={{color:ac,fontSize:10,marginTop:3,lineHeight:1.25,whiteSpace:'normal',wordBreak:'break-word',overflowWrap:'anywhere'}}>{getLastSeen(other.last_seen)}</div>}
                         </div>
                         <div onClick={()=>setActiveChat(m)} style={{padding:'9px 12px',borderRadius:8,background:'linear-gradient(135deg,#c0392b,#e74c3c)',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',flexShrink:0,whiteSpace:'nowrap'}}>CHAT →</div>
                       </div>
@@ -4339,7 +4357,7 @@ function MainApp(){
                                       {(gymLogos[g.code]?.logo_url||g.logo_url)
                                         ?<img loading="lazy" src={gymLogos[g.code]?.logo_url||g.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>
                                         :g.emoji?<div style={{fontSize:18}}>{g.emoji}</div>
-                                        :<div style={{color:'#bbb',fontSize:9,fontWeight:700}}>{(g.name||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
+                                        :<div style={{color:'#bbb',fontSize:10,fontWeight:700}}>{(g.name||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
                                     </div>
                                     <div style={{flex:1}}>
                                       <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13}}>{g.name}</div>
@@ -4512,11 +4530,11 @@ function MainApp(){
                 {[0,1,2].map(i=>{
                   const g=myGallery[i];
                   return (
-                    <div key={i} style={{position:'relative',aspectRatio:'1/1',borderRadius:11,overflow:'hidden',background:darkMode?'#1a1a1a':'#f0f0f0',border:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8')}}>
+                    <div key={i} style={{position:'relative',aspectRatio:'1/1',borderRadius:12,overflow:'hidden',background:darkMode?'#1a1a1a':'#f0f0f0',border:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8')}}>
                       {g?(
                         <>
                           <img loading="lazy" src={g} alt='' onClick={()=>setLightboxImg(g)} style={{width:'100%',height:'100%',objectFit:'contain',cursor:'zoom-in'}}/>
-                          <button onClick={()=>removeGalleryPhoto(g)} style={{position:'absolute',top:4,right:4,width:22,height:22,borderRadius:11,background:'rgba(0,0,0,0.6)',border:'none',color:'#fff',fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                          <button onClick={()=>removeGalleryPhoto(g)} style={{position:'absolute',top:4,right:4,width:22,height:22,borderRadius:12,background:'rgba(0,0,0,0.6)',border:'none',color:'#fff',fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
                         </>
                       ):(
                         <label style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',cursor:uploadingGallery?'not-allowed':'pointer'}}>
@@ -4532,28 +4550,28 @@ function MainApp(){
 
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:7,marginBottom:9}}>
               {[[L('SIEGE', 'WINS', 'VICTOIRES', 'VICTORIAS'),stats.wins,'#27ae60'],[L('NIEDERLAGEN', 'LOSSES', 'DÉFAITES', 'DERROTAS'),stats.losses,RED],[L('UNENTSCHIEDEN', 'DRAWS', 'NULS', 'EMPATES'),stats.draws,'#d4a017']].map(([label,val,color])=>(
-                <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:11,padding:'13px 5px',textAlign:'center',border:'1px solid '+color+'33',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
+                <div key={label} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'13px 5px',textAlign:'center',border:'1px solid '+color+'33',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
                   <div className='rj' style={{color:color,fontSize:36,lineHeight:1}}>{val}</div>
-                  <div style={{color:'#bbb',fontSize:8,letterSpacing:1,marginTop:3}}>{label}</div>
+                  <div style={{color:'#bbb',fontSize:10,letterSpacing:1,marginTop:3}}>{label}</div>
                 </div>
               ))}
             </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7,marginBottom:9}}>
               {[['KO / TKO',stats.ko,RED,'KO-Rate: '+kr+'%',kr],['SIEGRATE',wr+'%','#27ae60',tf+' Kaempfe',wr]].map(([label,val,color,sub,pct])=>(
-                <div key={label} style={{background:'#fff',borderRadius:11,padding:'13px',border:'1px solid '+color+'22',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
-                  <div style={{color:'#bbb',fontSize:9,letterSpacing:2}}>{label}</div>
+                <div key={label} style={{background:'#fff',borderRadius:12,padding:'13px',border:'1px solid '+color+'22',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
+                  <div style={{color:'#bbb',fontSize:10,letterSpacing:2}}>{label}</div>
                   <div className='rj' style={{color:color,fontSize:30,marginTop:3}}>{val}</div>
                   <div style={{color:'#ccc',fontSize:10,marginTop:2}}>{sub}</div>
                   <div style={{marginTop:6,height:3,background:'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:pct+'%',background:`linear-gradient(90deg,${color},${color}88)`,borderRadius:2}}/></div>
                 </div>
               ))}
             </div>
-            <div style={{background:'#fff',borderRadius:11,padding:'13px',border:'1px solid #eee',marginBottom:9}}>
-              <div style={{color:'#ccc',fontSize:9,letterSpacing:2,marginBottom:11}}>{L('REKORD BEARBEITEN', 'EDIT RECORD', 'MODIFIER LE PALMARÈS', 'EDITAR RÉCORD')}</div>
+            <div style={{background:'#fff',borderRadius:12,padding:'13px',border:'1px solid #eee',marginBottom:9}}>
+              <div style={{color:'#ccc',fontSize:10,letterSpacing:2,marginBottom:11}}>{L('REKORD BEARBEITEN', 'EDIT RECORD', 'MODIFIER LE PALMARÈS', 'EDITAR RÉCORD')}</div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:5}}>
                 {[['wins',L('SIEGE', 'WINS', 'VICTOIRES', 'VICTORIAS'),'#27ae60'],['losses',L('NIEDER', 'LOSSES', 'DÉFAITES', 'DERROTAS'),RED],['draws',L('UNENTSCH', 'DRAWS', 'NULS', 'EMPATES'),'#d4a017'],['ko','KOs',RED]].map(([key,label,color])=>(
                   <div key={key} style={{textAlign:'center'}}>
-                    <div style={{color:'#ccc',fontSize:8,marginBottom:3}}>{label}</div>
+                    <div style={{color:'#ccc',fontSize:10,marginBottom:3}}>{label}</div>
                     <button onClick={()=>setStats(s=>({...s,[key]:s[key]+1}))} style={{width:'100%',background:'#f5f5f5',border:'1px solid '+color+'22',borderRadius:4,color:color,fontSize:13,cursor:'pointer',padding:'3px 0',marginBottom:3}}>+</button>
                     <div className='rj' style={{color:color,fontSize:20}}>{stats[key]}</div>
                     <button onClick={()=>setStats(s=>({...s,[key]:Math.max(0,s[key]-1)}))} style={{width:'100%',background:'#f5f5f5',border:'1px solid #eee',borderRadius:4,color:'#ccc',fontSize:13,cursor:'pointer',padding:'3px 0',marginTop:3}}>−</button>
@@ -4649,7 +4667,7 @@ function MainApp(){
                   <div style={{color:'#aaa',fontSize:10,marginTop:2}}>{t.trainingWith}</div>
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:7}}>
-                  <div style={{color:'#aaa',fontSize:9,textAlign:'right'}}>{historyPublic?L('Öffentlich', 'Public', 'Public', 'Público'):L('Privat', 'Private', 'Privé', 'Privado')}</div>
+                  <div style={{color:'#aaa',fontSize:10,textAlign:'right'}}>{historyPublic?L('Öffentlich', 'Public', 'Public', 'Público'):L('Privat', 'Private', 'Privé', 'Privado')}</div>
                   <div onClick={async()=>{
                     const next=!historyPublic;
                     setHistoryPublic(next);
@@ -4665,7 +4683,7 @@ function MainApp(){
                       }catch(e){console.error('history_public save error',e);}
                     }
                     showMsg(next?L('Trainings-Historie ist jetzt öffentlich 👁', 'Training history is now public 👁', 'L\'historique d\'entraînement est maintenant public 👁', 'El historial de entrenamiento ahora es público 👁'):L('Trainings-Historie ist jetzt privat 🔒', 'Training history is now private 🔒', 'L\'historique d\'entraînement est maintenant privé 🔒', 'El historial de entrenamiento ahora es privado 🔒'));
-                  }} style={{width:38,height:22,borderRadius:11,background:historyPublic?'#27ae60':'#ccc',position:'relative',cursor:'pointer',flexShrink:0}}>
+                  }} style={{width:38,height:22,borderRadius:12,background:historyPublic?'#27ae60':'#ccc',position:'relative',cursor:'pointer',flexShrink:0}}>
                     <div style={{position:'absolute',top:3,left:historyPublic?19:3,width:16,height:16,borderRadius:'50%',background:'#fff',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
                   </div>
                 </div>
@@ -4694,7 +4712,7 @@ function MainApp(){
                       </div>
                       <div style={{textAlign:'right',flexShrink:0}}>
                         <div style={{color:'#aaa',fontSize:10}}>{f.fight_date||''}</div>
-                        {f.location&&<div style={{color:'#ccc',fontSize:9,marginTop:1}}>📍 {f.location}</div>}
+                        {f.location&&<div style={{color:'#ccc',fontSize:10,marginTop:1}}>📍 {f.location}</div>}
                       </div>
                     </div>
                     );
@@ -4707,7 +4725,7 @@ function MainApp(){
             </div>
             {dbMatches.length>3&&(
               <div style={{marginTop:14}}>
-                <div style={{color:'#bbb',fontSize:9,letterSpacing:2,marginBottom:8,fontWeight:700}}>{L('MEINE MATCHES', 'MY MATCHES', 'MES MATCHS', 'MIS MATCHES')}</div>
+                <div style={{color:'#bbb',fontSize:10,letterSpacing:2,marginBottom:8,fontWeight:700}}>{L('MEINE MATCHES', 'MY MATCHES', 'MES MATCHS', 'MIS MATCHES')}</div>
                 {dbMatches.map(m=>{
                   const other=m.profile_a_id===myProfile?.id?m.profile_b:m.profile_a;
                   if(!other)return null;
@@ -4765,7 +4783,7 @@ function MainApp(){
                       <div key={g.k} onClick={()=>openGym(g)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:12,marginBottom:6,border:'1px solid '+(isTop3?'#d4a01744':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.12)':'none',cursor:'pointer'}}>
                         <div style={{fontSize:isTop3?26:18,width:32,textAlign:'center',flexShrink:0}}>{isTop3?medal[i]:<span className='rj' style={{color:'#bbb'}}>#{i+1}</span>}</div>
                         <div style={{width:38,height:38,borderRadius:8,background:darkMode?'#2a2a2a':'#f5f5f5',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>
-                          {(gymLogos[g.code]?.logo_url||g.logo_url)?<img loading="lazy" src={gymLogos[g.code]?.logo_url||g.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#bbb',fontSize:9,textAlign:'center',fontWeight:700,lineHeight:1.2}}>{(g.name||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
+                          {(gymLogos[g.code]?.logo_url||g.logo_url)?<img loading="lazy" src={gymLogos[g.code]?.logo_url||g.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#bbb',fontSize:10,textAlign:'center',fontWeight:700,lineHeight:1.2}}>{(g.name||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
                         </div>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{color:isTop3?(darkMode?'#ffd700':'#b8860b'):(darkMode?'#fff':'#1a1a1a'),fontWeight:700,fontSize:13,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{g.name}</div>
@@ -4777,7 +4795,7 @@ function MainApp(){
                         </div>
                         <div style={{textAlign:'right',flexShrink:0}}>
                           <div style={{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}}><span style={{color:'#d4a017',fontSize:14}}>★</span><span style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontWeight:700,fontSize:16}}>{g.avg>0?g.avg.toFixed(1):'–'}</span></div>
-                          <div style={{color:'#bbb',fontSize:9,marginTop:2}}>{g.cnt>0?'User-Rating':'Basis'}</div>
+                          <div style={{color:'#bbb',fontSize:10,marginTop:2}}>{g.cnt>0?'User-Rating':'Basis'}</div>
                         </div>
                       </div>
                     );
@@ -4798,7 +4816,7 @@ function MainApp(){
                       <div key={gym.k} onClick={()=>openGym(gym)} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:darkMode?'#1a1a1a':'#fff',borderRadius:12,border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),cursor:'pointer'}}>
                         <div style={{fontSize:i+6>=100?13:18,width:32,textAlign:'center',flexShrink:0}}><span className='rj' style={{color:'#bbb'}}>#{i+6}</span></div>
                         <div style={{width:38,height:38,borderRadius:8,background:darkMode?'#2a2a2a':'#f5f5f5',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>
-                          {(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img loading="lazy" src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#bbb',fontSize:9,textAlign:'center',fontWeight:700,lineHeight:1.2}}>{(gym.name||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
+                          {(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img loading="lazy" src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#bbb',fontSize:10,textAlign:'center',fontWeight:700,lineHeight:1.2}}>{(gym.name||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}
                         </div>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{gym.name||''}</div>
@@ -4810,7 +4828,7 @@ function MainApp(){
                         </div>
                         <div style={{textAlign:'right',flexShrink:0}}>
                           <div style={{display:'flex',alignItems:'center',gap:2,justifyContent:'flex-end'}}><span style={{color:'#d4a017',fontSize:14}}>★</span><span style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:16}}>{gym.avg>0?gym.avg.toFixed(1):'–'}</span></div>
-                          <div style={{color:'#bbb',fontSize:9,marginTop:2}}>{gym.cnt>0?'User-Rating':'Basis'}</div>
+                          <div style={{color:'#bbb',fontSize:10,marginTop:2}}>{gym.cnt>0?'User-Rating':'Basis'}</div>
                         </div>
                       </div>
                     ))}
@@ -4889,7 +4907,7 @@ function MainApp(){
                       .map((gym,i)=>(
                       <div key={i} onClick={()=>openGym(gym)} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:12,padding:'13px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),boxShadow:'0 1px 4px rgba(0,0,0,0.05)',cursor:'pointer'}}>
                         <div style={{display:'flex',gap:11,alignItems:'flex-start'}}>
-                          <div style={{width:46,height:46,borderRadius:9,background:darkMode?'#2a2a2a':'#f0f0f0',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>{(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img loading="lazy" src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#aaa',fontSize:10,fontWeight:700,textAlign:'center',lineHeight:1.2}}>{(gym.name||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}</div>
+                          <div style={{width:46,height:46,borderRadius:10,background:darkMode?'#2a2a2a':'#f0f0f0',border:'1px solid '+(darkMode?'#333':'#e0e0e0'),display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,overflow:'hidden'}}>{(gymLogos[gym.code]?.logo_url||gym.logo_url)?<img loading="lazy" src={gymLogos[gym.code]?.logo_url||gym.logo_url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=''/>:<div style={{color:'#aaa',fontSize:10,fontWeight:700,textAlign:'center',lineHeight:1.2}}>{(gym.name||'').split(' ').map(w=>w[0]).join('').slice(0,3)}</div>}</div>
                           <div style={{flex:1}}>
                             <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:15}}>{gym.name||''}</div>
                             <div style={{color:darkMode?'#aaa':'#888',fontSize:11,marginTop:1}}>📍 {gym.address||gym.city||''}</div>
@@ -4958,7 +4976,7 @@ function MainApp(){
                       const datum=ev.event_date?new Date(ev.event_date).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}):'';
                       const vorbei=ev.event_date&&new Date(ev.event_date)<new Date(new Date().toDateString());
                       return(
-                        <div key={ev.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:9,padding:'9px 11px',display:'flex',alignItems:'center',gap:9,opacity:vorbei?0.55:1}}>
+                        <div key={ev.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:'9px 11px',display:'flex',alignItems:'center',gap:9,opacity:vorbei?0.55:1}}>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{color:darkMode?'#fff':'#1a1a1a',fontWeight:700,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ev.title}</div>
                             <div style={{color:darkMode?'#888':'#999',fontSize:11,marginTop:1}}>
@@ -4983,7 +5001,7 @@ function MainApp(){
               <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 {[1,2,3].map(i=>(
                   <div key={i} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,padding:'14px',border:'1px solid '+(darkMode?'#2a2a2a':'#eee'),opacity:1-i*0.25}}>
-                    <div style={{height:14,background:darkMode?'#2a2a2a':'#f0f0f0',borderRadius:7,width:'60%',marginBottom:8}}/>
+                    <div style={{height:14,background:darkMode?'#2a2a2a':'#f0f0f0',borderRadius:8,width:'60%',marginBottom:8}}/>
                     <div style={{height:10,background:darkMode?'#222':'#f5f5f5',borderRadius:5,width:'40%'}}/>
                   </div>
                 ))}
@@ -5213,7 +5231,7 @@ function MainApp(){
                   const isTop3=i<3;
                   const isMe=myProfile&&c.id===myProfile.id;
                   return(
-                    <div key={c.id} style={{background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:13,border:'1px solid '+(isTop3?'#d4a01733':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.1)':'none'}}>
+                    <div key={c.id} style={{background:isTop3?(darkMode?'#1f1a10':'#fffbf0'):(darkMode?'#1a1a1a':'#fff'),borderRadius:14,border:'1px solid '+(isTop3?'#d4a01733':(darkMode?'#2a2a2a':'#eee')),boxShadow:isTop3?'0 2px 8px rgba(212,160,23,0.1)':'none'}}>
                     <div onClick={()=>{
                       if(!isMe)setViewProfile(c);
                     }} style={{padding:'12px 13px',display:'flex',alignItems:'center',gap:11,cursor:isMe?'default':'pointer'}}>
@@ -5224,7 +5242,7 @@ function MainApp(){
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{display:'flex',alignItems:'center',gap:5}}>
                           <div className='rj' style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontSize:15,letterSpacing:0.5}}>{c.name}</div>
-                          <div style={{background:'#8e44ad22',border:'1px solid #8e44ad44',borderRadius:10,padding:'1px 6px',color:'#8e44ad',fontSize:9,fontWeight:700,flexShrink:0}}>{L('🎓 TRAINER', '🎓 COACH', '🎓 COACH', '🎓 ENTRENADOR')}</div>
+                          <div style={{background:'#8e44ad22',border:'1px solid #8e44ad44',borderRadius:10,padding:'1px 6px',color:'#8e44ad',fontSize:10,fontWeight:700,flexShrink:0}}>{L('🎓 TRAINER', '🎓 COACH', '🎓 COACH', '🎓 ENTRENADOR')}</div>
                         </div>
                         <div style={{color:'#8e44ad',fontSize:11,fontWeight:700,marginTop:1}}>{c.coach_styles||'-'}</div>
                         <div style={{color:darkMode?'#555':'#bbb',fontSize:10,marginTop:1}}>🏋️ {c.coach_gym||'-'} · {c.city||'-'}</div>
@@ -5234,8 +5252,8 @@ function MainApp(){
                           <span style={{color:'#d4a017',fontSize:13}}>★</span>
                           <span className='rj' style={{color:isTop3?'#d4a017':(darkMode?'#fff':'#1a1a1a'),fontSize:18}}>{c.avgRating>0?c.avgRating.toFixed(1):'-'}</span>
                         </div>
-                        <div style={{color:'#bbb',fontSize:9,marginTop:2}}>{c.ratingCount} Bew.</div>
-                        {c.coach_experience&&<div style={{color:'#d4a017',fontSize:9}}>{c.coach_experience} Jahre</div>}
+                        <div style={{color:'#bbb',fontSize:10,marginTop:2}}>{c.ratingCount} Bew.</div>
+                        {c.coach_experience&&<div style={{color:'#d4a017',fontSize:10}}>{c.coach_experience} Jahre</div>}
                       </div>
                     </div>
                     {/* Direkte Bewertung ohne erst ins Profil zu muessen. */}
@@ -5270,7 +5288,7 @@ function MainApp(){
                   </div>
                   <div style={{textAlign:'right',flexShrink:0}}>
                     <div style={{color:RED,fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16}}>{myScore} Pkt</div>
-                    <div style={{color:'#bbb',fontSize:9}}>{myProfile.wins||0}S · {myProfile.losses||0}N</div>
+                    <div style={{color:'#bbb',fontSize:10}}>{myProfile.wins||0}S · {myProfile.losses||0}N</div>
                   </div>
                 </div>
               );
@@ -5283,7 +5301,7 @@ function MainApp(){
                     {isFirst&&<div style={{fontSize:26,marginBottom:2}}>🏆</div>}
                     {f.avatar_url?<img loading="lazy" src={f.avatar_url} style={{width:isFirst?44:36,height:isFirst?44:36,borderRadius:'50%',objectFit:'cover',border:'2px solid '+colors[i],marginBottom:3}} alt={f.name}/>:<div style={{fontSize:isFirst?28:22,marginBottom:3}}>{f.emoji||''}</div>}
                     <div style={{color:f.isMe?RED:(darkMode?'#fff':'#1a1a1a'),fontSize:11,fontWeight:700,textAlign:'center'}}>{f.name?.split(' ')[0]}</div>
-                    <div style={{color:'#aaa',fontSize:9}}>{f.wins}W-{f.losses}L</div>
+                    <div style={{color:'#aaa',fontSize:10}}>{f.wins}W-{f.losses}L</div>
                     <div style={{width:'100%',height:heights[i],background:colors[i]+'18',border:'1px solid '+colors[i]+'44',borderRadius:'5px 5px 0 0',marginTop:5,display:'flex',alignItems:'center',justifyContent:'center'}}><div className='rj' style={{color:colors[i],fontSize:28}}>#{places[i]}</div></div>
                   </div>);
                 })}
@@ -5358,20 +5376,21 @@ function MainApp(){
                 )}
               </div>
             )}
+            {allProfiles.length===0&&!cardsReady&&<SkeletonRank darkMode={darkMode}/>}
             <div style={{display:'flex',flexDirection:'column',gap:5}}>
-              {ranked.map((f,i)=>{
+              {(allProfiles.length===0&&!cardsReady?[]:ranked).map((f,i)=>{
                 const score=f.wins*3-f.losses*2+f.draws;const rc=['#d4a017','#95a5a6','#cd7f32'];
-                return(<div key={f.id} onClick={()=>{if(!f.isMe&&f.id&&typeof f.id==='string'){savedRankScrollRef.current=mainScrollRef.current?mainScrollRef.current.scrollTop:0;setViewProfile(f);}}} style={{background:f.isMe?(darkMode?'#2a1510':'#fdf0ef'):(darkMode?'#1a1a1a':'#fff'),borderRadius:9,padding:'10px 12px',border:'1px solid '+(f.isMe?RED+'33':i<3?rc[i]+'33':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.04)',cursor:f.isMe?'default':'pointer'}}>
+                return(<div key={f.id} onClick={()=>{if(!f.isMe&&f.id&&typeof f.id==='string'){savedRankScrollRef.current=mainScrollRef.current?mainScrollRef.current.scrollTop:0;setViewProfile(f);}}} style={{background:f.isMe?(darkMode?'#2a1510':'#fdf0ef'):(darkMode?'#1a1a1a':'#fff'),borderRadius:10,padding:'10px 12px',border:'1px solid '+(f.isMe?RED+'33':i<3?rc[i]+'33':'#eee'),display:'flex',alignItems:'center',gap:9,boxShadow:'0 1px 4px rgba(0,0,0,0.04)',cursor:f.isMe?'default':'pointer'}}>
                   <div className='rj' style={{color:i<3?rc[i]:'#bbb',fontSize:i>=999?11:i>=99?14:18,width:38,flexShrink:0,textAlign:'center',whiteSpace:'nowrap'}}>#{i+1}</div>
                   {f.avatar_url?<img loading="lazy" src={f.avatar_url} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover',flexShrink:0}} alt={f.name}/>:<div style={{fontSize:22}}>{f.emoji||''}</div>}
                   <div style={{flex:1}}>
                     <div style={{display:'flex',alignItems:'center',gap:4}}>
                       <div style={{color:f.isMe?RED:(darkMode?'#fff':'#1a1a1a'),fontWeight:700,fontSize:13}}>{f.name}</div>
-                      {f.isMe&&<div style={{background:'#fdf0ef',border:'1px solid '+RED+'44',borderRadius:3,padding:'1px 4px',color:RED,fontSize:8,fontWeight:700}}>ICH</div>}
+                      {f.isMe&&<div style={{background:'#fdf0ef',border:'1px solid '+RED+'44',borderRadius:3,padding:'1px 4px',color:RED,fontSize:10,fontWeight:700}}>ICH</div>}
                       {(()=>{
                         const rec=(f.isMe?(profile.record_verified||myProfile?.record_verified):f.record_verified)==='verified';
                         const gym=f.isMe?(myProfile?.gym_verified===true||!!gymVerified):f.gym_verified===true;
-                        if(rec&&gym)return <div style={{background:'#27ae6018',border:'1px solid #27ae6055',borderRadius:3,padding:'1px 4px',color:'#27ae60',fontSize:8,fontWeight:700}}>{L('✓ VERIFIZIERT', '✓ VERIFIED', '✓ VÉRIFIÉ', '✓ VERIFICADO')}</div>;
+                        if(rec&&gym)return <div style={{background:'#27ae6018',border:'1px solid #27ae6055',borderRadius:3,padding:'1px 4px',color:'#27ae60',fontSize:10,fontWeight:700}}>{L('✓ VERIFIZIERT', '✓ VERIFIED', '✓ VÉRIFIÉ', '✓ VERIFICADO')}</div>;
                         return null;
                       })()}
                     </div>
@@ -5384,7 +5403,7 @@ function MainApp(){
                 </div>);
               })}
             </div>
-            <div style={{color:'#ddd',fontSize:9,textAlign:'center',marginTop:11,letterSpacing:1}}>{t.rankFormula}</div>
+            <div style={{color:'#ddd',fontSize:10,textAlign:'center',marginTop:11,letterSpacing:1}}>{t.rankFormula}</div>
           </div>
         )}
 
@@ -5397,7 +5416,7 @@ function MainApp(){
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:10}}>
               {filteredT.map((tr,i)=>(
-                <div key={tr.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:13,border:'1px solid '+tr.accent+(darkMode?'55':'33'),overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.06)'}}>
+                <div key={tr.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:14,border:'1px solid '+tr.accent+(darkMode?'55':'33'),overflow:'hidden',boxShadow:'0 1px 6px rgba(0,0,0,0.06)'}}>
                   <div style={{height:3,background:`linear-gradient(90deg,${tr.accent},transparent)`}}/>
                   <div style={{padding:'14px'}}>
                     <div style={{display:'flex',gap:12,alignItems:'flex-start'}}>
@@ -5414,7 +5433,7 @@ function MainApp(){
                       </div>
                     </div>
                     <div style={{marginTop:9,color:darkMode?'#ccc':'#666',fontSize:12,borderTop:'1px solid '+(darkMode?'#2a2a2a':'#eee'),paddingTop:8}}>{tr.bio}</div>
-                    <div style={{marginTop:8,background:darkMode?'#2a2a2a':'#f8f8f8',borderRadius:7,padding:'7px 10px'}}><div style={{color:'#aaa',fontSize:9,letterSpacing:1,marginBottom:3}}>{L('BEKANNTE SCHUELER', 'KNOWN STUDENTS', 'ÉLÈVES CONNUS', 'ALUMNOS CONOCIDOS')}</div><div style={{color:darkMode?'#ccc':'#666',fontSize:12,fontWeight:600}}>{tr.pupils}</div></div>
+                    <div style={{marginTop:8,background:darkMode?'#2a2a2a':'#f8f8f8',borderRadius:8,padding:'7px 10px'}}><div style={{color:'#aaa',fontSize:10,letterSpacing:1,marginBottom:3}}>{L('BEKANNTE SCHUELER', 'KNOWN STUDENTS', 'ÉLÈVES CONNUS', 'ALUMNOS CONOCIDOS')}</div><div style={{color:darkMode?'#ccc':'#666',fontSize:12,fontWeight:600}}>{tr.pupils}</div></div>
                     <div style={{marginTop:8,height:3,background:'#f0f0f0',borderRadius:2}}><div style={{height:'100%',width:(tr.rating/10*100)+'%',background:`linear-gradient(90deg,${tr.accent},${tr.accent}66)`,borderRadius:2}}/></div>
                   </div>
                 </div>
@@ -5428,7 +5447,7 @@ function MainApp(){
             <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:22,letterSpacing:3,marginBottom:4}}>{L('SPORTARTEN', 'SPORTS', 'SPORTS', 'DEPORTES')}</div>
             <div style={{color:'#888',fontSize:12,marginBottom:11}}>{t.findEventsCity}</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7,marginBottom:14}}>
-              {Object.keys(SPORTS).map(s=>{const{color,emoji}=SPORTS[s];const sel=sport===s;return(<button key={s} onClick={()=>setSport(s)} style={{padding:'12px 10px',borderRadius:11,background:sel?color+'25':(darkMode?'#1a1a1a':'#fff'),border:'1px solid '+(sel?color:(darkMode?'#2a2a2a':'#eee')),cursor:'pointer',transition:'all 0.2s',textAlign:'left',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}><div style={{fontSize:22,marginBottom:4}}>{emoji}</div><div style={{color:sel?color:'#555',fontWeight:700,fontSize:13}}>{s}</div><div style={{color:darkMode?'#666':'#bbb',fontSize:10,marginTop:2}}>{SPORTS[s].games.length} Events</div></button>);})}
+              {Object.keys(SPORTS).map(s=>{const{color,emoji}=SPORTS[s];const sel=sport===s;return(<button key={s} onClick={()=>setSport(s)} style={{padding:'12px 10px',borderRadius:12,background:sel?color+'25':(darkMode?'#1a1a1a':'#fff'),border:'1px solid '+(sel?color:(darkMode?'#2a2a2a':'#eee')),cursor:'pointer',transition:'all 0.2s',textAlign:'left',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}><div style={{fontSize:22,marginBottom:4}}>{emoji}</div><div style={{color:sel?color:'#555',fontWeight:700,fontSize:13}}>{s}</div><div style={{color:darkMode?'#666':'#bbb',fontSize:10,marginTop:2}}>{SPORTS[s].games.length} Events</div></button>);})}
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:9}}>
               {SPORTS[sport].games.map(game=>{
@@ -5457,7 +5476,7 @@ function MainApp(){
       </div>
 
       <div style={{position:'fixed',bottom:0,left:0,right:0,background:darkMode?'#1a1a1a':'#fff',borderTop:'1px solid '+(darkMode?'#2a2a2a':'#e8e8e8'),display:'flex',height:'calc(60px + env(safe-area-inset-bottom))',paddingBottom:'env(safe-area-inset-bottom)',zIndex:50,boxShadow:'0 -2px 12px rgba(0,0,0,0.06)'}}>
-        {tabs.map(([id,iconOrKey,label])=>{const icon=iconOrKey==='unread'?'💬':iconOrKey;const showBadge=iconOrKey==='unread'&&unreadCount>0&&tab!=='chat';return(<button key={id} onClick={()=>{setTab(id);if(id==='chat'){dbMatches.forEach(m=>localStorage.setItem('fighter_last_read_'+m.id,new Date().toISOString()));setUnreadCount(0);}}} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer',gap:2,borderTop:tab===id?'2px solid '+RED:'2px solid transparent',transition:'all 0.2s',position:'relative'}}><div style={{position:'relative',display:'inline-block'}}><div style={{fontSize:15,opacity:tab===id?1:0.4}}>{icon}</div>{showBadge&&<div style={{position:'absolute',top:-3,right:-5,width:14,height:14,borderRadius:'50%',background:RED,border:'1.5px solid '+(darkMode?'#0d0d0d':'#f5f5f7'),display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{color:'#fff',fontSize:7,fontWeight:700}}>{unreadCount>9?'9+':unreadCount}</span></div>}</div><div style={{color:tab===id?RED:(darkMode?'#666':'#aaa'),fontSize:9,fontFamily:'DM Sans,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:0.5}}>{label}</div></button>);})}
+        {tabs.map(([id,iconOrKey,label])=>{const icon=iconOrKey==='unread'?'💬':iconOrKey;const showBadge=iconOrKey==='unread'&&unreadCount>0&&tab!=='chat';return(<button key={id} onClick={()=>{tapLight();setTab(id);if(id==='chat'){dbMatches.forEach(m=>localStorage.setItem('fighter_last_read_'+m.id,new Date().toISOString()));setUnreadCount(0);}}} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer',gap:2,borderTop:tab===id?'2px solid '+RED:'2px solid transparent',transition:'all 0.2s',position:'relative'}}><div style={{position:'relative',display:'inline-block'}}><div style={{fontSize:15,opacity:tab===id?1:0.4}}>{icon}</div>{showBadge&&<div style={{position:'absolute',top:-3,right:-5,width:14,height:14,borderRadius:'50%',background:RED,border:'1.5px solid '+(darkMode?'#0d0d0d':'#f5f5f7'),display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{color:'#fff',fontSize:7,fontWeight:700}}>{unreadCount>9?'9+':unreadCount}</span></div>}</div><div style={{color:tab===id?RED:(darkMode?'#666':'#aaa'),fontSize:10,fontFamily:'DM Sans,sans-serif',fontWeight:700,textTransform:'uppercase',letterSpacing:0.5}}>{label}</div></button>);})}
       </div>
 
       {/* GYM VERIFY OVERLAY */}
