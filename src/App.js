@@ -33,6 +33,7 @@ import { rankCompare } from './rankOrder';
 import CityPicker from './CityPicker';
 import { loadCityIndex, nearestCity } from './cityIndex';
 import { matchDistanceKm } from './geoDist';
+import { checkMyPhotos, reportProfile, fetchPhotoNotice } from './photoCheck';
 import { LEARNED_MATCHING_ON, featuresOf, learnPrefs, learnedBonusKm, samplesFromSwipes } from './learnedMatch';
 import { SkeletonCard, SkeletonRank } from './Skeleton';
 import { tapLight, tapMedium, success as hapticSuccess } from './haptics';
@@ -285,6 +286,30 @@ function MainApp(){
   const [gymCodeInput,setGymCodeInput]=useState('');
   const [gymVerifyError,setGymVerifyError]=useState('');
   const [reportSent,setReportSent]=useState({});
+  // Foto-Pruefung (Duplikate, unzulaessige Inhalte): laeuft auf dem Server (Edge Function check-photos).
+  // Beim Start und kurz nach jeder Aenderung am Profil-, Trainer- oder Galeriefoto.
+  // Auffaellige Fotos blendet der Server aus; hier ziehen wir nur den Zustand nach.
+  const [photoNotice,setPhotoNotice]=useState(null);
+  useEffect(()=>{
+    if(!session?.token||!myProfile?.id)return;
+    const tk=session.token;
+    const timer=setTimeout(async()=>{
+      const hidden=await checkMyPhotos(tk);
+      hidden.forEach(h=>{
+        if(h.kind==='avatar'){setAvatarUrl(null);setAvatarPreview(null);setMyProfile(p=>p?{...p,avatar_url:null}:p);}
+        else if(h.kind==='coach'){setCoachAvatarPreview(null);setMyProfile(p=>p?{...p,coach_avatar_url:null}:p);}
+        else if(h.kind==='gallery'){setMyGallery(g=>g.filter(u=>String(u).split('?')[0]!==h.url));}
+      });
+    },2500);
+    return()=>clearTimeout(timer);
+  },[session?.token,myProfile?.id,myProfile?.avatar_url,myProfile?.coach_avatar_url,avatarUrl,myGallery.join('|')]);
+  // Fehlt das Profilbild, weil es geprueft wird oder entfernt wurde, sagt die App warum
+  useEffect(()=>{
+    if(!session?.token||!myProfile?.id||myProfile.avatar_url){setPhotoNotice(null);return;}
+    let alive=true;
+    fetchPhotoNotice(session.token,myProfile.id).then(n=>{if(alive)setPhotoNotice(n);});
+    return()=>{alive=false;};
+  },[session?.token,myProfile?.id,myProfile?.avatar_url]);
   const [viewProfileHistory,setViewProfileHistory]=useState([]);
   const [viewProfileVer,setViewProfileVer]=useState(null);
   const [city,setCity]=useState('Berlin');
@@ -3028,10 +3053,13 @@ function MainApp(){
           }} style={{flex:1,padding:'11px',borderRadius:10,background:darkMode?'#2a1a1a':'#fff5f5',border:'1px solid #c0392b44',color:'#c0392b',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
             🚫 {blockedUsers.includes(viewProfile.id)?'Entsperren':'Blockieren'}
           </button>
-          <button onClick={()=>{
+          <button onClick={async()=>{
             if(reportSent[viewProfile.id]){showMsg('Bereits gemeldet');return;}
             setReportSent(r=>({...r,[viewProfile.id]:true}));
-            showMsg(L('Profil wurde gemeldet ✓', 'Profile reported ✓', 'Profil signalé ✓', 'Perfil reportado ✓'));
+            const reportedId=viewProfile.id;
+            const ok=await reportProfile(session?.token,{reportedId,reportedName:viewProfile.name,reason:'Gemeldet aus Profil'});
+            if(ok){showMsg(L('Profil wurde gemeldet ✓', 'Profile reported ✓', 'Profil signalé ✓', 'Perfil reportado ✓'));}
+            else{setReportSent(r=>({...r,[reportedId]:false}));showMsg(L('Melden hat nicht geklappt. Bitte später noch einmal versuchen.', 'Reporting failed. Please try again later.', 'Le signalement a échoué. Réessaie plus tard.', 'No se pudo reportar. Inténtalo más tarde.'));}
           }} style={{flex:1,padding:'11px',borderRadius:10,background:darkMode?'#1a1a2a':'#f5f5ff',border:'1px solid #2980b944',color:'#2980b9',fontFamily:'DM Sans,sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
             {reportSent[viewProfile.id]?'✓ Gemeldet':'⚠️ Melden'}
           </button>
@@ -3933,8 +3961,8 @@ function MainApp(){
         {myProfile&&!myProfile.avatar_url&&(
           <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(13,13,13,0.97)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 24px',textAlign:'center'}}>
             <div style={{fontSize:54,marginBottom:18}}>📸</div>
-            <div className='rj' style={{fontSize:28,color:'#fff',letterSpacing:2,marginBottom:14}}>{L('PROFILBILD FEHLT', 'PHOTO REQUIRED', 'PHOTO REQUISE', 'FALTA LA FOTO')}</div>
-            <div style={{color:'rgba(255,255,255,0.7)',fontSize:15,lineHeight:1.6,maxWidth:320,marginBottom:24,fontFamily:'DM Sans,sans-serif'}}>{L('Lade ein Profilbild hoch. Ohne Foto wirst du NICHT in den Swipe-Karten angezeigt.', 'Add a profile photo. Without one you will NOT appear in the swipe cards.', 'Ajoute une photo de profil. Sans photo, tu n\'apparais PAS dans les cartes de swipe.', 'Sube una foto de perfil. Sin foto NO aparecerás en las tarjetas de swipe.')}</div>
+            <div className='rj' style={{fontSize:28,color:'#fff',letterSpacing:2,marginBottom:14}}>{photoNotice==='removed'?L('FOTO ENTFERNT', 'PHOTO REMOVED', 'PHOTO SUPPRIMÉE', 'FOTO ELIMINADA'):photoNotice==='hold'?L('FOTO WIRD GEPRÜFT', 'PHOTO UNDER REVIEW', 'PHOTO EN VÉRIFICATION', 'FOTO EN REVISIÓN'):L('PROFILBILD FEHLT', 'PHOTO REQUIRED', 'PHOTO REQUISE', 'FALTA LA FOTO')}</div>
+            <div style={{color:'rgba(255,255,255,0.7)',fontSize:15,lineHeight:1.6,maxWidth:320,marginBottom:24,fontFamily:'DM Sans,sans-serif'}}>{photoNotice==='removed'?L('Dein Foto wurde entfernt, weil es gegen die Regeln verstößt. Bitte lade ein anderes Profilbild hoch.', 'Your photo was removed because it breaks the rules. Please upload a different profile photo.', 'Ta photo a été retirée car elle ne respecte pas les règles. Charge une autre photo de profil.', 'Tu foto se eliminó porque incumple las normas. Sube otra foto de perfil.'):photoNotice==='hold'?L('Wir prüfen dein Foto kurz. Du kannst jederzeit ein anderes hochladen. Bis dahin wirst du in den Swipe-Karten nicht angezeigt.', 'We are checking your photo. You can upload a different one at any time. Until then you will not appear in the swipe cards.', 'Nous vérifions ta photo. Tu peux en charger une autre à tout moment. Jusque-là, tu n’apparais pas dans les cartes de swipe.', 'Estamos revisando tu foto. Puedes subir otra en cualquier momento. Hasta entonces no aparecerás en las tarjetas de swipe.'):L('Lade ein Profilbild hoch. Ohne Foto wirst du NICHT in den Swipe-Karten angezeigt.', 'Add a profile photo. Without one you will NOT appear in the swipe cards.', 'Ajoute une photo de profil. Sans photo, tu n\'apparais PAS dans les cartes de swipe.', 'Sube una foto de perfil. Sin foto NO aparecerás en las tarjetas de swipe.')}</div>
             {avatarPreview&&<img loading="lazy" src={avatarPreview} alt='' style={{width:120,height:120,borderRadius:'50%',objectFit:'cover',border:'3px solid '+RED,marginBottom:20}}/>}
             <label style={{display:'inline-block',padding:'14px 28px',borderRadius:12,background:'rgba(255,255,255,0.1)',color:'#fff',border:'1px solid rgba(255,255,255,0.25)',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:16,letterSpacing:1,cursor:'pointer',marginBottom:14}}>
               {uploading?(L('Lädt...', 'Uploading...', 'Chargement...', 'Subiendo...')):avatarPreview?(L('Foto ändern', 'Change photo', 'Changer la photo', 'Cambiar foto')):(L('Foto auswählen', 'Choose photo', 'Choisir une photo', 'Elegir foto'))}

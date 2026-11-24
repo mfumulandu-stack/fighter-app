@@ -18,6 +18,7 @@
 import React, { useState, useEffect } from 'react';
 import { SUPA_URL, SUPA_KEY, RED, APP_STORE_ID } from './constants';
 import { adminFetch, uploadPhoto } from './supabaseApi';
+import { photoFn, REASON_LABEL } from './photoCheck';
 import { buildTimeSeries, activeUserCounts, countSince, equipmentRanking, totalEquipmentClicks, eventRevenue, eventParticipationStats, gymStats, rankingActiveCount, DAY_MS } from './adminAnalytics';
 import { participantStatus, adminStatusLabel, capacityCount, paidAmount, revenueOf, paidCount, activeMembersFor, unpaidRows } from './eventPayment';
 
@@ -86,6 +87,9 @@ export default function AdminPanel({
   const [adminTab,setAdminTab]=useState('gyms');
   const [adminUsers,setAdminUsers]=useState([]);
   const [adminReports,setAdminReports]=useState([]);
+  const [photoItems,setPhotoItems]=useState([]);
+  const [photoBusy,setPhotoBusy]=useState(false);
+  const [photoInfo,setPhotoInfo]=useState('');
   const [adminRecords,setAdminRecords]=useState([]);
   const [adminGymName,setAdminGymName]=useState('');
   const [adminGymCity,setAdminGymCity]=useState('');
@@ -235,7 +239,7 @@ export default function AdminPanel({
               {[
                 {label:'ÜBERSICHT',items:[['dashboard','📈','Dashboard']]},
                 {label:'GYMS',items:[['gyms','🏋️','Gyms verwalten'],['gymcodes','🔑','Codes'],['addcity','🌍','Neue Stadt']]},
-                {label:'COMMUNITY',items:[['users','👤','Nutzer'],['broadcast','📢','Push & Broadcast'],['reports','🚨','Meldungen'],['records','🏅','Rekorde'],['feedback','💬','Feedback']]},
+                {label:'COMMUNITY',items:[['users','👤','Nutzer'],['broadcast','📢','Push & Broadcast'],['reports','🚨','Meldungen'],['photos','🖼️','Foto-Prüfung'],['records','🏅','Rekorde'],['feedback','💬','Feedback']]},
                 {label:'PARTNER',items:[['equipment','🥊','Equipment'],['supplements','💊','Supplements']]},
                 {label:'SONSTIGES',items:[['events','📅','Events'],['stats','📊','Statistiken'],['scanner','🔍','Scanner']]},
               ].map(group=>(
@@ -1107,6 +1111,77 @@ export default function AdminPanel({
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* ── FOTO-PRÜFUNG (Duplikate, unzulässige Inhalte) ── */}
+            {adminTab==='photos'&&(
+              <div>
+                <div className='rj' style={{color:darkMode?'#fff':'#1a1a1a',fontSize:14,letterSpacing:2,marginBottom:6}}>🖼️ FOTO-PRÜFUNG</div>
+                <div style={{color:'#aaa',fontSize:11,lineHeight:1.5,marginBottom:12}}>Neue Fotos werden automatisch geprüft. Auffällige sind ausgeblendet (AUSGEBLENDET) oder bleiben bis zu deiner Entscheidung sichtbar (SICHTBAR, z. B. beim Bestand).</div>
+                <div style={{display:'flex',gap:8,marginBottom:10}}>
+                  <button onClick={async()=>{
+                    try{
+                      const r=await photoFn('list',{},session?.token);
+                      if(r.ok&&r.data&&Array.isArray(r.data.items)){setPhotoItems(r.data.items);setPhotoInfo(r.data.items.length+' offene Fälle'+(r.data.moderation?'':' · Inhaltsprüfung noch nicht eingerichtet (nur Duplikate)')+(r.data.enforce?'':' · Probephase: es wird nur markiert, nichts ausgeblendet'));}
+                      else{setPhotoItems([]);setPhotoInfo('❌ '+((r.data&&r.data.error)||('Fehler '+r.status)));}
+                    }catch(e){setPhotoItems([]);setPhotoInfo('❌ '+e.message);}
+                  }} style={{flex:1,padding:'10px',borderRadius:8,background:RED,border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>FÄLLE LADEN</button>
+                  <button disabled={photoBusy} onClick={async()=>{
+                    if(photoBusy)return;
+                    setPhotoBusy(true);setPhotoInfo('Prüfung läuft …');
+                    let cursor=null,analyzed=0,flagged=0,calls=0;
+                    try{
+                      for(;;){
+                        const r=await photoFn('sweep',{cursor,mode:'report'},session?.token);
+                        if(!r.ok||!r.data||r.data.error){setPhotoInfo('❌ '+((r.data&&r.data.error)||('Fehler '+r.status)));break;}
+                        analyzed+=r.data.analyzed;flagged+=r.data.flagged;cursor=r.data.cursor;calls++;
+                        setPhotoInfo('Prüfe … '+analyzed+' Fotos analysiert, '+flagged+' auffällig'+(r.data.errors?(' ('+r.data.errors+' Fehler)'):''));
+                        if(r.data.done||calls>500){setPhotoInfo('✅ Fertig: '+analyzed+' Fotos analysiert, '+flagged+' auffällig'+(r.data.moderation?'':' · Inhaltsprüfung noch nicht eingerichtet (nur Duplikate)')+(r.data.enforce?'':' · Probephase: es wird nur markiert'));break;}
+                      }
+                    }catch(e){setPhotoInfo('❌ '+e.message);}
+                    setPhotoBusy(false);
+                  }} style={{flex:1,padding:'10px',borderRadius:8,background:photoBusy?'#888':(darkMode?'#2a2a2a':'#333'),border:'none',color:'#fff',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:14,cursor:photoBusy?'not-allowed':'pointer'}}>{photoBusy?'PRÜFT …':'BESTAND PRÜFEN'}</button>
+                </div>
+                {photoInfo&&<div style={{color:darkMode?'#ccc':'#555',fontSize:12,marginBottom:12}}>{photoInfo}</div>}
+                {photoItems.length===0&&<div style={{color:'#aaa',fontSize:12,textAlign:'center',padding:'20px 0'}}>Keine offenen Fälle</div>}
+                {photoItems.map(it=>{
+                  const dupP=it.dup_profile;
+                  const done=(msg)=>{setPhotoItems(prev=>prev.filter(x=>x.id!==it.id));showMsg(msg);};
+                  return(
+                    <div key={it.id} style={{background:darkMode?'#1a1a1a':'#fff',borderRadius:10,padding:12,border:'1px solid '+(it.status==='hold'?'#e74c3c44':'#d4a01744'),marginBottom:8}}>
+                      <div style={{display:'flex',gap:10,marginBottom:8}}>
+                        <img loading='lazy' src={it.url} alt='' style={{width:110,height:110,objectFit:'cover',borderRadius:8,background:'#222',flexShrink:0}}/>
+                        {dupP&&dupP.avatar_url&&<img loading='lazy' src={dupP.avatar_url} alt='' style={{width:110,height:110,objectFit:'cover',borderRadius:8,background:'#222',flexShrink:0,opacity:0.85}}/>}
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{color:darkMode?'#fff':'#1a1a1a',fontSize:13,fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{it.profile?it.profile.name:String(it.profile_id).slice(0,8)}</div>
+                          <div style={{color:'#aaa',fontSize:10,marginBottom:4}}>{it.profile&&it.profile.city?it.profile.city+' · ':''}{it.kind==='avatar'?'Profilbild':it.kind==='coach'?'Trainerfoto':'Galerie'}</div>
+                          <div style={{display:'inline-block',background:it.status==='hold'?'#e74c3c22':'#d4a01722',color:it.status==='hold'?'#e74c3c':'#d4a017',borderRadius:6,padding:'2px 7px',fontSize:10,fontWeight:700,marginBottom:4}}>{it.status==='hold'?'AUSGEBLENDET':'SICHTBAR'}</div>
+                          <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                            {(it.reasons||[]).map(r=><span key={r} style={{background:darkMode?'#2a2a2a':'#f0f0f0',color:darkMode?'#ccc':'#555',borderRadius:6,padding:'2px 6px',fontSize:10}}>{REASON_LABEL[r]||r}</span>)}
+                          </div>
+                          {dupP&&<div style={{color:'#aaa',fontSize:10,marginTop:4}}>Gleich wie: <strong style={{color:darkMode?'#ddd':'#333'}}>{dupP.name}</strong>{dupP.city?' ('+dupP.city+')':''} · rechts das Bild des anderen Profils</div>}
+                        </div>
+                      </div>
+                      <div style={{display:'flex',gap:6}}>
+                        <button onClick={async()=>{
+                          const r=await photoFn('review',{id:it.id,decision:'approve'},session?.token);
+                          if(r.ok)done('Foto behalten ✓');else showMsg('❌ '+((r.data&&r.data.error)||('Fehler '+r.status)));
+                        }} style={{flex:1,padding:'8px',borderRadius:7,background:darkMode?'#2a2a2a':'#f0f0f0',border:'none',color:darkMode?'#ccc':'#555',fontSize:11,fontWeight:700,cursor:'pointer'}}>✓ Behalten</button>
+                        <button onClick={async()=>{
+                          const r=await photoFn('review',{id:it.id,decision:'reject'},session?.token);
+                          if(r.ok)done('Foto gelöscht 🗑');else showMsg('❌ '+((r.data&&r.data.error)||('Fehler '+r.status)));
+                        }} style={{flex:1,padding:'8px',borderRadius:7,background:'#e67e22',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>🗑 Löschen</button>
+                        <button onClick={async()=>{
+                          const r=await photoFn('review',{id:it.id,decision:'reject'},session?.token);
+                          if(!r.ok){showMsg('❌ '+((r.data&&r.data.error)||('Fehler '+r.status)));return;}
+                          await adminFetch(SUPA_URL+'/rest/v1/profiles?id=eq.'+it.profile_id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({banned:true})},session?.token);
+                          done('Foto gelöscht, Nutzer gesperrt 🚫');
+                        }} style={{flex:1,padding:'8px',borderRadius:7,background:'#e74c3c',border:'none',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>🚫 + Sperren</button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
